@@ -1,0 +1,90 @@
+domain-knowledge/
+│
+├── cobertura/
+│   ├── cobertura.md                 // Explica qué es una cobertura y cuál es su función administrativa.
+│   ├── estructura.md                // Describe cómo se organiza internamente una cobertura.
+│   ├── autoridades.md               // Explica las autoridades responsables de una cobertura.
+│   └── iglesias.md                  // Describe cómo una cobertura administra varias iglesias.
+│
+├── iglesia/
+│   ├── iglesia.md                   // Define qué es una iglesia dentro de la organización.
+│   ├── vision.md                    // Explica la visión, misión y propósito de la iglesia.
+│   ├── estructura.md                // Describe la estructura organizativa de la iglesia.
+│   ├── autoridades.md               // Explica las principales autoridades de la iglesia.
+│   └── reuniones.md                 // Describe los tipos de reuniones que realiza la iglesia.
+│
+├── departamentos/
+│   ├── departamentos.md             // Presenta todos los departamentos y sus responsabilidades.
+│   ├── evangelismo.md               // Explica las funciones del departamento de evangelismo.
+│   ├── afirmacion.md                // Explica las funciones del departamento de afirmación.
+│   ├── discipulado.md               // Explica las funciones del departamento de discipulado.
+│   ├── envio.md                     // Explica las funciones del departamento de envío.
+│   └── operadores.md                // Describe el apoyo que brindan los operadores.
+│
+├── redes/
+│   ├── redes.md                     // Define qué es una red y cuál es su propósito.
+│   ├── lider-red.md                 // Explica las responsabilidades del líder de red.
+│   ├── estructura.md                // Describe cómo se organiza internamente una red.
+│   └── casas-paz.md                 // Explica la relación entre redes y casas de paz.
+│
+├── casas-de-paz/
+│   ├── casa-paz.md                  // Define qué es una casa de paz y su finalidad.
+│   ├── reuniones.md                 // Explica cómo se desarrollan las reuniones semanales.
+│   ├── lider.md                     // Describe las funciones del líder de casa de paz.
+│   ├── sublider.md                  // Explica el rol y apoyo del sublíder.
+│   ├── anfitrion.md                 // Describe la función del anfitrión y su domicilio.
+│   ├── estructura.md                // Explica cómo se organiza una casa de paz.
+│   └── miembros_de_cdp.md
+│
+├── ministerios/
+│   ├── ministerios.md               // Presenta todos los ministerios existentes en la iglesia.
+│   ├── alabanza.md                  // Explica las funciones del ministerio de alabanza.
+│   ├── danza.md                     // Explica las funciones del ministerio de danza.
+│   ├── comunicacion.md              // Explica las funciones del ministerio de comunicación.
+│   ├── ninos.md                     // Explica las funciones del ministerio de niños.
+│   ├── jovenes.md                   // Explica las funciones del ministerio de jóvenes.
+│   ├── protocolo.md                 // Explica las funciones del ministerio de protocolo.
+│   ├── parqueo.md                   // Explica las funciones del ministerio de parqueo.
+│   ├── cocina.md                    // Explica las funciones del ministerio de cocina.
+│   ├── evangelismo.md               // Explica las funciones del ministerio de evangelismo.
+│   └── evangelismo-elite.md         // Explica las funciones del ministerio evangelismo élite.
+│
+├── cargos/
+│   ├── cargos.md                    // Presenta todos los cargos existentes en la organización.
+│   ├── miembro.md                   // Explica el rol y responsabilidades de un miembro.
+│   ├── sublider.md                  // Describe el cargo y funciones del sublíder.
+│   ├── lider-casa-paz.md            // Explica el cargo de líder de casa de paz.
+│   ├── lider-red.md                 // Describe el cargo y responsabilidades del líder de red.
+│   ├── lider-departamento.md        // Explica el cargo de líder de departamento.
+│   ├── operador.md                  // Describe las funciones de apoyo de un operador.
+│   ├── diacono.md                   // Explica el significado y funciones del diácono.
+│   ├── ministro.md                  // Describe el ministerio y responsabilidades del ministro.
+│   ├── pastor.md                    // Explica el rol y responsabilidades del pastor.
+│   ├── evangelista.md               // Describe el ministerio del evangelista.
+│   ├── profeta.md                   // Explica el ministerio y función del profeta.
+│   ├── maestro.md                   // Describe el ministerio y función del maestro.
+│   └── apostol.md                   // Explica el ministerio y responsabilidades del apóstol.
+│
+├── estados/
+│   ├── estados.md                   // Presenta todos los estados posibles de una persona.
+│   ├── evangelizado.md              // Explica cuándo una persona está evangelizada.
+│   ├── nuevo-convertido.md          // Describe el estado de un nuevo convertido.
+│   ├── reconciliado.md              // Explica el estado de una persona reconciliada.
+│   ├── discipulo-activo.md          // Describe cuándo un discípulo es considerado activo.
+│   ├── discipulo-inactivo.md        // Describe cuándo un discípulo es considerado inactivo.
+│   └── criterios.md                 // Explica cómo cambian los estados de una persona.
+│
+├── finanzas/
+│   ├── finanzas.md                  // Describe el área de finanzas dentro de la iglesia.
+│   ├── ofrendas.md                  // Explica el registro y control de las ofrendas.
+│   └── reportes.md                  // Describe los reportes generados por el área.
+│
+├── relaciones/
+│   ├── jerarquia.md                 // Explica la jerarquía entre todas las entidades.
+│   ├── entidades.md                 // Describe cómo se relacionan las diferentes entidades.
+│   └── flujo.md                     // Explica el flujo organizativo entre las áreas.
+│
+└── glosario/
+    ├── glosario.md                  // Contiene los términos más utilizados en la organización.
+    ├── siglas.md                    // Explica el significado de todas las siglas.
+    └── definiciones.md              // Reúne definiciones importantes del dominio.

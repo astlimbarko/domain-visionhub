@@ -1,0 +1,7 @@
+/*
+!.gitignore
+!/domain_knowledge
+!/domain_knowledge/**
+!/rules
+!/rules/**
+!/estructura.txt
