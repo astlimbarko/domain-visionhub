@@ -2,102 +2,127 @@
 
 ## Descripcion
 
-La iglesia es una congregacion local que funciona como una unidad independiente dentro de una cobertura. Posee sus propias autoridades, departamentos, ministerios, redes y miembros. Todas las actividades espirituales, reuniones, capacitaciones, administracion y atencion pastoral se desarrollan dentro de la iglesia local.
+La iglesia es una congregacion local que funciona como una unidad independiente dentro de una cobertura. Posee sus propias autoridades, departamentos, ministerios, redes y miembros. Cada iglesia forma parte de una cobertura, que es la unidad administrativa superior que agrupa varias iglesias bajo una misma autoridad espiritual y administrativa.
 
-Cada iglesia forma parte de una cobertura, que es la unidad administrativa superior que agrupa varias iglesias bajo una misma autoridad espiritual y administrativa.
+## Vision
 
-## Objetivo
+La vision representa la direccion estrategica y espiritual que guia todas las actividades, ministerios y decisiones. Esta alineada con la vision comun de la cobertura.
 
-Ser la unidad congregacional donde los creyentes se reunen, crecen espiritualmente, reciben ensenanza y atencion pastoral, y participan activamente en el ministerio y la vision de la cobertura a la que pertenecen.
+### Vision de la cobertura vs. iglesia local
+
+- La cobertura establece una vision comun que todas las iglesias comparten y promueven.
+- Cada iglesia local puede tener una expresion particular, adaptada a su contexto.
+- La vision local no debe contradecir ni desviarse de la vision de la cobertura.
+- El apostol vela por la alineacion de todas las visiones locales.
+
+### Cambios en la vision
+
+- **Cambios estructurales**: Modifican fundamentos, pilares o elementos centrales. Son realizados unicamente por el apostol de cobertura.
+- **Cambios no estructurales**: Son ajustes locales o superficiales. Pueden ser realizados por cada pastor mientras no alteren los fundamentos.
+
+### Vision de iglesia vs. vision personal
+
+La vision es unica para todas las iglesias de la cobertura. La vision impartida desde Cochabamba por el apostol Edgar Ortuño es la misma para todas las congregaciones. No existen visiones personales o locales que sustituyan la vision central.
+
+### Implementacion
+
+Una vez definida, la vision debe:
+- Ser comunicada claramente a todos los miembros.
+- Guiar la planificacion de actividades, ministerios y reuniones.
+- Servir como criterio para la evaluacion de resultados.
+- Ser revisada periodicamente para asegurar su relevancia.
+
+## Estructura interna
+
+### Niveles estructurales
+
+1. **Nivel Apostolico/Pastoral:** Apostol (cobertura) y pastor (local) como maximas autoridades.
+2. **Nivel de Ministerios:** Profetas, evangelistas y maestros. Roles ministeriales, no gerenciales.
+3. **Nivel de Liderazgo:** Ministros, ancianos y lideres de redes, ministerios y departamentos. Ejecutan directrices pastorales.
+4. **Nivel de Servicio:** Diaconos y servidores que apoyan en areas operativas.
+5. **Nivel de Membresia:** Todos los miembros de la congregacion.
+
+### Componentes estructurales
+
+| Componente | Descripcion |
+|---|---|
+| **Apostol** | Maxima autoridad de la cobertura. Supervisa la iglesia. No existen iglesias con varios apostoles. |
+| **Pastor** | Autoridad principal de la iglesia local. Lidera en lo espiritual y administrativo. |
+| **Profeta** | Similar al pastor, predica con uncion para profetizar. No gerencia documentos ni toma decisiones. |
+| **Evangelista** | Evangeliza a escala mayor, crea equipos y capacita. Predica en servicios especiales. |
+| **Maestro** | Ensenanza de la palabra con tecnicismos, capacita teologicamente. Usa palabra revelada. |
+| **Ministro** | Cargo alto por debajo de los 5 ministerios. Ejecuta tareas sobre redes. Predica. |
+| **Anciano** | Por encima de diacono, por debajo de ministro. Predica, puede ser lider de red. |
+| **Diacono** | Persona de servicio. Ejecutor de planes. Ayuda en alabanza y oficios tecnicos. |
+| **Redes** | Grupos de conexion y crecimiento liderados por lideres disenados por el pastor. |
+| **Ministerios** | Areas de servicio espiritual y evangelistico. |
+| **Departamentos** | Areas administrativas: Evangelismo, Afirmacion, Discipulado y Envio. |
+| **Miembros** | Personas que forman parte activa de la congregacion. |
+
+### Flujo de autoridad
+
+- Autoridad: del apostol al pastor, del pastor a los lideres, de los lideres a los miembros.
+- Rendicion de cuentas: en sentido inverso (miembros → lideres → pastor).
+- Los cargos altos normalmente no entregan reporte escrito; todo es oral a su inmediato superior.
+- El pastor responde ante el apostol de la cobertura.
+
+### Modelo de multiplicacion
+
+La iglesia funciona bajo un modelo de **iglesia padre e iglesias hijas**:
+- La iglesia padre forma iglesias hijas.
+- Cada iglesia hija puede convertirse en padre y generar nuevas iglesias.
+- Todas replican exactamente el mismo modelo organizacional.
+- Para formar una nueva iglesia, el apostol o pastor envia a una persona como pastor a un lugar con o sin gente.
+- Se adoptan iglesias establecidas como iglesias hijas, en transformacion que dura anos.
+- El enviado es llamado un hijo espiritual de la casa.
 
 ## Como funciona
 
 ### Vida congregacional
 
-La iglesia local es el centro de la vida espiritual de sus miembros. En ella se desarrollan:
-
-- **Actividades espirituales**: Cultos, oracion, alabanzas, celebraciones y eventos especiales.
-- **Reuniones**: Reuniones generales, de redes, de ministerios y grupos pequenos.
-- **Capacitaciones**: Escuela de lideres, formacion ministerial, discipulado y ensenanza biblica.
-- **Administracion**: Gestion de recursos, finanzas, membresia y registro de actividades.
-- **Atencion pastoral**: Consejeria, acompanamiento, visitas y cuidado espiritual de los miembros.
+- **Actividades espirituales:** Cultos, oracion, alabanzas, celebraciones y eventos especiales.
+- **Reuniones:** Reuniones generales, de redes, de ministerios y grupos pequenos.
+- **Capacitaciones:** Escuela de lideres, formacion ministerial, discipulado y ensenanza biblica.
+- **Administracion:** Gestion de recursos, finanzas, membresia y registro de actividades.
+- **Atencion pastoral:** Conserjeria, acompanamiento, visitas y cuidado espiritual.
 
 ### Relacion con la cobertura
 
-La iglesia opera dentro del marco de una cobertura, lo que implica:
-
-- Compartir una vision comun con las demas iglesias de la cobertura.
+- Compartir una vision comun con las demas iglesias.
 - Estar bajo la supervision y acompanamiento del apostol.
-- Mantener alineacion doctrinal y estrategica con la direccion de la cobertura.
+- Mantener alineacion doctrinal y estrategica.
 - Administrar su funcionamiento cotidiano de manera local e independiente.
-
-### Modelo de multiplicacion
-
-La iglesia funciona bajo un modelo de **iglesia padre e iglesias hijas**:
-- Existe una iglesia padre que forma iglesias hijas.
-- Cada iglesia hija puede convertirse en iglesia padre y generar nuevas iglesias.
-- Todas replican exactamente el mismo modelo organizacional.
-- Para formar una nueva iglesia, el apostol o pastor envia a una persona como pastor, a veces a un lugar donde ya existe gente (casa de paz grande) o a un lugar donde no hay nadie.
-- Se suele dar casos donde se adopta a una iglesia ya establecida como iglesia hija, el resultado es una iglesia hija en transformacion que dura anos poniendo en ejecucion la vision.
-- El enviado a abrir una iglesia es llamado un hijo espiritual de la casa.
-
-### Estructura interna
-
-La iglesia posee su propia estructura organizativa que incluye:
-
-- **Autoridades**: Pastor, ancianos, dialogos, ministros y otros cargos eclesiasticos.
-- **Departamentos**: Areas oficiales de trabajo: Evangelismo, Afirmacion, Discipulado y Envio.
-- **Ministerios**: Equipos especializados de servicio: Alabanza, Danza, Comunicacion, Ninos, Jovenes, Protocolo, Parqueo, Cocina, Evangelismo, Evangelismo Elite, Ujieres, Sonido, Testimonios, Escuderos, Intercesion.
-- **Redes**: Agrupaciones de casas de paz para supervision y coordinacion.
-- **Miembros**: Personas que forman parte de la congregacion.
-
-## Responsables
-
-### Pastor
-Es la principal autoridad de la iglesia local. Es designado por el apostol y tiene la responsabilidad de liderar la congregacion en lo espiritual y administrativo.
-
-**Responsabilidades:**
-- Liderar las actividades espirituales y administrativas de la iglesia.
-- Disenar lideres de red, ministerios y departamentos.
-- Proveer atencion pastoral a los miembros.
-- Implementar la vision comun de la cobertura en el contexto local.
-- Rendir cuentas al apostol sobre el estado de la iglesia.
-
-### Lideres de red
-Son disenados por el pastor para liderar los diferentes grupos o redes dentro de la iglesia.
-
-### Dialogos, ministros y otros cargos
-Apoyan al pastor en las diferentes areas de servicio y ministerio dentro de la iglesia.
 
 ## Relaciones
 
 | Elemento | Relacion con la iglesia |
 |---|---|
-| Cobertura | Unidad administrativa superior a la que pertenece la iglesia. Provee supervision y acompanamiento. |
-| Apostol | Maxima autoridad de la cobertura. Supervisa y acompana la iglesia. Generalmente pastorea una de las iglesias de la cobertura. |
-| Pastor | Autoridad principal de la iglesia local. Designado por el apostol. |
-| Otras iglesias de la cobertura | Hermanas en la misma vision comun. Mantienen relaciones de colaboracion y companerismo. |
-| Miembros | Personas que forman parte de la congregacion y participan de sus actividades. |
-
-## Criterios
-
-- La iglesia debe contar con un pastor designado y reconocido.
-- La iglesia debe estar formalmente integrada a una cobertura.
-- Debe mantener registros actualizados de sus miembros, autoridades y actividades.
-- Debe alinearse con la vision comun y los principios doctrinales de la cobertura.
-- Para formar una nueva iglesia, el apostol o pastor envia a una persona como pastor a un lugar con o sin gente.
-- El proceso de sueno de un hijo espiritual de la casa para abrir una nueva iglesia.
+| **Cobertura** | Unidad administrativa superior. Provee supervision y acompanamiento. |
+| **Apostol** | Maxima autoridad de la cobertura. Supervisa la iglesia. |
+| **Pastor** | Autoridad principal de la iglesia local. Designado por el apostol. |
+| **Otras iglesias** | Hermanas en la misma vision comun. Colaboracion y companerismo. |
+| **Miembros** | Personas que forman parte de la congregacion. |
 
 ## Casos especiales
 
-- **Iglesia en formacion**: Una nueva iglesia que esta siendo establecida dentro de la cobertura, bajo la supervision directa del apostol.
-- **Iglesia sin pastor**: Cuando la iglesia carece de pastor, el apostol puede asumir temporalmente su supervision o disenar un pastor interino.
-- **Iglesia con multiples pastores**: Una iglesia puede tener varios pastores, pero siempre sujetos al pastor principal. No es normal el termino co-pastores. Tambien puede tener varios profetas, evangelistas y maestros, siendo siempre el lider el pastor principal. No existe una iglesia con varios apostoles.
-- **Iglesia en crisis**: Cuando la iglesia enfrenta situaciones dificiles, la cobertura provee acompanamiento y apoyo adicional.
+- **Iglesia en formacion:** Nueva iglesia establecida bajo supervision directa del apostol.
+- **Iglesia sin pastor:** El apostol asume supervision temporal o designa interino.
+- **Iglesia con multiples pastores:** Siempre sujetos al pastor principal. No es normal el termino co-pastores. No existe iglesia con varios apostoles.
+- **Iglesia en crisis:** La cobertura provee acompanamiento y apoyo adicional.
+- **Iglesia pequena:** La estructura se simplifica, el pastor asume multiples roles.
+- **Iglesia en crecimiento:** La estructura se adapta para incorporar nuevos lideres.
+- **Reestructuracion:** Los cambios los determina el apostol. Modelo teocratico, sin proceso formal documentado.
+- **Ausencia del pastor:** Los lideres disenados asumen responsabilidades operativas; decisiones importantes se consultan con el apostol.
 
 ## Observaciones
 
-- Cada iglesia es autonoma en su funcionamiento cotidiano, pero esta integrada en una vision y estructura mayor.
-- Todas las actividades de la iglesia --espirituales, administrativas, de capacitacion y atencion pastoral-- se desarrollan dentro de la congregacion local.
-- No existe un consejo de ancianos u otro organo de gobierno dentro de la iglesia local mas alla del pastor y los lideres disenados por el.
-- Los cargos altos normalmente no entregan reporte escrito, todo es oral a su inmediato superior.
+- Cada iglesia es autonoma en su funcionamiento cotidiano.
+- No existe consejo de ancianos u otro organo de gobierno mas alla del pastor y sus lideres.
+- Los cargos altos normalmente no entregan reporte escrito.
+- La preparacion para tener cargo es el discipulado y ser destacado.
+- Los roles pueden ser femeninos tambien.
+
+## Documentos relacionados
+
+- [Autoridades](autoridades.md)
+- [Reuniones](reuniones.md)

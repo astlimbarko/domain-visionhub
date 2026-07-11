@@ -1,53 +1,32 @@
 domain-knowledge/
 │
 ├── cobertura/
-│   ├── cobertura.md                 // Explica qué es una cobertura y cuál es su función administrativa.
-│   ├── estructura.md                // Describe cómo se organiza internamente una cobertura.
-│   ├── autoridades.md               // Explica las autoridades responsables de una cobertura.
-│   └── iglesias.md                  // Describe cómo una cobertura administra varias iglesias.
+│   ├── cobertura.md                 // Cobertura consolidada: definicion, estructura jerarquica, casos especiales.
+│   └── autoridades.md               // Autoridades de cobertura: apostol, pastores, cargos reconocidos, relaciones.
 │
 ├── iglesia/
-│   ├── iglesia.md                   // Define qué es una iglesia dentro de la organización.
-│   ├── vision.md                    // Explica la visión, misión y propósito de la iglesia.
-│   ├── estructura.md                // Describe la estructura organizativa de la iglesia.
-│   ├── autoridades.md               // Explica las principales autoridades de la iglesia.
-│   └── reuniones.md                 // Describe los tipos de reuniones que realiza la iglesia.
+│   ├── iglesia.md                   // Iglesia consolidada: definicion, vision, estructura, modelo de multiplicacion.
+│   ├── autoridades.md               // Autoridades de iglesia: jerarquia, cargos, designacion, equipo pastoral.
+│   └── reuniones.md                 // Reuniones semanales y eventos anuales.
 │
 ├── departamentos/
-│   ├── departamentos.md             // Presenta todos los departamentos y sus responsabilidades.
-│   ├── evangelismo.md               // Explica las funciones del departamento de evangelismo.
-│   ├── afirmacion.md                // Explica las funciones del departamento de afirmación.
-│   ├── discipulado.md               // Explica las funciones del departamento de discipulado.
-│   ├── envio.md                     // Explica las funciones del departamento de envío.
-│   └── operadores.md                // Describe el apoyo que brindan los operadores.
+│   ├── departamentos.md             // Departamentos consolidados: Evangelismo, Afirmacion, Discipulado, Envio.
+│   └── operadores.md                // Operadores de departamentos.
 │
 ├── redes/
-│   ├── redes.md                     // Define qué es una red y cuál es su propósito.
-│   ├── lider-red.md                 // Explica las responsabilidades del líder de red.
-│   ├── estructura.md                // Describe cómo se organiza internamente una red.
-│   └── casas-paz.md                 // Explica la relación entre redes y casas de paz.
+│   ├── redes.md                     // Redes consolidadas: definicion, lider, estructura, representantes.
+│   └── casas-paz.md                 // Relacion entre redes y casas de paz.
 │
 ├── casas-de-paz/
 │   ├── casa-paz.md                  // Define qué es una casa de paz y su finalidad.
 │   ├── reuniones.md                 // Explica cómo se desarrollan las reuniones semanales.
-│   ├── lider.md                     // Describe las funciones del líder de casa de paz.
-│   ├── sublider.md                  // Explica el rol y apoyo del sublíder.
+│   ├── lider.md                     // Lider y sublider de casa de paz consolidados.
 │   ├── anfitrion.md                 // Describe la función del anfitrión y su domicilio.
 │   ├── estructura.md                // Explica cómo se organiza una casa de paz.
 │   └── miembros_de_cdp.md
 │
 ├── ministerios/
-│   ├── ministerios.md               // Presenta todos los ministerios existentes en la iglesia.
-│   ├── alabanza.md                  // Explica las funciones del ministerio de alabanza.
-│   ├── danza.md                     // Explica las funciones del ministerio de danza.
-│   ├── comunicacion.md              // Explica las funciones del ministerio de comunicación.
-│   ├── ninos.md                     // Explica las funciones del ministerio de niños.
-│   ├── jovenes.md                   // Explica las funciones del ministerio de jóvenes.
-│   ├── protocolo.md                 // Explica las funciones del ministerio de protocolo.
-│   ├── parqueo.md                   // Explica las funciones del ministerio de parqueo.
-│   ├── cocina.md                    // Explica las funciones del ministerio de cocina.
-│   ├── evangelismo.md               // Explica las funciones del ministerio de evangelismo.
-│   └── evangelismo-elite.md         // Explica las funciones del ministerio evangelismo élite.
+│   └── ministerios.md               // Ministerios consolidados: 14 ministerios con funciones, integrantes y reglas. Incluye Evangelismo Élite.
 │
 ├── cargos/
 │   ├── cargos.md                    // Presenta todos los cargos existentes en la organización.
@@ -66,18 +45,11 @@ domain-knowledge/
 │   └── apostol.md                   // Explica el ministerio y responsabilidades del apóstol.
 │
 ├── estados/
-│   ├── estados.md                   // Presenta todos los estados posibles de una persona.
-│   ├── evangelizado.md              // Explica cuándo una persona está evangelizada.
-│   ├── nuevo-convertido.md          // Describe el estado de un nuevo convertido.
-│   ├── reconciliado.md              // Explica el estado de una persona reconciliada.
-│   ├── discipulo-activo.md          // Describe cuándo un discípulo es considerado activo.
-│   ├── discipulo-inactivo.md        // Describe cuándo un discípulo es considerado inactivo.
-│   └── criterios.md                 // Explica cómo cambian los estados de una persona.
+│   ├── estados.md                   // Estados de persona consolidados (SIM, NC, RE, DA, DI) con descripciones, transiciones y ciclo de vida.
+│   └── criterios.md                 // Criterios basados en variables para cambio de estado.
 │
 ├── finanzas/
-│   ├── finanzas.md                  // Describe el área de finanzas dentro de la iglesia.
-│   ├── ofrendas.md                  // Explica el registro y control de las ofrendas.
-│   └── reportes.md                  // Describe los reportes generados por el área.
+│   └── finanzas.md                  // Finanzas consolidadas: ofrendas, diezmos, reportes, proceso de conteo.
 │
 ├── relaciones/
 │   ├── jerarquia.md                 // Explica la jerarquía entre todas las entidades.
@@ -85,6 +57,4 @@ domain-knowledge/
 │   └── flujo.md                     // Explica el flujo organizativo entre las áreas.
 │
 └── glosario/
-    ├── glosario.md                  // Contiene los términos más utilizados en la organización.
-    ├── siglas.md                    // Explica el significado de todas las siglas.
-    └── definiciones.md              // Reúne definiciones importantes del dominio.
+    └── glosario.md                  // Glosario consolidado: terminos, siglas y definiciones del dominio.

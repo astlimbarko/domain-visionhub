@@ -1,92 +1,86 @@
 # Autoridades de la Cobertura
 
-## Descripción
+## Descripcion
 
-Las autoridades de la cobertura son los líderes y cargos eclesiásticos responsables de la dirección espiritual, administrativa y estratégica de todas las iglesias que conforman la cobertura. Estas autoridades operan en diferentes niveles y tienen responsabilidades específicas dentro de la estructura general.
-
-## Objetivo
-
-Definir los roles, responsabilidades y alcance de cada autoridad dentro de la cobertura, asegurando claridad en la cadena de mando, la rendición de cuentas y el ejercicio del liderazgo espiritual sobre las iglesias agrupadas.
+Las autoridades de la cobertura son los lideres y cargos eclesiasticos responsables de la direccion espiritual, administrativa y estrategica de todas las iglesias que conforman la cobertura.
 
 ## Autoridades principales
 
-### Apóstol
+### Apostol
 
-El apóstol es la máxima autoridad de la cobertura. Es la persona que tiene la responsabilidad principal de supervisar y acompañar todas las iglesias que forman parte de ella. Es designado por su apóstol superior, nunca es autodeclarado como apóstol; siempre lo posesiona el apóstol a cargo en ese momento. Normalmente es nombrado un varón que ya es pastor. El apóstol de esta cobertura es Edgar Ortuño, quien radica en Cochabamba, Bolivia.
+Maxima autoridad de la cobertura. Designado por su apostol superior, nunca es autodeclarado. Normalmente es nombrado un varon que ya es pastor. **Apostol de esta cobertura:** Edgar Ortuño, radica en Cochabamba, Bolivia. Su cobertura superior es El Rey Jesus en Miami (apostol Guillermo Maldonado). Rinde cuentas solo a nivel personal.
 
 **Responsabilidades:**
-- Proveer dirección espiritual y estratégica a todas las iglesias de la cobertura.
-- Supervisar el estado espiritual, administrativo y organizativo de cada congregación.
-- Acompañar y respaldar a los pastores en su labor ministerial.
-- Velar por el cumplimiento de la visión común en todas las iglesias.
-- Intervenir en asuntos de doctrina, conflicto o crisis que afecten a la cobertura.
-- Designar los cargos de los 5 ministerios sin criterios predecibles, según su total criterio.
-- Generalmente, pastorea una de las iglesias de la cobertura, combinando su labor apostólica con el pastoreo local.
+- Proveer direccion espiritual y estrategica a todas las iglesias.
+- Supervisar el estado espiritual, administrativo y organizativo de cada congregacion.
+- Acompanar y respaldar a los pastores en su labor ministerial.
+- Velar por el cumplimiento de la vision comun en todas las iglesias.
+- Intervenir en asuntos de doctrina, conflicto o crisis.
+- Designar los cargos de los 5 ministerios sin criterios predecibles, segun su total criterio.
+- Generalmente, pastorea una de las iglesias de la cobertura.
 
 ### Pastores
 
-Los pastores son las autoridades locales de cada iglesia dentro de la cobertura. Son designados y reconocidos por el apóstol y lideran el funcionamiento cotidiano de su congregación. La iglesia es la entidad que maneja un pastor y tiene la potestad total, pero rinde cuentas y obedece muchas de las decisiones al apóstol de la cobertura.
+Autoridades locales de cada iglesia. Son designados y reconocidos por el apostol. La iglesia tiene potestad total pero rinde cuentas al apostol.
 
 **Responsabilidades:**
-- Liderar espiritualmente y administrativamente una iglesia local.
-- Implementar la visión común de la cobertura en su congregación.
-- Designar líderes de redes, ministerios y departamentos dentro de su iglesia.
-- Designar cargos fuera de los 5 ministerios: anciano, diácono, líder de red, líder de casa de paz.
-- Rendir cuentas al apóstol sobre el estado de su iglesia.
-- Proveer atención pastoral a los miembros de su congregación.
+- Liderar espiritual y administrativamente una iglesia local.
+- Implementar la vision comun en su congregacion.
+- Designar lideres de redes, ministerios y departamentos dentro de su iglesia.
+- Designar cargos fuera de los 5 ministerios: anciano, diacono, lider de red, lider de casa de paz.
+- Rendir cuentas al apostol sobre el estado de su iglesia.
+- Proveer atencion pastoral a los miembros.
 
-## Cargos eclesiásticos reconocidos
+## Cargos eclesiasticos reconocidos
 
-Dentro de la cobertura y las iglesias que la conforman, se reconocen los siguientes cargos eclesiásticos:
-
-| Cargo | Descripción |
-|---|---|
-| Apóstol | Máxima autoridad de la cobertura. Supervisa y acompaña todas las iglesias. Designado por su apóstol superior, nunca autodeclarado. |
-| Pastor | Autoridad local de una iglesia. Lidera la congregación en lo espiritual y administrativo. Designa cargos locales. |
-| Profeta | (Pendiente de definir) Cargo profético. Designado por el apóstol según su criterio. |
-| Evangelista | (Pendiente de definir) Enfocado en la labor evangelística. Designado por el apóstol según su criterio. |
-| Maestro | (Pendiente de definir) Enfocado en la enseñanza y la doctrina. Designado por el apóstol según su criterio. |
-| Ministro | Cargo de servicio ministerial. Designado por el apóstol central en Cochabamba con procesos no públicos. Normalmente el pastor promueve nombres y los recibe el apóstol de Cochabamba. |
-| Diácono | Cargo de servicio y apoyo en la iglesia local. Designado y posesionado en la iglesia local a cargo del cuerpo pastoral. No requiere consentimiento del apóstol en Cochabamba. |
-| Anciano | Cargo designado por el pastor encargado de cada iglesia. |
-| Contador / Contadora | Cargo administrativo. Se designa a alguien que es mínimo diácono y también profesional en el área. |
-| Mentor | (Pendiente de definir) Todavía se desconoce cómo quedaría este cargo. |
+| Cargo | Descripcion | Designado por |
+|-------|-------------|---------------|
+| **Apostol** | Maxima autoridad de cobertura. Supervisa y acompana todas las iglesias. | Apostol superior (nunca autodeclarado) |
+| **Pastor** | Autoridad local. Lidera la congregacion en lo espiritual y administrativo. | Apostol |
+| **Profeta** | (Pendiente de definir) Cargo profetico. | Apostol segun su criterio |
+| **Evangelista** | Enfocado en la labor evangelistica. | Pastores principales |
+| **Maestro** | Ensenanza y doctrina a nivel teologico. | Apostol segun su criterio |
+| **Ministro** | Cargo de servicio ministerial. Ejecuta tareas designadas. | Apostol central en Cochabamba |
+| **Anciano** | Reconocimiento ministerial. Predica, puede ser lider de red. | Equipo pastoral |
+| **Diaccono** | Servicio y apoyo. Ejecutor de planes. Oficios varios. | Cuerpo pastoral en iglesia local |
+| **Contador/Contadora** | Area administrativa-financiera. Minimo diacono + profesional. | Pastor |
+| **Mentor** | (Pendiente de definir) | Desconocido |
 
 ## Relaciones entre autoridades
 
 | Autoridad | Reporta a | Supervisa a |
-|---|---|---|
-| Apóstol | Apóstol superior (Guillermo Maldonado, Miami) a nivel personal | Pastores de las iglesias de la cobertura |
-| Pastor | Apóstol | Líderes de red, ministros, diáconos y miembros de su iglesia |
-| Profeta | Apóstol | (Pendiente de definir) |
-| Evangelista | Apóstol | (Pendiente de definir) |
-| Maestro | Apóstol | (Pendiente de definir) |
-| Ministro | Pastor | (Pendiente de definir) |
-| Diácono | Pastor | (Pendiente de definir) |
+|-----------|-----------|-------------|
+| Apostol | Apostol superior (Guillermo Maldonado, Miami) a nivel personal | Pastores de las iglesias de la cobertura |
+| Pastor | Apostol | Lideres de red, ancianos, diaconos, lideres de CdP y miembros de su iglesia |
+| Profeta | Apostol | (Pendiente de definir) |
+| Evangelista | Apostol | Equipos de evangelismo |
+| Maestro | Apostol | (Pendiente de definir) |
+| Ministro | Pastor/Apostol | (Pendiente de definir) |
 | Anciano | Pastor | (Pendiente de definir) |
+| Diaccono | Pastor | (Pendiente de definir) |
 | Contador | Pastor | (Pendiente de definir) |
+
+## Vida interna de cada iglesia
+
+| Actividad | Descripcion |
+|-----------|-------------|
+| Actividades espirituales | Cultos, oracion, alabanzas, celebraciones. |
+| Reuniones | Reuniones generales, de redes, de ministerios. |
+| Capacitaciones | Escuela de lideres, formacion ministerial, discipulado. |
+| Administracion | Gestion de recursos, finanzas, membresia. |
+| Atencion pastoral | Conserjeria, acompanamiento, visitas. |
+
+## Sucesion apostolica
+
+No existe procedimiento formal documentado. El apostol es designado por su apostol superior. En caso de que Edgar Ortuño no pueda continuar, la decision queda bajo la autoridad del apostol superior, quien determinara y designara al sucesor.
 
 ## Criterios
 
-- El apóstol debe tener un reconocimiento claro de su autoridad por parte de todas las iglesias de la cobertura.
-- Los pastores deben ser designados formalmente y reconocidos tanto por el apóstol como por su congregación local.
-- Todos los cargos eclesiásticos deben cumplir con los requisitos doctrinales y morales establecidos.
-- Los criterios para designar cargos de los 5 ministerios no son predecibles; los maneja el apóstol en su totalidad.
-- Hay procesos para nombrar cargos como anciano, diácono y ministro, pero no son públicos.
-- Nadie de cargo inferior evalúa al apóstol. La evaluación del apóstol es competencia exclusiva de su apóstol superior, a puertas cerradas.
-- NO existe consejo de ancianos, junta directiva u otro órgano que acompañe al apóstol a tomar decisiones. El apóstol toma decisiones sin preguntar a nadie.
-
-## Casos especiales
-
-- **Apóstol que también es pastor**: Es el caso más común, donde el apóstol pastorea una de las iglesias de la cobertura, ejerciendo ambos roles simultáneamente.
-- **Sucesión apostólica**: El apóstol es designado por su apóstol superior. Nunca un apóstol es autodeclarado; siempre lo posesiona el apóstol a cargo en ese momento. Normalmente se nombra a un varón que ya es pastor. **No existe procedimiento formal documentado de sucesión.** En caso de que el apóstol Edgar Ortuño no pueda continuar, la decisión queda bajo la autoridad del apóstol superior, quien determinará y designará al sucesor.
-- **Autoridades en formación**: No se conocen procesos formales de formación para aspirantes a estos cargos. El apóstol designa según su criterio.
-- **Remoción de autoridades**: No se dispone de información sobre los procedimientos para la remoción de una autoridad de la cobertura.
-
-## Observaciones
-
-- La autoridad del apóstol sobre la cobertura es tanto espiritual como administrativa, y es total (teocrática).
-- Los pastores tienen autonomía en el funcionamiento cotidiano de su iglesia, pero deben alinearse con la dirección del apóstol en asuntos estratégicos y doctrinales.
-- NO existe consejo de ancianos, junta directiva u otro órgano colegiado que acompañe al apóstol en la toma de decisiones. Se vive y se enseña la doctrina teocrática.
-- El apóstol de esta cobertura (Edgar Ortuño) radica en Cochabamba. Su cobertura superior es la iglesia El Rey Jesús en Miami (apóstol Guillermo Maldonado). El apóstol Edgar rinde cuentas solo a nivel personal.
-- Los cargos de profeta, evangelista, maestro, anciano y mentor todavía están pendientes de definir formalmente.
+- El apostol debe tener reconocimiento claro de su autoridad por parte de todas las iglesias.
+- Los pastores deben ser designados formalmente y reconocidos tanto por el apostol como por su congregacion.
+- Los criterios para designar cargos de los 5 ministerios no son predecibles; los maneja el apostol.
+- Hay procesos para anciano, diacono y ministro, pero no son publicos.
+- Nadie de cargo inferior evalua al apostol.
+- No existe consejo de ancianos, junta directiva u otro organo colegiado.
+- No se conocen procesos formales de formacion para aspirantes.
+- No se dispone de informacion sobre procedimientos de remocion de autoridades.

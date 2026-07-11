@@ -22,30 +22,72 @@ Cada lider de casa de paz ve su historial y el de las personas de su cdP. El lid
 - No administra la economia completa de la iglesia.
 - Solo registra ofrendas, diezmos, primicias y pactos.
 
+## Tipos de contribucion
+
+| Tipo | Descripcion |
+|------|-------------|
+| **Ofrenda** | Un solo tipo, no existen subtipos de ofrendas. |
+| **Diezmo** | Se entrega en sobres con el nombre y el dinero dentro, depositado en el alfoli. |
+| **Primicia** | Contribucion especial. |
+| **Pacto** | Contribucion por compromiso. |
+
+### Datos que se registran
+
+| Dato | Descripcion |
+|------|-------------|
+| **Dia de reunion** | Fecha en que se recaudo. |
+| **Monto** | Cantidad recaudada. |
+| **Tipo** | ofrenda, diezmo, primicia, pacto. |
+| **Servicio** | Reunion o actividad donde se recaudo. |
+| **Personal** | Si es personal, se anota el nombre de la persona. |
+
+## Proceso de conteo
+
+1. Varios diaconos realizan el conteo a puertas cerradas.
+2. Elaboran un reporte firmado.
+3. Lo entregan a la contadora.
+4. La contadora procesa la informacion contable.
+5. Los reportes economicos son enviados a los pastores.
+6. No existen politicas formales de manejo.
+
 ## Responsables
 
-La estructura financiera esta compuesta por:
-- Una contadora responsable del manejo economico (profesional en el area, minimo diacono).
-- Ayudantes para conteo de dinero, normalmente diaconos u otros colaboradores asignados.
-
-La contadora administra la informacion mediante herramientas digitales propias (software contable, Excel u otro sistema).
-
-**Proceso general:**
-1. Se realiza el conteo del dinero recibido.
-2. La informacion es registrada y validada.
-3. Los reportes economicos son enviados a los pastores.
+- **Contadora:** Profesional en el area, minimo diacono. Administra la informacion mediante herramientas digitales propias (software contable, Excel u otro sistema).
+- **Diaconos/Colaboradores:** Conteo de dinero y reportes firmados.
 
 ## Reportes
 
-- Semanales, mensuales, trimestrales, semestrales, anuales.
-- Por area: cdP, red, global.
+### Periodicidad
 
-## Documentos relacionados
+| Tipo | Periodo |
+|------|---------|
+| Semanal | Por semana. |
+| Mensual | Por mes. |
+| Trimestral | Cada 3 meses. |
+| Semestral | Cada 6 meses. |
+| Anual | Por ano. |
 
-- [Ofrendas](ofrendas.md)
-- [Reportes](reportes.md)
+### Por area
 
-## Observaciones
+| Area | Visibilidad |
+|------|-------------|
+| **cdP** | Cada lider de casa de paz ve su historial. |
+| **Red** | Cada lider de red ve el historial de su red. |
+| **Global** | El contador y el pastor ven el total de la iglesia. |
 
-- No existen politicas formales, solo contar a puertas cerradas entre varias personas.
-- Diezmos en sobres con nombre y dinero, entregados en el alfoli.
+### Contenido del reporte
+
+Cada reporte debe incluir:
+- Fecha de la reunion.
+- Tipo o titulo de la reunion (estudio biblico, iglesia central, otros tipos de reuniones).
+- Cantidad de asistentes.
+- Monto de la ofrenda recolectada.
+- Moneda utilizada (bolivianos, dolares u otra moneda extranjera).
+- Montos recaudados por tipo (ofrenda, diezmo, primicia, pacto).
+- Desglose por reunion o servicio.
+
+## Reglas
+
+- Toda reunion recauda ofrenda (incluyendo casas de paz).
+- Excepcion: reuniones administrativas y ensayos.
+- Diezmos en sobres con nombre, entregados en el alfoli.

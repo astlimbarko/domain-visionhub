@@ -2,7 +2,29 @@
 
 ## Descripcion
 
-Este glosario reune los terminos utilizados dentro de la organizacion eclesiastica.
+Este glosario reune los terminos y siglas utilizados dentro de la organizacion eclesiastica. SSVA (Sistema de Seguimiento en la Vision en la Accion) es una sigla NO OFICIAL, usada solo para documentacion interna.
+
+## Siglas
+
+### Siglas de estados
+
+| Sigla | Significado | Descripcion |
+|-------|-------------|-------------|
+| **SIM** | Simpatizante | Evangelizado. Estado inicial. Si no avanza, se mantiene SIM. |
+| **NC** | Nuevo Creyente | Persona que acepta a Jesus por primera vez. |
+| **CRE** | Creyente | Persona que acepto a Jesus (asistentes regulares). |
+| **RE** | Reconciliacion | Persona que estuvo +3 meses fuera y retorna. |
+| **DA** | Discipulo Activo | Persona que asiste una vez al discipulado. |
+| **DI** | Discipulo Inactivo | Abandono 3 clases continuas. Nunca aplica sin ser DA. |
+| **AF** | Afirmado | Estado ELIMINADO del SSVA. Ya no se usa formalmente. |
+
+### Siglas estructurales
+
+| Sigla | Significado | Descripcion |
+|-------|-------------|-------------|
+| **CDP** | Casa de Paz | Unidad basica. Grupo que se reune semanalmente en un hogar. |
+| **RSLI** | Retiro de Sanidad Interior | Evento de retiro espiritual. |
+| **SSVA** | Sistema de Seguimiento en la Vision en la Accion | NO OFICIAL. Solo para documentacion interna. |
 
 ## Terminos
 
@@ -23,10 +45,10 @@ Este glosario reune los terminos utilizados dentro de la organizacion eclesiasti
 ### C
 
 **Casa de Paz (CDP)**
-: Unidad basica de la iglesia. Grupo reducido que se reune semanalmente en un hogar. Pertenece obligatoriamente a una red.
+: Unidad basica de la iglesia. Grupo reducido que se reune semanalmente en un hogar. Pertenece obligatoriamente a una red. No existen casas de paz sin red.
 
 **Cobertura**
-: Unidad administrativa superior que agrupa varias iglesias bajo la autoridad de un apostol.
+: Unidad administrativa superior que agrupa varias iglesias bajo la autoridad de un apostol. No es una congregacion fisica. El apostol toma decisiones teocraticas sin junta directiva ni consejo.
 
 **Creyente (CRE)**
 : Estado para asistentes regulares. Persona que acepto a Jesus con evidencia de fe inicial.
@@ -62,7 +84,7 @@ Este glosario reune los terminos utilizados dentro de la organizacion eclesiasti
 ### I
 
 **Iglesia**
-: Congregacion independiente dentro de una cobertura. Posee autoridades, departamentos, ministerios, redes y miembros.
+: Congregacion independiente dentro de una cobertura. Posee autoridades (pastores), departamentos, ministerios, redes y miembros.
 
 ### L
 
@@ -105,7 +127,7 @@ Este glosario reune los terminos utilizados dentro de la organizacion eclesiasti
 ### P
 
 **Pastor**
-: Autoridad local de la iglesia. Lidera el funcionamiento cotidiano. Designa lideres de red y departamentos.
+: Autoridad local de la iglesia. Lidera la congregacion. Designa lideres de red, departamentos y ministerios. Responde ante el apostol de la cobertura.
 
 **Profeta**
 : Cargo alto (5 ministerios). Papel similar al pastor, uncion profetica. No gerencia, papel ministerial. Designado por el apostol.
@@ -116,7 +138,7 @@ Este glosario reune los terminos utilizados dentro de la organizacion eclesiasti
 : Persona que estuvo +3 meses fuera y retorna. 1 dia RE, luego DA si asiste a discipulado.
 
 **Red**
-: Agrupacion de casas de paz. No existe limite de redes ni de casas de paz por red.
+: Agrupacion de casas de paz bajo un lider de red. No existen sin casas de paz. No hay limite de redes por iglesia.
 
 **RSLI (Retiro de Sanidad Interior)**
 : Evento de retiro espiritual para renunciar a practicas mundanas.
@@ -126,18 +148,9 @@ Este glosario reune los terminos utilizados dentro de la organizacion eclesiasti
 **Simpatizante (SIM)**
 : Estado inicial. Evangelizado que no avanza.
 
-**SSVA (Sistema de Seguimiento en la Vision en la Accion)**
-: Sigla NO OFICIAL, solo para documentacion interna.
-
 **Sublider**
 : Apoyo del lider de casa de paz. Designado por el lider de casa de paz.
 
 ## Nota importante
 
 SSVA es una sigla NO OFICIAL, usada unicamente para documentacion interna del proyecto.
-
-## Documentos relacionados
-
-- [Siglas](siglas.md)
-- [Definiciones](definiciones.md)
-- [Estados](../estados/estados.md)

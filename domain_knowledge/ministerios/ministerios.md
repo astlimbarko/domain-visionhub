@@ -11,30 +11,34 @@ Los ministerios son entidades que funcionan bajo los pastores principales (pasto
 - Se crean por mandato de los pastores principales o por herencia de la vision.
 - Un ministerio nunca se cierra, solo cambia de liderazgo o de miembros.
 - Si se llegase a cerrar, debe ser unicamente por mandato del pastor.
+- Todos estan bajo los pastores principales. Algunos pueden delegarse a ministro, anciano o diacono.
 
 ## Lista de Ministerios
 
-| # | Ministerio | Descripcion |
-|---|------------|-------------|
-| 1 | **Alabanza** | Musica y canto. Musicos y cantantes. Ensayos periodicos. |
-| 2 | **Danza** | Danzas reverentes. Jovenes. Ensayos periodicos. |
-| 3 | **Comunicacion** | Transmisiones, fotografia, video, redes sociales, apoyo tecnico. |
-| 4 | **Ninos** | Ensenar palabra a ninos -12 anos. Clases adaptadas. |
-| 5 | **Jovenes** | Ministrar a jovenes. Servicio semanal. |
-| 6 | **Protocolo** | Coordinar servicios, programas, tiempos, invitados. |
-| 7 | **Ujieres** | Recibir, orientar, orden, limpieza, uniforme, turnos. |
-| 8 | **Parqueo** | Organizar ingreso/ubicacion/salida de vehiculos. Coordina con ujieres. |
-| 9 | **Cocina** | Preparar alimentos para actividades, eventos, delegaciones. |
-| 10 | **Evangelismo** | Anunciar evangelio fuera de la iglesia. Visitas, alcance. |
-| 11 | **Sonido** | Operacion y mantenimiento de equipos de audio. |
-| 12 | **Testimonios** | Recopilar, documentar, presentar testimonios. |
-| 13 | **Escuderos** | Apoyo y asistencia a pastores o invitados especiales. |
-| 14 | **Intercesion** | Oracion, intercesion, clamor, apoyo espiritual. |
+| # | Ministerio | Funciones clave | Integrantes |
+|---|------------|-----------------|-------------|
+| 1 | **Alabanza** | Dirigir alabanza en servicios, participar musicalmente, ensayos periodicos | Musicos (instrumentistas) y cantantes |
+| 2 | **Danza** | Danzas reverentes en servicios, ensayos periodicos, mantener estilo reverente | Principalmente jovenes |
+| 3 | **Comunicacion** | Transmisiones en vivo, fotografia y video, gestion de redes sociales, apoyo tecnico | Personal con habilidades en comunicacion, foto, video, RRSS |
+| 4 | **Ninos** | Ensenar palabra a ninos -12 anos, clases y actividades adaptadas, formacion espiritual | Personal con vocacion para trabajar con ninos |
+| 5 | **Jovenes** | Servicio semanal orientado a juventud, ensenanzas y actividades adaptadas | Jovenes de la congregacion |
+| 6 | **Protocolo** | Coordinar programa de servicios, gestionar tiempos y participaciones, organizar ubicacion de invitados | Personas con habilidades organizativas |
+| 7 | **Ujieres** | Recibir y orientar asistentes, mantener orden, apoyar en emergencias, limpieza y preparacion de instalaciones, servir por turnos con uniforme | Personas con disposicion de servicio, capacitadas en atencion |
+| 8 | **Parqueo** | Organizar ingreso/ubicacion/salida de vehiculos, coordinar con ujieres | Personas con disposicion para servir en exteriores |
+| 9 | **Cocina** | Preparar alimentos para actividades, eventos especiales, delegaciones visitantes, comidas para recaudacion de fondos | Personas con habilidades culinarias |
+| 10 | **Evangelismo** | Anunciar evangelio fuera de la iglesia, visitas, alcance, coordinar en niveles (global, redes, CdP). Incluye equipo Elite | Personas con llamado y disposicion para evangelizar |
+| 11 | **Sonido** | Operar consolas de audio, microfonos, parlantes, mantenimiento de equipos, garantizar correcto funcionamiento | Personas con conocimientos tecnicos de audio |
+| 12 | **Testimonios** | Recopilar, documentar y coordinar presentacion de testimonios en servicios | Personas con habilidades de comunicacion y redaccion |
+| 13 | **Escuderos** | Apoyo y asistencia directa a pastores o invitados especiales, logistica de acompanamiento, atencion de requerimientos operativos | Personas con disposicion de servicio y confidencialidad |
+| 14 | **Intercesion** | Reuniones de intercesion y oracion, oraciones de madrugada, apoyo espiritual a actividades y necesidades de la congregacion | Personas con llamado a la oracion e intercesion |
+
+## Evangelismo Elite
+
+Equipo especializado dentro del Ministerio de Evangelismo. Opera bajo la autoridad directa del evangelista (cargo ministerial) en cualquier nivel: global (toda la iglesia), redes o casas de paz.
+
+- **Funciones:** Estrategias evangelisticas de alto impacto, apoyo en actividades evangelisticas de todos los niveles.
+- **Integrantes:** Seleccionados por su capacidad y resultados en evangelismo. Son los miembros mas preparados o sobresalientes en esta area.
 
 ## Generalidades
 
 Todos los ministerios estan dirigidos por un lider designado por la iglesia. Sus integrantes deben mantener buen testimonio, compromiso cristiano y disposicion para servir. Cada ministerio coordina sus actividades con el liderazgo de la iglesia.
-
-## Documentos relacionados
-
-Cada ministerio tiene su propio documento con detalles especificos.

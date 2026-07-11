@@ -47,5 +47,3 @@ Unidad basica de la iglesia. Grupo reducido que se reune semanalmente en un hoga
 ## Documentos relacionados
 
 - [Redes](redes.md)
-- [Estructura](estructura.md)
-- [Lider de red](../cargos/cargos.md)
