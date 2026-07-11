@@ -17,7 +17,14 @@ El lider de red es la persona designada por el pastor para supervisar, coordinar
 ## Designacion
 
 - Es designado por el **pastor** (equipo pastoral).
-- Los criterios de seleccion son personales del equipo pastoral, no publicos ni consensuados.
+- No existe un proceso formal de evaluacion documentado.
+- Se consideran aspectos como:
+  - Buen testimonio.
+  - Trayectoria dentro de la iglesia.
+  - Madurez espiritual.
+- La evaluacion depende de la autoridad local:
+  - En iglesias con apostol, la autoridad espiritual correspondiente participa segun la estructura definida.
+  - En iglesias sin apostol, la evaluacion queda bajo responsabilidad del pastor.
 - Es un cargo removible sin que sea mal visto.
 
 ---

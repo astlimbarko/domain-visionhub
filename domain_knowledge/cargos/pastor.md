@@ -16,9 +16,15 @@ El pastor es la autoridad principal de la iglesia local. Es quien tiene la potes
 
 ## Designacion
 
+- La designacion de nuevos pastores es realizada por las autoridades espirituales correspondientes.
+- En Cochabamba, la posesion de nuevos pastores es realizada personalmente.
+- Los pastores responsables realizan seguimiento de la vida espiritual del candidato antes de su designacion.
 - El pastor principal y su esposa son enviados como jefes de una iglesia.
 - Los copastores son posesionados por el apostol Edgar de Cochabamba.
-- No hay un proceso formal documentado.
+
+## Estructura ministerial
+
+La estructura ministerial puede incluir apostoles, profetas, evangelistas, maestros y pastores. No todas las iglesias cuentan con apostol o profeta; la estructura mas comun esta basada en pastores.
 
 ---
 

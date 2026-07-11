@@ -16,9 +16,13 @@ El lider de departamento es la persona responsable de un departamento especifico
 
 ## Designacion
 
-- Es designado por el **pastor**.
+- Es designado por el **pastor** y la **pastora**.
+- No existe un proceso formal de postulacion o evaluacion.
+- Generalmente se seleccionan personas con:
+  - Anos de permanencia en la iglesia.
+  - Buen testimonio.
+  - Conducta considerada irreprochable.
 - Normalmente es una persona con un cargo importante (anciano, ministro, etc.).
-- No existen procesos formales documentados para su designacion.
 
 ---
 

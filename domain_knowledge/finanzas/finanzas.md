@@ -24,8 +24,16 @@ Cada lider de casa de paz ve su historial y el de las personas de su cdP. El lid
 
 ## Responsables
 
-- **Contadora**: Profesional en el area, minimo diacono, realiza la contabilidad a puertas cerradas.
-- **Diaconos**: Realizan el conteo y firman reportes para la contadora.
+La estructura financiera esta compuesta por:
+- Una contadora responsable del manejo economico (profesional en el area, minimo diacono).
+- Ayudantes para conteo de dinero, normalmente diaconos u otros colaboradores asignados.
+
+La contadora administra la informacion mediante herramientas digitales propias (software contable, Excel u otro sistema).
+
+**Proceso general:**
+1. Se realiza el conteo del dinero recibido.
+2. La informacion es registrada y validada.
+3. Los reportes economicos son enviados a los pastores.
 
 ## Reportes
 

@@ -24,7 +24,12 @@ Documentos que presentan informacion resumida sobre las ofrendas y diezmos recib
 
 ## Contenido
 
-- Periodo del reporte.
+Cada reporte debe incluir:
+- Fecha de la reunion.
+- Tipo o titulo de la reunion (estudio biblico, iglesia central, otros tipos de reuniones).
+- Cantidad de asistentes.
+- Monto de la ofrenda recolectada.
+- Moneda utilizada (bolivianos, dolares u otra moneda extranjera).
 - Montos recaudados por tipo (ofrenda, diezmo, primicia, pacto).
 - Desglose por reunion o servicio.
 
