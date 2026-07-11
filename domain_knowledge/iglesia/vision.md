@@ -69,8 +69,10 @@ Una vez definida, la vision debe:
 ## Casos especiales
 
 - **Vision no definida**: Actualmente, la vision de la iglesia esta pendiente de definir. Esto implica que las actividades y ministerios operan sin una declaracion formal de direccion estrategica.
-- **Cambio de vision**: (Contenido desconocido) No se conoce el proceso para realizar cambios significativos en la vision una vez establecida.
-- **Vision de iglesia vs. vision personal**: (Contenido desconocido) No se conoce como se manejan las diferencias entre la vision de la iglesia y las visiones personales de los miembros o lideres.
+- **Revision y actualizacion**: La vision general es administrada por el apostol Edgar Ostuño desde Cochabamba. Los cambios se clasifican en:
+  - **Cambios estructurales**: Modifican fundamentos, pilares o elementos centrales. Son realizados unicamente por el apostol de cobertura.
+  - **Cambios no estructurales**: Son ajustes locales o superficiales dentro de una iglesia. Pueden ser realizados por cada pastor mientras no alteren los fundamentos de la vision.
+- **Vision de iglesia vs. vision personal**: La vision es unica para todas las iglesias pertenecientes a la cobertura. La vision impartida desde Cochabamba por el apostol Edgar Ostuño es la misma para todas las congregaciones. No existen visiones personales o locales que sustituyan la vision central. Un miembro pertenece a su iglesia local especifica, aunque forme parte de la misma vision y cobertura.
 
 ## Observaciones
 

@@ -96,7 +96,7 @@ Apostol (Cobertura)
 
 - **Pastor fundador**: Cuando la iglesia es fundada por su pastor, la relacion con el apostol y la cobertura sigue los mismos lineamientos que para cualquier iglesia dentro de la cobertura.
 - **Pastor asociado o co-pastor**: No es normal el termino co-pastores, pero puede haber varios pastores dentro de una iglesia, siempre sujetos al pastor principal.
-- **Sucesion pastoral**: No se conoce el proceso formal para la transicion de un pastor saliente a un pastor entrante.
+- **Sucesion pastoral**: En esta vision, normalmente no existe transicion de pastores entre iglesias. El pastor principal es considerado el padre espiritual de la casa o iglesia local, por lo que permanece como autoridad principal de esa congregacion. El cambio de pastor solo ocurre en situaciones excepcionales, como: decision personal del pastor de retirarse, problemas graves, situaciones de pecado u otras circunstancias extremas.
 - **Lider de red en formacion**: Una persona que esta siendo preparada para asumir el liderazgo de una red, bajo la supervision de un lider de red experimentado o del pastor.
 - **Remocion de autoridades**: No se dispone de informacion sobre los procedimientos para la remocion de una autoridad dentro de la iglesia local.
 

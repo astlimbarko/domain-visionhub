@@ -21,8 +21,10 @@ La iglesia funciona bajo un **modelo de multiplicación**: existe una iglesia pa
 
 ### Tipos de iglesias
 
-- **Iglesias fundadas desde cero**: Creadas a cargo de un hijo espiritual enviado para abrir iglesias. Puede ser un pastor, ministro o diácono, según lo decida el apóstol central.
-- **Iglesias afiliadas o hermanas**: Iglesias que se afilian a la visión sin ser totalmente subordinadas al apóstol. Tienen autonomía. Se sabe muy poco sobre estas iglesias.
+- **Iglesias hijas**: Son iglesias enviadas desde Cochabamba para ser establecidas en otra ciudad o país. Nacen directamente desde la visión y estructura central. Son creadas a cargo de un hijo espiritual enviado para abrir iglesias (puede ser un pastor, ministro o diácono, según lo decida el apóstol central).
+- **Iglesias aliadas a la visión**: Son iglesias existentes que deciden integrarse a la visión. Reciben dirección, equipamiento, capacitación y entrenamiento para sus pastores y líderes. Tienen autonomía.
+
+Ambos tipos pertenecen a la misma cobertura y reciben el mismo modelo, estructura, capacitación y mecanismos definidos por Vision Hub.
 
 ### Autonomía local
 

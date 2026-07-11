@@ -85,6 +85,7 @@ Evento especial donde todas las casas de paz de una red se reunen en la iglesia.
 - El contenido de las reuniones debe estar alineado con la vision y doctrina de la iglesia y la cobertura.
 - Todas las reuniones presenciales se transmiten en vivo por redes sociales.
 - Las casas de paz pueden ser virtuales.
+- **Participacion de invitados**: No existen protocolos restrictivos para visitantes. Cualquier persona puede asistir libremente a las reuniones y es recibida como una visita o potencial nuevo convertido. Cuando la visita es previamente coordinada (por ejemplo, pastores o lideres de otras iglesias), puede prepararse una recepcion o atencion especial.
 
 ## Casos especiales
 

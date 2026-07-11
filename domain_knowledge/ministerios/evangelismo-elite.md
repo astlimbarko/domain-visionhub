@@ -17,7 +17,7 @@ Equipo especializado de evangelismo con dedicacion especial, que opera bajo la a
 
 ## Integrantes
 
-Personas con dedicacion especial al evangelismo, seleccionadas por su compromiso y resultados.
+El Evangelismo Élite está conformado por personas destacadas en evangelismo dentro de la iglesia. Sus integrantes son seleccionados por su capacidad y resultados en evangelismo. Son considerados los miembros más preparados o sobresalientes en esta área.
 
 ## Dependencia Jerarquica
 

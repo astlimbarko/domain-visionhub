@@ -103,7 +103,7 @@ Establecer un modelo organizativo claro que permita a la iglesia local desarroll
 
 - **Iglesia pequena**: En iglesias con pocos miembros, la estructura puede ser simplificada, con el pastor asumiendo multiples roles y responsabilidades.
 - **Iglesia en crecimiento**: A medida que la iglesia crece, la estructura debe adaptarse para incorporar nuevos lideres, redes, ministerios y departamentos.
-- **Reestructuracion**: No existe un proceso formal establecido para cambios estructurales; lo evalua el pastor o apostol.
+- **Reestructuracion**: Los cambios estructurales son determinados directamente por el apostol de cobertura. El modelo de gobierno es teocratico: la autoridad principal tiene la facultad de ordenar cambios sin requerir un proceso formal de consulta. No existe un procedimiento documentado para estas modificaciones.
 - **Ausencia del pastor**: En caso de ausencia temporal del pastor, los lideres disenados pueden asumir responsabilidades operativas, pero las decisiones importantes deben ser consultadas con el apostol.
 - **Multiplicacion de redes**: Cuando una red crece lo suficiente, puede dividirse para formar nuevas redes, cada una con su propio lider.
 

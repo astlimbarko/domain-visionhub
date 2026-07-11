@@ -79,7 +79,7 @@ Dentro de la cobertura y las iglesias que la conforman, se reconocen los siguien
 ## Casos especiales
 
 - **Apóstol que también es pastor**: Es el caso más común, donde el apóstol pastorea una de las iglesias de la cobertura, ejerciendo ambos roles simultáneamente.
-- **Sucesión apostólica**: El apóstol es designado por su apóstol superior. Nunca un apóstol es autodeclarado; siempre lo posesiona el apóstol a cargo en ese momento. Normalmente se nombra a un varón que ya es pastor.
+- **Sucesión apostólica**: El apóstol es designado por su apóstol superior. Nunca un apóstol es autodeclarado; siempre lo posesiona el apóstol a cargo en ese momento. Normalmente se nombra a un varón que ya es pastor. **No existe procedimiento formal documentado de sucesión.** En caso de que el apóstol Edgar Ortuño no pueda continuar, la decisión queda bajo la autoridad del apóstol superior, quien determinará y designará al sucesor.
 - **Autoridades en formación**: No se conocen procesos formales de formación para aspirantes a estos cargos. El apóstol designa según su criterio.
 - **Remoción de autoridades**: No se dispone de información sobre los procedimientos para la remoción de una autoridad de la cobertura.
 
