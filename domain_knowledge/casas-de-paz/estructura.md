@@ -78,6 +78,6 @@ Red
 
 - [Casa de Paz](casa-paz.md)
 - [Lider](lider.md)
-- [Sublider](sublider.md)
+- [Sublider](../cargos/cargos.md)
 - [Anfitrion](anfitrion.md)
 - [Miembros](miembros_de_cdp.md)

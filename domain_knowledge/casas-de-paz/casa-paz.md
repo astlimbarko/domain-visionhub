@@ -88,7 +88,7 @@ Existe un **formulario de apertura** donde se anotan: lider enviado, sublider, a
 
 - [Anfitrion](anfitrion.md)
 - [Lider](lider.md)
-- [Sublider](sublider.md)
+- [Sublider](../cargos/cargos.md)
 - [Miembros](miembros_de_cdp.md)
 - [Reuniones](reuniones.md)
 - [Estructura](estructura.md)

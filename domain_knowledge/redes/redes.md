@@ -48,5 +48,5 @@ Cada red cuenta con 4 representantes:
 ## Documentos relacionados
 
 - [Estructura](estructura.md)
-- [Lider de red](lider-red.md)
+- [Lider de red](../cargos/cargos.md)
 - [Casas de paz](casas-paz.md)

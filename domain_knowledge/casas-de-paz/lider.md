@@ -73,6 +73,6 @@ Se evalua al lider de casa de paz de acuerdo al **resultado de su casa de paz**.
 ## Documentos Relacionados
 
 - [Casa de Paz](casa-paz.md)
-- [Sublider](sublider.md)
+- [Sublider](../cargos/cargos.md)
 - [Miembros](miembros_de_cdp.md)
 - [Reuniones](reuniones.md)

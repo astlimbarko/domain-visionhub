@@ -57,5 +57,5 @@ Cuerpo Pastoral (Pastor y esposa)
 ## Documentos relacionados
 
 - [Redes](redes.md)
-- [Lider de red](lider-red.md)
+- [Lider de red](../cargos/cargos.md)
 - [Casas de paz](casas-paz.md)
