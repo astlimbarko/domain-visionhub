@@ -5,3 +5,5 @@
 !/rules
 !/rules/**
 !/estructura.txt
+!/neo4j
+!/neo4j/**
