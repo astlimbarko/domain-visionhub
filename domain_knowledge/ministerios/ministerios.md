@@ -12,6 +12,13 @@ Los ministerios son entidades que funcionan bajo los pastores principales (pasto
 - Un ministerio nunca se cierra, solo cambia de liderazgo o de miembros.
 - Si se llegase a cerrar, debe ser unicamente por mandato del pastor.
 - Todos estan bajo los pastores principales. Algunos pueden delegarse a ministro, anciano o diacono.
+- **Regla de negocio:** Cuando un miembro sirve en un ministerio, el sistema no debe perder el rastro de la red a la que pertenece. La relacion persona-ministerio debe cruzarse con persona-red.
+
+## Encargado de Ministerio de Red (OBLIGATORIO en cada Red)
+
+Cada red tiene un Encargado de Ministerio de Red que coordina a las personas de su red que sirven en los distintos ministerios. Reporta a su Lider de Red y al Encargado General de Ministerios (Vision).
+
+Este rol es independiente del Encargado General de Ministerios (Vision), que tiene enfoque global/analitico.
 
 ## Lista de Ministerios
 

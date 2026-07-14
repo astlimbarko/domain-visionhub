@@ -26,10 +26,26 @@ Cada lider de casa de paz ve su historial y el de las personas de su cdP. El lid
 
 | Tipo | Descripcion |
 |------|-------------|
-| **Ofrenda** | Un solo tipo, no existen subtipos de ofrendas. |
+| **Ofrenda** | Contribucion voluntaria. Un solo tipo, no existen subtipos. |
 | **Diezmo** | Se entrega en sobres con el nombre y el dinero dentro, depositado en el alfoli. |
 | **Primicia** | Contribucion especial. |
 | **Pacto** | Contribucion por compromiso. |
+
+### Tipos de reunion que recaudan
+
+Toda reunion recauda ofrenda, excepto: ensayos de alabanza, danza, y reuniones administrativas.
+
+| Tipo de reunion | Recauda |
+|-----------------|---------|
+| Casas de paz | Si (ofrenda + diezmo) |
+| Servicio central (domingo manana) | Si |
+| Servicio central nocturno (domingo noche) | Si |
+| Servicio de jovenes | Si |
+| Discipulado (lunes) | No |
+| Oracion (martes) | No |
+| Seminario (miercoles) | No |
+| Ayuno (jueves manana) | No |
+| Ensayos | No |
 
 ### Datos que se registran
 
@@ -43,12 +59,16 @@ Cada lider de casa de paz ve su historial y el de las personas de su cdP. El lid
 
 ## Proceso de conteo
 
-1. Varios diaconos realizan el conteo a puertas cerradas.
+1. Varios diaconos realizan el conteo a puertas cerradas (minimo diaconos).
 2. Elaboran un reporte firmado.
 3. Lo entregan a la contadora.
-4. La contadora procesa la informacion contable.
+4. La contadora procesa la informacion contable con herramientas propias (software contable, Excel).
 5. Los reportes economicos son enviados a los pastores.
 6. No existen politicas formales de manejo.
+
+## Moneda
+
+Se pueden registrar contribuciones en distintas monedas: bolivianos, dolares u otra moneda extranjera.
 
 ## Responsables
 

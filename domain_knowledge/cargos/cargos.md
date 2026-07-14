@@ -17,14 +17,26 @@ Dentro de la iglesia existen **dos tipos principales de cargos**:
 
 ## Jerarquia General
 
-1. Apostol
-2. Pastor, profeta, evangelista, maestro (4 ministerios bajo apostol)
-3. Ministro
-4. Anciano
-5. Diacono
-6. Lider de red (cargo funcional)
-7. Lider de casa de paz (cargo funcional)
-8. Sublider de casa de paz (cargo funcional)
+### Nivel Vision (Macro)
+0. Lider de la Vision
+1. Encargado de Departamentos (Vision)
+2. Encargado General de Ministerios (Vision)
+
+### Nivel Iglesia
+3. Apostol
+4. Pastor, profeta, evangelista, maestro (4 ministerios bajo apostol)
+5. Ministro
+6. Anciano
+7. Diacono
+
+### Nivel Red
+8. Lider de red (cargo funcional)
+9. Encargado de Departamentos de Red (obligatorio)
+10. Encargado de Ministerio de Red (obligatorio)
+
+### Nivel CdP
+11. Lider de casa de paz (cargo funcional)
+12. Sublider de casa de paz (cargo funcional)
 
 ---
 
@@ -279,6 +291,94 @@ Cargo de apoyo dentro de la casa de paz. Esta pensado para ser el futuro enviado
 - Cargo removible sin que sea mal visto.
 - Puede haber de 0 a infinito sublideres por casa de paz.
 - Trabaja en estrecha colaboracion con el lider; es un brazo de apoyo que permite delegar tareas operativas.
+
+---
+
+### Lider de la Vision (Nivel Macro)
+
+Cabeza administrativa del crecimiento de la iglesia. No pastorea directamente, sino que supervisa la organizacion a nivel global.
+
+**Designacion:** Por la autoridad superior (apostol).
+
+**Funciones:**
+- Supervisar la organizacion a nivel administrativo.
+- Tener bajo su mando al Encargado de Departamentos (Vision) y al Encargado General de Ministerios (Vision).
+- Tomar decisiones estrategicas de crecimiento.
+
+---
+
+### Encargado de Departamentos (Vision) (Nivel Macro)
+
+Supervisa y estandariza el trabajo de todos los departamentos (Evangelismo, Afirmacion, Discipulado, Envio) a nivel general, cruzando informacion con todas las redes.
+
+**Designacion:** Por el Lider de la Vision.
+
+**Funciones:**
+
+| Funcion | Descripcion |
+|---------|-------------|
+| Supervision global | Supervisa los 4 departamentos a nivel de toda la organizacion |
+| Estandarizacion | Estandariza procesos y formatos entre redes |
+| Auditoria | Audita metricas y documentacion de todos los departamentos |
+| Reportes globales | Genera dashboards y reportes de participacion cruzada |
+| Recibe reportes | Recibe metricas de los Encargados de Departamentos de Red |
+
+---
+
+### Encargado General de Ministerios (Vision) (Nivel Macro)
+
+Audita, contabiliza y cruza datos para saber cuanta gente de cada red esta sirviendo en cada ministerio.
+
+**Designacion:** Por el Lider de la Vision.
+
+**Funciones:**
+
+| Funcion | Descripcion |
+|---------|-------------|
+| Analisis cruzado | Sabe cuantas personas de cada red sirven en cada ministerio |
+| Auditoria | Audita la participacion de miembros en ministerios |
+| Metricas globales | Genera reportes de distribucion de personas por red y ministerio |
+| Permisos | Tiene permisos de lectura/auditoria global sobre todas las redes |
+
+**Ejemplo:** Necesita saber cuantas personas de la Red Apostolica o de la Red de Jovenes estan sirviendo actualmente en Danza, Alabanza, etc.
+
+---
+
+### Encargado de Departamentos de Red (OBLIGATORIO en cada Red)
+
+Posicion obligatoria. Supervisa, coordina y centraliza el trabajo de los 4 representantes departamentales de su red.
+
+**Designacion:** Cuerpo pastoral.
+
+**Funciones:**
+
+| Funcion | Descripcion |
+|---------|-------------|
+| Supervision local | Supervisa a los representantes de Ev, Af, Di, En de su red |
+| Coordinacion | Coordina actividades departamentales a nivel local |
+| Reporte operativo | Rinde cuentas a su Lider de Red |
+| Reporte global | Reporta metricas y documentacion al Encargado de Departamentos (Vision) |
+
+**Naturaleza:** Obligatorio. Toda red debe tener uno asignado.
+
+---
+
+### Encargado de Ministerio de Red (OBLIGATORIO en cada Red)
+
+Posicion obligatoria. Administra y coordina a los miembros de su red que sirven en los distintos ministerios.
+
+**Designacion:** Cuerpo pastoral.
+
+**Funciones:**
+
+| Funcion | Descripcion |
+|---------|-------------|
+| Coordinacion local | Coordina a las personas de su red que sirven en ministerios |
+| Metricas | Reporta metricas de participacion a su Lider de Red |
+| Reporte global | Reporta metricas al Encargado General de Ministerios (Vision) |
+| Independencia | Es independiente del Encargado General (enfoque local vs global) |
+
+**Naturaleza:** Obligatorio. Toda red debe tener uno asignado.
 
 ---
 

@@ -5,5 +5,7 @@
 !/rules
 !/rules/**
 !/estructura.txt
+!/MANUAL.md
 !/neo4j
 !/neo4j/**
+!/actualizacion_daniel.txt

@@ -10,16 +10,18 @@ Establecer el marco general para la realizacion de reuniones dentro de la iglesi
 
 ## Calendario semanal de reuniones
 
-| Dia | Actividad |
-|---|---|
-| Lunes | Discipulado |
-| Martes | Servicios de oracion |
-| Miercoles | Seminario |
-| Jueves (manana) | Ayuno |
-| Jueves (noche) | Casas de paz |
-| Sabado | Servicio de jovenes |
-| Domingo (manana) | Servicio central |
-| Domingo (noche) | Servicio central nocturno |
+| Dia | Actividad | Lugar |
+|---|---|---|
+| Lunes | Discipulado | Iglesia |
+| Martes | Servicios de oracion | Iglesia |
+| Miercoles | Seminario | Iglesia |
+| Jueves (manana) | Ayuno | Iglesia |
+| Jueves (noche) | Casas de paz | Hogares |
+| Sabado | Servicio de jovenes | Iglesia |
+| Domingo (manana) | Servicio central | Iglesia |
+| Domingo (noche) | Servicio central nocturno | Iglesia |
+
+Las casas de paz son la unica reunion que se realiza fuera del edificio de la iglesia. Pueden ser presenciales o virtuales.
 
 ## Eventos anuales
 

@@ -38,17 +38,46 @@ Cuerpo Pastoral (Pastor y esposa)
          |
     Lider de Red  (periodo indefinido)
          |
-    +----+----+
-    |    |    |
+    +----+----+-----------+
+    |        |           |
+    Enc.     Enc.        Sublideres
+    Dptos    Ministerio  (no oficiales)
+    Red      Red
+    |
+    +----+----+----+
+    |    |    |    |
     Ev  Af  Di  En  (4 representantes)
     |
     CDP 1   CDP 2   CDP N
-    Lider   Lider   Lider
 ```
+
+### Encargado de Departamentos de Red (OBLIGATORIO)
+
+Posicion obligatoria en cada red. Supervisa, coordina y centraliza el trabajo de los 4 representantes departamentales de su red.
+
+**Funciones:**
+- Supervisar a los representantes de Evangelismo, Afirmacion, Discipulado y Envio de su red.
+- Coordinar actividades departamentales a nivel local.
+- Rendir cuentas operativas a su Lider de Red.
+- Reportar metricas y documentacion al Encargado de Departamentos (Vision) a nivel global.
+
+**Designacion:** Cuerpo pastoral.
+
+### Encargado de Ministerio de Red (OBLIGATORIO)
+
+Posicion obligatoria en cada red. Administra y coordina a los miembros de su red que sirven en los distintos ministerios.
+
+**Funciones:**
+- Coordinar a las personas de su red que sirven en ministerios (Alabanza, Danza, etc.).
+- Reportar metricas de participacion a su Lider de Red.
+- Reportar metricas al Encargado General de Ministerios (Vision) a nivel global.
+- Es completamente independiente del Encargado General de la Vision (este tiene enfoque global, el de red tiene enfoque local).
+
+**Designacion:** Cuerpo pastoral.
 
 ### Representantes departamentales
 
-Cada red cuenta con 4 representantes:
+Cada red cuenta con 4 representantes, supervisados por el Encargado de Departamentos de Red:
 
 | Departamento | Funcion |
 |-------------|---------|
@@ -57,9 +86,17 @@ Cada red cuenta con 4 representantes:
 | **Discipulado** | Coordina formacion espiritual. |
 | **Envio** | Control de listas y preparacion para responsabilidades. |
 
+### Representantes en Casas de Paz
+
+Las casas de paz pueden tener representantes de los departamentos, pero no es obligatorio ni siempre estan todos. Trabajan a escala pequena dentro de su casa de paz.
+
 ### Sublideres (no oficiales)
 
 Algunas redes tienen sublideres de red como colaboradores cercanos, pero de manera no oficial.
+
+## Regla de negocio importante
+
+Cuando un miembro se inscribe o sirve en un ministerio, el sistema **no debe perder el rastro de la red** a la que pertenece. La relacion persona-ministerio debe poder cruzarse con la relacion persona-red.
 
 ## Relaciones
 

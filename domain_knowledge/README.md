@@ -26,10 +26,11 @@ Agrupaciones de casas de paz para supervision y coordinacion.
 Unidades basicas de la iglesia donde los creyentes se reune semanalmente.
 - [casas-de-paz/casa-paz.md](casas-de-paz/casa-paz.md) — Definicion y finalidad
 - [casas-de-paz/lider.md](casas-de-paz/lider.md) — Lider y sublider de casa de paz
-- [casas-de-paz/anfitrion.md](casas-de-paz/anfitrion.md) — Rol del anfitrión
+- [casas-de-paz/anfitrion.md](casas-de-paz/anfitrion.md) — Rol del anfitrion
 - [casas-de-paz/estructura.md](casas-de-paz/estructura.md) — Organizacion interna
 - [casas-de-paz/miembros_de_cdp.md](casas-de-paz/miembros_de_cdp.md) — Miembros
 - [casas-de-paz/reuniones.md](casas-de-paz/reuniones.md) — Reuniones
+- [casas-de-paz/reporte.md](casas-de-paz/reporte.md) — Formato de reporte semanal
 - [casas-de-paz/criterios.md](casas-de-paz/criterios.md) — Criterios de movimiento de personas
 
 ### Cargos
@@ -40,6 +41,8 @@ Roles y responsabilidades dentro de la iglesia.
 Areas oficiales de trabajo de la iglesia.
 - [departamentos/departamentos.md](departamentos/departamentos.md) — Evangelismo, Afirmacion, Discipulado, Envio
 - [departamentos/operadores.md](departamentos/operadores.md) — Operadores de departamentos
+- [departamentos/discipulado.md](departamentos/discipulado.md) — 7 cursos, retiros, envio, formacion post-envio
+- [departamentos/afirmacion.md](departamentos/afirmacion.md) — Proceso de bautismo, altar, RSLI
 
 ### Ministerios
 Equipos especializados de servicio.
@@ -59,6 +62,7 @@ Conexiones entre entidades.
 - [relaciones/jerarquia.md](relaciones/jerarquia.md) — Jerarquia entre entidades
 - [relaciones/entidades.md](relaciones/entidades.md) — Relaciones entre entidades
 - [relaciones/flujo.md](relaciones/flujo.md) — Flujo organizativo
+- [relaciones/persona-modelo.md](relaciones/persona-modelo.md) — Modelo de persona, direccion, telefono, familia
 
 ### Glosario
 Terminos y definiciones.
@@ -76,9 +80,13 @@ Terminos y definiciones.
 | Que es una red | `redes/redes.md` |
 | Lista de cargos | `cargos/cargos.md` |
 | Departamentos | `departamentos/departamentos.md` |
+| Cursos de discipulado | `departamentos/discipulado.md` |
+| Proceso de bautismo | `departamentos/afirmacion.md` |
+| Reporte de casa de paz | `casas-de-paz/reporte.md` |
 | Ministerios | `ministerios/ministerios.md` |
 | Estados de personas | `estados/estados.md` |
 | Finanzas y ofrendas | `finanzas/finanzas.md` |
+| Modelo de persona | `relaciones/persona-modelo.md` |
 | Siglas (SSVA, CDP, etc.) | `glosario/glosario.md` |
 
 ---

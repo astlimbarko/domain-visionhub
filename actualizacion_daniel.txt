@@ -1,0 +1,71 @@
+# Actualización de la Estructura Organizativa: Visión, Departamentos y Ministerios
+
+Este documento explica las nuevas reglas de negocio y la estructura jerárquica implementada para la gestión de Ministerios y Departamentos a nivel macro (Visión) y micro (Redes). Esta lógica debe respetarse en la base de datos, en las consultas y en la arquitectura del software.
+
+## 1. Nuevos Roles y Jerarquía Administrativa
+
+Se ha expandido la jerarquía administrativa para tener un mejor control analítico y operativo de la iglesia. Se incorporan los siguientes perfiles:
+
+### A Nivel Visión (Macro)
+1. **Líder de la Visión:**
+   * Es la cabeza administrativa del crecimiento de la iglesia.
+   * No pastorea directamente, sino que supervisa la organización.
+   * Tiene bajo su mando directo a dos encargados principales: el *Encargado de Departamentos* y el *Encargado General de Ministerios*.
+
+2. **Encargado de Departamentos (Visión):**
+   * Depende directamente del Líder de la Visión.
+   * Supervisa y estandariza el trabajo de todos los departamentos (Evangelismo, Afirmación, Discipulado, Envío) a nivel general, cruzando información con todas las redes.
+
+3. **Encargado General de Ministerios (Visión):**
+   * Depende directamente del Líder de la Visión.
+   * **Función Analítica Principal:** Debe auditar, contabilizar y cruzar datos para saber exactamente *cuánta gente de cada Red está sirviendo en cada Ministerio*.
+   * **Ejemplo de uso:** Necesita saber cuántas personas de la *Red Apostólica* o de la *Red de Jóvenes* están sirviendo actualmente en el ministerio de *Danza*, *Alabanza*, etc.
+
+### A Nivel Red (Micro)
+4. **Encargado de Departamentos (de Red):**
+   * Es una posición **obligatoria** dentro de la estructura interna de cada Red.
+   * **Función:** Supervisar, coordinar y centralizar el trabajo de los representantes de los 4 departamentos (Evangelismo, Afirmación, Discipulado y Envío) exclusivos de su propia Red.
+   * Rinde cuentas operativas a su *Líder de Red* y reporta métricas/documentación al *Encargado de Departamentos (Visión)*.
+
+5. **Encargado de Ministerio (de Red):**
+   * Es una posición **obligatoria** dentro de la estructura de cada Red.
+   * Es completamente independiente del Encargado General de la Visión.
+   * **Función:** Administrar y coordinar exclusivamente a los miembros de su propia Red que sirven en los distintos ministerios. Reporta las métricas de su gente tanto a su *Líder de Red* como al *Encargado General de Ministerios*.
+
+---
+
+## 2. Reglas de Negocio para el Sistema (Instrucciones para Claude Code / IA)
+
+Para que el sistema refleje correctamente esta estructura, se deben aplicar las siguientes reglas al modelar los datos (ej. en Neo4j, bases relacionales o lógica de controladores):
+
+* **Regla de Pertenencia de Red:** Cuando un `Miembro` se inscribe o sirve en un `Ministerio` (ej. Alabanza), el sistema **no debe perder el rastro de la `Red`** a la que pertenece ese miembro. La relación `(Miembro)-[:SIRVE_EN]->(Ministerio)` debe poder cruzarse con `(Miembro)-[:PERTENECE_A]->(Red)`.
+* **Regla de Obligatoriedad Estructural en Redes:** La entidad `Red` ahora tiene una dependencia obligatoria con dos cargos administrativos internos: un `Encargado de Ministerio de Red` y un `Encargado de Departamentos de Red`. Ninguna red puede existir sin estos perfiles asignados.
+* **Flujo de Auditoría:** Los Encargados Generales (Visión) deben tener permisos de lectura/auditoría global sobre todos los ministerios, departamentos y todas las redes para generar los *dashboards* o reportes de participación cruzada.
+* **Separación de Responsabilidades:** No confundir a los encargados de nivel Visión (enfoque global, analítico, estandarización) con los encargados de nivel Red (gestión local, operativa, manejo directo de las personas de su red específica).
+
+---
+
+## 3. Resumen del Flujo de Datos y Relaciones
+
+```text
+[Líder de la Visión]
+       │
+       ├── Supervisa ──> [Encargado de Departamentos (Visión)]
+       │                          ▲
+       │                          │ (Reporta métricas globales de la red)
+       │                          │
+       │                 [Encargado de Departamentos de Red]
+       │                          ▲
+       │                          │ (Coordina a nivel local)
+       │                          │
+       │                 [Representantes: Ev, Af, Di, En]
+       │
+       └── Supervisa ──> [Encargado General de Ministerios (Visión)]
+                                  ▲
+                                  │ (Audita/Contabiliza cruce de datos)
+                                  │
+                         [Ministerios] (Alabanza, Danza, etc.)
+                                  ▲
+                                  │ (Miembros que sirven)
+                                  │
+[Líder de Red] ── Coordina ──> [Encargado de Ministerio de Red] ──> [Miembros de su Red]

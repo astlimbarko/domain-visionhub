@@ -8,9 +8,11 @@ Los departamentos constituyen las areas oficiales de trabajo dentro de la iglesi
 
 - Cada departamento opera a nivel de toda la iglesia con un lider departamental.
 - Los departamentos funcionan de forma descentralizada: cada red posee representantes de cada departamento.
-- Cada casa de paz puede contar con personas responsables de apoyar las actividades de cada departamento.
+- **Cada red tiene un Encargado de Departamentos de Red (obligatorio)** que supervisa a los representantes.
+- Cada casa de paz puede contar con personas responsables de apoyar las actividades de cada departamento (no es obligatorio ni siempre estan todos).
 - Las mismas funciones departamentales se replican en todos los niveles de la estructura eclesial.
 - Los 4 departamentos coordinan en el seguimiento de las personas. El proceso de las personas determina su estado en alguno de los departamentos.
+- **Regla de negocio:** Cuando un miembro se inscribe en un ministerio, el sistema no debe perder el rastro de la red a la que pertenece.
 
 ## Los cuatro departamentos
 
@@ -93,3 +95,5 @@ Los cuatro departamentos trabajan de forma articulada cubriendo estas etapas.
 ## Documentos relacionados
 
 - [Operadores](operadores.md)
+- [Discipulado](discipulado.md)
+- [Afirmacion](afirmacion.md)

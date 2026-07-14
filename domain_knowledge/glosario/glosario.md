@@ -25,6 +25,19 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 | **CDP** | Casa de Paz | Unidad basica. Grupo que se reune semanalmente en un hogar. |
 | **RSLI** | Retiro de Sanidad Interior | Evento de retiro espiritual. |
 | **SSVA** | Sistema de Seguimiento en la Vision en la Accion | NO OFICIAL. Solo para documentacion interna. |
+| **CI** | Cedula de Identidad | Documento de identidad de la persona. |
+
+### Siglas de cursos
+
+| Sigla | Significado |
+|-------|-------------|
+| **FVR** | Fundamentos de Vida del Reino (curso 1) |
+| **CC1** | Caracter de Cristo 1 (curso 2) |
+| **CC2** | Caracter de Cristo 2 (curso 3) |
+| **FF** | Familia Feliz (curso 4) |
+| **PIH** | Poder de Identidades como Hijo (curso 5) |
+| **LCDP** | Lideres de Casas de Paz (curso 6) |
+| **MR** | Mentores del Reino (curso 7) |
 
 ## Terminos
 
@@ -50,6 +63,9 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 **Cobertura**
 : Unidad administrativa superior que agrupa varias iglesias bajo la autoridad de un apostol. No es una congregacion fisica. El apostol toma decisiones teocraticas sin junta directiva ni consejo.
 
+**Contador/Contadora**
+: Cargo administrativo en el area financiera. Minimo diacono y profesional en el area. Administra informacion con herramientas propias (software contable, Excel).
+
 **Creyente (CRE)**
 : Estado para asistentes regulares. Persona que acepto a Jesus con evidencia de fe inicial.
 
@@ -59,10 +75,10 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 : Area oficial de trabajo. Existen 4: Evangelismo, Afirmacion, Discipulado y Envio.
 
 **Diacono**
-: Persona de servicio, ejecutor de planes. Bueno en oficios (electricidad, plomeria, albanileria). Ayuda en servicios. No tiene autoridad directa sobre personas. Cargo sobre lider de casa de paz, bajo anciano.
+: Persona de servicio, ejecutor de planes. Bueno en oficios (electricidad, plomeria, albanileria). Ayuda en servicios. No tiene autoridad directa sobre personas. Requisito: ser lider de casa de paz previamente.
 
 **Discipulado** (departamento)
-: Coordina la formacion espiritual mediante ensenanza y capacitacion.
+: Coordina la formacion espiritual mediante 7 cursos estructurados, retiros espirituales y procesos de envio.
 
 **Discipulo Activo (DA)**
 : Persona que asiste una vez al discipulado.
@@ -73,7 +89,10 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 ### E
 
 **Envio** (departamento)
-: Prepara a personas para asumir responsabilidades mayores.
+: Prepara a personas para asumir responsabilidades mayores. Coordina el envio como lider de CdP y la multiplicacion.
+
+**Envio como lider CdP**
+: Proceso que ocurre despues de completar el discipulado de lideres, el retiro del Espiritu Santo y el aval del cuerpo pastoral. Se registra la fecha de envio.
 
 **Evangelismo** (departamento)
 : Departamento de oficina que documenta actividades evangelisticas. No confundir con el ministerio de evangelismo (accion en campo).
@@ -97,13 +116,13 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 ### M
 
 **Maestro**
-: Ensenanza a nivel teologico y palabra revelada. No tiene personas especificas a cargo.
+: Ensenanza a nivel teologico y palabra revelada. No tiene personas especificas a cargo. Designado por el apostol.
 
 **Mentor**
-: Pendiente de definir (sin informacion disponible).
+: Pendiente de definir. Curso de formacion avanzada (Mentores del Reino, curso 7).
 
 **Miembro**
-: Persona bautizada que forma parte de la congregacion.
+: Persona bautizada que forma parte de la congregacion. Marca de membresia: bautizo.
 
 **Ministerio**
 : Equipo especializado bajo pastores principales. Autonomo, no requiere otro para funcionar. Nunca se cierra, solo cambia de liderazgo.
@@ -119,23 +138,26 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 ### O
 
 **Ofrenda**
-: Contribucion economica voluntaria. Un solo tipo, no existen subtipos.
+: Contribucion economica voluntaria. Un solo tipo, no existen subtipos. Se registra en reuniones que recauden (no ensayos ni reuniones administrativas).
 
 **Operador**
-: Persona de apoyo en departamentos. Designado por el lider del departamento o pastores.
+: Persona de apoyo en departamentos. Designado por el lider del departamento. Funciones: entrada de datos (Evangelismo), registro de bautizados (Afirmacion), toma de lista (Discipulado).
 
 ### P
 
 **Pastor**
-: Autoridad local de la iglesia. Lidera la congregacion. Designa lideres de red, departamentos y ministerios. Responde ante el apostol de la cobertura.
+: Autoridad local de la iglesia. Lidera la congregacion en lo espiritual y administrativo. Junto con su esposa conforman el equipo pastoral. Designa lideres de red, ancianos, diaconos, lideres de CdP. Responde ante el apostol.
+
+**Primicia**
+: Tipo de contribucion economica especial.
 
 **Profeta**
-: Cargo alto (5 ministerios). Papel similar al pastor, uncion profetica. No gerencia, papel ministerial. Designado por el apostol.
+: Cargo alto (5 ministerios). Papel similar al pastor, uncion profetica. No gerencia documentos ni toma decisiones. Designado por el apostol.
 
 ### R
 
 **Reconciliacion (RE)**
-: Persona que estuvo +3 meses fuera y retorna. 1 dia RE, luego DA si asiste a discipulado.
+: Persona que estuvo +3 meses (90 dias) fuera y retorna. 1 dia como RE, luego pasa a DA si asiste a discipulado.
 
 **Red**
 : Agrupacion de casas de paz bajo un lider de red. No existen sin casas de paz. No hay limite de redes por iglesia.
@@ -154,3 +176,9 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 ## Nota importante
 
 SSVA es una sigla NO OFICIAL, usada unicamente para documentacion interna del proyecto.
+
+## Documentos relacionados
+
+- [Estados](../estados/estados.md)
+- [Cargos](../cargos/cargos.md)
+- [Discipulado](../departamentos/discipulado.md)

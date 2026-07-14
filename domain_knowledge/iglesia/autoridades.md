@@ -8,6 +8,13 @@ Las autoridades de la iglesia son los lideres y cargos eclesiasticos responsable
 
 ```
 Apostol (Cobertura)
+    └── Lider de la Vision (Macro)
+            ├── Encargado de Departamentos (Vision)
+            │       └── Encargados de Departamentos de Red
+            │               └── Representantes: Ev, Af, Di, En
+            └── Encargado General de Ministerios (Vision)
+                    └── Encargados de Ministerio de Red
+                            └── Miembros que sirven en ministerios
     └── Pastor principal (Iglesia local)
             ├── Profetas
             ├── Evangelistas
@@ -15,6 +22,8 @@ Apostol (Cobertura)
             ├── Ministros (ejecutan sobre las redes)
             ├── Ancianos (pueden ser lideres de red)
             ├── Lideres de red
+            │       ├── Encargado de Dptos de Red (obligatorio)
+            │       ├── Encargado de Ministerio de Red (obligatorio)
             │       └── Lideres de casas de paz
             ├── Diaconos (servicio y ejecucion)
             └── Miembros de la iglesia
