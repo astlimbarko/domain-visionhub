@@ -1,179 +1,275 @@
 // VisionHub Neo4j Seed Data - Catalogos
-// Basado en VisionHub_Grafo_v2_Final.md
-// Fecha: 2026-07-11
+// Actualizado: 2026-07-14
+// Basado en toda la documentacion actualizada de VisionHub
 
 // ============================================
-// 1. ORGANIZACION (Tenant raiz)
+// 1. COBERTURA (Tenant raiz)
 // ============================================
 
-CREATE (org:Organizacion {
+CREATE (cob:Cobertura {
   id: randomUUID(),
   nombre: "Red Apostolica del Ap. Edgar Ortuno",
-  sede: "Centro de Vida Global, Cochabamba, Bolivia",
-  plan: "iglesia",
+  sede: "Cochabamba, Bolivia",
+  apostol: "Edgar Ortuño",
   estado: "activa",
   created_at: datetime()
 });
 
 // ============================================
-// 2. CARGOS (Catalogo global - 15 cargos)
+// 2. IGLESIAS (Despliegue inicial - 2 + Cochabamba)
 // ============================================
 
-// Nivel 1: Los 5 Ministerios (mayor jerarquia espiritual)
-CREATE (c1:Cargo {
+// Iglesia madre real (no se da de alta en software aun)
+CREATE (ig0:Iglesia {
+  id: randomUUID(),
+  nombre: "Centro de Vida Global",
+  ciudad: "Cochabamba",
+  tipo: "madre_real",
+  activa: false,
+  created_at: datetime()
+});
+
+// Iglesia hija - Santa Cruz (sede del despliegue)
+CREATE (ig1:Iglesia {
+  id: randomUUID(),
+  nombre: "Centro de Vida Global 4 Anillo",
+  ciudad: "Santa Cruz",
+  tipo: "hija",
+  activa: true,
+  created_at: datetime()
+});
+
+// Iglesia hija - Montero
+CREATE (ig2:Iglesia {
+  id: randomUUID(),
+  nombre: "Centro de Vida Global Montero",
+  ciudad: "Montero",
+  tipo: "hija",
+  activa: true,
+  created_at: datetime()
+});
+
+// Relaciones iglesia padre/hija
+MATCH (cob:Cobertura {nombre: "Red Apostolica del Ap. Edgar Ortuno"})
+MATCH (ig0:Iglesia {nombre: "Centro de Vida Global"})
+MATCH (ig1:Iglesia {nombre: "Centro de Vida Global 4 Anillo"})
+MATCH (ig2:Iglesia {nombre: "Centro de Vida Global Montero"})
+CREATE (ig0)-[:PERTENECE_A]->(cob)
+CREATE (ig1)-[:ES_HIJA_DE]->(ig0)
+CREATE (ig2)-[:ES_HIJA_DE]->(ig0);
+
+// ============================================
+// 3. CARGOS (Catalogo global - 20 cargos)
+// ============================================
+
+// --- Nivel Vision (Macro) ---
+CREATE (c0:Cargo {
+  id: randomUUID(),
+  nombre: "Lider de la Vision en Accion",
+  tipo: "funcional",
+  subtipo: "vision_macro",
+  permanente: true,
+  orden: 0,
+  descripcion: "Cabeza administrativa del crecimiento. Brazo operativo del pastor. Permanente, solo el pastor lo remueve."
+});
+
+CREATE (c1v:Cargo {
+  id: randomUUID(),
+  nombre: "Encargado de Departamentos (Vision)",
+  tipo: "funcional",
+  subtipo: "vision_macro",
+  permanente: false,
+  orden: 1,
+  descripcion: "Supervisa los 4 departamentos a nivel global. Rol DIFERENTE al Lider de Departamento local."
+});
+
+CREATE (c2v:Cargo {
+  id: randomUUID(),
+  nombre: "Encargado General de Ministerios (Vision)",
+  tipo: "funcional",
+  subtipo: "vision_macro",
+  permanente: false,
+  orden: 2,
+  descripcion: "Audita participacion por red y ministerio. Enfoque global/analitico."
+});
+
+// --- Nivel Iglesia: 5 Ministerios (designados por apostol) ---
+CREATE (c3:Cargo {
   id: randomUUID(),
   nombre: "Apostol",
   tipo: "ministerial",
   subtipo: "ministerial_supremo",
   permanente: true,
-  orden: 1,
-  descripcion: "Maxima autoridad de cobertura. Designado por apostol superior. Toma decisiones teocraticas."
+  orden: 3,
+  descripcion: "Maxima autoridad de cobertura. Designado por apostol superior."
 });
 
-CREATE (c2:Cargo {
+CREATE (c4:Cargo {
   id: randomUUID(),
   nombre: "Pastor",
   tipo: "ministerial",
   subtipo: "ministerial_supremo",
   permanente: true,
-  orden: 2,
-  descripcion: "Autoridad local de la iglesia. Lidera la congregacion en lo espiritual y administrativo."
+  orden: 4,
+  descripcion: "Autoridad local de la iglesia. Junto con su esposa conforman el equipo pastoral."
 });
 
-CREATE (c3:Cargo {
+CREATE (c5:Cargo {
   id: randomUUID(),
   nombre: "Profeta",
   tipo: "ministerial",
   subtipo: "ministerial_supremo",
   permanente: true,
-  orden: 3,
-  descripcion: "Cargo alto con uncion profetica. No gerencia documentos ni toma decisiones."
+  orden: 5,
+  descripcion: "Cargo alto con uncion profetica. No gerencia documentos. Puede mover personas ministerialmente. Designado por apostol."
 });
 
-CREATE (c4:Cargo {
+CREATE (c6:Cargo {
   id: randomUUID(),
   nombre: "Evangelista",
   tipo: "ministerial",
   subtipo: "ministerial_supremo",
   permanente: true,
-  orden: 4,
-  descripcion: "Evangeliza a escala mayor. Crea equipos y capacita. Predica en servicios especiales."
+  orden: 6,
+  descripcion: "Evangeliza a escala mayor. Crea equipos y capacita. Designado por apostol."
 });
 
-CREATE (c5:Cargo {
+CREATE (c7:Cargo {
   id: randomUUID(),
   nombre: "Maestro",
   tipo: "ministerial",
   subtipo: "ministerial_supremo",
   permanente: true,
-  orden: 5,
-  descripcion: "Ensenanza de la palabra a nivel teologico. Usa palabra revelada."
+  orden: 7,
+  descripcion: "Ensenanza teologica. Palabra revelada. Designado por apostol."
 });
 
-// Nivel 2: Cargos Ministeriales (rangos inferiores)
-CREATE (c6:Cargo {
+// --- Nivel Iglesia: Cargos Ministeriales inferiores ---
+CREATE (c8:Cargo {
   id: randomUUID(),
   nombre: "Ministro",
   tipo: "ministerial",
   subtipo: "ministerial",
   permanente: true,
-  orden: 6,
-  descripcion: "Cargo alto por debajo de los 5 ministerios. Ejecuta tareas sobre redes."
+  orden: 8,
+  descripcion: "Por debajo de los 5 ministerios. Ejecuta tareas sobre redes. Designado por apostol."
 });
 
-CREATE (c7:Cargo {
+CREATE (c9:Cargo {
   id: randomUUID(),
   nombre: "Anciano",
   tipo: "ministerial",
   subtipo: "ministerial",
   permanente: true,
-  orden: 7,
-  descripcion: "Por encima de diacono, por debajo de ministro. Predica, puede ser lider de red."
+  orden: 9,
+  descripcion: "Por encima de diacono. Predica, puede ser lider de red. Designado por equipo pastoral."
 });
 
-CREATE (c8:Cargo {
+CREATE (c10:Cargo {
   id: randomUUID(),
   nombre: "Diacono",
   tipo: "ministerial",
   subtipo: "ministerial",
   permanente: true,
-  orden: 8,
-  descripcion: "Persona de servicio. Ejecutor de planes. Oficios varios."
+  orden: 10,
+  descripcion: "Servicio constante. Ejecutor de planes. Requisito: ser lider de CdP previamente. Designado por equipo pastoral."
 });
 
-CREATE (c9:Cargo {
+CREATE (c11:Cargo {
   id: randomUUID(),
   nombre: "Mentor",
   tipo: "ministerial",
   subtipo: "ministerial",
   permanente: true,
-  orden: 9,
+  orden: 11,
   descripcion: "Pendiente de definir."
 });
 
-// Nivel 3: Cargos Funcionales (temporales)
-CREATE (c10:Cargo {
+// --- Nivel Red ---
+CREATE (c12:Cargo {
   id: randomUUID(),
   nombre: "Lider de Red",
   tipo: "funcional",
-  subtipo: "funcional",
-  permanente: false,
-  orden: 10,
-  descripcion: "Supervisa casas de paz de su red. Autonomo en su gestion."
-});
-
-CREATE (c11:Cargo {
-  id: randomUUID(),
-  nombre: "Lider de CdP",
-  tipo: "funcional",
-  subtipo: "funcional",
-  permanente: false,
-  orden: 11,
-  descripcion: "Responsable principal de una casa de paz."
-});
-
-CREATE (c12:Cargo {
-  id: randomUUID(),
-  nombre: "Sublider de CdP",
-  tipo: "funcional",
-  subtipo: "funcional",
+  subtipo: "nivel_red",
   permanente: false,
   orden: 12,
-  descripcion: "Colaborador del lider de casa de paz. Futuro lider."
+  descripcion: "Supervisa casas de paz de su red. Cargo funcional, puede ser anciano/ministro/diacono. Designado por equipo pastoral."
 });
 
 CREATE (c13:Cargo {
+  id: randomUUID(),
+  nombre: "Encargado de Departamentos de Red",
+  tipo: "funcional",
+  subtipo: "nivel_red",
+  permanente: false,
+  orden: 13,
+  descripcion: "OBLIGATORIO en cada red. Supervisa representantes de Ev, Af, Di, En a nivel local."
+});
+
+CREATE (c14:Cargo {
+  id: randomUUID(),
+  nombre: "Encargado de Ministerio de Red",
+  tipo: "funcional",
+  subtipo: "nivel_red",
+  permanente: false,
+  orden: 14,
+  descripcion: "OBLIGATORIO en cada red. Coordina PERSONAS de la red que sirven en ministerios."
+});
+
+// --- Nivel CdP ---
+CREATE (c15:Cargo {
+  id: randomUUID(),
+  nombre: "Lider de CdP",
+  tipo: "funcional",
+  subtipo: "nivel_cdp",
+  permanente: false,
+  orden: 15,
+  descripcion: "Responsable principal de una casa de paz. Designado por equipo pastoral (lider de red propone, pastor aprueba)."
+});
+
+CREATE (c16:Cargo {
+  id: randomUUID(),
+  nombre: "Sublider de CdP",
+  tipo: "funcional",
+  subtipo: "nivel_cdp",
+  permanente: false,
+  orden: 16,
+  descripcion: "Colaborador del lider. Puede llenar formulario de reporte. Dashboard configurable desde Supervision."
+});
+
+// --- Otros funcionales ---
+CREATE (c17:Cargo {
   id: randomUUID(),
   nombre: "Lider de Departamento",
   tipo: "funcional",
   subtipo: "funcional",
   permanente: false,
-  orden: 13,
-  descripcion: "Responsable de un departamento especifico."
+  orden: 17,
+  descripcion: "Responsable de un departamento especifico (local). DIFERENTE al Encargado de Departamentos (Vision)."
 });
 
-CREATE (c14:Cargo {
+CREATE (c18:Cargo {
   id: randomUUID(),
   nombre: "Operador",
   tipo: "funcional",
   subtipo: "funcional",
   permanente: false,
-  orden: 14,
-  descripcion: "Persona de apoyo en departamentos."
+  orden: 18,
+  descripcion: "Apoyo en departamentos. Designado por pastor o lider de departamento."
 });
 
-CREATE (c15:Cargo {
+CREATE (c19:Cargo {
   id: randomUUID(),
   nombre: "Contador/Contadora",
   tipo: "funcional",
   subtipo: "funcional",
   permanente: false,
-  orden: 15,
+  orden: 19,
   descripcion: "Area administrativa-financiera. Minimo diacono + profesional."
 });
 
 // ============================================
-// 3. ESTADOS (Catalogo global - 6 estados)
+// 4. ESTADOS (Catalogo global - 6 estados)
 // ============================================
 
 CREATE (e1:Estado {
@@ -196,7 +292,7 @@ CREATE (e3:Estado {
   id: randomUUID(),
   nombre: "Creyente",
   sigla: "CRE",
-  descripcion: "Persona que acepto a Jesus. Asistentes regulares.",
+  descripcion: "Asistente regular mayor de 12 anos. Despues de 1 semana sin discipulado.",
   orden: 3
 });
 
@@ -220,65 +316,37 @@ CREATE (e6:Estado {
   id: randomUUID(),
   nombre: "Discipulo Inactivo",
   sigla: "DI",
-  descripcion: "Persona que abandono 3 clases continuas del discipulado.",
+  descripcion: "Abandono 3 clases continuas. Nunca aplica sin ser DA primero.",
   orden: 6
 });
 
 // ============================================
-// 4. TRANSICIONES DE ESTADOS
+// 5. TRANSICIONES DE ESTADOS
 // ============================================
 
-// SIM -> NC
 MATCH (e1:Estado {sigla: "SIM"}), (e2:Estado {sigla: "NC"})
-CREATE (e1)-[:TRANSICIONA_A {
-  criterio: "ora de fe",
-  condicion: "acepta a Jesus"
-}]->(e2);
+CREATE (e1)-[:TRANSICIONA_A {criterio: "ora de fe", condicion: "acepta a Jesus"}]->(e2);
 
-// NC -> CRE
 MATCH (e2:Estado {sigla: "NC"}), (e3:Estado {sigla: "CRE"})
-CREATE (e2)-[:TRANSICIONA_A {
-  criterio: "1 semana sin discipulado",
-  condicion: "no asiste a discipulado"
-}]->(e3);
+CREATE (e2)-[:TRANSICIONA_A {criterio: "1 semana sin discipulado", condicion: "solo mayores de 12 anos"}]->(e3);
 
-// NC -> DA
 MATCH (e2:Estado {sigla: "NC"}), (e5:Estado {sigla: "DA"})
-CREATE (e2)-[:TRANSICIONA_A {
-  criterio: "asiste a discipulado",
-  condicion: "asiste al menos 1 vez"
-}]->(e5);
+CREATE (e2)-[:TRANSICIONA_A {criterio: "asiste a discipulado", condicion: "al menos 1 vez"}]->(e5);
 
-// CRE -> DA
 MATCH (e3:Estado {sigla: "CRE"}), (e5:Estado {sigla: "DA"})
-CREATE (e3)-[:TRANSICIONA_A {
-  criterio: "asiste a discipulado",
-  condicion: "asiste al menos 1 vez"
-}]->(e5);
+CREATE (e3)-[:TRANSICIONA_A {criterio: "asiste a discipulado", condicion: "al menos 1 vez"}]->(e5);
 
-// DA -> DI
 MATCH (e5:Estado {sigla: "DA"}), (e6:Estado {sigla: "DI"})
-CREATE (e5)-[:TRANSICIONA_A {
-  criterio: "3 clases continuas ausentes",
-  condicion: "abandona discipulado"
-}]->(e6);
+CREATE (e5)-[:TRANSICIONA_A {criterio: "3 clases continuas ausentes", condicion: "abandona discipulado"}]->(e6);
 
-// DI -> DA
 MATCH (e6:Estado {sigla: "DI"}), (e5:Estado {sigla: "DA"})
-CREATE (e6)-[:TRANSICIONA_A {
-  criterio: "retoma asistencia",
-  condicion: "vuelve a discipulado"
-}]->(e5);
+CREATE (e6)-[:TRANSICIONA_A {criterio: "retoma asistencia", condicion: "vuelve a discipulado"}]->(e5);
 
-// RE -> DA
 MATCH (e4:Estado {sigla: "RE"}), (e5:Estado {sigla: "DA"})
-CREATE (e4)-[:TRANSICIONA_A {
-  criterio: "asiste a discipulado",
-  condicion: "RE dura 1 dia"
-}]->(e5);
+CREATE (e4)-[:TRANSICIONA_A {criterio: "asiste a discipulado", condicion: "RE dura 1 dia"}]->(e5);
 
 // ============================================
-// 5. DEPARTAMENTOS (4 activos)
+// 6. DEPARTAMENTOS (4 activos)
 // ============================================
 
 CREATE (d1:Departamento {
@@ -310,39 +378,52 @@ CREATE (d4:Departamento {
 });
 
 // ============================================
-// 6. MINISTERIOS (14)
+// 7. MINISTERIOS (14 - todos nivel iglesia)
 // ============================================
 
-CREATE (m1:Ministerio {id: randomUUID(), nombre: "Alabanza", descripcion: "Musica y canto. Musicos y cantantes. Ensayos periodicos.", nunca_se_cierra: true});
-CREATE (m2:Ministerio {id: randomUUID(), nombre: "Danza", descripcion: "Danzas reverentes. Jovenes. Ensayos periodicos.", nunca_se_cierra: true});
-CREATE (m3:Ministerio {id: randomUUID(), nombre: "Comunicacion", descripcion: "Transmisiones, fotografia, video, redes sociales, apoyo tecnico.", nunca_se_cierra: true});
-CREATE (m4:Ministerio {id: randomUUID(), nombre: "Ninos", descripcion: "Ensenar palabra a ninos -12 anos. Clases adaptadas.", nunca_se_cierra: true});
-CREATE (m5:Ministerio {id: randomUUID(), nombre: "Jovenes", descripcion: "Ministrar a jovenes. Servicio semanal.", nunca_se_cierra: true});
-CREATE (m6:Ministerio {id: randomUUID(), nombre: "Protocolo", descripcion: "Coordinar servicios, programas, tiempos, invitados.", nunca_se_cierra: true});
-CREATE (m7:Ministerio {id: randomUUID(), nombre: "Ujieres", descripcion: "Recibir, orientar, orden, limpieza, uniforme, turnos.", nunca_se_cierra: true});
-CREATE (m8:Ministerio {id: randomUUID(), nombre: "Parqueo", descripcion: "Organizar ingreso/ubicacion/salida de vehiculos.", nunca_se_cierra: true});
-CREATE (m9:Ministerio {id: randomUUID(), nombre: "Cocina", descripcion: "Preparar alimentos para actividades, eventos, delegaciones.", nunca_se_cierra: true});
-CREATE (m10:Ministerio {id: randomUUID(), nombre: "Evangelismo (campo)", descripcion: "Anunciar evangelio fuera de la iglesia. Visitas, alcance.", nunca_se_cierra: true});
-CREATE (m11:Ministerio {id: randomUUID(), nombre: "Sonido", descripcion: "Operacion y mantenimiento de equipos de audio.", nunca_se_cierra: true});
-CREATE (m12:Ministerio {id: randomUUID(), nombre: "Testimonios", descripcion: "Recopilar, documentar, presentar testimonios.", nunca_se_cierra: true});
-CREATE (m13:Ministerio {id: randomUUID(), nombre: "Escuderos", descripcion: "Apoyo y asistencia a pastores o invitados especiales.", nunca_se_cierra: true});
-CREATE (m14:Ministerio {id: randomUUID(), nombre: "Intercesion", descripcion: "Oracion, intercesion, clamor, apoyo espiritual.", nunca_se_cierra: true});
+CREATE (m1:Ministerio {id: randomUUID(), nombre: "Alabanza", nivel: "iglesia", descripcion: "Musica y canto. Musicos y cantantes.", nunca_se_cierra: true});
+CREATE (m2:Ministerio {id: randomUUID(), nombre: "Danza", nivel: "iglesia", descripcion: "Danzas reverentes. Jovenes.", nunca_se_cierra: true});
+CREATE (m3:Ministerio {id: randomUUID(), nombre: "Comunicacion", nivel: "iglesia", descripcion: "Transmisiones, foto, video, RRSS.", nunca_se_cierra: true});
+CREATE (m4:Ministerio {id: randomUUID(), nombre: "Ninos", nivel: "iglesia", descripcion: "Ensenar palabra a ninos -12 anos.", nunca_se_cierra: true});
+CREATE (m5:Ministerio {id: randomUUID(), nombre: "Jovenes", nivel: "iglesia", descripcion: "Ministrar a jovenes.", nunca_se_cierra: true});
+CREATE (m6:Ministerio {id: randomUUID(), nombre: "Protocolo", nivel: "iglesia", descripcion: "Coordinar servicios, tiempos.", nunca_se_cierra: true});
+CREATE (m7:Ministerio {id: randomUUID(), nombre: "Ujieres", nivel: "iglesia", descripcion: "Recibir, orientar, limpieza.", nunca_se_cierra: true});
+CREATE (m8:Ministerio {id: randomUUID(), nombre: "Parqueo", nivel: "iglesia", descripcion: "Organizar vehiculos.", nunca_se_cierra: true});
+CREATE (m9:Ministerio {id: randomUUID(), nombre: "Cocina", nivel: "iglesia", descripcion: "Preparar alimentos.", nunca_se_cierra: true});
+CREATE (m10:Ministerio {id: randomUUID(), nombre: "Evangelismo (campo)", nivel: "iglesia", descripcion: "Anunciar evangelio fuera.", nunca_se_cierra: true});
+CREATE (m11:Ministerio {id: randomUUID(), nombre: "Sonido", nivel: "iglesia", descripcion: "Equipos de audio.", nunca_se_cierra: true});
+CREATE (m12:Ministerio {id: randomUUID(), nombre: "Testimonios", nivel: "iglesia", descripcion: "Recopilar testimonios.", nunca_se_cierra: true});
+CREATE (m13:Ministerio {id: randomUUID(), nombre: "Escuderos", nivel: "iglesia", descripcion: "Asistencia a pastores.", nunca_se_cierra: true});
+CREATE (m14:Ministerio {id: randomUUID(), nombre: "Intercesion", nivel: "iglesia", descripcion: "Oracion e intercesion.", nunca_se_cierra: true});
 
 // ============================================
-// 7. TIPOS DE REUNION (8)
+// 8. TIPOS DE REUNION
 // ============================================
 
-CREATE (tr1:TipoReunion {id: randomUUID(), tipo: "Discipulado", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr2:TipoReunion {id: randomUUID(), tipo: "Oracion", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr3:TipoReunion {id: randomUUID(), tipo: "Seminario", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr4:TipoReunion {id: randomUUID(), tipo: "Ayuno", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr5:TipoReunion {id: randomUUID(), tipo: "Casa de Paz", frecuencia: "semanal", lugar_default: "hogar", virtual_default: false});
-CREATE (tr6:TipoReunion {id: randomUUID(), tipo: "Servicio de Jovenes", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr7:TipoReunion {id: randomUUID(), tipo: "Servicio Central", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
-CREATE (tr8:TipoReunion {id: randomUUID(), tipo: "Servicio Central Nocturno", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false});
+CREATE (tr1:TipoReunion {id: randomUUID(), tipo: "Casa de Paz", frecuencia: "semanal", lugar_default: "hogar", virtual_default: false, recauda: true});
+CREATE (tr2:TipoReunion {id: randomUUID(), tipo: "Servicio Central", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: true});
+CREATE (tr3:TipoReunion {id: randomUUID(), tipo: "Servicio Central Nocturno", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: true});
+CREATE (tr4:TipoReunion {id: randomUUID(), tipo: "Servicio de Jovenes", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: true});
+CREATE (tr5:TipoReunion {id: randomUUID(), tipo: "Discipulado", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: false});
+CREATE (tr6:TipoReunion {id: randomUUID(), tipo: "Oracion", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: false});
+CREATE (tr7:TipoReunion {id: randomUUID(), tipo: "Seminario", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: false});
+CREATE (tr8:TipoReunion {id: randomUUID(), tipo: "Ayuno", frecuencia: "semanal", lugar_default: "iglesia", virtual_default: false, recauda: false});
 
 // ============================================
-// 8. EVENTOS ANUALES (5)
+// 9. TIPOS DE RELACION FAMILIAR
+// ============================================
+
+CREATE (trf1:TipoRelacion {id: randomUUID(), nombre: "Esposo", inverso: "Esposa"});
+CREATE (trf2:TipoRelacion {id: randomUUID(), nombre: "Esposa", inverso: "Esposo"});
+CREATE (trf3:TipoRelacion {id: randomUUID(), nombre: "Padre", inverso: "Hijo"});
+CREATE (trf4:TipoRelacion {id: randomUUID(), nombre: "Madre", inverso: "Hijo"});
+CREATE (trf5:TipoRelacion {id: randomUUID(), nombre: "Hijo", inverso: "Padre"});
+CREATE (trf6:TipoRelacion {id: randomUUID(), nombre: "Hermano", inverso: "Hermano"});
+CREATE (trf7:TipoRelacion {id: randomUUID(), nombre: "Abuelo", inverso: "Nieto"});
+CREATE (trf8:TipoRelacion {id: randomUUID(), nombre: "Nieto", inverso: "Abuelo"});
+
+// ============================================
+// 10. EVENTOS ANUALES
 // ============================================
 
 CREATE (ea1:EventoAnual {id: randomUUID(), nombre: "RMS", descripcion: "Congreso de jovenes"});
@@ -352,13 +433,33 @@ CREATE (ea4:EventoAnual {id: randomUUID(), nombre: "Congreso de Hombres", descri
 CREATE (ea5:EventoAnual {id: randomUUID(), nombre: "Congreso de Ninos", descripcion: "Encuentro de ninos"});
 
 // ============================================
+// 11. CRITERIOS POR DEFECTO (configurables por iglesia)
+// ============================================
+
+// Criterios de CdP
+CREATE (cr1:Criterio {id: randomUUID(), categoria: "cdp", nombre: "VISITAS_PARA_MIEMBRO", valor: 2, descripcion: "Visitas consecutivas para ser miembro"});
+CREATE (cr2:Criterio {id: randomUUID(), categoria: "cdp", nombre: "VISITAS_PARA_MIGRAR", valor: 8, descripcion: "Visitas consecutivas a otra CdP para migrar"});
+CREATE (cr3:Criterio {id: randomUUID(), categoria: "cdp", nombre: "INASISTENCIAS_PARA_INACTIVO", valor: 12, descripcion: "Inasistencias consecutivas para inactivar"});
+CREATE (cr4:Criterio {id: randomUUID(), categoria: "cdp", nombre: "MESES_PARA_RECONCILIADO", valor: 3, descripcion: "Meses fuera para ser Reconciliado"});
+
+// Criterios de Estados SSVA
+CREATE (cr5:Criterio {id: randomUUID(), categoria: "estados", nombre: "CLASES_PARA_DI", valor: 3, descripcion: "Clases ausentes para Discipulo Inactivo"});
+CREATE (cr6:Criterio {id: randomUUID(), categoria: "estados", nombre: "SEMANAS_NC_PARA_CRE", valor: 1, descripcion: "Semanas sin discipulado NC a CRE"});
+CREATE (cr7:Criterio {id: randomUUID(), categoria: "estados", nombre: "ASISTENCIAS_PARA_DA", valor: 1, descripcion: "Asistencias para ser Discipulo Activo"});
+CREATE (cr8:Criterio {id: randomUUID(), categoria: "estados", nombre: "DIAS_RE_PARA_DA", valor: 1, descripcion: "Dias como RE antes de DA"});
+CREATE (cr9:Criterio {id: randomUUID(), categoria: "estados", nombre: "EDAD_MINIMA_CRE", valor: 12, descripcion: "Edad minima para ser Creyente"});
+
+// ============================================
 // RESUMEN DE DATOS SEMILLA
 // ============================================
-// Organizacion: 1
-// Cargos: 15
+// Cobertura: 1
+// Iglesias: 3 (1 inactiva + 2 activas)
+// Cargos: 20
 // Estados: 6
 // Transiciones: 7
 // Departamentos: 4
 // Ministerios: 14
 // Tipos de Reunion: 8
+// Tipos Relacion Familiar: 8
 // Eventos Anuales: 5
+// Criterios: 9
