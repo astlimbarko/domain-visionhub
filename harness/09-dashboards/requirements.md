@@ -42,7 +42,7 @@ El contenido de cada pantalla sale de `software/dashboards/`. Este documento def
 3. THE Sistema SHALL exponer la asistencia de las últimas 8 reuniones reportadas.
 4. THE Sistema SHALL exponer la lista de Miembro_CdP con: nombre, Estado, semanas desde la última asistencia y estado civil.
 5. THE Sistema SHALL exponer los ingresos del mes desglosados por Tipo_Ingreso y Moneda.
-6. THE Sistema SHALL exponer los datos de la Casa_De_Paz: nombre, Red, cantidad de miembros y fecha de la última reunión.
+6. THE Sistema SHALL exponer los datos de la Casa_De_Paz: Etiqueta_CdP (`fn_etiqueta_cdp`, [03-estructura](../03-estructura/requirements.md#requisito-2-casa-de-paz)), Red, cantidad de miembros y fecha de la última reunión.
 7. THE Sistema SHALL contar las últimas 8 reuniones sobre reuniones reportadas, y SHALL NOT usar las últimas 8 semanas del calendario.
 
 ### Requisito 3: Dashboard del Sublíder

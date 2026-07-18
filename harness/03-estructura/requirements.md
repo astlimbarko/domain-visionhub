@@ -18,6 +18,7 @@ Cubre las entidades que organizan a la gente: Red, Casa de Paz, cargos, minister
 - **Miembro_CdP**: Persona que asiste a una CdP de forma regular. Se alcanza por asistencia, automáticamente.
 - **Miembro_Iglesia**: Persona bautizada en la Iglesia. Se alcanza por bautizo. **Módulo 3**, fuera de alcance aquí.
 - **Red_Incompleta**: Red que no tiene asignados sus dos encargados obligatorios.
+- **Etiqueta_CdP**: Texto para mostrar una Casa_De_Paz cuando no tiene `nombre` propio: el Nombre_Completo de su Líder de CdP vigente, con la zona del Anfitrion agregada solo si ese mismo líder tiene más de una CdP vigente.
 
 ## Requisitos
 
@@ -45,7 +46,7 @@ Cubre las entidades que organizan a la gente: Red, Casa de Paz, cargos, minister
 #### Criterios de aceptación
 
 1. THE Sistema SHALL asociar toda Casa_De_Paz a exactamente una Red vigente.
-2. THE Sistema SHALL registrar de cada Casa_De_Paz: `nombre`, `red_id`, `iglesia_id` y `activo`.
+2. THE Sistema SHALL registrar de cada Casa_De_Paz: `red_id`, `iglesia_id`, `activo` y opcionalmente `nombre`.
 3. THE Sistema SHALL registrar la pertenencia de Casa_De_Paz a Red como historial, para conservar los cambios de red.
 4. THE Sistema SHALL permitir exactamente una Red vigente por Casa_De_Paz.
 5. THE Sistema SHALL registrar el Líder de CdP como historial, con como máximo uno vigente.
@@ -54,6 +55,9 @@ Cubre las entidades que organizan a la gente: Red, Casa de Paz, cargos, minister
 8. THE Sistema SHALL permitir que una Persona lidere más de una Casa_De_Paz simultáneamente.
 9. THE Sistema SHALL exigir que la Red de una Casa_De_Paz pertenezca a la misma Iglesia que la Casa_De_Paz.
 10. THE Sistema SHALL vincular la dirección de la Casa_De_Paz al domicilio del Anfitrion mediante el Modelo_Hibrido.
+11. A diferencia de la Red, THE Sistema SHALL NOT exigir un `nombre` propio para la Casa_De_Paz: a menos que la Iglesia elija ponerle uno, se identifica por el Nombre_Completo de su Líder de CdP vigente.
+12. WHERE la misma Persona lidera 2 o más Casa_De_Paz vigentes simultáneamente, THE Sistema SHALL desambiguar exponiendo la zona del domicilio del Anfitrion junto al nombre del líder.
+13. THE Sistema SHALL exponer una Etiqueta_CdP calculada (nombre manual si existe, si no nombre del líder, con la zona del anfitrión agregada solo cuando hace falta desambiguar), y SHALL NOT dejar que el frontend arme ese cálculo por su cuenta.
 
 ### Requisito 3: Membresía de Casa de Paz
 

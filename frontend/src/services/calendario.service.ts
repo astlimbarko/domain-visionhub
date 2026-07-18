@@ -4,19 +4,24 @@ import type { CasaDePazPropia, Cumpleanos, Evento, NuevoEvento, Proximo, TipoEve
 export async function obtenerMisCasasDePaz(personaId: string): Promise<CasaDePazPropia[]> {
   const { data, error } = await supabase
     .from('casa_de_paz_cargo')
-    .select('casa_de_paz_id, cargo:cargo_id(codigo), casa_de_paz:casa_de_paz_id(nombre)')
+    .select('casa_de_paz_id, cargo:cargo_id(codigo)')
     .eq('persona_id', personaId)
     .is('fecha_fin', null);
   if (error) throw error;
-  return (data ?? [])
-    .filter((r) => {
-      const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
-      return cargo?.codigo === 'LIDER_CDP' || cargo?.codigo === 'SUBLIDER_CDP';
+
+  const propias = (data ?? []).filter((r) => {
+    const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
+    return cargo?.codigo === 'LIDER_CDP' || cargo?.codigo === 'SUBLIDER_CDP';
+  });
+
+  // La Casa de Paz no tiene nombre propio salvo que la iglesia lo elija: se
+  // identifica por el lider (+ zona si el mismo lider tiene mas de una CdP).
+  return Promise.all(
+    propias.map(async (r) => {
+      const { data: etiqueta } = await supabase.rpc('fn_etiqueta_cdp', { p_casa_de_paz_id: r.casa_de_paz_id });
+      return { casa_de_paz_id: r.casa_de_paz_id, nombre: etiqueta ?? '' };
     })
-    .map((r) => {
-      const cdp = Array.isArray(r.casa_de_paz) ? r.casa_de_paz[0] : r.casa_de_paz;
-      return { casa_de_paz_id: r.casa_de_paz_id, nombre: cdp?.nombre ?? '' };
-    });
+  );
 }
 
 export async function obtenerTiposEvento(iglesiaId: string): Promise<TipoEvento[]> {

@@ -57,12 +57,69 @@ Sin `lider_id`. El líder vive en `red_cargo`, porque cambia y el pasado importa
 CREATE TABLE casa_de_paz (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   iglesia_id  UUID NOT NULL REFERENCES iglesia(id),
-  nombre      VARCHAR(150) NOT NULL,
+  nombre      VARCHAR(150),  -- opcional, a diferencia de red.nombre. Ver fn_etiqueta_cdp.
   capacidad   SMALLINT,
   activo      BOOLEAN NOT NULL DEFAULT true
   -- auditoria
 );
+```
 
+A diferencia de la Red, la Casa de Paz no se identifica por nombre propio (aclaración del owner, 2026-07-18): las redes tienen nombre porque son pocas y estables; las casas de paz se abren y cierran con frecuencia y en la práctica se conocen por quién las lidera, no por un nombre inventado. `nombre` queda nulable para la iglesia que sí quiera nombrarlas; cuando está vacío, se calcula:
+
+```sql
+CREATE OR REPLACE FUNCTION fn_etiqueta_cdp(p_casa_de_paz_id UUID)
+RETURNS TEXT
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_nombre_manual VARCHAR;
+  v_lider_persona UUID;
+  v_lider_nombre  TEXT;
+  v_cantidad_cdp  INT;
+  v_zona          VARCHAR;
+BEGIN
+  SELECT nombre INTO v_nombre_manual FROM casa_de_paz WHERE id = p_casa_de_paz_id;
+  IF v_nombre_manual IS NOT NULL AND btrim(v_nombre_manual) <> '' THEN
+    RETURN v_nombre_manual;
+  END IF;
+
+  SELECT cc.persona_id INTO v_lider_persona
+  FROM casa_de_paz_cargo cc JOIN cargo c ON c.id = cc.cargo_id
+  WHERE cc.casa_de_paz_id = p_casa_de_paz_id AND c.codigo = 'LIDER_CDP'
+    AND cc.fecha_fin IS NULL AND cc.fecha_eliminacion IS NULL;
+
+  IF v_lider_persona IS NULL THEN
+    RETURN 'Casa de Paz sin líder';
+  END IF;
+
+  SELECT fn_nombre_completo(p) INTO v_lider_nombre FROM persona p WHERE p.id = v_lider_persona;
+
+  SELECT count(*) INTO v_cantidad_cdp
+  FROM casa_de_paz_cargo cc JOIN cargo c ON c.id = cc.cargo_id
+  WHERE cc.persona_id = v_lider_persona AND c.codigo = 'LIDER_CDP'
+    AND cc.fecha_fin IS NULL AND cc.fecha_eliminacion IS NULL;
+
+  IF v_cantidad_cdp <= 1 THEN
+    RETURN v_lider_nombre;
+  END IF;
+
+  SELECT d.zona INTO v_zona
+  FROM direccion_asignacion da JOIN direccion d ON d.id = da.direccion_id
+  WHERE da.casa_de_paz_id = p_casa_de_paz_id AND da.activo AND da.fecha_eliminacion IS NULL
+  LIMIT 1;
+
+  IF v_zona IS NOT NULL AND btrim(v_zona) <> '' THEN
+    RETURN v_lider_nombre || ' (' || v_zona || ')';
+  END IF;
+
+  RETURN v_lider_nombre;
+END;
+$$;
+```
+
+La zona sale de la misma dirección que el Requisito 2.10 ya vincula a la CdP (la del Anfitrion) — no hace falta ir a buscar el domicilio del líder por separado. Sin líder asignado todavía, se devuelve un texto explícito en vez de `NULL`: una CdP recién creada no debería aparecer en blanco en un listado.
+
+```sql
 CREATE TABLE casa_de_paz_red (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   iglesia_id      UUID NOT NULL REFERENCES iglesia(id),
