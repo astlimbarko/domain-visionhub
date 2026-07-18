@@ -17,3 +17,6 @@
 !/harness/**
 !/iu
 !/iu/**
+!/frontend
+!/frontend/**
+!/docker-compose.yml

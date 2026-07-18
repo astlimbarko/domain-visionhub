@@ -1,0 +1,54 @@
+{
+  "app": {
+    "nombre": "VisionHub"
+  },
+  "acciones": {
+    "guardar": "Guardar",
+    "cancelar": "Cancelar",
+    "enviar": "Enviar",
+    "volver": "Volver",
+    "cargando": "Cargando...",
+    "reintentar": "Reintentar"
+  },
+  "registroPublico": {
+    "tituloFormulario": "Formulario de membresía",
+    "liderResponsable": "Líder responsable",
+    "casaDePaz": "Casa de Paz",
+    "campos": {
+      "primerNombre": "Primer nombre",
+      "segundoNombre": "Segundo nombre",
+      "primerApellido": "Primer apellido",
+      "segundoApellido": "Segundo apellido",
+      "sexo": "Sexo",
+      "fechaNacimiento": "Fecha de nacimiento",
+      "ci": "Carnet de identidad",
+      "correo": "Correo electrónico",
+      "estadoCivil": "Estado civil",
+      "ocupacion": "Ocupación",
+      "gradoInstruccion": "Grado de instrucción"
+    },
+    "sexoOpciones": {
+      "M": "Masculino",
+      "F": "Femenino"
+    },
+    "enviar": "Completar registro",
+    "exito": {
+      "titulo": "¡Registro completado!",
+      "mensaje": "{{nombre}} quedó registrado en {{casaDePaz}}."
+    },
+    "noDisponible": {
+      "titulo": "Enlace no disponible",
+      "mensaje": "Este enlace de registro no existe o no está activo en este momento. Consultá con tu líder de Casa de Paz."
+    },
+    "errores": {
+      "generico": "No se pudo completar el registro. Intentá de nuevo.",
+      "ciDuplicado": "Ese carnet de identidad ya está registrado."
+    }
+  },
+  "auth": {
+    "iniciarSesion": "Iniciar sesión",
+    "correo": "Correo",
+    "contrasena": "Contraseña",
+    "errorCredenciales": "Correo o contraseña incorrectos."
+  }
+}
