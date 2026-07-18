@@ -67,6 +67,7 @@
 - [ ] 7.5 Verificar que sí se puede desactivar y que el histórico no se rompe. — *Req 8.5*
 - [ ] 7.6 Permitir al Supervisor activar y desactivar departamentos. — *Req 7.1*
 - [ ] 7.7 Verificar que un departamento desactivado conserva sus datos históricos. — *Req 7.3*
+- [x] 7.7b **Corregido 2026-07-18** (`22_permisos_panel_supervisor.sql`): `departamento` e `iglesia_moneda` tenían la política RLS genérica de `16_rls.sql` (cualquier usuario con acceso a la iglesia podía escribir), no la de `fn_es_operativo_en`. Un `LIDER_CDP` común podía desactivar un departamento por la API REST directa sin pasar por el panel. — *Req 1.1, 1.2*
 - [ ] 7.8 Permitir al Supervisor cambiar `iglesia.moneda_defecto`. — *Req 9.1*
 - [ ] 7.9 Verificar que cambiar la moneda por defecto **no** toca los ingresos ya registrados. — *Req 9.2*
 

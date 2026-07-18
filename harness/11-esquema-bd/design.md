@@ -202,6 +202,12 @@ El orden lo dictan las dependencias, no el número de área. Hay dos ciclos que 
     NINGUN flujo, ni autenticado ni publico, hasta el 2026-07-18.
     CREATE OR REPLACE de fn_registrar_persona_via_url y fn_resolver_url_registro
     (persona_detalle pasa a crearse siempre; el resolver expone campos_obligatorios)
+
+22_permisos_panel_supervisor.sql                        <-- hallazgo al construir
+    el frontend del Panel del Supervisor: `departamento` e `iglesia_moneda`
+    tenian la politica RLS generica de 16_rls.sql (cualquier usuario con acceso
+    a la iglesia podia escribir), no la de fn_es_operativo_en. Reemplaza esas
+    4 policies (INSERT/UPDATE x2 tablas) por unas que exigen Pastor/Supervisor.
 ```
 
 ### Los tres ciclos
