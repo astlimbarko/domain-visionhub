@@ -41,7 +41,9 @@
 
 ## 6. Escritura pública
 
-- [ ] 6.1 Crear `fn_registrar_persona_via_url(varchar, jsonb)` con los cuatro `INSERT` (persona, persona_detalle condicional, persona_llegada, casa_de_paz_membresia). — *Req 6.2, 6.3, 6.4*
+- [ ] 6.1 Crear `fn_registrar_persona_via_url(varchar, jsonb)` con los cuatro `INSERT` (persona, persona_detalle **siempre**, persona_llegada, casa_de_paz_membresia). `persona_detalle` no es condicional: el disparador de obligatoriedad de `21_validaciones_membresia.sql` necesita la fila para validar. — *Req 6.2, 6.3, 6.4*
+- [ ] 6.11 Crear `fn_validar_campos_membresia_persona()`/`_detalle()` y sus disparadores (`21_validaciones_membresia.sql`), cerrando el pendiente de `10-panel-supervisor/tasks.md` tarea 5.2 que nunca se implementó. Verificar contra el flujo autenticado también, no solo el público (tarea 6.10 de aquí mismo). — *Req 5.6*
+- [ ] 6.12 Verificar que `fn_resolver_url_registro` devuelve `campos_obligatorios` con los 4 flags, y que activarlos en el panel del Supervisor cambia la respuesta en la siguiente llamada. — *Req 5.6*
 - [ ] 6.2 `GRANT EXECUTE` a `anon` y `authenticated`, sin `GRANT` de tabla alguna. — *Req 7.1, 7.2*
 - [ ] 6.3 Agregar el chequeo de límite de frecuencia (20 registros / 10 min por slug). — *Req 7.4*
 - [ ] 6.4 Verificar que un slug no `ACTIVO` o con la iglesia en `REGISTRO_URL_ACTIVO = false` rechaza con `REGISTRO_URL_NO_DISPONIBLE` sin crear ninguna fila. — *Req 6.5*

@@ -194,6 +194,14 @@ El orden lo dictan las dependencias, no el número de área. Hay dos ciclos que 
     ninguna migracion anterior lo declaraba a proposito, incluido este mismo
     comentario, que decia "REVOKE anon" en 16_rls.sql sin que el archivo
     realmente lo hiciera -- corregido el 2026-07-18)
+
+21_validaciones_membresia.sql                          <-- 13-registro-publico-cdp
+    fn_validar_campos_membresia_persona/_detalle + disparadores. Cierra un
+    pendiente de 10-panel-supervisor/tasks.md (tarea 5.2) que nunca se
+    implemento: la obligatoriedad de FORMULARIO_MEMBRESIA no se aplicaba en
+    NINGUN flujo, ni autenticado ni publico, hasta el 2026-07-18.
+    CREATE OR REPLACE de fn_registrar_persona_via_url y fn_resolver_url_registro
+    (persona_detalle pasa a crearse siempre; el resolver expone campos_obligatorios)
 ```
 
 ### Los tres ciclos

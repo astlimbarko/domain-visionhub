@@ -150,7 +150,13 @@ BEGIN
   RETURN jsonb_build_object(
     'admite_registro', true,
     'lider_nombre', r.lider_nombre,
-    'casa_de_paz_nombre', r.cdp_nombre
+    'casa_de_paz_nombre', r.cdp_nombre,
+    'campos_obligatorios', jsonb_build_object(
+      'ci', fn_config_bool(r.iglesia_id, 'MEMBRESIA_CI_OBLIGATORIO'),
+      'fecha_nacimiento', fn_config_bool(r.iglesia_id, 'MEMBRESIA_FECHA_NACIMIENTO_OBLIGATORIO'),
+      'ocupacion', fn_config_bool(r.iglesia_id, 'MEMBRESIA_OCUPACION_OBLIGATORIO'),
+      'grado_instruccion', fn_config_bool(r.iglesia_id, 'MEMBRESIA_GRADO_INSTRUCCION_OBLIGATORIO')
+    )
   );
 END;
 $$;
@@ -159,6 +165,33 @@ GRANT EXECUTE ON FUNCTION fn_resolver_url_registro(VARCHAR) TO anon, authenticat
 ```
 
 Un solo booleano (`admite_registro`) para "no existe", "inactivo" y "suspendido" (Requisito 5.2): distinguirlos le regalaría a un atacante la posibilidad de enumerar slugs válidos por fuerza bruta observando cuál devuelve "inactivo" en vez de "no existe".
+
+`campos_obligatorios` viaja en la misma respuesta para que el frontend pinte el asterisco sin una segunda llamada (Requisito 5.6). `iglesia_id` nunca sale del `SELECT` hacia el cliente — se usa dentro de la función y se descarta; solo sus flags booleanos derivados llegan al `jsonb_build_object` final (Requisito 5.3).
+
+### Obligatoriedad del formulario de membresía (`21_validaciones_membresia.sql`)
+
+`10-panel-supervisor` sembró `MEMBRESIA_CI_OBLIGATORIO`, `MEMBRESIA_FECHA_NACIMIENTO_OBLIGATORIO`, `MEMBRESIA_OCUPACION_OBLIGATORIO` y `MEMBRESIA_GRADO_INSTRUCCION_OBLIGATORIO` (`seed_02_configuracion.sql`) pero nunca creó el disparador que los hace cumplir — quedó anotado como pendiente en `10-panel-supervisor/tasks.md` (tarea 5.2) y sin resolver. Sin ese disparador, la promesa del Requisito 5.6 de este módulo ("aplicar los mismos Campo_Configurable que el flujo autenticado") no se cumplía ni siquiera del lado autenticado. Se cierra acá porque el formulario público es el primero que depende de que realmente funcione:
+
+```sql
+CREATE OR REPLACE FUNCTION fn_validar_campos_membresia_persona()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF fn_config_bool(NEW.iglesia_id, 'MEMBRESIA_CI_OBLIGATORIO') AND NEW.ci IS NULL THEN
+    RAISE EXCEPTION 'CAMPO_OBLIGATORIO: el campo "ci" es obligatorio en esta iglesia' USING ERRCODE = 'P0001';
+  END IF;
+  IF fn_config_bool(NEW.iglesia_id, 'MEMBRESIA_FECHA_NACIMIENTO_OBLIGATORIO') AND NEW.fecha_nacimiento IS NULL THEN
+    RAISE EXCEPTION 'CAMPO_OBLIGATORIO: el campo "fecha_nacimiento" es obligatorio en esta iglesia' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_validar_campos_membresia_persona
+  BEFORE INSERT OR UPDATE ON persona
+  FOR EACH ROW EXECUTE FUNCTION fn_validar_campos_membresia_persona();
+```
+
+Y su equivalente en `persona_detalle` para `ocupacion`/`grado_instruccion`, resolviendo `iglesia_id` desde `persona` porque `persona_detalle` no la tiene. Por esto `fn_registrar_persona_via_url` pasa a insertar `persona_detalle` **siempre**, no de forma condicional: si el disparador dependiera de que la fila exista para validar, un formulario que omite los cuatro campos censales evadiría la obligatoriedad simplemente no mandando ninguno.
 
 ## Escritura pública (Requisito 6 y 7)
 
@@ -198,12 +231,14 @@ BEGIN
           p_datos->>'ci', p_datos->>'correo')
   RETURNING id INTO v_persona_id;
 
-  IF p_datos ? 'estado_civil' OR p_datos ? 'grado_instruccion' OR p_datos ? 'ocupacion' THEN
-    INSERT INTO persona_detalle (persona_id, estado_civil, grado_instruccion, ocupacion, nacimiento_ciudad)
-    VALUES (v_persona_id, (p_datos->>'estado_civil')::estado_civil_enum,
-            (p_datos->>'grado_instruccion')::grado_instruccion_enum,
-            p_datos->>'ocupacion', p_datos->>'nacimiento_ciudad');
-  END IF;
+  -- Siempre se crea, no condicional (revisado en 21_validaciones_membresia.sql):
+  -- el disparador de obligatoriedad de FORMULARIO_MEMBRESIA necesita la fila
+  -- para poder validar ocupacion/grado_instruccion aunque no vengan en el
+  -- formulario. Ver Requisito 5.6 y la tarea 6.10 de tasks.md.
+  INSERT INTO persona_detalle (persona_id, estado_civil, grado_instruccion, ocupacion, nacimiento_ciudad)
+  VALUES (v_persona_id, (p_datos->>'estado_civil')::estado_civil_enum,
+          (p_datos->>'grado_instruccion')::grado_instruccion_enum,
+          p_datos->>'ocupacion', p_datos->>'nacimiento_ciudad');
 
   INSERT INTO persona_llegada (iglesia_id, persona_id, motivo_llegada_id, fecha_ingreso,
                                 invitado_por_id, casa_paz_url_id)
