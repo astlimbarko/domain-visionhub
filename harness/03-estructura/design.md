@@ -119,6 +119,50 @@ $$;
 
 La zona sale de la misma dirección que el Requisito 2.10 ya vincula a la CdP (la del Anfitrion) — no hace falta ir a buscar el domicilio del líder por separado. Sin líder asignado todavía, se devuelve un texto explícito en vez de `NULL`: una CdP recién creada no debería aparecer en blanco en un listado.
 
+### iglesia_membresia_id
+
+Caso real (aclaración del owner, 2026-07-18): un líder de Santa Cruz abre una CdP que funciona en Montero. La CdP sigue siendo 100% de Santa Cruz — líder, red, ofrendas, `iglesia_id` — no hay nada de "un líder con cargo en dos iglesias" acá. Lo único que cambia es que, cuando exista el censo de `Miembro_Iglesia` (Módulo 3, Afirmación), esas personas cuentan como membresía de Montero, no de Santa Cruz.
+
+```sql
+ALTER TABLE casa_de_paz
+  ADD COLUMN iglesia_membresia_id UUID REFERENCES iglesia(id),
+  ADD CONSTRAINT chk_iglesia_membresia_distinta
+    CHECK (iglesia_membresia_id IS NULL OR iglesia_membresia_id <> iglesia_id);
+```
+
+`NULL` (el default) significa "sin caso especial": la membresía futura se cuenta en `iglesia_id`, como cualquier otra CdP. El Módulo 1 no lee esta columna para nada — se agrega ahora para que el Módulo 3 no tenga que migrar el esquema ni tocar datos históricos cuando el censo exista de verdad.
+
+Solo un Rol_Superior (líder de red, supervisor o pastor) puede fijarla, nunca el propio líder de la CdP:
+
+```sql
+CREATE OR REPLACE FUNCTION fn_validar_iglesia_membresia()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.iglesia_membresia_id IS DISTINCT FROM OLD.iglesia_membresia_id
+     AND NOT fn_es_rol_superior_de_cdp(NEW.id) THEN
+    RAISE EXCEPTION 'CDP_MEMBRESIA_SOLO_ROL_SUPERIOR: solo un lider de red, supervisor o pastor puede fijar la iglesia de membresia de la casa de paz %', NEW.id
+      USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+```
+
+`fn_es_rol_superior_de_cdp` ya existe en [06-evangelismo-cdp](../06-evangelismo-cdp/design.md) (Pastor/Supervisor de la iglesia, o líder/sublíder de la red de esa CdP) — se reutiliza en vez de escribir la misma regla dos veces.
+
+### Cierre de un hueco encontrado de paso: `casa_de_paz_cargo` sin validar iglesia
+
+A diferencia de `persona_cargo` (Tipo_A), `fn_validar_cdp_cargo` (Tipo_B: líder/sublíder/anfitrión de CdP) nunca verificó que la Persona asignada perteneciera a la misma Iglesia que la Casa_De_Paz. Nada en el diseño quiere permitir a alguien liderar una CdP de una Iglesia que no es la suya — el caso de arriba no lo necesita, la CdP entera sigue siendo de una sola Iglesia — así que se agrega el mismo chequeo que ya tenía `fn_validar_persona_cargo` (Requisito 3.2 corregido, encontrado el 2026-07-18 al revisar el caso de la Iglesia_Membresia).
+
+```sql
+-- Dentro de fn_validar_cdp_cargo, antes del chequeo de duplicado existente:
+SELECT iglesia_id INTO v_iglesia_persona FROM persona WHERE id = NEW.persona_id;
+IF v_iglesia_persona IS DISTINCT FROM NEW.iglesia_id THEN
+  RAISE EXCEPTION 'CDP_CARGO_IGLESIA_DISTINTA: la persona % no pertenece a la iglesia % de esta casa de paz',
+    NEW.persona_id, NEW.iglesia_id USING ERRCODE = 'P0001';
+END IF;
+```
+
 ```sql
 CREATE TABLE casa_de_paz_red (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

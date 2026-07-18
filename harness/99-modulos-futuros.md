@@ -37,6 +37,7 @@ Bautismo, altar, retiro de sanidad interior. Fuente: `domain_knowledge/departame
 
 - El formulario de membresía del Módulo 1 ya captura los datos base de la persona.
 - El mapeo de `bd-modelo.md` ya define la tabla `afirmacion` con `bautizo_en_esta_iglesia`, `fecha_bautizo`, `iglesia_bautizado` (FK) o `iglesia_bautizado_txt`.
+- `casa_de_paz.iglesia_membresia_id` ya existe (agregado 2026-07-18, ver [03-estructura](03-estructura/design.md#iglesia_membresia_id)): cuando el censo de Miembro_Iglesia se construya, cuenta a las personas de esa CdP como membresía de esa Iglesia en vez de la Iglesia dueña de la CdP. Cubre el caso de un líder de una Iglesia cuya CdP funciona en la ciudad de una Iglesia hermana.
 
 ### Qué falta
 

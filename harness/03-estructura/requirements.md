@@ -19,6 +19,8 @@ Cubre las entidades que organizan a la gente: Red, Casa de Paz, cargos, minister
 - **Miembro_Iglesia**: Persona bautizada en la Iglesia. Se alcanza por bautizo. **Módulo 3**, fuera de alcance aquí.
 - **Red_Incompleta**: Red que no tiene asignados sus dos encargados obligatorios.
 - **Etiqueta_CdP**: Texto para mostrar una Casa_De_Paz cuando no tiene `nombre` propio: el Nombre_Completo de su Líder de CdP vigente, con la zona del Anfitrion agregada solo si ese mismo líder tiene más de una CdP vigente.
+- **Rol_Superior**: Quien está por encima del Líder de CdP: Sublíder de Red, Líder de Red, Supervisor o Pastor. Mismo término que [06-evangelismo-cdp](../06-evangelismo-cdp/requirements.md).
+- **Iglesia_Membresia**: Iglesia distinta de la propia que una Casa_De_Paz puede registrar para el conteo futuro de Miembro_Iglesia (Módulo 3), cuando la Casa_De_Paz funciona en la ciudad de una Iglesia hermana pero sigue perteneciendo administrativamente a la suya.
 
 ## Requisitos
 
@@ -58,6 +60,9 @@ Cubre las entidades que organizan a la gente: Red, Casa de Paz, cargos, minister
 11. A diferencia de la Red, THE Sistema SHALL NOT exigir un `nombre` propio para la Casa_De_Paz: a menos que la Iglesia elija ponerle uno, se identifica por el Nombre_Completo de su Líder de CdP vigente.
 12. WHERE la misma Persona lidera 2 o más Casa_De_Paz vigentes simultáneamente, THE Sistema SHALL desambiguar exponiendo la zona del domicilio del Anfitrion junto al nombre del líder.
 13. THE Sistema SHALL exponer una Etiqueta_CdP calculada (nombre manual si existe, si no nombre del líder, con la zona del anfitrión agregada solo cuando hace falta desambiguar), y SHALL NOT dejar que el frontend arme ese cálculo por su cuenta.
+14. THE Sistema SHALL exigir que el Líder de CdP y el Sublíder de CdP de una Casa_De_Paz pertenezcan a la misma Iglesia que esa Casa_De_Paz. THE Sistema SHALL NOT permitir que una Persona lidere una Casa_De_Paz de una Iglesia distinta a la suya.
+15. THE Sistema SHALL permitir que una Casa_De_Paz registre una Iglesia_Membresia distinta de su propia Iglesia, para el caso de un Líder cuya Casa_De_Paz funciona en la ciudad de otra Iglesia hermana (aclaración del owner, 2026-07-18). La Casa_De_Paz, su Red y sus Ingresos SHALL seguir perteneciendo únicamente a su propia Iglesia; solo el conteo futuro de Miembro_Iglesia (Módulo 3) usa la Iglesia_Membresia.
+16. THE Sistema SHALL permitir fijar la Iglesia_Membresia únicamente a un Rol_Superior (Líder de Red, Supervisor o Pastor), y SHALL NOT permitir que el propio Líder de CdP la fije.
 
 ### Requisito 3: Membresía de Casa de Paz
 

@@ -31,8 +31,10 @@
 - [ ] 3.3 Verificar que `SUBLIDER_RED` admite varios vigentes. — *Req 1.5*
 - [ ] 3.4 Crear `casa_de_paz_cargo` con `chk_cdp_cargo_fechas`. — *Req 2.5, 2.7*
 - [ ] 3.5 Crear el disparador equivalente: `LIDER_CDP` y `ANFITRION` únicos, `SUBLIDER_CDP` libre. — *Req 2.5, 2.6, 2.7, 7.1*
+- [x] 3.5b **Hecho 2026-07-18** (`25_iglesia_membresia_cdp.sql`): `fn_validar_cdp_cargo` no verificaba que la Persona perteneciera a la misma Iglesia que la Casa_De_Paz (a diferencia de `fn_validar_persona_cargo`). Encontrado al revisar el caso de `Iglesia_Membresia`. Verificado: asignar a alguien de Montero como líder de una CdP de Santa Cruz ahora falla con `CDP_CARGO_IGLESIA_DISTINTA`. — *Req 14*
 - [ ] 3.6 Verificar que una persona puede liderar dos CdP a la vez. — *Req 2.8*
 - [ ] 3.7 Verificar que un segundo `LIDER_CDP` vigente falla. — *Req 7.1*
+- [x] 3.7b **Hecho 2026-07-18**: `casa_de_paz.iglesia_membresia_id` + `fn_validar_iglesia_membresia` (solo un Rol_Superior la fija). Verificado con `fn_es_rol_superior_de_cdp` en falso (sin contexto de auth) rechazando el cambio, y el `CHECK` de "distinta de la propia iglesia" rechazando el caso trivial. Falta una verificación de punta a punta con una cuenta real de líder de red/supervisor cuando se construya el módulo de frontend de Casas de Paz. — *Req 15, 16*
 - [ ] 3.8 Crear `fn_redes_incompletas(uuid)`. — *Req 1.8*
 - [ ] 3.9 Verificar que se puede crear una red sin encargados y que aparece en `fn_redes_incompletas`. — *Req 1.8, 1.9*
 
