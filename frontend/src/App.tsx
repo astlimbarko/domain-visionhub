@@ -5,7 +5,14 @@ import { ROUTES } from '@/utils/constants';
 import { RegistroPublico } from '@/pages/RegistroPublico';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
-import { PrivateRoute } from '@/components/layout/PrivateRoute';
+import { Personas } from '@/pages/Personas';
+import { CasasDePaz } from '@/pages/CasasDePaz';
+import { Calendario } from '@/pages/Calendario';
+import { Evangelismo } from '@/pages/Evangelismo';
+import { Finanzas } from '@/pages/Finanzas';
+import { PanelSupervisor } from '@/pages/PanelSupervisor';
+import { PrivateLayout } from '@/components/layout/PrivateLayout';
+import { RequiereOperativo } from '@/components/layout/RequiereOperativo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,14 +30,24 @@ function App() {
         <Routes>
           <Route path={ROUTES.REGISTRO_PUBLICO} element={<RegistroPublico />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />
-          <Route
-            path={ROUTES.DASHBOARD}
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
+
+          <Route element={<PrivateLayout />}>
+            <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+            <Route path={ROUTES.PERSONAS} element={<Personas />} />
+            <Route path={ROUTES.CASAS_DE_PAZ} element={<CasasDePaz />} />
+            <Route path={ROUTES.CALENDARIO} element={<Calendario />} />
+            <Route path={ROUTES.EVANGELISMO} element={<Evangelismo />} />
+            <Route path={ROUTES.FINANZAS} element={<Finanzas />} />
+            <Route
+              path={ROUTES.PANEL_SUPERVISOR}
+              element={
+                <RequiereOperativo>
+                  <PanelSupervisor />
+                </RequiereOperativo>
+              }
+            />
+          </Route>
+
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
       </BrowserRouter>

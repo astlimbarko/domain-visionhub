@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -22,34 +23,40 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
+import { ROUTES } from '@/utils/constants';
 
 const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: 'Dashboard' },
-  { icon: Users, label: 'Personas' },
-  { icon: Home, label: 'Casas de Paz' },
-  { icon: Calendar, label: 'Calendario' },
-  { icon: HeartHandshake, label: 'Evangelismo' },
-  { icon: Wallet, label: 'Finanzas' },
-  { icon: Settings, label: 'Panel del Supervisor' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, soloOperativo: false },
+  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, soloOperativo: false },
+  { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, soloOperativo: false },
+  { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, soloOperativo: false },
+  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, soloOperativo: false },
+  { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, soloOperativo: false },
+  { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, soloOperativo: true },
 ];
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ onNavigate, esOperativo }: { onNavigate?: () => void; esOperativo: boolean }) {
+  const location = useLocation();
+
   return (
     <nav className="flex flex-1 flex-col gap-1">
-      {NAV_ITEMS.map(({ icon: Icon, label }, i) => (
-        <button
-          key={label}
-          type="button"
-          onClick={onNavigate}
-          className={cn(
-            'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-            i === 0 && 'bg-sidebar-accent text-sidebar-accent-foreground'
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-        </button>
-      ))}
+      {NAV_ITEMS.filter((item) => !item.soloOperativo || esOperativo).map(({ icon: Icon, label, path }) => {
+        const activo = path === ROUTES.DASHBOARD ? location.pathname === path : location.pathname.startsWith(path);
+        return (
+          <Link
+            key={label}
+            to={path}
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              activo && 'bg-sidebar-accent text-sidebar-accent-foreground'
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -71,6 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
+  const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
+
   async function handleLogout() {
     await cerrarSesion();
     logout();
@@ -83,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mb-6 px-2">
           <LogoBrand />
         </div>
-        <NavLinks />
+        <NavLinks esOperativo={esOperativo} />
         <Button variant="ghost" className="justify-start gap-3 px-3" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
           Salir
@@ -115,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-1 flex-col p-4">
-            <NavLinks onNavigate={() => setMenuAbierto(false)} />
+            <NavLinks onNavigate={() => setMenuAbierto(false)} esOperativo={esOperativo} />
           </div>
           <SheetFooter className="border-t border-border">
             <Button variant="ghost" className="justify-start gap-3 px-3" onClick={handleLogout}>
@@ -130,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="min-w-0">
             {iglesias.length > 1 ? (
-              <Select value={iglesiaActivaId ?? undefined} onValueChange={setIglesiaActiva}>
+              <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
                 <SelectTrigger className="w-full sm:w-56">
                   <SelectValue placeholder="Elegí una iglesia" />
                 </SelectTrigger>
