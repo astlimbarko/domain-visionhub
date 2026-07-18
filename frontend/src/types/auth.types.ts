@@ -20,4 +20,5 @@ export interface SesionUsuario {
   nombreCompleto: string | null;
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
+  esSuperAdmin: boolean;
 }

@@ -15,10 +15,31 @@ export async function cerrarSesion() {
   if (error) throw error;
 }
 
+export async function solicitarRecuperacionContrasena(correo: string, redirectTo: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(correo, { redirectTo });
+  if (error) throw error;
+}
+
+export async function establecerContrasena(nuevaContrasena: string) {
+  const { error } = await supabase.auth.updateUser({ password: nuevaContrasena });
+  if (error) throw error;
+}
+
+export async function obtenerCorreoActual(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.email ?? null;
+}
+
 export async function obtenerIglesiasAccesibles(): Promise<IglesiaAccesible[]> {
   const { data, error } = await supabase.rpc('fn_mis_iglesias_detalle');
   if (error) throw error;
   return (data ?? []) as IglesiaAccesible[];
+}
+
+export async function soySuperAdmin(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_es_super_admin');
+  if (error) throw error;
+  return data === true;
 }
 
 export async function obtenerPersonaActual(): Promise<{ id: string; nombre_completo: string } | null> {

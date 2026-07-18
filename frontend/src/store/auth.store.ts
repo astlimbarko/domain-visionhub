@@ -8,7 +8,13 @@ interface AuthState {
   nombreCompleto: string | null;
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
-  setSesion: (data: { personaId: string | null; nombreCompleto: string | null; iglesias: IglesiaAccesible[] }) => void;
+  esSuperAdmin: boolean;
+  setSesion: (data: {
+    personaId: string | null;
+    nombreCompleto: string | null;
+    iglesias: IglesiaAccesible[];
+    esSuperAdmin: boolean;
+  }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   logout: () => void;
 }
@@ -21,14 +27,16 @@ export const useAuthStore = create<AuthState>()(
       nombreCompleto: null,
       iglesias: [],
       iglesiaActivaId: null,
+      esSuperAdmin: false,
 
-      setSesion: ({ personaId, nombreCompleto, iglesias }) => {
+      setSesion: ({ personaId, nombreCompleto, iglesias, esSuperAdmin }) => {
         const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
         set({
           isAuthenticated: true,
           personaId,
           nombreCompleto,
           iglesias,
+          esSuperAdmin,
           iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : (iglesias[0]?.id ?? null),
         });
       },
@@ -42,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
           nombreCompleto: null,
           iglesias: [],
           iglesiaActivaId: null,
+          esSuperAdmin: false,
         }),
     }),
     {
@@ -52,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
         iglesias: state.iglesias,
         iglesiaActivaId: state.iglesiaActivaId,
         isAuthenticated: state.isAuthenticated,
+        esSuperAdmin: state.esSuperAdmin,
       }),
     }
   )
