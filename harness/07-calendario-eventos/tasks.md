@@ -26,7 +26,7 @@
 
 ## 3. Consulta por rango
 
-- [ ] 3.1 Crear `fn_eventos_cdp(uuid, date, date, uuid)`. — *Req 3.1, 3.3, 3.4*
+- [x] 3.1 Crear `fn_eventos_cdp(uuid, date, date, uuid)`. **Corregido 2026-07-18**: la columna `id` del `RETURNS TABLE` colisionaba con la referencia sin calificar `WHERE id = p_casa_de_paz_id` del preámbulo de permiso ("column reference id is ambiguous", PostgreSQL 42702) — ninguna prueba curl la había ejercitado. Ver `harness/11-esquema-bd/design.md` Riesgos. — *Req 3.1, 3.3, 3.4*
 - [ ] 3.2 Usar `daterange && daterange` para la intersección. **No filtrar por `fecha_inicio BETWEEN`**: perdería los eventos que empiezan antes del rango. — *Req 3.2*
 - [ ] 3.3 Verificar los cinco casos de intersección: evento dentro, que empieza antes, que termina después, que envuelve el rango, que coincide. — *Req 3.2*
 - [ ] 3.4 Verificar `ORDER BY fecha_inicio, hora_inicio NULLS LAST`. — *Req 3.5*
@@ -35,7 +35,7 @@
 
 ## 4. Cumpleaños
 
-- [ ] 4.1 Crear `fn_cumpleanos_cdp(uuid, date, date)`. — *Req 4.1, 4.3*
+- [x] 4.1 Crear `fn_cumpleanos_cdp(uuid, date, date)`. **Corregido 2026-07-18**: mismo bug de columna ambigua que `fn_eventos_cdp`, esta vez con la columna `nombre` del `RETURNS TABLE` colisionando con el `SELECT id, nombre, ...` final sin calificar. — *Req 4.1, 4.3*
 - [ ] 4.2 Verificar que **no** se almacenan como filas de `evento`. — *Req 4.2*
 - [ ] 4.3 Verificar que las personas sin `fecha_nacimiento` quedan fuera. — *Req 4.5*
 - [ ] 4.4 Verificar un rango que cruza el 31/12: `generate_series` debe tocar dos años. — *Req 4.4*

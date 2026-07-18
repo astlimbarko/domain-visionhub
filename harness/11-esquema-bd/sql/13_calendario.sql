@@ -70,7 +70,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE v_iglesia_id UUID;
 BEGIN
-  SELECT iglesia_id INTO v_iglesia_id FROM casa_de_paz WHERE id = p_casa_de_paz_id;
+  SELECT cdp.iglesia_id INTO v_iglesia_id FROM casa_de_paz cdp WHERE cdp.id = p_casa_de_paz_id;
   IF v_iglesia_id IS NULL OR v_iglesia_id NOT IN (SELECT fn_mis_iglesias()) THEN
     RAISE EXCEPTION 'CDP_FUERA_DE_ALCANCE: sin acceso a la casa de paz %', p_casa_de_paz_id
       USING ERRCODE = 'P0001';
@@ -103,7 +103,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE v_iglesia_id UUID;
 BEGIN
-  SELECT iglesia_id INTO v_iglesia_id FROM casa_de_paz WHERE id = p_casa_de_paz_id;
+  SELECT cdp.iglesia_id INTO v_iglesia_id FROM casa_de_paz cdp WHERE cdp.id = p_casa_de_paz_id;
   IF v_iglesia_id IS NULL OR v_iglesia_id NOT IN (SELECT fn_mis_iglesias()) THEN
     RAISE EXCEPTION 'CDP_FUERA_DE_ALCANCE: sin acceso a la casa de paz %', p_casa_de_paz_id
       USING ERRCODE = 'P0001';
@@ -130,9 +130,9 @@ BEGIN
       a.anio
     FROM miembros mi CROSS JOIN anios a
   )
-  SELECT id, nombre, fecha_cumple, (anio - EXTRACT(YEAR FROM fecha_nacimiento)::int)
-  FROM cumples WHERE fecha_cumple BETWEEN p_desde AND p_hasta
-  ORDER BY fecha_cumple;
+  SELECT cumples.id, cumples.nombre, cumples.fecha_cumple, (cumples.anio - EXTRACT(YEAR FROM cumples.fecha_nacimiento)::int)
+  FROM cumples WHERE cumples.fecha_cumple BETWEEN p_desde AND p_hasta
+  ORDER BY cumples.fecha_cumple;
 END;
 $$;
 

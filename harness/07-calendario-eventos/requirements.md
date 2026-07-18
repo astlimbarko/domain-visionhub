@@ -24,15 +24,13 @@ Eventos ministeriales de la Casa de Paz, con vista mensual y semanal, cumpleaño
 
 #### Criterios de aceptación
 
-1. THE Sistema SHALL sembrar los Tipo_Evento: `RMS`, `AVIVATE`, `HOMBRES`, `DEBORAS`, `MOS`, `REUNION`, `MEGA_FIESTA` y `CUMPLEANOS`.
+1. THE Sistema SHALL sembrar los Tipo_Evento: `RMS`, `AVIVATE`, `ELITE_LINAJE_ESCOGIDO`, `MUJERES_DEL_AHORA`, `MOS`, `REUNION`, `MEGA_FIESTA` y `CUMPLEANOS` (nombres confirmados por el owner, ver [design.md](design.md)).
 2. THE Sistema SHALL registrar de cada Tipo_Evento: `codigo`, `nombre`, `icono`, `descripcion`, `color`, `activo` y `orden`.
 3. THE Sistema SHALL almacenar `color` en formato hexadecimal de seis dígitos con almohadilla.
 4. THE Sistema SHALL almacenar `icono` como referencia a un archivo PNG, no como binario.
 5. THE Sistema SHALL mantener la integridad referencial entre Evento y Tipo_Evento.
 6. THE Sistema SHALL permitir al Supervisor agregar Tipo_Evento propios de su Iglesia.
 7. IF un Tipo_Evento está referenciado por al menos un Evento vigente, THEN THE Sistema SHALL impedir su borrado lógico.
-
-> **Pendiente:** `domain_knowledge` no define qué son RMS, AVIVATE, HOMBRES, DEBORAS ni MOS. Salen del front. Hay que pedirle al owner el significado para llenar `descripcion` y agregarlos al glosario.
 
 ### Requisito 2: Eventos
 

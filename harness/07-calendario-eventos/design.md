@@ -250,7 +250,6 @@ CREATE POLICY pol_evento_insert ON evento
   FOR INSERT TO authenticated
   WITH CHECK (
     iglesia_id IN (SELECT fn_mis_iglesias())
-    AND NOT fn_es_invitado_en(iglesia_id)
     AND (
       (casa_de_paz_id IS NOT NULL AND fn_puede_crear_evento(casa_de_paz_id, tipo_evento_id))
       OR
