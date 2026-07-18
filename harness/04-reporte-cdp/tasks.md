@@ -13,7 +13,7 @@
 ## 2. Reporte
 
 - [ ] 2.1 Crear `casa_de_paz_reporte` con los cuatro `CHECK`. — *Req 1.1, 1.2, 1.4, 5.5*
-- [ ] 2.2 Crear `uq_reporte_cdp_fecha`. — *Req 1.3*
+- [ ] 2.2 Crear `semana_inicio` (columna generada, lunes ISO de `fecha_reunion`) y `uq_reporte_cdp_semana` sobre `(casa_de_paz_id, semana_inicio)` — la unicidad es por semana, no por fecha exacta. — *Req 1.3*
 - [ ] 2.3 Crear `idx_reporte_cdp_fecha` (`casa_de_paz_id, fecha_reunion DESC`). — *Rendimiento*
 - [ ] 2.4 Crear `fn_validar_tema_libro()` y su disparador. — *Req 4.7*
 - [ ] 2.5 Verificar que `libro_id`, `tema_id` y `disertador_id` son nulables: la obligatoriedad la define el panel, no el esquema. — *Req 1.8*
@@ -69,7 +69,7 @@
 - [ ] 8.2 Con el JWT del sublíder, crear un reporte de su CdP. Debe funcionar. — *Req 1.5*
 - [ ] 8.3 Con el JWT del sublíder y `SUBLIDER_PUEDE_EDITAR_REPORTE = false`, editar un reporte enviado. Debe fallar. — *Req 6.2*
 - [ ] 8.4 Activar el criterio y repetir. Debe funcionar. — *Req 6.2*
-- [ ] 8.5 Crear dos reportes de la misma CdP y fecha. El segundo debe fallar. — *Req 1.3*
+- [ ] 8.5 Crear dos reportes de la misma CdP en la misma semana con **fechas distintas** (ej. lunes y miércoles). El segundo debe fallar igual — la unicidad es por semana. — *Req 1.3*
 - [ ] 8.6 Marcar 5 asistentes (2 menores por fecha de nacimiento, 1 menor por `es_menor`, 2 mayores) y verificar que `v_reporte_totales` da 3 y 2. — *Req 3.1, 3.3, 3.4*
 - [ ] 8.7 Declarar 8 evangelizados y registrar 2. Verificar que `diferencia = 6` y que aparece en la alerta. — *Req 5.4*
 - [ ] 8.8 Crear un reporte con fecha futura. Debe fallar. — *Req 1.4*

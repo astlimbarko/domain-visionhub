@@ -33,7 +33,7 @@ Es el corazón operativo del Módulo 1: de aquí sale la asistencia, que aliment
 
 1. THE Sistema SHALL registrar de cada Reporte: `casa_de_paz_id`, `fecha_reunion`, `libro_id`, `tema_id`, `disertador_id`, `salio_evangelizar`, `testimonios` y `comentarios`.
 2. THE Sistema SHALL exigir `casa_de_paz_id` y `fecha_reunion` en todo Reporte.
-3. THE Sistema SHALL permitir como máximo un Reporte vigente por Casa_De_Paz y `fecha_reunion`.
+3. THE Sistema SHALL permitir como máximo un Reporte vigente por Casa_De_Paz y semana (lunes a domingo) — no por `fecha_reunion` exacta. Una Casa_De_Paz puede reunirse más de una vez en la misma semana (recupera una reunión atrasada, o se adelanta), pero solo uno de esos Reportes cuenta para esa semana.
 4. THE Sistema SHALL rechazar una `fecha_reunion` posterior a la fecha actual.
 5. THE Sistema SHALL permitir que el Líder de CdP y el Sublíder de CdP creen el Reporte de su Casa_De_Paz.
 6. IF un Usuario que no es Líder ni Sublíder vigente de esa Casa_De_Paz intenta crear su Reporte, THEN THE Sistema SHALL rechazar la operación.

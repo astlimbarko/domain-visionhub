@@ -65,15 +65,27 @@ CREATE TABLE casa_de_paz_reporte (
   )
 );
 
-CREATE UNIQUE INDEX uq_reporte_cdp_fecha
-  ON casa_de_paz_reporte (casa_de_paz_id, fecha_reunion)
-  WHERE fecha_eliminacion IS NULL;
-
 CREATE INDEX idx_reporte_cdp_fecha ON casa_de_paz_reporte (casa_de_paz_id, fecha_reunion DESC)
   WHERE fecha_eliminacion IS NULL;
 ```
 
-`uq_reporte_cdp_fecha` implementa el Requisito 1.3. Evita el reporte duplicado cuando el líder toca "enviar" dos veces con mala señal — que va a pasar.
+**Corrección del owner (2026-07-18):** la unicidad NO es por `fecha_reunion` exacta, es por semana. Una Casa de Paz puede reunirse dos o más veces en la misma semana (se atrasó y recupera, o se adelanta a la semana siguiente) y eso está bien — lo que nunca puede pasar es que dos Reportes cuenten para la misma semana. Se agregó una columna generada y el índice único se mudó a ella, en `26_reporte_semana.sql`:
+
+```sql
+ALTER TABLE casa_de_paz_reporte
+  ADD COLUMN semana_inicio DATE
+    GENERATED ALWAYS AS (fecha_reunion - (EXTRACT(ISODOW FROM fecha_reunion)::integer - 1)) STORED;
+
+CREATE UNIQUE INDEX uq_reporte_cdp_semana
+  ON casa_de_paz_reporte (casa_de_paz_id, semana_inicio)
+  WHERE fecha_eliminacion IS NULL;
+```
+
+`semana_inicio` es el lunes ISO de la semana de `fecha_reunion` (mismo criterio que `fn_cdp_sin_reporte`, Requisito 7.2). No se usó `date_trunc('week', fecha_reunion)` porque esa función no es `IMMUTABLE` para Postgres (se resuelve a la variante `timestamptz`, dependiente de huso horario) y una columna generada lo exige; la aritmética con `EXTRACT(ISODOW ...)` sí es `IMMUTABLE`.
+
+`fecha_reunion` sigue siendo el día real en que se hizo la reunión — eso no cambia, y el formulario sigue pidiendo una sola fecha. `semana_inicio` es derivada, no la escribe nadie.
+
+`uq_reporte_cdp_semana` implementa el Requisito 1.3. Evita el reporte duplicado cuando el líder toca "enviar" dos veces con mala señal — que va a pasar — y ahora también evita que dos reuniones de la misma semana (una atrasada, otra normal) generen dos Reportes que cuenten doble.
 
 `libro_id`, `tema_id` y `disertador_id` son nulables en el esquema aunque el Requisito 1.8 diga que la obligatoriedad la define el Supervisor. La razón: si fueran `NOT NULL`, apagar la obligatoriedad desde el panel requeriría un `ALTER TABLE`. La obligatoriedad configurable se valida en disparador, leyendo la configuración. Ver [10-panel-supervisor](../10-panel-supervisor/design.md).
 
@@ -445,4 +457,4 @@ CREATE POLICY pol_reporte_update ON casa_de_paz_reporte
 | Los líderes no adoptan la lista y dejan de reportar. | Es el riesgo principal del Módulo 1. Mitigación: formulario precargado, ordenado por asistencia reciente, con totales en vivo. Si aun así no ocurre, el fallback es el modo mixto (números ahora, lista después) que el esquema ya soporta: `casa_de_paz_asistencia` vacío y totales declarados. **No se implementa ahora.** |
 | Personas duplicadas por alta rápida: "Juan Perez" se crea tres semanas seguidas. | El alta rápida no pide CI, así que `uq_persona_ci` no protege. Mitigación: al escribir el nombre, el formulario busca coincidencias en la CdP y la red y ofrece las existentes antes de crear. Alerta de duplicados en el panel del Supervisor. **Pendiente de diseñar en detalle.** |
 | `fn_asistencia_es_menor` se llama por fila en la vista de totales y se vuelve lenta. | Con 20 asistentes por reporte es irrelevante. Si un dashboard agrega 52 semanas × 30 CdP, se materializa `v_reporte_totales`. Medir antes de optimizar. |
-| El líder reporta la semana equivocada y el reporte correcto choca con `uq_reporte_cdp_fecha`. | El error dice qué reporte existe y con qué fecha. El formulario propone por defecto la fecha del último día de reunión de la CdP. |
+| El líder reporta la semana equivocada y el reporte correcto choca con `uq_reporte_cdp_semana`. | El formulario avisa *antes* de enviar si ya existe un Reporte para la semana de la fecha elegida (consulta por `semana_inicio`), y el error del backend es la defensa final si igual llega a chocar. |
