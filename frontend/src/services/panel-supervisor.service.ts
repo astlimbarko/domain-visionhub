@@ -7,17 +7,22 @@ export async function obtenerPanelConfiguracion(iglesiaId: string): Promise<Pane
   return data as PanelConfiguracion;
 }
 
-export async function setConfiguracion(iglesiaId: string, codigo: string, valor: string) {
+export async function setConfiguracion(iglesiaId: string, codigo: string, valor: string, pin?: string) {
   const { error } = await supabase.rpc('fn_set_configuracion', {
     p_iglesia_id: iglesiaId,
     p_codigo: codigo,
     p_valor: valor,
+    p_pin: pin ?? null,
   });
   if (error) throw error;
 }
 
-export async function toggleDepartamento(departamentoId: string, activo: boolean) {
-  const { error } = await supabase.from('departamento').update({ activo }).eq('id', departamentoId);
+export async function toggleDepartamento(departamentoId: string, activo: boolean, pin?: string) {
+  const { error } = await supabase.rpc('fn_toggle_departamento', {
+    p_departamento_id: departamentoId,
+    p_activo: activo,
+    p_pin: pin ?? null,
+  });
   if (error) throw error;
 }
 
@@ -41,7 +46,11 @@ export async function obtenerMonedasActivas(iglesiaId: string): Promise<MonedaAc
   });
 }
 
-export async function cambiarMonedaDefecto(iglesiaId: string, monedaId: string) {
-  const { error } = await supabase.from('iglesia').update({ moneda_defecto_id: monedaId }).eq('id', iglesiaId);
+export async function cambiarMonedaDefecto(iglesiaId: string, monedaId: string, pin?: string) {
+  const { error } = await supabase.rpc('fn_cambiar_moneda_defecto', {
+    p_iglesia_id: iglesiaId,
+    p_moneda_id: monedaId,
+    p_pin: pin ?? null,
+  });
   if (error) throw error;
 }

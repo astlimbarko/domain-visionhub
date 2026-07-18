@@ -29,8 +29,8 @@ export function useMonedasActivas(iglesiaId: string | undefined) {
 export function useSetConfiguracion(iglesiaId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ codigo, valor }: { codigo: string; valor: string }) =>
-      setConfiguracion(iglesiaId as string, codigo, valor),
+    mutationFn: ({ codigo, valor, pin }: { codigo: string; valor: string; pin?: string }) =>
+      setConfiguracion(iglesiaId as string, codigo, valor, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) }),
   });
 }
@@ -38,8 +38,8 @@ export function useSetConfiguracion(iglesiaId: string | undefined) {
 export function useToggleDepartamento(iglesiaId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ departamentoId, activo }: { departamentoId: string; activo: boolean }) =>
-      toggleDepartamento(departamentoId, activo),
+    mutationFn: ({ departamentoId, activo, pin }: { departamentoId: string; activo: boolean; pin?: string }) =>
+      toggleDepartamento(departamentoId, activo, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) }),
   });
 }
@@ -47,7 +47,8 @@ export function useToggleDepartamento(iglesiaId: string | undefined) {
 export function useCambiarMonedaDefecto(iglesiaId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (monedaId: string) => cambiarMonedaDefecto(iglesiaId as string, monedaId),
+    mutationFn: ({ monedaId, pin }: { monedaId: string; pin?: string }) =>
+      cambiarMonedaDefecto(iglesiaId as string, monedaId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) }),
   });
 }

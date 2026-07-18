@@ -22,7 +22,7 @@ export function useUsuarios(iglesiaId: string | undefined) {
 export function useCrearIglesia() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sufijo, ciudad }: { sufijo: string; ciudad: string }) => crearIglesia(sufijo, ciudad),
+    mutationFn: ({ sufijo, ciudad, pin }: { sufijo: string; ciudad: string; pin?: string }) => crearIglesia(sufijo, ciudad, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'iglesias'] }),
   });
 }
@@ -34,13 +34,15 @@ export function useInvitarUsuario() {
       correo,
       rol,
       iglesiaId,
+      pin,
     }: {
       correo: string;
       rol: RolSistema;
       iglesiaId: string | null;
+      pin?: string;
     }) => {
-      const resultado = await invitarUsuario(correo, rol, iglesiaId);
-      await crearUsuarioRol(resultado.id, rol, iglesiaId);
+      const resultado = await invitarUsuario(correo, rol, iglesiaId, pin);
+      await crearUsuarioRol(resultado.id, rol, iglesiaId, pin);
       return resultado;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),

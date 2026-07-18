@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -19,6 +20,7 @@ import {
   useToggleDepartamento,
 } from '@/hooks/usePanelSupervisor';
 import { ConfiguracionRow } from '@/components/panel-supervisor/ConfiguracionRow';
+import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 
 const NOMBRE_CATEGORIA: Record<string, string> = {
   CDP: 'Casa de Paz',
@@ -35,6 +37,7 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
 
 export function PanelSupervisor() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
 
   const { data: panel, isLoading } = usePanelConfiguracion(iglesiaActivaId);
   const { data: monedas } = useMonedasActivas(iglesiaActivaId);
@@ -42,13 +45,30 @@ export function PanelSupervisor() {
   const toggleDepto = useToggleDepartamento(iglesiaActivaId);
   const cambiarMoneda = useCambiarMonedaDefecto(iglesiaActivaId);
 
+  // Como Super Admin, cada cambio pide el PIN antes de aplicarse -- se
+  // pausa la funcion async hasta que el dialogo se confirme o se cancele.
+  const [pinPendiente, setPinPendiente] = useState(false);
+  const resolverPin = useRef<((pin: string) => void) | null>(null);
+  const rechazarPin = useRef<(() => void) | null>(null);
+
+  function pedirPin(): Promise<string | undefined> {
+    if (!esSuperAdmin) return Promise.resolve(undefined);
+    return new Promise((resolve, reject) => {
+      resolverPin.current = resolve;
+      rechazarPin.current = reject;
+      setPinPendiente(true);
+    });
+  }
+
   async function handleGuardar(codigo: string, valor: string) {
-    await setConfig.mutateAsync({ codigo, valor });
+    const pin = await pedirPin();
+    await setConfig.mutateAsync({ codigo, valor, pin });
   }
 
   async function handleToggleDepto(departamentoId: string, activo: boolean) {
     try {
-      await toggleDepto.mutateAsync({ departamentoId, activo });
+      const pin = await pedirPin();
+      await toggleDepto.mutateAsync({ departamentoId, activo, pin });
     } catch {
       toast.error('No se pudo actualizar el departamento');
     }
@@ -56,7 +76,8 @@ export function PanelSupervisor() {
 
   async function handleCambiarMoneda(monedaId: string) {
     try {
-      await cambiarMoneda.mutateAsync(monedaId);
+      const pin = await pedirPin();
+      await cambiarMoneda.mutateAsync({ monedaId, pin });
       toast.success('Moneda por defecto actualizada. No afecta los ingresos ya registrados.');
     } catch {
       toast.error('No se pudo cambiar la moneda');
@@ -132,6 +153,24 @@ export function PanelSupervisor() {
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmarCambioDialog
+        open={pinPendiente}
+        onOpenChange={(open) => {
+          if (!open) {
+            rechazarPin.current?.();
+            setPinPendiente(false);
+          }
+        }}
+        titulo="Confirmá el cambio"
+        descripcion="Como Super Admin, cada cambio de configuración pide tu PIN."
+        procesando={false}
+        requiereMotivo={false}
+        onConfirmar={(_motivo, pin) => {
+          resolverPin.current?.(pin ?? '');
+          setPinPendiente(false);
+        }}
+      />
     </div>
   );
 }

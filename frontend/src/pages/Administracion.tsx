@@ -29,8 +29,15 @@ export function Administracion() {
   const invitarUsuario = useInvitarUsuario();
 
   function manejarError(e: unknown, generico: string) {
-    const mensaje = e instanceof Error ? e.message : '';
-    toast.error(mensaje || generico);
+    const error = e as { message?: string } | null;
+    const mensaje = typeof error?.message === 'string' ? error.message : '';
+    if (mensaje.includes('PIN_INCORRECTO')) {
+      toast.error('El PIN es incorrecto');
+    } else if (mensaje.includes('email_exists') || mensaje.includes('Ya existe una cuenta')) {
+      toast.error(mensaje);
+    } else {
+      toast.error(mensaje || generico);
+    }
   }
 
   return (
@@ -92,9 +99,9 @@ export function Administracion() {
         open={mostrarCrearIglesia}
         onOpenChange={setMostrarCrearIglesia}
         creando={crearIglesia.isPending}
-        onCrear={(sufijo, ciudad) =>
+        onCrear={(sufijo, ciudad, pin) =>
           crearIglesia.mutate(
-            { sufijo, ciudad },
+            { sufijo, ciudad, pin },
             {
               onSuccess: () => {
                 toast.success('Iglesia creada');
@@ -111,9 +118,9 @@ export function Administracion() {
         onOpenChange={setMostrarInvitar}
         iglesias={iglesias}
         invitando={invitarUsuario.isPending}
-        onInvitar={(correo, rol, iglesiaId) =>
+        onInvitar={(correo, rol, iglesiaId, pin) =>
           invitarUsuario.mutate(
-            { correo, rol, iglesiaId },
+            { correo, rol, iglesiaId, pin },
             {
               onSuccess: () => {
                 toast.success(`Invitación enviada a ${correo}`);

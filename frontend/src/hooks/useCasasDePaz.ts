@@ -33,7 +33,7 @@ export function useCdps(iglesiaId: string | undefined, redId: string | undefined
   return useQuery({
     queryKey: ['estructura', 'cdps', iglesiaId, redId],
     queryFn: () => obtenerCdps(iglesiaId as string, redId),
-    enabled: !!iglesiaId,
+    enabled: !!iglesiaId && !!redId,
   });
 }
 

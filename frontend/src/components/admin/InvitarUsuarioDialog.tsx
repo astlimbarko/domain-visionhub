@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuthStore } from '@/store/auth.store';
 import type { RolSistema } from '@/types/auth.types';
 import type { IglesiaAdmin } from '@/types/admin.types';
 
@@ -33,23 +34,27 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   iglesias: IglesiaAdmin[];
   invitando: boolean;
-  onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null) => void;
+  onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
 }
 
 export function InvitarUsuarioDialog({ open, onOpenChange, iglesias, invitando, onInvitar }: Props) {
+  const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const [correo, setCorreo] = useState('');
   const [rol, setRol] = useState<RolSistema | ''>('');
   const [iglesiaId, setIglesiaId] = useState('');
+  const [pin, setPin] = useState('');
 
   const necesitaIglesia = rol !== '' && rol !== 'SUPER_ADMIN';
-  const puedeEnviar = correo.trim().includes('@') && rol !== '' && (!necesitaIglesia || !!iglesiaId);
+  const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
+  const puedeEnviar = correo.trim().includes('@') && rol !== '' && (!necesitaIglesia || !!iglesiaId) && pinValido;
 
   function handleInvitar() {
     if (!puedeEnviar) return;
-    onInvitar(correo.trim().toLowerCase(), rol, necesitaIglesia ? iglesiaId : null);
+    onInvitar(correo.trim().toLowerCase(), rol, necesitaIglesia ? iglesiaId : null, esSuperAdmin ? pin : undefined);
     setCorreo('');
     setRol('');
     setIglesiaId('');
+    setPin('');
   }
 
   return (
@@ -93,6 +98,20 @@ export function InvitarUsuarioDialog({ open, onOpenChange, iglesias, invitando, 
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {esSuperAdmin && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pin_invitar">Tu PIN de Super Admin</Label>
+              <Input
+                id="pin_invitar"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6 dígitos"
+              />
             </div>
           )}
         </div>

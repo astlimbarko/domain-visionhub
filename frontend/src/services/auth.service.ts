@@ -30,6 +30,17 @@ export async function obtenerCorreoActual(): Promise<string | null> {
   return data.user?.email ?? null;
 }
 
+export async function tengoPin(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_tengo_pin');
+  if (error) throw error;
+  return data === true;
+}
+
+export async function establecerPin(pinNuevo: string) {
+  const { error } = await supabase.rpc('fn_establecer_pin', { p_pin_nuevo: pinNuevo });
+  if (error) throw error;
+}
+
 export async function obtenerIglesiasAccesibles(): Promise<IglesiaAccesible[]> {
   const { data, error } = await supabase.rpc('fn_mis_iglesias_detalle');
   if (error) throw error;

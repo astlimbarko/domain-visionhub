@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Home, Plus, Users } from 'lucide-react';
+import { GitMerge, Home, Plus, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -22,9 +22,20 @@ import {
   useToggleActivoCdp,
   useToggleActivoRed,
 } from '@/hooks/useCasasDePaz';
+import {
+  useDeshacerFusionCdp,
+  useDeshacerFusionRed,
+  useFusionarCdp,
+  useFusionarRed,
+  useFusionesCdp,
+  useFusionesRed,
+} from '@/hooks/useFusion';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearRedDialog } from '@/components/casas-de-paz/CrearRedDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
+import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
+import { FusionarRedDialog } from '@/components/casas-de-paz/FusionarRedDialog';
+import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 interface CargoDialogoRed {
@@ -43,10 +54,16 @@ interface CargoDialogoCdp {
 
 export function CasasDePaz() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const iglesias = useAuthStore((s) => s.iglesias);
+  const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
 
   const [redSeleccionadaId, setRedSeleccionadaId] = useState<string>();
   const [mostrarCrearRed, setMostrarCrearRed] = useState(false);
   const [mostrarCrearCdp, setMostrarCrearCdp] = useState(false);
+  const [mostrarFusionarCdp, setMostrarFusionarCdp] = useState(false);
+  const [mostrarFusionarRed, setMostrarFusionarRed] = useState(false);
+  const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
+  const [deshacerRedId, setDeshacerRedId] = useState<string>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
   const [dialogoCdp, setDialogoCdp] = useState<CargoDialogoCdp | null>(null);
 
@@ -54,6 +71,8 @@ export function CasasDePaz() {
   const { data: redes = [], isLoading: cargandoRedes } = useRedes(iglesiaActivaId);
   const { data: cdps = [], isLoading: cargandoCdps } = useCdps(iglesiaActivaId, redSeleccionadaId);
   const redSeleccionada = redes.find((r) => r.id === redSeleccionadaId);
+  const { data: fusionesCdp = [] } = useFusionesCdp(iglesiaActivaId);
+  const { data: fusionesRed = [] } = useFusionesRed(iglesiaActivaId);
 
   const crearRed = useCrearRed(iglesiaActivaId);
   const toggleActivoRed = useToggleActivoRed();
@@ -63,6 +82,10 @@ export function CasasDePaz() {
   const asignarCargoCdp = useAsignarCargoCdp(iglesiaActivaId);
   const quitarCargoRed = useQuitarCargoRed();
   const quitarCargoCdp = useQuitarCargoCdp();
+  const fusionarCdp = useFusionarCdp();
+  const deshacerFusionCdp = useDeshacerFusionCdp();
+  const fusionarRed = useFusionarRed();
+  const deshacerFusionRed = useDeshacerFusionRed();
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(
     dialogoRed?.redId,
@@ -84,9 +107,37 @@ export function CasasDePaz() {
       toast.error('Esa persona no pertenece a esta iglesia');
     } else if (mensaje.includes('permission denied') || mensaje.includes('row-level security')) {
       toast.error('No tenés permiso para hacer este cambio');
+    } else if (mensaje.includes('PIN_INCORRECTO')) {
+      toast.error('El PIN es incorrecto');
+    } else if (mensaje.includes('FUSION_VENTANA_VENCIDA')) {
+      toast.error('Ya pasaron los 7 días: esta fusión no se puede deshacer');
+    } else if (mensaje.includes('FUSION_YA_DESHECHA')) {
+      toast.error('Esta fusión ya fue deshecha');
+    } else if (mensaje.includes('FUSION_SIN_PERMISO')) {
+      toast.error('No tenés permiso para hacer esta fusión');
     } else {
       toast.error(generico);
     }
+  }
+
+  function fusionarVariosCdp(origenIds: string[], destinoId: string, motivo: string, pin?: string) {
+    (async () => {
+      for (const origenId of origenIds) {
+        await fusionarCdp.mutateAsync({ origenId, destinoId, motivo, pin });
+      }
+      toast.success('Fusión realizada');
+      setMostrarFusionarCdp(false);
+    })().catch((e) => manejarError(e, 'No se pudo fusionar'));
+  }
+
+  function fusionarVariasRedes(origenIds: string[], destinoId: string, motivo: string, pin?: string) {
+    (async () => {
+      for (const origenId of origenIds) {
+        await fusionarRed.mutateAsync({ origenId, destinoId, motivo, pin });
+      }
+      toast.success('Fusión realizada');
+      setMostrarFusionarRed(false);
+    })().catch((e) => manejarError(e, 'No se pudo fusionar'));
   }
 
   async function manejarAsignarRed(persona: PersonaBusqueda) {
@@ -233,7 +284,7 @@ export function CasasDePaz() {
           {redSeleccionadaId && !cargandoCdps && cdps.length === 0 && (
             <p className="text-sm text-muted-foreground">Esta red todavía no tiene Casas de Paz.</p>
           )}
-          {cdps.map((cdp) => (
+          {redSeleccionadaId && cdps.map((cdp) => (
             <div key={cdp.id} className="flex flex-col gap-2 rounded-xl border border-border px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -285,6 +336,85 @@ export function CasasDePaz() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Fusiones</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!redSeleccionadaId}
+              onClick={() => setMostrarFusionarCdp(true)}
+            >
+              <GitMerge className="h-4 w-4" />
+              Fusionar Casas de Paz
+            </Button>
+            {esOperativo && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarFusionarRed(true)}>
+                <GitMerge className="h-4 w-4" />
+                Fusionar Redes
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {!redSeleccionadaId && (
+            <p className="text-sm text-muted-foreground">
+              Elegí una red arriba para poder fusionar sus Casas de Paz. Fusionar Redes no depende de elegir una.
+            </p>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-muted-foreground">Historial de Casas de Paz</p>
+            {fusionesCdp.length === 0 && <p className="text-sm text-muted-foreground">Sin fusiones todavía.</p>}
+            {fusionesCdp.map((f) => (
+              <div key={f.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                <div>
+                  <p>
+                    <span className="text-muted-foreground">{f.origen_etiqueta}</span> → <span className="font-medium">{f.destino_etiqueta}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(f.fecha_fusion).toLocaleDateString('es-BO')} · {f.motivo}
+                    {f.deshecha_en && ` · Deshecha: ${f.deshecha_motivo}`}
+                  </p>
+                </div>
+                {f.puede_deshacer && (
+                  <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setDeshacerCdpId(f.id)}>
+                    <Undo2 className="h-4 w-4" />
+                    Deshacer
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-muted-foreground">Historial de Redes</p>
+            {fusionesRed.length === 0 && <p className="text-sm text-muted-foreground">Sin fusiones todavía.</p>}
+            {fusionesRed.map((f) => (
+              <div key={f.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                <div>
+                  <p>
+                    <span className="text-muted-foreground">{f.origen_nombre}</span> → <span className="font-medium">{f.destino_nombre}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(f.fecha_fusion).toLocaleDateString('es-BO')} · {f.motivo}
+                    {f.deshecha_en && ` · Deshecha: ${f.deshecha_motivo}`}
+                  </p>
+                </div>
+                {f.puede_deshacer && (
+                  <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setDeshacerRedId(f.id)}>
+                    <Undo2 className="h-4 w-4" />
+                    Deshacer
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -352,6 +482,64 @@ export function CasasDePaz() {
           onQuitar={(id) => quitarCargoCdp.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
         />
       )}
+
+      <FusionarCdpDialog
+        open={mostrarFusionarCdp}
+        onOpenChange={setMostrarFusionarCdp}
+        cdps={cdps}
+        procesando={fusionarCdp.isPending}
+        onFusionar={fusionarVariosCdp}
+      />
+
+      <FusionarRedDialog
+        open={mostrarFusionarRed}
+        onOpenChange={setMostrarFusionarRed}
+        redes={redes}
+        procesando={fusionarRed.isPending}
+        onFusionar={fusionarVariasRedes}
+      />
+
+      <ConfirmarCambioDialog
+        open={!!deshacerCdpId}
+        onOpenChange={(open) => !open && setDeshacerCdpId(undefined)}
+        titulo="Deshacer fusión de Casas de Paz"
+        descripcion="La Casa de Paz absorbida vuelve a estar activa y sus miembros regresan."
+        procesando={deshacerFusionCdp.isPending}
+        onConfirmar={(motivo, pin) => {
+          if (!deshacerCdpId) return;
+          deshacerFusionCdp.mutate(
+            { fusionId: deshacerCdpId, motivo, pin },
+            {
+              onSuccess: () => {
+                toast.success('Fusión deshecha');
+                setDeshacerCdpId(undefined);
+              },
+              onError: (e) => manejarError(e, 'No se pudo deshacer la fusión'),
+            }
+          );
+        }}
+      />
+
+      <ConfirmarCambioDialog
+        open={!!deshacerRedId}
+        onOpenChange={(open) => !open && setDeshacerRedId(undefined)}
+        titulo="Deshacer fusión de Redes"
+        descripcion="La Red absorbida vuelve a estar activa y sus Casas de Paz regresan."
+        procesando={deshacerFusionRed.isPending}
+        onConfirmar={(motivo, pin) => {
+          if (!deshacerRedId) return;
+          deshacerFusionRed.mutate(
+            { fusionId: deshacerRedId, motivo, pin },
+            {
+              onSuccess: () => {
+                toast.success('Fusión deshecha');
+                setDeshacerRedId(undefined);
+              },
+              onError: (e) => manejarError(e, 'No se pudo deshacer la fusión'),
+            }
+          );
+        }}
+      />
     </div>
   );
 }
