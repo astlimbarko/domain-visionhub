@@ -18,7 +18,7 @@ const ROLES_VALIDOS = [
 // grueso (fn_puede_invitar) para que nadie gaste invitaciones sin motivo.
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    let body: { correo?: string; rol?: string; iglesiaId?: string | null; redirectTo?: string };
+    let body: { correo?: string; rol?: string; iglesiaId?: string | null; redirectTo?: string; pin?: string };
     try {
       body = await req.json();
     } catch {
@@ -45,6 +45,13 @@ export default {
     );
     if (errorPermiso || !puedeInvitar) {
       return Response.json({ error: "No tenes permiso para invitar usuarios aqui" }, { status: 403 });
+    }
+
+    // fn_exigir_pin solo pide algo si quien llama es Super Admin -- para
+    // Pastor/Supervisor invitando dentro de su propia iglesia no cambia nada.
+    const { error: errorPin } = await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pin ?? null });
+    if (errorPin) {
+      return Response.json({ error: "PIN incorrecto" }, { status: 403 });
     }
 
     const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
