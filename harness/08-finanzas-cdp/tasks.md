@@ -33,7 +33,7 @@
 - [ ] 4.1 Crear `fn_ingresos_cdp(uuid, date, date)`. — *Req 4.1, 4.2, 4.3*
 - [ ] 4.2 Crear `fn_ingresos_red(uuid, date, date)`. — *Req 4.1*
 - [ ] 4.3 Crear `fn_ingresos_iglesia(uuid, date, date)`. — *Req 4.1*
-- [ ] 4.4 Crear `fn_ingresos_comparativo(uuid, date, date)`. — *Req 4.4, 4.5*
+- [x] 4.4 Crear `fn_ingresos_comparativo(uuid, date, date)`. **Corregido 2026-07-18**: mismo bug de columna ambigua que `fn_eventos_cdp`/`fn_cumpleanos_cdp` (ver `11-esquema-bd/design.md` Riesgos) — la CTE `monedas` referenciaba `moneda_id` sin calificar, colisionando con la columna de salida del mismo nombre. Encontrado y verificado en navegador al construir el frontend de Finanzas. — *Req 4.4, 4.5*
 - [ ] 4.5 Verificar que un período sin ingresos devuelve `0`, no cero filas. — *Req 4.6*
 - [ ] 4.6 Verificar que con período anterior en cero, `variacion_pct` es `NULL` y **no** 100. — *Decisión de diseño*
 - [ ] 4.7 Verificar que una moneda presente solo en un período aparece igual, con `0` en el otro. — *Req 4.6*

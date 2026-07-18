@@ -137,7 +137,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE v_iglesia_id UUID;
 BEGIN
-  SELECT iglesia_id INTO v_iglesia_id FROM casa_de_paz WHERE id = p_casa_de_paz_id;
+  SELECT cdp.iglesia_id INTO v_iglesia_id FROM casa_de_paz cdp WHERE cdp.id = p_casa_de_paz_id;
   IF v_iglesia_id IS NULL OR v_iglesia_id NOT IN (SELECT fn_mis_iglesias()) THEN
     RAISE EXCEPTION 'CDP_FUERA_DE_ALCANCE: sin acceso a la casa de paz %', p_casa_de_paz_id
       USING ERRCODE = 'P0001';
@@ -147,16 +147,16 @@ BEGIN
   WITH
   dias AS (SELECT (p_hasta - p_desde) AS n),
   actual AS (
-    SELECT i.moneda_id, sum(i.monto) AS total FROM finanzas_ingreso i
+    SELECT i.moneda_id AS moneda_id, sum(i.monto) AS total FROM finanzas_ingreso i
     WHERE i.casa_de_paz_id = p_casa_de_paz_id AND i.fecha BETWEEN p_desde AND p_hasta AND i.fecha_eliminacion IS NULL
     GROUP BY i.moneda_id
   ),
   anterior AS (
-    SELECT i.moneda_id, sum(i.monto) AS total FROM finanzas_ingreso i, dias d
+    SELECT i.moneda_id AS moneda_id, sum(i.monto) AS total FROM finanzas_ingreso i, dias d
     WHERE i.casa_de_paz_id = p_casa_de_paz_id AND i.fecha BETWEEN (p_desde - d.n - 1) AND (p_desde - 1) AND i.fecha_eliminacion IS NULL
     GROUP BY i.moneda_id
   ),
-  monedas AS (SELECT moneda_id FROM actual UNION SELECT moneda_id FROM anterior)
+  monedas AS (SELECT actual.moneda_id AS moneda_id FROM actual UNION SELECT anterior.moneda_id AS moneda_id FROM anterior)
   SELECT mo.moneda_id, m.codigo,
          COALESCE(a.total, 0), COALESCE(p.total, 0),
          CASE WHEN COALESCE(p.total, 0) = 0 THEN NULL ELSE round(((COALESCE(a.total,0) - p.total) / p.total) * 100, 2) END
