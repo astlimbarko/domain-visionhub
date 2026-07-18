@@ -11,8 +11,11 @@ Cada lider de casa de paz debe reportar semanalmente lo sucedido en la reunion. 
 | Fecha de reunion | Dia en que se realizo |
 | Tema | Tema estudiado (libro "52 lecciones de vida") |
 | Libro | Numero del libro (1-7) |
-| Disertador | Persona que enseno la palabra (FK de persona) |
+| Disertador | Persona que enseno la palabra |
+| Total ofrendas | Monto total de ofrendas de la reunion |
+| Total diezmos | Monto total de diezmos de la reunion |
 | Salio a evangelizar | Si / No |
+| Cantidad de evangelizados | Numero de personas evangelizadas en esa salida |
 | Testimonios | Testimonios personales de los asistentes |
 | Comentarios | Narracion de lo sucedido durante la reunion |
 
@@ -48,9 +51,9 @@ Fecha: [fecha]
 Casa de Paz: [nombre/identificacion]
 Libro: [numero] | Tema: [numero y nombre]
 Disertador: [nombre de quien enseno]
-Asistencia: [N] menores, [N] mayors
 Ofrendas: [monto] | Diezmos: [monto]
 Salio a evangelizar: Si/No
+Evangelizados: [cantidad]
 Testimonios: [texto]
 Comentarios: [texto extenso]
 ```

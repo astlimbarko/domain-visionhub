@@ -16,7 +16,7 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 | **RE** | Reconciliacion | Persona que estuvo +3 meses fuera y retorna. |
 | **DA** | Discipulo Activo | Persona que asiste una vez al discipulado. |
 | **DI** | Discipulo Inactivo | Abandono 3 clases continuas. Nunca aplica sin ser DA. |
-| **AF** | Afirmado | Estado ELIMINADO del SSVA. Ya no se usa formalmente. |
+| **AF** | Afirmación | Estado ELIMINADO del SSVA. El departamento de Afirmación sigue existiendo. |
 
 ### Siglas estructurales
 
@@ -92,7 +92,7 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 : Prepara a personas para asumir responsabilidades mayores. Coordina el envio como lider de CdP y la multiplicacion.
 
 **Envio como lider CdP**
-: Proceso que ocurre despues de completar el discipulado de lideres, el retiro del Espiritu Santo y el aval del cuerpo pastoral. Se registra la fecha de envio.
+: Proceso que ocurre despues de completar el discipulado de lideres, el retiro del Espiritu Santo y el aval del equipo pastoral. Se registra la fecha de envio.
 
 **Evangelismo** (departamento)
 : Departamento de oficina que documenta actividades evangelisticas. No confundir con el ministerio de evangelismo (accion en campo).
@@ -108,10 +108,10 @@ Este glosario reune los terminos y siglas utilizados dentro de la organizacion e
 ### L
 
 **Lider de casa de paz**
-: Designado por lider de red con aval del cuerpo pastoral. Organiza las reuniones y acompana a los miembros.
+: Designado por lider de red con aval del equipo pastoral. Organiza las reuniones y acompana a los miembros.
 
 **Lider de red**
-: Designado por el cuerpo pastoral. Periodo indefinido. Supervisa casas de paz. Autonomo, no se relaciona con otros lideres de red en trabajo.
+: Designado por el equipo pastoral. Periodo indefinido. Supervisa casas de paz. Autonomo, no se relaciona con otros lideres de red en trabajo.
 
 ### M
 

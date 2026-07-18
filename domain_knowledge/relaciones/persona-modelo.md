@@ -27,12 +27,12 @@ Se usa para ocultar personas de alto rango en busquedas normales. Por defecto, l
 
 Extension de persona para no sobrecargar la tabla principal:
 
-| Campo | Descripcion |
-|-------|-------------|
-| Lugar de nacimiento | Ciudad de nacimiento |
-| Estado civil | soltero(a), casado(a), viudo(a), divorciado(a) |
-| Grado de instruccion | Ver enum abajo |
-| Ocupacion | Texto libre |
+| Campo | Descripcion | Uso |
+|-------|-------------|-----|
+| Lugar de nacimiento | Ciudad de nacimiento | Informativo |
+| Estado civil | soltero(a), casado(a), viudo(a), divorciado(a) | Informativo — sirve para saber parejas casadas en la iglesia (indicador importante). Si es casada y no tiene marido en el sistema, se usa su apellido de nacimiento por omision. |
+| Grado de instruccion | Ver enum abajo | Informativo — para censos y saber poblaciones dentro de la iglesia |
+| Ocupacion | Texto libre | Informativo |
 
 ### Grado de instruccion
 
@@ -101,7 +101,23 @@ Datos sobre como llego una persona a la iglesia:
 | Iglesia | FK |
 | Comentarios | Notas |
 
+### Apellido de casada (Bolivia)
+
+En Bolivia, cuando una mujer se casa, su nombre legal cambia: agrega el apellido del esposo. Ejemplo: "Maria Lopez" se cas con "Juan Perez" → "Maria Lopez de Perez". Cuando se divorcia, vuelve a su nombre de soltera.
+
+**Como manejarlo:** El campo `apellido_casada` es opcional. Se llena cuando `estado_civil = casado`. El sistema debe sugerir el apellido casada automaticamente: concatenar apellido del esposo con "de" + apellido de la mujer. El lider puede corregirlo si la persona no usa ese formato.
+
+**Regla:** El sistema NO debe cambiar el nombre completo de la persona. Solo se usa el `apellido_casada` para documentos o impresos cuando es necesario.
+
 ## Familia y relaciones
+
+### Tracking familiar (proceso manual)
+
+Las relaciones familiares se registran de forma manual. El lider de casa de paz pregunta a los nuevos miembros si tienen familiares en la iglesia. No se usa IA para detectar familias. El proceso es:
+
+1. Al ingresar un miembro nuevo, el lider pregunta: "Tiene familiares en la iglesia?"
+2. Si la respuesta es si, el lider registra el nombre del familiar y la relacion.
+3. Si el familiar no esta en el sistema, se guarda como referencia en texto libre.
 
 ### Familia
 

@@ -44,7 +44,7 @@ Cuando una persona ha completado el discipulado de lideres:
 
 1. Finaliza el curso "Lideres de Casa de Paz".
 2. Asiste al Retiro del Espiritu Santo.
-3. Tiene aval del cuerpo pastoral.
+3. Tiene aval del equipo pastoral.
 4. Se registra la fecha de envio.
 5. Se asigna como lider de una casa de paz.
 

@@ -95,7 +95,7 @@ Cargo administrativo dentro de la jerarquía. Se designa a alguien que es mínim
 ## Notas
 
 - La sigla SSVA es una sigla no oficial, utilizada solo para propósitos de documentación interna. No se debe usar dentro de los documentos oficiales.
-- El departamento de Afirmación (AF) ha sido eliminado. No se usa actualmente de forma formal.
+- El departamento de Afirmación (AF) sigue existiendo y operando normalmente. El estado AF del SSVA fue eliminado, no el departamento.
 
 ## Documentos relacionados
 

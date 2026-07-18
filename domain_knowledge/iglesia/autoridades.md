@@ -37,10 +37,10 @@ Apostol (Cobertura)
 |-------|-------------|---------------|
 | **Apostol** | Maxima autoridad de cobertura. Supervisa la iglesia local. No existen iglesias con varios apostoles. Generalmente pastorea una de las iglesias. | Apostol superior |
 | **Pastor** | Principal autoridad de la iglesia local. Lidera en todas las areas. Una iglesia puede tener varios pastores, siempre sujetos al principal. No es normal el termino co-pastores. | Apostol |
-| **Profeta** | Similar al pastor, predica con uncion para profetizar. No gerencia documentos ni toma decisiones. Tambien mueve personas. | Pastor o apostol |
-| **Evangelista** | Evangeliza a escala mayor con uncion evangelistica. Fluye en palabras y capta rapidamente personas. Crea equipos de evangelismo y capacita. Predica en servicios especiales, no en servicios continuos. | Pastor o apostol |
-| **Maestro** | Ensenanza de la palabra a nivel teologico. Usa tecnicismos, la biblia, y capacita teologicamente. Palabra revelada. | Pastor o apostol |
-| **Ministro** | Cargo alto por debajo de los 5 ministerios. Ejecuta tareas por encima de las redes. Predica y puede estar a cargo de distintos ministerios. Su tarea la disena el pastor. | Pastor |
+| **Profeta** | Similar al pastor, predica con uncion para profetizar. No gerencia documentos ni toma decisiones. Tambien mueve personas. | Apostol |
+| **Evangelista** | Evangeliza a escala mayor con uncion evangelistica. Fluye en palabras y capta rapidamente personas. Crea equipos de evangelismo y capacita. Predica en servicios especiales, no en servicios continuos. | Apostol |
+| **Maestro** | Ensenanza de la palabra a nivel teologico. Usa tecnicismos, la biblia, y capacita teologicamente. Palabra revelada. | Apostol |
+| **Ministro** | Cargo alto por debajo de los 5 ministerios. Ejecuta tareas por encima de las redes. Predica y puede estar a cargo de distintos ministerios. Su tarea la disena el pastor. | Apostol |
 | **Anciano** | Por encima de diacono, por debajo de ministro. Predica y puede ser lider de red. Tiene mas responsabilidad que un diacono. | Pastor |
 | **Diacono** | Persona de servicio constante. Ejecutor de planes. Ayuda en alabanza y oficios tecnicos (electricidad, plomeria, pintura, albanileria). | Pastor |
 | **Lider de red** | Lidera grupos especificos dentro de la iglesia. Facilita el crecimiento y la conexion. Reporta al pastor. | Pastor |
@@ -51,10 +51,10 @@ Apostol (Cobertura)
 | Autoridad | Reporta a | Designado por | Supervisa a |
 |-----------|-----------|---------------|-------------|
 | **Pastor** | Apostol | Apostol | Lideres de red, ministros, ancianos, diaconos, miembros |
-| **Profeta** | Pastor/Apostol | Pastor o apostol | No supervisa directamente |
-| **Evangelista** | Pastor/Apostol | Pastor o apostol | Equipos de evangelismo |
-| **Maestro** | Pastor/Apostol | Pastor o apostol | Alumnos en capacitacion |
-| **Ministro** | Pastor | Pastor | Tareas sobre redes |
+| **Profeta** | Pastor/Apostol | Apostol | No supervisa directamente |
+| **Evangelista** | Pastor/Apostol | Apostol | Equipos de evangelismo |
+| **Maestro** | Pastor/Apostol | Apostol | Alumnos en capacitacion |
+| **Ministro** | Pastor | Apostol | Tareas sobre redes |
 | **Anciano** | Pastor | Pastor | Diaconos y miembros de red |
 | **Lider de red** | Pastor | Pastor | Miembros de su red |
 | **Diacono** | Pastor o anciano | Pastor | Ejecucion de planes |

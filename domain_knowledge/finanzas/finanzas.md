@@ -68,7 +68,7 @@ Toda reunion recauda ofrenda, excepto: ensayos de alabanza, danza, y reuniones a
 
 ## Moneda
 
-Se pueden registrar contribuciones en distintas monedas: bolivianos, dolares u otra moneda extranjera.
+Cada registro de contribucion puede tener su propia moneda. En una misma reunion se pueden registrar ofrendas en bolivianos y diezmos en dolares (o viceversa). Cada monto se registra con su moneda correspondiente. No se permite mezclar monedas en un solo registro.
 
 ## Responsables
 

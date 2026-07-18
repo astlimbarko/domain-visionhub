@@ -95,7 +95,7 @@ Los departamentos trabajan de forma articulada cubriendo distintas etapas del cr
 | Discipulado | Formación espiritual constante. |
 | Envío | Comisión y preparación para responsabilidades mayores. |
 
-Nota: El departamento de Afirmación (AF) ha sido eliminado. No se usa actualmente de forma formal.
+Nota: El estado AF del SSVA (Afirmacion) ha sido eliminado. El departamento de Afirmacion sigue existiendo y operando normalmente.
 
 ### Relación entre redes
 

@@ -33,11 +33,28 @@ Las reuniones se desarrollan en el **domicilio de un anfitrion**. La casa de paz
 
 Cada lider de Casa de Paz debe reportar semanalmente. Actualmente se realiza mediante formularios de WhatsApp o Google Forms.
 
-### Datos que se reportan
-- Cantidad de asistentes menores de 12 anhos.
-- Cantidad de asistentes mayores de 12 anhos.
-- Monto de la ofrenda recolectada.
-- Novedades o incidencias del grupo.
+### Campos del formulario de reporte
+
+El lider llena un formulario con los siguientes datos:
+
+| Campo | Descripcion |
+|-------|-------------|
+| Fecha de reunion | Dia en que se realizo |
+| Tema | Tema estudiado |
+| Libro | Numero del libro (1-7) |
+| Quien enseno la palabra | Persona que diserto (disertador) |
+| Total ofrendas | Monto de ofrendas recolectadas |
+| Total diezmos | Monto de diezmos recolectados |
+| Salio a evangelizar | Si / No |
+| Cantidad de evangelizados | Numero de personas evangelizadas en esa reunion |
+| Testimonios | Testimonios de los asistentes |
+| Comentarios | Narracion de lo sucedido durante la reunion |
+
+### Reglas del formulario
+
+- La ofrenda y el diezmo se registran por separado en el formulario.
+- La cantidad de evangelizados se registra solo cuando hubo salida evangelistica.
+- El formulario registra **asistencia individual** de cada persona (necesario para calcular migracion de CdP e inactividad).
 
 ---
 

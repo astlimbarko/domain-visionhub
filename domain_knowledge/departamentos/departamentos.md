@@ -62,7 +62,7 @@ Coordinar la formacion espiritual de los creyentes mediante ensenanza, acompanam
 | **Discipulado de Lideres de CDP** | Preparacion especifica para quienes seran lideres de casas de paz. |
 | **Discipulado de Mentores** | Formacion avanzada para quienes seran mentores de otros creyentes. |
 
-**Proceso de envio como lider de casa de paz:** Cuando una persona ha terminado el discipulado de lideres, asiste al retiro del Espiritu Santo y tiene aval del cuerpo pastoral, entonces recien se envia como lider de casa de paz.
+**Proceso de envio como lider de casa de paz:** Cuando una persona ha terminado el discipulado de lideres, asiste al retiro del Espiritu Santo y tiene aval del equipo pastoral, entonces recien se envia como lider de casa de paz.
 
 **Relaciones:** Con Afirmacion (recibe creyentes integrados), con Envio (prepara personas para responsabilidades mayores), con las redes y casas de paz.
 
@@ -75,7 +75,7 @@ Preparar a las personas para asumir responsabilidades mayores dentro de la igles
 2. **Comision:** Coordina el envio como lider de CdP u otra responsabilidad mayor.
 3. **Multiplicacion:** Es el punto donde se concreta la multiplicacion: una persona formada es enviada a iniciar una nueva casa de paz o asumir un nuevo rol.
 
-**Requisitos para ser enviado como lider de CdP:** Haber terminado el discipulado de lideres, asistir al retiro del Espiritu Santo y tener aval del cuerpo pastoral.
+**Requisitos para ser enviado como lider de CdP:** Haber terminado el discipulado de lideres, asistir al retiro del Espiritu Santo y tener aval del equipo pastoral.
 
 **Relaciones:** Con Discipulado (recibe personas formadas), con las redes y casas de paz (supervisa organizacion), con los demas departamentos (asegura representantes).
 

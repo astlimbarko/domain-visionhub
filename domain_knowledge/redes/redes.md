@@ -6,7 +6,7 @@ Una red es una agrupacion de casas de paz bajo una misma direccion. No existen r
 
 ## Reglas fundamentales
 
-- No existe proceso formal para crear una red. Lo envia el cuerpo pastoral (pastor y su esposa).
+- No existe proceso formal para crear una red. Lo envia el equipo pastoral (pastor y su esposa).
 - No existe limite de redes en la iglesia.
 - No pueden existir redes sin casas de paz ni casas de paz sin red.
 - No hay limite de casas de paz por red.
@@ -27,7 +27,7 @@ Una red es una agrupacion de casas de paz bajo una misma direccion. No existen r
 - Documentar cambios de casas de paz entre redes.
 - Gestionar apertura, cambios y cierres de casas de paz.
 
-**Requisitos:** Aval del cuerpo pastoral. Promovido por su liderazgo (no hay proceso formal).
+**Requisitos:** Aval del equipo pastoral. Promovido por su liderazgo (no hay proceso formal).
 
 ## Estructura interna
 
@@ -102,8 +102,8 @@ Cuando un miembro se inscribe o sirve en un ministerio, el sistema **no debe per
 
 - La red agrupa y supervisa las casas de paz.
 - La red ejecuta funciones departamentales a nivel local.
-- La red responde al cuerpo pastoral.
-- Con el cuerpo pastoral: subordinacion y reporte.
+- La red responde al equipo pastoral.
+- Con el equipo pastoral: subordinacion y reporte.
 - Con lideres de cdP: supervision y acompanamiento.
 - Con otros lideres de red: no hay relacion laboral directa.
 

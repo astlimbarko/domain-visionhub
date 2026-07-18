@@ -11,7 +11,7 @@ El lider es la persona que tiene la **responsabilidad principal** sobre la Casa 
 - Es designado por el **equipo pastoral** (pastor y su esposa).
 - El proceso esta ligado al **departamento de discipulado** y al **lider de red**.
 - Requiere haber completado el discipulado de lideres de casas de paz y el retiro del Espiritu Santo.
-- Debe contar con el **aval del cuerpo pastoral**.
+- Debe contar con el **aval del equipo pastoral**.
 - Es promovido por su **lider de red**.
 - **Duracion:** Tiempo indefinido.
 - Una persona puede liderar **mas de una casa de paz** simultaneamente.

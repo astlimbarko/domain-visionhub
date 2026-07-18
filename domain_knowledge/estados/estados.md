@@ -35,7 +35,7 @@ SIM (Evangelizado)
 
 ## Evangelizado (SIM)
 
-Estado inicial para toda persona que recibe evangelismo pero aun no toma decision de seguir a Jesus.
+Estado inicial para toda persona que recibe evangelismo pero aun no toma decision de seguir a Jesus. Aplica a personas de cualquier edad.
 
 **Transiciones posibles:**
 - SIM → NC: La persona acepta a Jesus.
@@ -47,11 +47,11 @@ Estado inicial para toda persona que recibe evangelismo pero aun no toma decisio
 
 ## Nuevo Convertido (NC)
 
-Persona que acaba de aceptar a Jesus por primera vez. Estado provisional.
+Persona que acaba de aceptar a Jesus por primera vez. Estado provisional. Aplica a personas de cualquier edad que aceptan a Jesus.
 
 **Transiciones posibles:**
-- NC → CRE: Despues de 1 semana sin asistencia a discipulado (verificar que no siga asistiendo).
-- NC → DA: Si asiste al menos 1 vez al discipulado.
+- NC → CRE: Despues de 1 semana sin asistencia a discipulado (solo para mayores de 12 anos).
+- NC → DA: Si asiste al menos 1 vez al discipulado (cualquier edad).
 
 **Criterios de transicion:** Ver [criterios.md](criterios.md).
 

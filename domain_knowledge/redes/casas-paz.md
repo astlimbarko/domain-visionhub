@@ -12,12 +12,12 @@ Unidad basica de la iglesia. Grupo reducido que se reune semanalmente en un hoga
 
 ## Lider de casa de paz
 
-- Designado por el lider de red con aval del cuerpo pastoral.
+- Designado por el lider de red con aval del equipo pastoral.
 - Promovido por su lider de red.
 - Es importante el aval de los pastores.
 - Periodo indefinido.
 - Puede liderar mas de una casa de paz simultaneamente.
-- Requisito: haber completado discipulado de lideres de cdP, retiro del Espiritu Santo y aval del cuerpo pastoral.
+- Requisito: haber completado discipulado de lideres de cdP, retiro del Espiritu Santo y aval del equipo pastoral.
 
 ## Cambio de red
 

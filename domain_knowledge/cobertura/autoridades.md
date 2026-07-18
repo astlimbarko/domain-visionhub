@@ -37,12 +37,12 @@ Autoridades locales de cada iglesia. Son designados y reconocidos por el apostol
 |-------|-------------|---------------|
 | **Apostol** | Maxima autoridad de cobertura. Supervisa y acompana todas las iglesias. | Apostol superior (nunca autodeclarado) |
 | **Pastor** | Autoridad local. Lidera la congregacion en lo espiritual y administrativo. | Apostol |
-| **Profeta** | (Pendiente de definir) Cargo profetico. | Apostol segun su criterio |
-| **Evangelista** | Enfocado en la labor evangelistica. | Pastores principales |
-| **Maestro** | Ensenanza y doctrina a nivel teologico. | Apostol segun su criterio |
-| **Ministro** | Cargo de servicio ministerial. Ejecuta tareas designadas. | Apostol central en Cochabamba |
+| **Profeta** | (Pendiente de definir) Cargo profetico. | Apostol |
+| **Evangelista** | Enfocado en la labor evangelistica. | Apostol |
+| **Maestro** | Ensenanza y doctrina a nivel teologico. | Apostol |
+| **Ministro** | Cargo de servicio ministerial. Ejecuta tareas designadas. | Apostol |
 | **Anciano** | Reconocimiento ministerial. Predica, puede ser lider de red. | Equipo pastoral |
-| **Diaccono** | Servicio y apoyo. Ejecutor de planes. Oficios varios. | Cuerpo pastoral en iglesia local |
+| **Diaccono** | Servicio y apoyo. Ejecutor de planes. Oficios varios. | Equipo pastoral |
 | **Contador/Contadora** | Area administrativa-financiera. Minimo diacono + profesional. | Pastor |
 | **Mentor** | (Pendiente de definir) | Desconocido |
 

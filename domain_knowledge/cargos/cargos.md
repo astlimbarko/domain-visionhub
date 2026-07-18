@@ -213,7 +213,7 @@ Reconocimiento ministerial por encima del diacono pero por debajo del ministro.
 
 Persona de servicio constante en la iglesia. Es el ejecutor de los planes; sin ellos seria pesado realizar tareas. Puede ser musico, electricista, plomero, pintor, albanil, o desempenhar oficios de apoyo en los servicios.
 
-**Designacion:** Por el cuerpo pastoral en la iglesia local. No requiere consentimiento del apostol en Cochabamba. Se posesiona en la iglesia local. No existen procesos formales; se eligen personas destacadas en asistencia, diezmos y testimonio.
+**Designacion:** Por el equipo pastoral en la iglesia local. No requiere consentimiento del apostol en Cochabamba. Se posesiona en la iglesia local. No existen procesos formales; se eligen personas destacadas en asistencia, diezmos y testimonio.
 
 **Requisitos:** Ser lider de casa de paz (requisito previo). Fidelidad en asistencia, diezmos, ofrendas y testimonio. Buen desempenho en oficios varios.
 
@@ -238,12 +238,12 @@ Informacion pendiente de definir. No se conoce que funciones desempenha, el proc
 
 La persona responsable principal de una casa de paz. Tiene a su cargo la direccion, organizacion y cuidado del grupo.
 
-**Designacion:** Equipo pastoral (pastor y su esposa). El proceso esta ligado al departamento de discipulado y al lider de red.
+**Designacion:** Equipo pastoral (pastor y su esposa). El proceso es coordinado: el lider de red propone y el equipo pastoral aprueba. El proceso esta ligado al departamento de discipulado.
 
 **Requisitos:**
 - Haber completado el discipulado de lideres de casas de paz
 - Retiro del Espiritu Santo
-- Aval del cuerpo pastoral
+- Aval del equipo pastoral
 - Promovido por su lider de red
 - No existen procesos formales escritos; la constancia de asistencia e interes de la persona habla por si misma
 
@@ -294,24 +294,27 @@ Cargo de apoyo dentro de la casa de paz. Esta pensado para ser el futuro enviado
 
 ---
 
-### Lider de la Vision (Nivel Macro)
+### Lider de la Vision en Accion (Nivel Macro)
 
-Cabeza administrativa del crecimiento de la iglesia. No pastorea directamente, sino que supervisa la organizacion a nivel global.
+Cabeza administrativa del crecimiento de la iglesia. No pastorea directamente, sino que supervisa la organizacion a nivel global. Ejecuta los procesos que el pastor le ordena.
 
-**Designacion:** Por la autoridad superior (apostol).
+**Designacion:** Por el pastor. **Permanente** — no tiene tiempo limite. Solo el pastor puede removerlo.
 
 **Funciones:**
 - Supervisar la organizacion a nivel administrativo.
 - Tener bajo su mando al Encargado de Departamentos (Vision) y al Encargado General de Ministerios (Vision).
 - Tomar decisiones estrategicas de crecimiento.
+- Ejecutar los procesos operativos que el pastor le asigna.
+
+**Nota:** Tiene los mismos privilegios que el pastor pero recibe ordenes directas de él. Es su brazo operativo.
 
 ---
 
 ### Encargado de Departamentos (Vision) (Nivel Macro)
 
-Supervisa y estandariza el trabajo de todos los departamentos (Evangelismo, Afirmacion, Discipulado, Envio) a nivel general, cruzando informacion con todas las redes.
+Supervisa y estandariza el trabajo de los 4 departamentos (Evangelismo, Afirmacion, Discipulado, Envio) a nivel general, cruzando informacion con todas las redes. **Es un rol DIFERENTE al Lider de Departamento** — este supervisa globalmente, el Lider de Departamento opera en su area especifica.
 
-**Designacion:** Por el Lider de la Vision.
+**Designacion:** Por el Lider de la Vision en Accion.
 
 **Funciones:**
 
@@ -385,6 +388,8 @@ Posicion obligatoria. Administra y coordina a los miembros de su red que sirven 
 ### Lider de Red
 
 La persona designada por el pastor para supervisar, coordinar y acompanhar todas las casas de paz que conforman una red. Su labor es mas administrativa que ministerial.
+
+**Naturaleza:** Es un **cargo funcional**, no una posicion. Puede ser ocupado por un anciano, ministro, diacono o cualquier persona designada por el pastor.
 
 **Designacion:** Equipo pastoral.
 - No existe un proceso formal de evaluacion documentado.

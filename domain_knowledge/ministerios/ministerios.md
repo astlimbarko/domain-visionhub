@@ -6,6 +6,7 @@ Los ministerios son entidades que funcionan bajo los pastores principales (pasto
 
 ## Reglas fundamentales
 
+- Todos los ministerios son **de la iglesia** (nivel iglesia). No existen ministerios a nivel de red.
 - Cada ministerio es autonomo, no requiere de otro ministerio para funcionar.
 - Tiene un lider y varios miembros.
 - Se crean por mandato de los pastores principales o por herencia de la vision.
@@ -16,7 +17,7 @@ Los ministerios son entidades que funcionan bajo los pastores principales (pasto
 
 ## Encargado de Ministerio de Red (OBLIGATORIO en cada Red)
 
-Cada red tiene un Encargado de Ministerio de Red que coordina a las personas de su red que sirven en los distintos ministerios. Reporta a su Lider de Red y al Encargado General de Ministerios (Vision).
+Cada red tiene un Encargado de Ministerio de Red que coordina a las **personas de su red** que sirven en los ministerios de la iglesia. No coordina ministerios (que son de la iglesia), sino a las personas de su red que participan en ellos. Reporta a su Lider de Red y al Encargado General de Ministerios (Vision).
 
 Este rol es independiente del Encargado General de Ministerios (Vision), que tiene enfoque global/analitico.
 

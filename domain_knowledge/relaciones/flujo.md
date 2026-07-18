@@ -72,7 +72,7 @@ Los departamentos operan en múltiples niveles de la estructura:
                   └─────────┘
 ```
 
-Nota: El departamento de Afirmación (AF) ha sido eliminado. No se usa actualmente de forma formal.
+Nota: El estado AF del SSVA (Afirmacion) ha sido eliminado. El departamento de Afirmacion sigue existiendo y operando normalmente.
 
 ## Flujo ministerial
 
@@ -91,15 +91,21 @@ Los ministerios sirven a la iglesia en general y pueden apoyar actividades de re
 ## Flujo de crecimiento de las personas
 
 ```
-Evangelizado ──► Nuevo convertido ──► Discípulo activo
-                                              │
-                                              │ (si se aleja)
-                                              ▼
-                                         Discípulo inactivo
-                                              │
-                                              │ (si regresa)
-                                              ▼
-                                         Reconciliado ──► Discípulo activo
+Evangelizado (SIM)
+  │
+  ├──► Nuevo Convertido (NC) ──► Creyente (CRE) ──► Discípulo Activo (DA)
+  │         │                        │                    │
+  │         │ (si no asiste 1 sem)   │ (si abandona 3)   │ (si abandona)
+  │         ▼                        ▼                    ▼
+  │    Creyente (CRE)         Disc. Inactivo (DI)   Disc. Inactivo (DI)
+  │                                            │
+  │                                      (+3 meses)
+  │                                            ▼
+  └──► Reconciliado (RE) ◄──────────────────────┘
+              │
+              │ (1 vez en discipulado)
+              ▼
+        Discípulo Activo (DA)
 ```
 
 Las personas avanzan en su crecimiento espiritual a través de los estados, pudiendo además asumir responsabilidades funcionales y ministeriales con el tiempo.

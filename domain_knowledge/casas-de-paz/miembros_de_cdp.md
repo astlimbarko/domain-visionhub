@@ -17,6 +17,17 @@ El miembro de casa de paz es una persona que asiste de forma continua a las reun
 
 ---
 
+## Representantes de Departamentos en CdP
+
+Cada casa de paz puede tener representantes de los 4 departamentos (Evangelismo, Afirmacion, Discipulado, Envio). Es flexible:
+
+- Puede haber de **1 a 4** representantes.
+- Una persona puede cumplir **varios roles** simultaneamente (ej: representar Evangelismo y Discipulado).
+- A medida que la CdP crece en personas, se asignan mas representantes.
+- No es obligatorio tener los 4 representantes desde el inicio.
+
+---
+
 ## Migracion entre Casas de Paz
 
 - Un miembro puede **visitar otra casa de paz** sin problema.
