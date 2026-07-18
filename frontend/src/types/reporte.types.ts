@@ -72,3 +72,7 @@ export interface ReporteReciente {
   total_menores: number;
   total_mayores: number;
 }
+
+export interface ReporteDeLaSemana {
+  fecha_reunion: string;
+}

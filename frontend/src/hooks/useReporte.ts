@@ -5,6 +5,7 @@ import {
   obtenerLibros,
   obtenerMegaFiestaDelDia,
   obtenerMiembrosCdp,
+  obtenerReporteSemanaExistente,
   obtenerReportesRecientes,
   obtenerTemas,
 } from '@/services/reporte.service';
@@ -55,12 +56,21 @@ export function useReportesRecientes(casaDePazId: string | undefined) {
   });
 }
 
+export function useReporteSemanaExistente(casaDePazId: string | undefined, fecha: string) {
+  return useQuery({
+    queryKey: ['reporte', 'semana-existente', casaDePazId, fecha],
+    queryFn: () => obtenerReporteSemanaExistente(casaDePazId as string, fecha),
+    enabled: !!casaDePazId && !!fecha,
+  });
+}
+
 export function useCrearReporte(casaDePazId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (datos: NuevoReporte) => crearReporte(datos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'semana-existente', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['calendario'] });
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
     },

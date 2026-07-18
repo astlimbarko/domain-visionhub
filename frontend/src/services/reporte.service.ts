@@ -1,10 +1,12 @@
 import { supabase } from './supabase';
+import { inicioSemanaISO } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
   Libro,
   MegaFiestaDelDia,
   MiembroCdp,
   NuevoReporte,
+  ReporteDeLaSemana,
   ReporteReciente,
   ResultadoReporte,
   Tema,
@@ -89,6 +91,21 @@ export async function obtenerReportesRecientes(casaDePazId: string): Promise<Rep
     total_menores: r.total_menores,
     total_mayores: r.total_mayores,
   }));
+}
+
+/** Un Reporte cuenta por semana, no por fecha exacta: avisa si la semana de `fecha` ya tiene uno. */
+export async function obtenerReporteSemanaExistente(
+  casaDePazId: string,
+  fecha: string
+): Promise<ReporteDeLaSemana | null> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('semana_inicio', inicioSemanaISO(fecha))
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReporte> {

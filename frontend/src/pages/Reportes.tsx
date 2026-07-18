@@ -28,11 +28,12 @@ import {
   useMegaFiestaDelDia,
   useMiembrosCdp,
   useReportesRecientes,
+  useReporteSemanaExistente,
   useTemas,
 } from '@/hooks/useReporte';
 import { AsistenciaChecklist } from '@/components/reporte/AsistenciaChecklist';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { aISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import type { NuevaVisita } from '@/types/reporte.types';
 
 const esquema = z.object({
@@ -95,6 +96,7 @@ export function Reportes() {
 
   const { data: temas = [] } = useTemas(libroId, iglesiaActivaId);
   const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
+  const { data: reporteSemana } = useReporteSemanaExistente(cdpActiva, fechaReunion);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
 
   // Las monedas activas se cargan de forma asincronica: si el default de
@@ -167,8 +169,8 @@ export function Reportes() {
     } catch (e) {
       const error = e as { code?: string; message?: string } | null;
       const mensaje = typeof error?.message === 'string' ? error.message : '';
-      if (error?.code === '23505' || mensaje.includes('uq_reporte_cdp_fecha')) {
-        toast.error('Ya existe un reporte de esta Casa de Paz para esa fecha');
+      if (error?.code === '23505' || mensaje.includes('uq_reporte_cdp_semana')) {
+        toast.error('Ya existe un reporte de esta Casa de Paz para esa semana');
       } else if (mensaje.includes('REPORTE_OFRENDAS_OBLIGATORIO')) {
         toast.error('El total de ofrendas es obligatorio, aunque sea 0');
       } else {
@@ -215,6 +217,13 @@ export function Reportes() {
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
                   <Input id="fecha_reunion" type="date" {...register('fecha_reunion')} />
+                  {reporteSemana && (
+                    <p className="text-sm text-destructive">
+                      Ya hay un reporte de esta Casa de Paz para la semana del{' '}
+                      {fechaLegible(inicioSemanaISO(fechaReunion))} al {fechaLegible(finSemanaISO(fechaReunion))}{' '}
+                      (reunión del {fechaLegible(reporteSemana.fecha_reunion)}). Elegí una fecha de otra semana.
+                    </p>
+                  )}
                 </div>
 
                 {megaFiesta && (
@@ -361,7 +370,7 @@ export function Reportes() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={isSubmitting} className="self-start">
+              <Button type="submit" disabled={isSubmitting || !!reporteSemana} className="self-start">
                 {isSubmitting ? 'Enviando...' : 'Enviar reporte'}
               </Button>
             </form>

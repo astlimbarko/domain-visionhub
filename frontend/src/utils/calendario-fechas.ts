@@ -40,3 +40,28 @@ export function esHoy(fecha: Date) {
     fecha.getDate() === hoy.getDate()
   );
 }
+
+function desdeISO(fechaISO: string): Date {
+  const [y, m, d] = fechaISO.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Lunes de la semana ISO que contiene la fecha dada. */
+export function inicioSemanaISO(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  const diasDesdeLunes = (fecha.getDay() + 6) % 7;
+  fecha.setDate(fecha.getDate() - diasDesdeLunes);
+  return aISO(fecha);
+}
+
+/** Domingo de la semana ISO que contiene la fecha dada. */
+export function finSemanaISO(fechaISO: string): string {
+  const inicio = desdeISO(inicioSemanaISO(fechaISO));
+  inicio.setDate(inicio.getDate() + 6);
+  return aISO(inicio);
+}
+
+export function fechaLegible(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
+}
