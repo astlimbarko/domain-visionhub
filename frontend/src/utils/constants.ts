@@ -5,6 +5,7 @@ export const ROUTES = {
   DASHBOARD: '/',
   PERSONAS: '/personas',
   CASAS_DE_PAZ: '/casas-de-paz',
+  MINISTERIOS: '/ministerios',
   REPORTES: '/reportes',
   CALENDARIO: '/calendario',
   EVANGELISMO: '/evangelismo',
