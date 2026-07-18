@@ -167,10 +167,10 @@ CREATE TRIGGER trg_validar_asistencia
 CREATE VIEW v_reporte_totales AS
 SELECT
   r.id AS reporte_id, r.casa_de_paz_id, r.fecha_reunion,
-  count(*) FILTER (WHERE fn_asistencia_es_menor(a.id))     AS total_menores,
-  count(*) FILTER (WHERE NOT fn_asistencia_es_menor(a.id)) AS total_mayores,
-  count(*)                                                 AS total_asistentes,
-  count(*) FILTER (WHERE a.es_visita)                      AS total_visitas
+  count(a.id) FILTER (WHERE fn_asistencia_es_menor(a.id))     AS total_menores,
+  count(a.id) FILTER (WHERE NOT fn_asistencia_es_menor(a.id)) AS total_mayores,
+  count(a.id)                                                 AS total_asistentes,
+  count(a.id) FILTER (WHERE a.es_visita)                      AS total_visitas
 FROM casa_de_paz_reporte r
 LEFT JOIN casa_de_paz_asistencia a ON a.reporte_id = r.id AND a.fecha_eliminacion IS NULL
 WHERE r.fecha_eliminacion IS NULL

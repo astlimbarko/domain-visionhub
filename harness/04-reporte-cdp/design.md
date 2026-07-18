@@ -284,16 +284,18 @@ SELECT
   r.id AS reporte_id,
   r.casa_de_paz_id,
   r.fecha_reunion,
-  count(*) FILTER (WHERE fn_asistencia_es_menor(a.id))       AS total_menores,
-  count(*) FILTER (WHERE NOT fn_asistencia_es_menor(a.id))   AS total_mayores,
-  count(*)                                                    AS total_asistentes,
-  count(*) FILTER (WHERE a.es_visita)                         AS total_visitas
+  count(a.id) FILTER (WHERE fn_asistencia_es_menor(a.id))     AS total_menores,
+  count(a.id) FILTER (WHERE NOT fn_asistencia_es_menor(a.id)) AS total_mayores,
+  count(a.id)                                                  AS total_asistentes,
+  count(a.id) FILTER (WHERE a.es_visita)                       AS total_visitas
 FROM casa_de_paz_reporte r
 LEFT JOIN casa_de_paz_asistencia a
   ON a.reporte_id = r.id AND a.fecha_eliminacion IS NULL
 WHERE r.fecha_eliminacion IS NULL
 GROUP BY r.id, r.casa_de_paz_id, r.fecha_reunion;
 ```
+
+**Bug encontrado y corregido (frontend Reportes):** `total_asistentes` usaba `count(*)` sobre el `LEFT JOIN`. Con cero filas de asistencia, el `LEFT JOIN` igual produce una fila (con `a.*` en NULL), así que `count(*)` daba `1` en vez de `0` — un reporte sin asistentes mostraba "1 asistente" en vez de "0". `count(a.id)` cuenta solo filas reales de `casa_de_paz_asistencia`, dando `0` correctamente. Corregido en `11-esquema-bd/sql/10_reporte.sql` y aplicado a Supabase.
 
 `LEFT JOIN` para que un reporte sin asistentes aparezca con ceros en lugar de desaparecer. Un reporte con cero asistentes es un dato importante, no una fila a ocultar.
 

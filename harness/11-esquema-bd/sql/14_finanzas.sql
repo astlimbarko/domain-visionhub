@@ -218,6 +218,14 @@ BEGIN
       USING ERRCODE = 'P0001';
   END IF;
 
+  -- Aclaracion del owner (2026-07-18): el total de ofrendas siempre se declara,
+  -- aunque sea 0 -- "no hubo ofrenda esta semana" es un dato, no un vacio. Los
+  -- demas tipos de ingreso (diezmos incluido) quedan opcionales.
+  IF p_total_ofrendas IS NULL THEN
+    RAISE EXCEPTION 'REPORTE_OFRENDAS_OBLIGATORIO: el total de ofrendas es obligatorio en el reporte, aunque sea 0'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   SELECT COALESCE(p_moneda_id, moneda_defecto_id) INTO v_moneda_id FROM iglesia WHERE id = v_reporte.iglesia_id;
 
   PERFORM fn_upsert_ingreso_reporte(p_reporte_id, 'OFRENDA', p_total_ofrendas, v_moneda_id);

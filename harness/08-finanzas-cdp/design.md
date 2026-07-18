@@ -240,6 +240,13 @@ BEGIN
       USING ERRCODE = 'P0001';
   END IF;
 
+  -- Requisito 6.7 (agregado 2026-07-18): "Total ofrendas" siempre se declara,
+  -- aunque sea 0. A diferencia de p_total_diezmos, que sigue nulable.
+  IF p_total_ofrendas IS NULL THEN
+    RAISE EXCEPTION 'REPORTE_OFRENDAS_OBLIGATORIO: el total de ofrendas es obligatorio en el reporte, aunque sea 0'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   SELECT COALESCE(p_moneda_id, moneda_defecto_id) INTO v_moneda_id
   FROM iglesia WHERE id = v_reporte.iglesia_id;
 

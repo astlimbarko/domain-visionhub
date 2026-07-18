@@ -92,6 +92,8 @@ Registro de ofrendas y diezmos de las reuniones de Casa de Paz. **No es contabil
 1. THE Sistema SHALL permitir registrar los Ingresos de una reunión desde el formulario del Reporte.
 2. THE Sistema SHALL crear un Ingreso de tipo ofrenda con el total declarado en el campo "Total ofrendas".
 3. THE Sistema SHALL crear un Ingreso de tipo diezmo con el total declarado en el campo "Total diezmos".
-4. WHERE el total declarado es cero o nulo, THE Sistema SHALL NOT crear el Ingreso.
+4. WHERE el total declarado es cero, THE Sistema SHALL NOT crear el Ingreso, pero SHALL aceptar el cero como valor válido y explícito.
 5. WHEN se edita el total de un Reporte, THE Sistema SHALL actualizar el Ingreso correspondiente en lugar de crear otro.
 6. WHERE un Reporte se elimina lógicamente, THE Sistema SHALL eliminar lógicamente sus Ingresos.
+7. THE Sistema SHALL exigir que el campo "Total ofrendas" del Reporte tenga siempre un valor explícito, incluido cero: "no hubo ofrenda esta semana" es un dato que el líder declara, no un campo que se deja vacío (aclaración del owner, 2026-07-18). THE Sistema SHALL NOT permitir enviar el Reporte con "Total ofrendas" vacío.
+8. A diferencia de "Total ofrendas", THE Sistema SHALL permitir que "Total diezmos" y los demás Tipo_Ingreso del Reporte queden vacíos.

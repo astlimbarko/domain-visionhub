@@ -42,6 +42,7 @@
 
 - [ ] 5.1 Crear `fn_upsert_ingreso_reporte(...)`. — *Req 6.2, 6.3, 6.4, 6.5*
 - [ ] 5.2 Crear `fn_registrar_ingresos_reporte(...)` con verificación de permiso. — *Req 6.1*
+- [x] 5.2b **Agregado 2026-07-18**: `fn_registrar_ingresos_reporte` rechaza `p_total_ofrendas IS NULL` con `REPORTE_OFRENDAS_OBLIGATORIO`. `p_total_diezmos` sigue nulable. — *Req 6.7, 6.8*
 - [ ] 5.3 Verificar que un total de `0` o nulo **no** crea ingreso. — *Req 6.4*
 - [ ] 5.4 **Verificar el upsert:** registrar 500, corregir a 550, confirmar que hay **una** fila con 550 y no dos que suman 1.050. — *Req 6.5*
 - [ ] 5.5 Verificar que poner el total en `0` después de haberlo cargado elimina lógicamente el ingreso. — *Req 6.4*
