@@ -19,4 +19,7 @@
 !/iu/**
 !/frontend
 !/frontend/**
+!/supabase
+!/supabase/**
+/supabase/.temp
 !/docker-compose.yml
