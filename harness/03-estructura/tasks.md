@@ -74,6 +74,7 @@
 - [ ] 7.1 Habilitar RLS y aplicar las 4 políticas estándar a todas las tablas del área. — *01-tenancy Req 4.1*
 - [ ] 7.2 `cargo` es catálogo global: lectura para `authenticated`, escritura solo `SUPER_ADMIN`. — *Req 4.1*
 - [ ] 7.3 Ejecutar la auditoría de RLS. Cero filas. — *01-tenancy Req 4.7*
+- [x] 7.4 **Hecho 2026-07-18** (`27_permisos_estructura.sql`): `red`, `casa_de_paz` (INSERT), `casa_de_paz_red`, `red_cargo`, `casa_de_paz_cargo`, `casa_de_paz_membresia`, `ministerio` y `ministerio_persona` habían quedado con la política genérica de escritura de `16_rls.sql` ("iglesia_id IN fn_mis_iglesias()"), que permite a cualquier usuario con acceso a la iglesia crear una red, auto-asignarse Líder de Red o de cualquier CdP, mover una CdP a otra red, o tocar la membresía de otra persona. Encontrado al construir el frontend de Casas de Paz. Acotado a `fn_es_operativo_en` más, según la tabla, el Líder de la propia Red o CdP. Verificado con una cuenta Supervisor real: crear red, asignar líder/sublíderes/encargados, crear CdP, asignar líder/anfitrión, y que desactivar una red con CdP vigentes falla con `RED_CON_CDP_ACTIVAS`.
 
 ## 8. Verificación
 
