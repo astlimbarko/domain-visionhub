@@ -30,7 +30,7 @@
 - [ ] 3.2 Crear `pol_meta_asignada_select` (amplia: el líder ve su meta). — *Req 4.10*
 - [ ] 3.3 Crear `pol_meta_asignada_insert` (solo roles superiores). — *Req 4.5, 4.6*
 - [ ] 3.4 Crear la política de `UPDATE` para el asignador y los roles superiores. — *Req 4.11*
-- [ ] 3.5 Crear la política de `casa_de_paz.meta_evangelismo`: la fija el líder de esa CdP o un rol superior. — *Req 3.3, 3.5*
+- [x] 3.5 Crear la política de `casa_de_paz.meta_evangelismo`: la fija el líder de esa CdP o un rol superior. **Hecho 2026-07-18** (`24_permisos_meta_propia.sql`): `casa_de_paz` tenía la política `UPDATE` genérica de `16_rls.sql` (cualquiera con acceso a la iglesia podía escribir), encontrado al construir el frontend. — *Req 3.3, 3.5*
 - [ ] 3.6 Verificar que el sublíder lee la meta propia y no la edita. — *Req 3.6*
 - [ ] 3.7 Verificar que un líder de CdP no puede asignarse una meta asignada a sí mismo. — *Req 4.6*
 - [ ] 3.8 Verificar que un líder de CdP que además es líder de esa red **sí** puede. Es un rol superior real. — *Req 4.5*
