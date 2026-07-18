@@ -90,7 +90,8 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       const resultado = await mutacion.mutateAsync(datos);
       onExito({ nombreCompleto: resultado.nombre_completo, casaDePazNombre: resultado.casa_de_paz_nombre });
     } catch (e) {
-      const mensaje = e instanceof Error ? e.message : '';
+      const error = e as { message?: string } | null;
+      const mensaje = typeof error?.message === 'string' ? error.message : '';
       if (mensaje.includes('uq_persona_ci') || mensaje.includes('duplicate key')) {
         toast.error(t('registroPublico.errores.ciDuplicado'));
       } else {

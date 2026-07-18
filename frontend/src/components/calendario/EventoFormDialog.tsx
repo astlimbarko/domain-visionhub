@@ -69,8 +69,9 @@ export function EventoFormDialog({ open, onOpenChange, tipos, fechaInicial, onCr
       reset({ fecha_inicio: fechaInicial });
       onOpenChange(false);
     } catch (e) {
-      const mensaje = e instanceof Error ? e.message : '';
-      if (mensaje.includes('row-level security') || mensaje.includes('permission denied')) {
+      const error = e as { code?: string; message?: string } | null;
+      const mensaje = typeof error?.message === 'string' ? error.message : '';
+      if (error?.code === '42501' || mensaje.includes('row-level security') || mensaje.includes('permission denied')) {
         toast.error('No tenés permiso para crear este tipo de evento aquí');
       } else {
         toast.error('No se pudo crear el evento');

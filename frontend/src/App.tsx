@@ -7,6 +7,7 @@ import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
 import { Personas } from '@/pages/Personas';
 import { CasasDePaz } from '@/pages/CasasDePaz';
+import { Reportes } from '@/pages/Reportes';
 import { Calendario } from '@/pages/Calendario';
 import { Evangelismo } from '@/pages/Evangelismo';
 import { Finanzas } from '@/pages/Finanzas';
@@ -35,6 +36,7 @@ function App() {
             <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
             <Route path={ROUTES.PERSONAS} element={<Personas />} />
             <Route path={ROUTES.CASAS_DE_PAZ} element={<CasasDePaz />} />
+            <Route path={ROUTES.REPORTES} element={<Reportes />} />
             <Route path={ROUTES.CALENDARIO} element={<Calendario />} />
             <Route path={ROUTES.EVANGELISMO} element={<Evangelismo />} />
             <Route path={ROUTES.FINANZAS} element={<Finanzas />} />
