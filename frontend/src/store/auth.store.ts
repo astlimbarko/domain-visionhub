@@ -6,12 +6,14 @@ interface AuthState {
   isAuthenticated: boolean;
   personaId: string | null;
   nombreCompleto: string | null;
+  correo: string | null;
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
   setSesion: (data: {
     personaId: string | null;
     nombreCompleto: string | null;
+    correo: string | null;
     iglesias: IglesiaAccesible[];
     esSuperAdmin: boolean;
   }) => void;
@@ -26,16 +28,18 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       personaId: null,
       nombreCompleto: null,
+      correo: null,
       iglesias: [],
       iglesiaActivaId: null,
       esSuperAdmin: false,
 
-      setSesion: ({ personaId, nombreCompleto, iglesias, esSuperAdmin }) => {
+      setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin }) => {
         const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
         set({
           isAuthenticated: true,
           personaId,
           nombreCompleto,
+          correo,
           iglesias,
           esSuperAdmin,
           iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : (iglesias[0]?.id ?? null),
@@ -54,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           personaId: null,
           nombreCompleto: null,
+          correo: null,
           iglesias: [],
           iglesiaActivaId: null,
           esSuperAdmin: false,
@@ -64,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         personaId: state.personaId,
         nombreCompleto: state.nombreCompleto,
+        correo: state.correo,
         iglesias: state.iglesias,
         iglesiaActivaId: state.iglesiaActivaId,
         isAuthenticated: state.isAuthenticated,

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   iniciarSesion,
+  obtenerCorreoActual,
   obtenerIglesiasAccesibles,
   obtenerPersonaActual,
   soySuperAdmin,
@@ -41,14 +42,16 @@ export function Login() {
     setEnviando(true);
     try {
       await iniciarSesion(datos.correo, datos.contrasena);
-      const [persona, iglesias, esSuperAdmin] = await Promise.all([
+      const [persona, iglesias, esSuperAdmin, correo] = await Promise.all([
         obtenerPersonaActual(),
         obtenerIglesiasAccesibles(),
         soySuperAdmin(),
+        obtenerCorreoActual(),
       ]);
       setSesion({
         personaId: persona?.id ?? null,
         nombreCompleto: persona?.nombre_completo ?? null,
+        correo,
         iglesias,
         esSuperAdmin,
       });

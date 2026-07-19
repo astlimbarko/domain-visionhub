@@ -34,6 +34,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
+import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { ROUTES } from '@/utils/constants';
 
 const NAV_ITEMS = [
@@ -94,6 +95,7 @@ function LogoBrand() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
+  const correo = useAuthStore((s) => s.correo);
   const iglesias = useAuthStore((s) => s.iglesias);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
@@ -103,6 +105,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
+  const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
+  const textoUsuario = nombreCompleto
+    ? titulo
+      ? `${nombreCompleto} — ${titulo}`
+      : nombreCompleto
+    : (correo ?? '');
 
   async function handleLogout() {
     await cerrarSesion();
@@ -182,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1.5 truncate text-sm text-muted-foreground hover:text-foreground">
-                <span className="truncate">{nombreCompleto}</span>
+                <span className="truncate">{textoUsuario}</span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0" />
               </button>
             </DropdownMenuTrigger>

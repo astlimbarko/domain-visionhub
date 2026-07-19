@@ -53,6 +53,12 @@ export async function soySuperAdmin(): Promise<boolean> {
   return data === true;
 }
 
+export async function obtenerMiTitulo(iglesiaId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('fn_mi_titulo', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data;
+}
+
 export async function obtenerPersonaActual(): Promise<{ id: string; nombre_completo: string } | null> {
   const { data, error } = await supabase
     .from('v_persona')

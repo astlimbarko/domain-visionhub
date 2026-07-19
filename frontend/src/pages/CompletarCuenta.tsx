@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/services/supabase';
 import {
   establecerContrasena,
+  obtenerCorreoActual,
   obtenerIglesiasAccesibles,
   obtenerPersonaActual,
   soySuperAdmin,
@@ -66,14 +67,16 @@ export function CompletarCuenta() {
     setEnviando(true);
     try {
       await establecerContrasena(datos.contrasena);
-      const [persona, iglesias, esSuperAdmin] = await Promise.all([
+      const [persona, iglesias, esSuperAdmin, correo] = await Promise.all([
         obtenerPersonaActual(),
         obtenerIglesiasAccesibles(),
         soySuperAdmin(),
+        obtenerCorreoActual(),
       ]);
       setSesion({
         personaId: persona?.id ?? null,
         nombreCompleto: persona?.nombre_completo ?? null,
+        correo,
         iglesias,
         esSuperAdmin,
       });
