@@ -5,6 +5,12 @@ export interface MisRolesDashboard {
   cdp_sublider: { id: string; etiqueta: string }[] | null;
 }
 
+export type Vista =
+  | { tipo: 'pastor' }
+  | { tipo: 'supervisor'; iglesiaId: string }
+  | { tipo: 'red'; redId: string }
+  | { tipo: 'cdp'; cdpId: string; esSublider: boolean };
+
 export interface KpiComparativo {
   valor: number | null;
   anterior: number | null;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,18 +16,18 @@ import { DashboardPastor } from '@/components/dashboard/DashboardPastor';
 import { DashboardSupervisor } from '@/components/dashboard/DashboardSupervisor';
 import { DashboardLiderRed } from '@/components/dashboard/DashboardLiderRed';
 import { DashboardLiderCdp } from '@/components/dashboard/DashboardLiderCdp';
-
-type Vista =
-  | { tipo: 'pastor' }
-  | { tipo: 'supervisor'; iglesiaId: string }
-  | { tipo: 'red'; redId: string }
-  | { tipo: 'cdp'; cdpId: string; esSublider: boolean };
+import type { Vista } from '@/types/dashboard.types';
 
 export function Dashboard() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesias = useAuthStore((s) => s.iglesias);
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId);
   const [pila, setPila] = useState<Vista[]>([]);
+  const location = useLocation();
+  // El nav agrupado (AppShell, cuando una cuenta tiene varios roles) navega
+  // a "/" con esta vista en el state, para saltar directo a ese panel en vez
+  // del que elige la prioridad por defecto.
+  const vistaForzada = (location.state as { vista?: Vista } | null)?.vista;
 
   function vistaPorDefecto(): Vista | null {
     if (!roles) return null;
@@ -39,10 +40,14 @@ export function Dashboard() {
   }
 
   useEffect(() => {
+    if (vistaForzada) {
+      setPila([vistaForzada]);
+      return;
+    }
     const defecto = vistaPorDefecto();
     setPila(defecto ? [defecto] : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roles, iglesias.length, iglesiaActivaId]);
+  }, [roles, iglesias.length, iglesiaActivaId, location.key]);
 
   function avanzar(nueva: Vista) {
     setPila((prev) => [...prev, nueva]);
