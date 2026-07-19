@@ -110,7 +110,7 @@ export function CasasDePaz() {
     } else if (mensaje.includes('PIN_INCORRECTO')) {
       toast.error('El PIN es incorrecto');
     } else if (mensaje.includes('FUSION_VENTANA_VENCIDA')) {
-      toast.error('Ya pasaron los 7 días: esta fusión no se puede deshacer');
+      toast.error('Ya se subió un reporte después de la fusión: no se puede deshacer');
     } else if (mensaje.includes('FUSION_YA_DESHECHA')) {
       toast.error('Esta fusión ya fue deshecha');
     } else if (mensaje.includes('FUSION_SIN_PERMISO')) {
