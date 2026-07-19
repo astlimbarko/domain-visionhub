@@ -54,3 +54,13 @@ export async function cambiarMonedaDefecto(iglesiaId: string, monedaId: string, 
   });
   if (error) throw error;
 }
+
+export async function renombrarIglesia(iglesiaId: string, prefijo: string, sufijo: string, pin?: string) {
+  const { error } = await supabase.rpc('fn_renombrar_iglesia', {
+    p_iglesia_id: iglesiaId,
+    p_prefijo: prefijo,
+    p_sufijo: sufijo,
+    p_pin: pin ?? null,
+  });
+  if (error) throw error;
+}

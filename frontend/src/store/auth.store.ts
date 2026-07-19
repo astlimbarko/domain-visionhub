@@ -16,6 +16,7 @@ interface AuthState {
     esSuperAdmin: boolean;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
+  renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   logout: () => void;
 }
 
@@ -42,6 +43,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId }),
+
+      renombrarIglesiaLocal: (iglesiaId, nombre) =>
+        set({
+          iglesias: get().iglesias.map((i) => (i.id === iglesiaId ? { ...i, nombre } : i)),
+        }),
 
       logout: () =>
         set({

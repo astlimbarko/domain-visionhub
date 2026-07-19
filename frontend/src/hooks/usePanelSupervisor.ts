@@ -3,9 +3,11 @@ import {
   cambiarMonedaDefecto,
   obtenerMonedasActivas,
   obtenerPanelConfiguracion,
+  renombrarIglesia,
   setConfiguracion,
   toggleDepartamento,
 } from '@/services/panel-supervisor.service';
+import { useAuthStore } from '@/store/auth.store';
 
 const KEY = (iglesiaId: string | undefined) => ['panel-supervisor', iglesiaId] as const;
 const KEY_MONEDAS = (iglesiaId: string | undefined) => ['panel-supervisor-monedas', iglesiaId] as const;
@@ -50,5 +52,18 @@ export function useCambiarMonedaDefecto(iglesiaId: string | undefined) {
     mutationFn: ({ monedaId, pin }: { monedaId: string; pin?: string }) =>
       cambiarMonedaDefecto(iglesiaId as string, monedaId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) }),
+  });
+}
+
+export function useRenombrarIglesia(iglesiaId: string | undefined) {
+  const queryClient = useQueryClient();
+  const renombrarIglesiaLocal = useAuthStore((s) => s.renombrarIglesiaLocal);
+  return useMutation({
+    mutationFn: ({ prefijo, sufijo, pin }: { prefijo: string; sufijo: string; pin?: string }) =>
+      renombrarIglesia(iglesiaId as string, prefijo, sufijo, pin),
+    onSuccess: (_data, { prefijo, sufijo }) => {
+      if (iglesiaId) renombrarIglesiaLocal(iglesiaId, `${prefijo} ${sufijo}`);
+      queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) });
+    },
   });
 }

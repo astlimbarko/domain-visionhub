@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -16,6 +18,7 @@ import {
   useCambiarMonedaDefecto,
   useMonedasActivas,
   usePanelConfiguracion,
+  useRenombrarIglesia,
   useSetConfiguracion,
   useToggleDepartamento,
 } from '@/hooks/usePanelSupervisor';
@@ -44,6 +47,10 @@ export function PanelSupervisor() {
   const setConfig = useSetConfiguracion(iglesiaActivaId);
   const toggleDepto = useToggleDepartamento(iglesiaActivaId);
   const cambiarMoneda = useCambiarMonedaDefecto(iglesiaActivaId);
+  const renombrar = useRenombrarIglesia(iglesiaActivaId);
+
+  const [prefijoIglesia, setPrefijoIglesia] = useState('');
+  const [sufijoIglesia, setSufijoIglesia] = useState('');
 
   // Como Super Admin, cada cambio pide el PIN antes de aplicarse -- se
   // pausa la funcion async hasta que el dialogo se confirme o se cancele.
@@ -74,6 +81,27 @@ export function PanelSupervisor() {
     }
   }
 
+  useEffect(() => {
+    if (panel) {
+      setPrefijoIglesia(panel.iglesia.prefijo);
+      setSufijoIglesia(panel.iglesia.sufijo);
+    }
+  }, [panel]);
+
+  const nombreSinCambios =
+    prefijoIglesia.trim() === panel?.iglesia.prefijo && sufijoIglesia.trim() === panel?.iglesia.sufijo;
+
+  async function handleRenombrar() {
+    if (!prefijoIglesia.trim() || !sufijoIglesia.trim() || nombreSinCambios) return;
+    try {
+      const pin = await pedirPin();
+      await renombrar.mutateAsync({ prefijo: prefijoIglesia.trim(), sufijo: sufijoIglesia.trim(), pin });
+      toast.success('Nombre de la iglesia actualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo renombrar la iglesia');
+    }
+  }
+
   async function handleCambiarMoneda(monedaId: string) {
     try {
       const pin = await pedirPin();
@@ -98,6 +126,31 @@ export function PanelSupervisor() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">{panel.advertencia}</p>
+
+      <Card className="rounded-2xl">
+        <CardHeader>
+          <CardTitle className="text-base">Nombre de la iglesia</CardTitle>
+          <CardDescription>Se muestra como "{prefijoIglesia || '…'} {sufijoIglesia || '…'}".</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Prefijo</Label>
+            <Input value={prefijoIglesia} onChange={(e) => setPrefijoIglesia(e.target.value)} />
+          </div>
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Sufijo</Label>
+            <Input value={sufijoIglesia} onChange={(e) => setSufijoIglesia(e.target.value)} />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={renombrar.isPending || !prefijoIglesia.trim() || !sufijoIglesia.trim() || nombreSinCambios}
+            onClick={handleRenombrar}
+          >
+            {renombrar.isPending ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="rounded-2xl">
         <CardHeader>

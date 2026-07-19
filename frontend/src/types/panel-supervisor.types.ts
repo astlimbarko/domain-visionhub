@@ -21,7 +21,7 @@ export interface DepartamentoItem {
 }
 
 export interface PanelConfiguracion {
-  iglesia: { id: string; nombre: string; moneda_defecto: string };
+  iglesia: { id: string; nombre: string; prefijo: string; sufijo: string; moneda_defecto: string };
   categorias: Record<string, ConfiguracionItem[]>;
   departamentos: DepartamentoItem[];
   advertencia: string;
