@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { GitMerge, Home, Plus, Undo2, Users } from 'lucide-react';
+import { GitBranch, GitMerge, Home, Plus, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -30,11 +30,19 @@ import {
   useFusionesCdp,
   useFusionesRed,
 } from '@/hooks/useFusion';
+import {
+  useMultiplicarCdp,
+  useMultiplicarRed,
+  useMultiplicacionesCdp,
+  useMultiplicacionesRed,
+} from '@/hooks/useMultiplicacion';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearRedDialog } from '@/components/casas-de-paz/CrearRedDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { FusionarRedDialog } from '@/components/casas-de-paz/FusionarRedDialog';
+import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
+import { MultiplicarRedDialog } from '@/components/casas-de-paz/MultiplicarRedDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -62,6 +70,8 @@ export function CasasDePaz() {
   const [mostrarCrearCdp, setMostrarCrearCdp] = useState(false);
   const [mostrarFusionarCdp, setMostrarFusionarCdp] = useState(false);
   const [mostrarFusionarRed, setMostrarFusionarRed] = useState(false);
+  const [mostrarMultiplicarCdp, setMostrarMultiplicarCdp] = useState(false);
+  const [mostrarMultiplicarRed, setMostrarMultiplicarRed] = useState(false);
   const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
   const [deshacerRedId, setDeshacerRedId] = useState<string>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
@@ -73,6 +83,8 @@ export function CasasDePaz() {
   const redSeleccionada = redes.find((r) => r.id === redSeleccionadaId);
   const { data: fusionesCdp = [] } = useFusionesCdp(iglesiaActivaId);
   const { data: fusionesRed = [] } = useFusionesRed(iglesiaActivaId);
+  const { data: multiplicacionesCdp = [] } = useMultiplicacionesCdp(iglesiaActivaId);
+  const { data: multiplicacionesRed = [] } = useMultiplicacionesRed(iglesiaActivaId);
 
   const crearRed = useCrearRed(iglesiaActivaId);
   const toggleActivoRed = useToggleActivoRed();
@@ -86,6 +98,8 @@ export function CasasDePaz() {
   const deshacerFusionCdp = useDeshacerFusionCdp();
   const fusionarRed = useFusionarRed();
   const deshacerFusionRed = useDeshacerFusionRed();
+  const multiplicarCdp = useMultiplicarCdp();
+  const multiplicarRed = useMultiplicarRed();
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(
     dialogoRed?.redId,
@@ -115,6 +129,14 @@ export function CasasDePaz() {
       toast.error('Esta fusión ya fue deshecha');
     } else if (mensaje.includes('FUSION_SIN_PERMISO')) {
       toast.error('No tenés permiso para hacer esta fusión');
+    } else if (mensaje.includes('MULTIPLICACION_SIN_PERMISO')) {
+      toast.error('No tenés permiso para hacer esta multiplicación');
+    } else if (mensaje.includes('MULTIPLICACION_SIN_MIEMBROS') || mensaje.includes('MULTIPLICACION_MIEMBROS_INVALIDOS')) {
+      toast.error('Elegí al menos una persona que se vaya a la nueva Casa de Paz');
+    } else if (mensaje.includes('MULTIPLICACION_SIN_CDP') || mensaje.includes('MULTIPLICACION_CDP_INVALIDAS')) {
+      toast.error('Elegí al menos una Casa de Paz que se vaya a la nueva Red');
+    } else if (mensaje.includes('MULTIPLICACION_NOMBRE_OBLIGATORIO')) {
+      toast.error('La nueva Red necesita un nombre');
     } else {
       toast.error(generico);
     }
@@ -138,6 +160,40 @@ export function CasasDePaz() {
       toast.success('Fusión realizada');
       setMostrarFusionarRed(false);
     })().catch((e) => manejarError(e, 'No se pudo fusionar'));
+  }
+
+  function manejarMultiplicarCdp(params: {
+    origenId: string;
+    nombreNueva?: string;
+    personaIds: string[];
+    liderNuevoId?: string;
+    motivo: string;
+    pin?: string;
+  }) {
+    multiplicarCdp.mutate(params, {
+      onSuccess: () => {
+        toast.success('Casa de Paz multiplicada');
+        setMostrarMultiplicarCdp(false);
+      },
+      onError: (e) => manejarError(e, 'No se pudo multiplicar'),
+    });
+  }
+
+  function manejarMultiplicarRed(params: {
+    origenId: string;
+    nombreNueva: string;
+    cdpIds: string[];
+    liderNuevoId?: string;
+    motivo: string;
+    pin?: string;
+  }) {
+    multiplicarRed.mutate(params, {
+      onSuccess: () => {
+        toast.success('Red multiplicada');
+        setMostrarMultiplicarRed(false);
+      },
+      onError: (e) => manejarError(e, 'No se pudo multiplicar'),
+    });
   }
 
   async function manejarAsignarRed(persona: PersonaBusqueda) {
@@ -418,6 +474,69 @@ export function CasasDePaz() {
         </CardContent>
       </Card>
 
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Multiplicación</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!redSeleccionadaId}
+              onClick={() => setMostrarMultiplicarCdp(true)}
+            >
+              <GitBranch className="h-4 w-4" />
+              Multiplicar Casa de Paz
+            </Button>
+            {esOperativo && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarMultiplicarRed(true)}>
+                <GitBranch className="h-4 w-4" />
+                Multiplicar Red
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {!redSeleccionadaId && (
+            <p className="text-sm text-muted-foreground">
+              Elegí una red arriba para poder multiplicar sus Casas de Paz. Multiplicar Red no depende de elegir una.
+            </p>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-muted-foreground">Historial de Casas de Paz</p>
+            {multiplicacionesCdp.length === 0 && <p className="text-sm text-muted-foreground">Sin multiplicaciones todavía.</p>}
+            {multiplicacionesCdp.map((m) => (
+              <div key={m.id} className="rounded-lg border border-border px-3 py-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">{m.origen_etiqueta}</span> →{' '}
+                  <span className="font-medium">{m.nueva_etiqueta}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(m.fecha_multiplicacion).toLocaleDateString('es-BO')} · {m.cantidad_movidos} persona(s) · {m.motivo}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-muted-foreground">Historial de Redes</p>
+            {multiplicacionesRed.length === 0 && <p className="text-sm text-muted-foreground">Sin multiplicaciones todavía.</p>}
+            {multiplicacionesRed.map((m) => (
+              <div key={m.id} className="rounded-lg border border-border px-3 py-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">{m.origen_nombre}</span> →{' '}
+                  <span className="font-medium">{m.nueva_nombre}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(m.fecha_multiplicacion).toLocaleDateString('es-BO')} · {m.cantidad_movidas} Casa(s) de Paz · {m.motivo}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <CrearRedDialog
         open={mostrarCrearRed}
         onOpenChange={setMostrarCrearRed}
@@ -497,6 +616,23 @@ export function CasasDePaz() {
         redes={redes}
         procesando={fusionarRed.isPending}
         onFusionar={fusionarVariasRedes}
+      />
+
+      <MultiplicarCdpDialog
+        open={mostrarMultiplicarCdp}
+        onOpenChange={setMostrarMultiplicarCdp}
+        cdps={cdps}
+        procesando={multiplicarCdp.isPending}
+        onMultiplicar={manejarMultiplicarCdp}
+      />
+
+      <MultiplicarRedDialog
+        open={mostrarMultiplicarRed}
+        onOpenChange={setMostrarMultiplicarRed}
+        iglesiaId={iglesiaActivaId}
+        redes={redes}
+        procesando={multiplicarRed.isPending}
+        onMultiplicar={manejarMultiplicarRed}
       />
 
       <ConfirmarCambioDialog
