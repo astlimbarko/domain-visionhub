@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Search, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -22,6 +24,9 @@ interface Props {
   asignando: boolean;
   onAsignar: (persona: PersonaBusqueda) => void;
   onQuitar: (cargoAsignacionId: string) => void;
+  invitable?: boolean;
+  invitando?: boolean;
+  onInvitar?: (correo: string) => void;
 }
 
 export function AsignarCargoDialog({
@@ -35,7 +40,19 @@ export function AsignarCargoDialog({
   asignando,
   onAsignar,
   onQuitar,
+  invitable = false,
+  invitando = false,
+  onInvitar,
 }: Props) {
+  const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
+  const [correoInvitar, setCorreoInvitar] = useState('');
+
+  function enviarInvitacion() {
+    if (!onInvitar || !correoInvitar.trim()) return;
+    onInvitar(correoInvitar.trim().toLowerCase());
+    setCorreoInvitar('');
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -66,11 +83,59 @@ export function AsignarCargoDialog({
             <p className="text-sm text-muted-foreground">Sin nadie asignado todavía.</p>
           )}
 
-          <BuscadorPersona
-            iglesiaId={iglesiaId}
-            excluirIds={vigentes.map((v) => v.persona_id)}
-            onSeleccionar={onAsignar}
-          />
+          {invitable && (
+            <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
+              <button
+                type="button"
+                onClick={() => setModo('buscar')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 ${
+                  modo === 'buscar' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <Search className="h-3.5 w-3.5" />
+                Persona existente
+              </button>
+              <button
+                type="button"
+                onClick={() => setModo('invitar')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 ${
+                  modo === 'invitar' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Invitar por correo
+              </button>
+            </div>
+          )}
+
+          {modo === 'buscar' && (
+            <BuscadorPersona
+              iglesiaId={iglesiaId}
+              excluirIds={vigentes.map((v) => v.persona_id)}
+              onSeleccionar={onAsignar}
+            />
+          )}
+
+          {modo === 'invitar' && invitable && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm text-muted-foreground">
+                Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
+                primera vez va a tener que completar el formulario de membresía antes de ver su panel.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                  value={correoInvitar}
+                  onChange={(e) => setCorreoInvitar(e.target.value)}
+                />
+                <Button type="button" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim()}>
+                  {invitando ? 'Enviando...' : 'Invitar'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {asignando && <p className="text-sm text-muted-foreground">Asignando...</p>}
         </div>
       </DialogContent>

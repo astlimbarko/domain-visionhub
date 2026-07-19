@@ -16,6 +16,7 @@ import {
   obtenerPersonaActual,
   soySuperAdmin,
 } from '@/services/auth.service';
+import { obtenerMiInvitacionPendiente } from '@/services/invitacion-lider.service';
 import { useAuthStore } from '@/store/auth.store';
 import { ROUTES } from '@/utils/constants';
 
@@ -42,11 +43,12 @@ export function Login() {
     setEnviando(true);
     try {
       await iniciarSesion(datos.correo, datos.contrasena);
-      const [persona, iglesias, esSuperAdmin, correo] = await Promise.all([
+      const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente] = await Promise.all([
         obtenerPersonaActual(),
         obtenerIglesiasAccesibles(),
         soySuperAdmin(),
         obtenerCorreoActual(),
+        obtenerMiInvitacionPendiente(),
       ]);
       setSesion({
         personaId: persona?.id ?? null,
@@ -54,6 +56,7 @@ export function Login() {
         correo,
         iglesias,
         esSuperAdmin,
+        membresiaPendiente,
       });
       navigate(ROUTES.DASHBOARD, { replace: true });
     } catch {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
+import type { InvitacionPendiente } from '../types/invitacion-lider.types';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -10,15 +11,18 @@ interface AuthState {
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
+  membresiaPendiente: InvitacionPendiente | null;
   setSesion: (data: {
     personaId: string | null;
     nombreCompleto: string | null;
     correo: string | null;
     iglesias: IglesiaAccesible[];
     esSuperAdmin: boolean;
+    membresiaPendiente?: InvitacionPendiente | null;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
+  completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
   logout: () => void;
 }
 
@@ -32,8 +36,9 @@ export const useAuthStore = create<AuthState>()(
       iglesias: [],
       iglesiaActivaId: null,
       esSuperAdmin: false,
+      membresiaPendiente: null,
 
-      setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin }) => {
+      setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null }) => {
         const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
         set({
           isAuthenticated: true,
@@ -42,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
           correo,
           iglesias,
           esSuperAdmin,
+          membresiaPendiente,
           iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : (iglesias[0]?.id ?? null),
         });
       },
@@ -53,6 +59,9 @@ export const useAuthStore = create<AuthState>()(
           iglesias: get().iglesias.map((i) => (i.id === iglesiaId ? { ...i, nombre } : i)),
         }),
 
+      completarMembresiaLocal: (personaId, nombreCompleto) =>
+        set({ personaId, nombreCompleto, membresiaPendiente: null }),
+
       logout: () =>
         set({
           isAuthenticated: false,
@@ -62,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
           iglesias: [],
           iglesiaActivaId: null,
           esSuperAdmin: false,
+          membresiaPendiente: null,
         }),
     }),
     {
@@ -74,6 +84,7 @@ export const useAuthStore = create<AuthState>()(
         iglesiaActivaId: state.iglesiaActivaId,
         isAuthenticated: state.isAuthenticated,
         esSuperAdmin: state.esSuperAdmin,
+        membresiaPendiente: state.membresiaPendiente,
       }),
     }
   )

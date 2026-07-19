@@ -17,6 +17,7 @@ import {
   obtenerPersonaActual,
   soySuperAdmin,
 } from '@/services/auth.service';
+import { obtenerMiInvitacionPendiente } from '@/services/invitacion-lider.service';
 import { useAuthStore } from '@/store/auth.store';
 import { ROUTES } from '@/utils/constants';
 
@@ -67,11 +68,12 @@ export function CompletarCuenta() {
     setEnviando(true);
     try {
       await establecerContrasena(datos.contrasena);
-      const [persona, iglesias, esSuperAdmin, correo] = await Promise.all([
+      const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente] = await Promise.all([
         obtenerPersonaActual(),
         obtenerIglesiasAccesibles(),
         soySuperAdmin(),
         obtenerCorreoActual(),
+        obtenerMiInvitacionPendiente(),
       ]);
       setSesion({
         personaId: persona?.id ?? null,
@@ -79,6 +81,7 @@ export function CompletarCuenta() {
         correo,
         iglesias,
         esSuperAdmin,
+        membresiaPendiente,
       });
       toast.success('Contraseña creada');
       navigate(ROUTES.DASHBOARD, { replace: true });

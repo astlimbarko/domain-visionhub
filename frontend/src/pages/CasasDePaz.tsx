@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { GitBranch, GitMerge, Home, Plus, Undo2, Users } from 'lucide-react';
+import { GitBranch, GitMerge, Home, KeyRound, Plus, RefreshCw, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { solicitarRecuperacionContrasena } from '@/services/auth.service';
+import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useAsignarCargoCdp,
@@ -36,6 +38,7 @@ import {
   useMultiplicacionesCdp,
   useMultiplicacionesRed,
 } from '@/hooks/useMultiplicacion';
+import { useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearRedDialog } from '@/components/casas-de-paz/CrearRedDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
@@ -45,6 +48,13 @@ import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDi
 import { MultiplicarRedDialog } from '@/components/casas-de-paz/MultiplicarRedDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { RolInvitable } from '@/types/invitacion-lider.types';
+
+const NOMBRE_ROL_INVITABLE: Record<RolInvitable, string> = {
+  LIDER_RED: 'Líder de Red',
+  LIDER_CDP: 'Líder de CdP',
+  SUBLIDER_CDP: 'Sublíder de CdP',
+};
 
 interface CargoDialogoRed {
   redId: string;
@@ -100,6 +110,9 @@ export function CasasDePaz() {
   const deshacerFusionRed = useDeshacerFusionRed();
   const multiplicarCdp = useMultiplicarCdp();
   const multiplicarRed = useMultiplicarRed();
+  const { data: invitacionesLider = [] } = useInvitacionesLider(iglesiaActivaId);
+  const invitarLider = useInvitarLider();
+  const reenviarInvitacionLider = useReenviarInvitacionLider();
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(
     dialogoRed?.redId,
@@ -137,9 +150,53 @@ export function CasasDePaz() {
       toast.error('Elegí al menos una Casa de Paz que se vaya a la nueva Red');
     } else if (mensaje.includes('MULTIPLICACION_NOMBRE_OBLIGATORIO')) {
       toast.error('La nueva Red necesita un nombre');
+    } else if (mensaje.includes('INVITACION_LIDER_SIN_PERMISO')) {
+      toast.error('No tenés permiso para invitar acá');
+    } else if (mensaje.includes('Ya existe una cuenta con ese correo')) {
+      toast.error(mensaje);
     } else {
       toast.error(generico);
     }
+  }
+
+  function manejarInvitarRed(correo: string) {
+    if (!dialogoRed) return;
+    invitarLider.mutate(
+      { correo, rol: 'LIDER_RED', redId: dialogoRed.redId, casaDePazId: null },
+      {
+        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
+        onError: (e) => manejarError(e, 'No se pudo invitar'),
+      }
+    );
+  }
+
+  function manejarInvitarCdp(correo: string) {
+    if (!dialogoCdp) return;
+    invitarLider.mutate(
+      {
+        correo,
+        rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP',
+        redId: null,
+        casaDePazId: dialogoCdp.cdpId,
+      },
+      {
+        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
+        onError: (e) => manejarError(e, 'No se pudo invitar'),
+      }
+    );
+  }
+
+  function manejarReenviarInvitacion(invitacionId: string) {
+    reenviarInvitacionLider.mutate(invitacionId, {
+      onSuccess: () => toast.success('Invitación reenviada'),
+      onError: (e) => manejarError(e, 'No se pudo reenviar la invitación'),
+    });
+  }
+
+  function manejarRestablecerContrasena(correo: string) {
+    solicitarRecuperacionContrasena(correo, `${window.location.origin}${ROUTES.COMPLETAR_CUENTA}`)
+      .then(() => toast.success(`Enlace de restablecimiento enviado a ${correo}`))
+      .catch(() => toast.error('No se pudo enviar el enlace'));
   }
 
   function fusionarVariosCdp(origenIds: string[], destinoId: string, motivo: string, pin?: string) {
@@ -537,6 +594,58 @@ export function CasasDePaz() {
         </CardContent>
       </Card>
 
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Invitaciones a líderes</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {invitacionesLider.length === 0 && (
+            <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>
+          )}
+          {invitacionesLider.map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
+              <div>
+                <p className="font-medium">{inv.correo}</p>
+                <p className="text-xs text-muted-foreground">
+                  {NOMBRE_ROL_INVITABLE[inv.rol]} · {inv.red_nombre ?? inv.casa_de_paz_etiqueta}
+                  {' · '}
+                  {new Date(inv.fecha_creacion).toLocaleDateString('es-BO')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {inv.estado === 'PENDIENTE' ? (
+                  <>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">
+                      Pendiente
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={reenviarInvitacionLider.isPending}
+                      onClick={() => manejarReenviarInvitacion(inv.id)}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Reenviar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">
+                      Completada
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => manejarRestablecerContrasena(inv.correo)}>
+                      <KeyRound className="h-3.5 w-3.5" />
+                      Restablecer contraseña
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       <CrearRedDialog
         open={mostrarCrearRed}
         onOpenChange={setMostrarCrearRed}
@@ -585,6 +694,9 @@ export function CasasDePaz() {
           asignando={asignarCargoRed.isPending}
           onAsignar={manejarAsignarRed}
           onQuitar={(id) => quitarCargoRed.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
+          invitable={dialogoRed.codigo === 'LIDER_RED'}
+          invitando={invitarLider.isPending}
+          onInvitar={manejarInvitarRed}
         />
       )}
 
@@ -600,6 +712,9 @@ export function CasasDePaz() {
           asignando={asignarCargoCdp.isPending}
           onAsignar={manejarAsignarCdp}
           onQuitar={(id) => quitarCargoCdp.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
+          invitable={dialogoCdp.codigo === 'LIDER_CDP' || dialogoCdp.codigo === 'SUBLIDER_CDP'}
+          invitando={invitarLider.isPending}
+          onInvitar={manejarInvitarCdp}
         />
       )}
 
