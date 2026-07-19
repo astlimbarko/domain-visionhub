@@ -44,7 +44,12 @@ export async function toggleActivoRed(redId: string, activo: boolean) {
   if (error) throw error;
 }
 
-export async function crearCdp(iglesiaId: string, redId: string, nombre?: string): Promise<{ id: string }> {
+export async function crearCdp(
+  iglesiaId: string,
+  redId: string,
+  nombre?: string,
+  sublideresIds: string[] = []
+): Promise<{ id: string }> {
   const { data: cdp, error: errorCdp } = await supabase
     .from('casa_de_paz')
     .insert({ iglesia_id: iglesiaId, nombre: nombre || null })
@@ -59,6 +64,27 @@ export async function crearCdp(iglesiaId: string, redId: string, nombre?: string
     fecha_inicio: aISO(new Date()),
   });
   if (errorRed) throw errorRed;
+
+  if (sublideresIds.length > 0) {
+    const { data: cargo, error: errorCargo } = await supabase
+      .from('cargo')
+      .select('id')
+      .eq('codigo', 'SUBLIDER_CDP')
+      .eq('activo', true)
+      .single();
+    if (errorCargo) throw errorCargo;
+
+    const { error: errorSublideres } = await supabase.from('casa_de_paz_cargo').insert(
+      sublideresIds.map((personaId) => ({
+        iglesia_id: iglesiaId,
+        casa_de_paz_id: cdp.id,
+        persona_id: personaId,
+        cargo_id: cargo.id,
+        fecha_inicio: aISO(new Date()),
+      }))
+    );
+    if (errorSublideres) throw errorSublideres;
+  }
 
   return cdp;
 }

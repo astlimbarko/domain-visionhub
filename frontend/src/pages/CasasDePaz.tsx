@@ -556,11 +556,12 @@ export function CasasDePaz() {
         open={mostrarCrearCdp}
         onOpenChange={setMostrarCrearCdp}
         redNombre={redSeleccionada?.nombre}
+        iglesiaId={iglesiaActivaId}
         creando={crearCdp.isPending}
-        onCrear={(nombre) => {
+        onCrear={(nombre, sublideresIds) => {
           if (!redSeleccionadaId) return;
           crearCdp.mutate(
-            { redId: redSeleccionadaId, nombre },
+            { redId: redSeleccionadaId, nombre, sublideresIds },
             {
               onSuccess: () => {
                 toast.success('Casa de Paz creada');

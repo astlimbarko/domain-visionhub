@@ -85,7 +85,8 @@ export function useToggleActivoRed() {
 export function useCrearCdp(iglesiaId: string | undefined) {
   const invalidar = useInvalidarEstructura();
   return useMutation({
-    mutationFn: ({ redId, nombre }: { redId: string; nombre?: string }) => crearCdp(iglesiaId as string, redId, nombre),
+    mutationFn: ({ redId, nombre, sublideresIds }: { redId: string; nombre?: string; sublideresIds?: string[] }) =>
+      crearCdp(iglesiaId as string, redId, nombre, sublideresIds),
     onSuccess: invalidar,
   });
 }
