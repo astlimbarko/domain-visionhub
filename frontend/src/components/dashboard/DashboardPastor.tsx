@@ -8,7 +8,11 @@ interface Props {
 }
 
 export function DashboardPastor({ onSeleccionarIglesia }: Props) {
-  const { data, isLoading } = useDashboardPastor(true);
+  const { data, isLoading, isError } = useDashboardPastor(true);
+
+  if (isError) {
+    return <p className="text-sm text-muted-foreground">Todavía no tenés ningún panel asignado en esta iglesia.</p>;
+  }
 
   if (isLoading || !data) {
     return (

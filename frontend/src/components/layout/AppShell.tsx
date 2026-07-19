@@ -132,11 +132,11 @@ function NavLinks({
   );
 }
 
-function LogoBrand() {
+function LogoBrand({ nombre }: { nombre: string }) {
   return (
     <div className="flex items-center gap-2">
-      <img src="/logo.png" alt="VisionHub" className="h-8 w-8 rounded-lg object-contain" />
-      <span className="text-lg font-semibold text-sidebar-foreground">VisionHub</span>
+      <img src="/logo.png" alt={nombre} className="h-8 w-8 shrink-0 rounded-lg object-contain" />
+      <span className="truncate text-lg font-semibold text-sidebar-foreground">{nombre}</span>
     </div>
   );
 }
@@ -153,6 +153,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
+  // El Super Admin no "asiste" a ninguna iglesia (es un rol tecnico) -- se
+  // queda con la marca generica. Todos los demas ven el nombre de su iglesia.
+  const nombreMarca = esSuperAdmin ? 'VisionHub' : (iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub');
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
   const textoUsuario = nombreCompleto
     ? titulo
@@ -189,7 +192,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar de escritorio */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar p-4 sm:flex">
         <div className="mb-6 px-2">
-          <LogoBrand />
+          <LogoBrand nombre={nombreMarca} />
         </div>
         <NavLinks esOperativo={esOperativo} esSuperAdmin={esSuperAdmin} sombreros={sombreros} />
         <Button variant="ghost" className="justify-start gap-3 px-3" onClick={handleLogout}>
@@ -209,8 +212,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <img src="/logo.png" alt="VisionHub" className="h-7 w-7 rounded-lg object-contain" />
-          <span className="text-base font-semibold text-sidebar-foreground">VisionHub</span>
+          <img src="/logo.png" alt={nombreMarca} className="h-7 w-7 shrink-0 rounded-lg object-contain" />
+          <span className="truncate text-base font-semibold text-sidebar-foreground">{nombreMarca}</span>
         </div>
       </header>
 
@@ -219,7 +222,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SheetContent side="left" className="flex w-3/4 max-w-xs flex-col bg-sidebar p-0">
           <SheetHeader className="border-b border-border">
             <SheetTitle asChild>
-              <LogoBrand />
+              <LogoBrand nombre={nombreMarca} />
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-1 flex-col p-4">

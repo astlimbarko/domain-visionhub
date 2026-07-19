@@ -20,13 +20,14 @@ import { useAuthStore } from '@/store/auth.store';
 import type { RolSistema } from '@/types/auth.types';
 import type { IglesiaAdmin } from '@/types/admin.types';
 
+// El Super Admin es un rol tecnico: solo puede crear otros Super Admin y el
+// Pastor/Supervisor de cada iglesia. Lideres de Red/CdP se asignan desde
+// Casas de Paz por el Pastor o Supervisor de esa iglesia, no desde aca
+// (decision del owner, 2026-07-19 -- "acotar Super Admin").
 const ROLES: { value: RolSistema; label: string }[] = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
   { value: 'PASTOR', label: 'Pastor' },
   { value: 'SUPERVISOR_VISION_ACCION', label: 'Supervisor de Visión en Acción' },
-  { value: 'LIDER_RED', label: 'Líder de Red' },
-  { value: 'LIDER_CDP', label: 'Líder de Casa de Paz' },
-  { value: 'SUBLIDER_CDP', label: 'Sublíder de Casa de Paz' },
 ];
 
 interface Props {
