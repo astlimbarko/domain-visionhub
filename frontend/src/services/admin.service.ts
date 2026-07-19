@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import type { RolSistema } from '@/types/auth.types';
-import type { IglesiaAdmin, ResultadoInvitacion, UsuarioListado } from '@/types/admin.types';
+import type { DashboardSuperAdmin, IglesiaAdmin, ResultadoInvitacion, UsuarioListado } from '@/types/admin.types';
+
+export async function obtenerDashboardSuperAdmin(): Promise<DashboardSuperAdmin> {
+  const { data, error } = await supabase.rpc('fn_dashboard_super_admin');
+  if (error) throw error;
+  return data as DashboardSuperAdmin;
+}
 
 export async function obtenerIglesiasTodas(): Promise<IglesiaAdmin[]> {
   const { data, error } = await supabase.from('iglesia').select('id, nombre, ciudad, activo').order('nombre');

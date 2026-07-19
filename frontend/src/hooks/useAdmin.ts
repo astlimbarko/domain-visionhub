@@ -3,6 +3,7 @@ import {
   crearIglesia,
   crearUsuarioRol,
   invitarUsuario,
+  obtenerDashboardSuperAdmin,
   obtenerIglesiasTodas,
   obtenerUsuarios,
 } from '@/services/admin.service';
@@ -10,6 +11,10 @@ import type { RolSistema } from '@/types/auth.types';
 
 export function useIglesiasTodas() {
   return useQuery({ queryKey: ['admin', 'iglesias'], queryFn: obtenerIglesiasTodas });
+}
+
+export function useDashboardSuperAdmin() {
+  return useQuery({ queryKey: ['admin', 'dashboard-super-admin'], queryFn: obtenerDashboardSuperAdmin });
 }
 
 export function useUsuarios(iglesiaId: string | undefined) {
