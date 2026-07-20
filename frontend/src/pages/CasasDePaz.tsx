@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
 import {
   useAsignarCargoCdp,
   useAsignarCargoRed,
@@ -74,6 +75,9 @@ export function CasasDePaz() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesias = useAuthStore((s) => s.iglesias);
   const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
+  // Un sublíder no puede designar/eliminar líder, sublíderes ni anfitrión,
+  // ni modificar información estructural de la CdP (spec de roles, Rol 1).
+  const esSublider = useRolUI() === 'SUBLIDER_CDP';
 
   const [redSeleccionadaId, setRedSeleccionadaId] = useState<string>();
   const [mostrarCrearRed, setMostrarCrearRed] = useState(false);
@@ -413,31 +417,36 @@ export function CasasDePaz() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'LIDER_CDP', titulo: `Líder de ${cdp.etiqueta}`, exclusivo: true })}
-                >
-                  Líder
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'SUBLIDER_CDP', titulo: `Sublíderes de ${cdp.etiqueta}`, exclusivo: false })}
-                >
-                  Sublíderes
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'ANFITRION', titulo: `Anfitrión de ${cdp.etiqueta}`, exclusivo: true })}
-                >
-                  Anfitrión
-                </Button>
+                {!esSublider && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'LIDER_CDP', titulo: `Líder de ${cdp.etiqueta}`, exclusivo: true })}
+                    >
+                      Líder
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'SUBLIDER_CDP', titulo: `Sublíderes de ${cdp.etiqueta}`, exclusivo: false })}
+                    >
+                      Sublíderes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'ANFITRION', titulo: `Anfitrión de ${cdp.etiqueta}`, exclusivo: true })}
+                    >
+                      Anfitrión
+                    </Button>
+                  </>
+                )}
                 <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
                   Activa
                   <Switch
                     checked={cdp.activo}
+                    disabled={esSublider}
                     onCheckedChange={(activo) =>
                       toggleActivoCdp.mutate(
                         { cdpId: cdp.id, activo },

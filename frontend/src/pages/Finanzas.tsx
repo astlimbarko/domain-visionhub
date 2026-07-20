@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -52,7 +51,7 @@ export function Finanzas() {
     setMes(f.getMonth());
   }
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full" />;
+  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
   if (!misCasas || misCasas.length === 0) {
     return (
@@ -64,12 +63,12 @@ export function Finanzas() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           {misCasas.length > 1 && (
             <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
                 <SelectValue placeholder="Casa de Paz" />
               </SelectTrigger>
               <SelectContent>
@@ -81,62 +80,58 @@ export function Finanzas() {
               </SelectContent>
             </Select>
           )}
-          <Button variant="ghost" size="icon" onClick={irMesAnterior} aria-label="Mes anterior">
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="w-36 text-center text-sm font-medium">{nombreMes(anio, mes)}</span>
-          <Button variant="ghost" size="icon" onClick={irMesSiguiente} aria-label="Mes siguiente">
+          <span className="w-36 text-center text-sm font-semibold tracking-tight">{nombreMes(anio, mes)}</span>
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2" disabled={monedas.length === 0}>
+        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" disabled={monedas.length === 0}>
           <Plus className="h-4 w-4" />
           Nuevo ingreso
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Wallet className="h-4 w-4" />
-              Ingresos del mes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {cargandoTotales && <Skeleton className="h-24 w-full" />}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="glass-card-elevated rounded-2xl p-6">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <Wallet className="h-4 w-4 text-primary" />
+            Ingresos del mes
+          </h3>
+          <div className="flex flex-col gap-2.5">
+            {cargandoTotales && <Skeleton className="h-24 w-full rounded-xl" />}
             {!cargandoTotales && totales.length === 0 && (
               <p className="text-sm text-muted-foreground">Sin ingresos registrados este mes.</p>
             )}
             {totales.map((t, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
-                <span>{t.tipo_nombre}</span>
-                <span className="font-medium text-foreground">
+                <span className="text-muted-foreground">{t.tipo_nombre}</span>
+                <span className="font-semibold text-foreground">
                   {t.moneda_simbolo} {Number(t.total).toFixed(2)}
                 </span>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base">Contra el mes anterior</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+        <div className="glass-card-elevated rounded-2xl p-6">
+          <h3 className="mb-4 text-sm font-semibold">Contra el mes anterior</h3>
+          <div className="flex flex-col gap-2.5">
             {comparativo.length === 0 && <p className="text-sm text-muted-foreground">Sin datos para comparar.</p>}
             {comparativo.map((c) => (
               <div key={c.moneda_id} className="flex items-center justify-between text-sm">
-                <span>{c.moneda_codigo}</span>
+                <span className="text-muted-foreground">{c.moneda_codigo}</span>
                 <span className="flex items-center gap-2">
-                  <span className="text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {Number(c.total_actual).toFixed(2)} vs {Number(c.total_anterior).toFixed(2)}
                   </span>
                   {c.variacion_pct != null && (
                     <span
                       className={
-                        'flex items-center gap-1 font-medium ' +
-                        (c.variacion_pct >= 0 ? 'text-emerald-600' : 'text-destructive')
+                        'flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold ' +
+                        (c.variacion_pct >= 0 ? 'bg-chart-2/10 text-chart-2' : 'bg-destructive/10 text-destructive')
                       }
                     >
                       {c.variacion_pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -146,8 +141,8 @@ export function Finanzas() {
                 </span>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {cdpActiva && (

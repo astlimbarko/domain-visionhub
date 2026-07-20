@@ -324,8 +324,9 @@ END;
 $$;
 
 -- ============================================================
--- 4. Fusion de Redes -- solo Pastor/Supervisor (fn_es_operativo_en), nunca
--- Lider de Red, a diferencia de la fusion de CdP.
+-- 4. Fusion de Redes -- solo Supervisor operativo (fn_es_operativo_en, ya
+-- no incluye a Pastor desde 43_pastor_no_operativo.sql), nunca Lider de
+-- Red, a diferencia de la fusion de CdP.
 -- ============================================================
 CREATE TABLE fusion_red (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),

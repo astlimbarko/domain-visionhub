@@ -1,3 +1,4 @@
+import { Building2, Home, Network, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from './KpiCard';
@@ -16,7 +17,7 @@ export function DashboardPastor({ onSeleccionarIglesia }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Skeleton className="h-32 w-full lg:col-span-4" />
       </div>
     );
@@ -27,12 +28,12 @@ export function DashboardPastor({ onSeleccionarIglesia }: Props) {
   const totalRedes = (iglesias ?? []).reduce((acc, i) => acc + i.redes, 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard titulo="Iglesias" valor={iglesias?.length ?? 0} />
-        <KpiCard titulo="Redes totales" valor={totalRedes} />
-        <KpiCard titulo="Miembros totales" valor={totalMiembros} />
-        <KpiCard titulo="Familias totales" valor={(iglesias ?? []).reduce((acc, i) => acc + i.familias, 0)} />
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard titulo="Iglesias" valor={iglesias?.length ?? 0} icon={Building2} />
+        <KpiCard titulo="Redes totales" valor={totalRedes} icon={Network} />
+        <KpiCard titulo="Miembros totales" valor={totalMiembros} icon={Users} />
+        <KpiCard titulo="Familias totales" valor={(iglesias ?? []).reduce((acc, i) => acc + i.familias, 0)} icon={Home} />
       </div>
 
       <Card className="rounded-2xl">

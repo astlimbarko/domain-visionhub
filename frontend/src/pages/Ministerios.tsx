@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -47,30 +46,30 @@ export function Ministerios() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card className="rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Ministerios</CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrear(true)}>
+    <div className="flex flex-col gap-6">
+      <div className="glass-card-elevated rounded-2xl p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Ministerios</h2>
+          <Button size="sm" className="gap-1.5 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" onClick={() => setMostrarCrear(true)}>
             <Plus className="h-4 w-4" />
             Ministerio
           </Button>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading && <Skeleton className="h-24 w-full sm:col-span-2 lg:col-span-3" />}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {isLoading && <Skeleton className="h-24 w-full rounded-2xl sm:col-span-2 lg:col-span-3" />}
           {!isLoading && ministerios.length === 0 && (
             <p className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Todavía no hay ministerios.</p>
           )}
           {ministerios.map((m) => (
-            <div key={m.id} className="flex flex-col gap-2 rounded-xl border border-border px-4 py-3">
+            <div key={m.id} className="flex flex-col gap-2 rounded-2xl border border-border/50 bg-card/60 px-4 py-3.5 transition-all hover:border-primary/20 hover:shadow-sm">
               <button type="button" className="text-left" onClick={() => setMinisterioAbiertoId(m.id)}>
-                <p className="font-medium">{m.nombre}</p>
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <p className="text-sm font-semibold">{m.nombre}</p>
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Users className="h-3.5 w-3.5" />
                   {m.participantes_count} persona(s) · {m.lider_nombre ?? 'Sin líder'}
                 </p>
               </button>
-              <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+              <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
                 Activo
                 <Switch
                   checked={m.activo}
@@ -84,8 +83,8 @@ export function Ministerios() {
               </label>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <CrearMinisterioDialog
         open={mostrarCrear}
