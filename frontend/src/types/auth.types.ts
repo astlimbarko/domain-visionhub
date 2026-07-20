@@ -12,6 +12,7 @@ export interface IglesiaAccesible {
   nombre: string;
   ciudad: string;
   es_operativo: boolean;
+  es_pastor: boolean;
 }
 
 export interface SesionUsuario {

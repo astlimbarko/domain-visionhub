@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { Activity, AlertTriangle, Home, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from './KpiCard';
@@ -14,7 +14,7 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Skeleton className="h-32 w-full lg:col-span-4" />
       </div>
     );
@@ -23,13 +23,13 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
   const { red, kpi, casas_de_paz, cdp_sin_reporte_semana, ingresos } = data;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <h2 className="text-lg font-semibold">{red.nombre}</h2>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard titulo="Casas de Paz activas" valor={kpi.cdp_activas} />
-        <KpiCard titulo="Miembros totales" valor={kpi.miembros_totales} />
-        <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard titulo="Casas de Paz activas" valor={kpi.cdp_activas} icon={Home} />
+        <KpiCard titulo="Miembros totales" valor={kpi.miembros_totales} icon={Users} />
+        <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} icon={Activity} />
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Ofrendas del mes</CardTitle>

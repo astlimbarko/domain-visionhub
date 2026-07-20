@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { Activity, AlertTriangle, Home, Network, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,7 +24,7 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Skeleton className="h-32 w-full lg:col-span-4" />
       </div>
     );
@@ -34,12 +34,12 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
   const alertasConDatos = Object.entries(alertas).filter(([, v]) => Array.isArray(v) && v.length > 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard titulo="Redes" valor={kpi.redes} />
-        <KpiCard titulo="Casas de Paz" valor={kpi.cdp} />
-        <KpiCard titulo="Miembros totales" valor={kpi.miembros_totales} />
-        <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} />
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard titulo="Redes" valor={kpi.redes} icon={Network} />
+        <KpiCard titulo="Casas de Paz" valor={kpi.cdp} icon={Home} />
+        <KpiCard titulo="Miembros totales" valor={kpi.miembros_totales} icon={Users} />
+        <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} icon={Activity} />
       </div>
 
       {kpi.ingresos_mes && kpi.ingresos_mes.length > 0 && (

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Target, HeartHandshake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
@@ -68,7 +67,7 @@ export function Evangelismo() {
     }
   }
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full" />;
+  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
   if (!misCasas || misCasas.length === 0) {
     return (
@@ -82,12 +81,12 @@ export function Evangelismo() {
   const porcentaje = tasa?.tasa != null ? Math.min(tasa.tasa, 100) : 0;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           {misCasas.length > 1 && (
             <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
                 <SelectValue placeholder="Casa de Paz" />
               </SelectTrigger>
               <SelectContent>
@@ -99,93 +98,91 @@ export function Evangelismo() {
               </SelectContent>
             </Select>
           )}
-          <Button variant="ghost" size="icon" onClick={irMesAnterior} aria-label="Mes anterior">
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="w-36 text-center text-sm font-medium">{nombreMes(anio, mes)}</span>
-          <Button variant="ghost" size="icon" onClick={irMesSiguiente} aria-label="Mes siguiente">
+          <span className="w-36 text-center text-sm font-semibold tracking-tight">{nombreMes(anio, mes)}</span>
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2">
+        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
           <Plus className="h-4 w-4" />
           Nuevo evangelizado
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="rounded-2xl lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="h-4 w-4" />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="glass-card-elevated rounded-2xl p-6 lg:col-span-2">
+          <div className="mb-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Target className="h-4 w-4 text-primary" />
               Tasa de evangelismo
-            </CardTitle>
+            </h3>
             {tasa?.origen && (
-              <CardDescription>Meta {tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}</CardDescription>
+              <p className="mt-0.5 text-xs text-muted-foreground">Meta {tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}</p>
             )}
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          </div>
+          <div className="flex flex-col gap-3">
             {cargandoTasa ? (
-              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full rounded-xl" />
             ) : (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-semibold text-foreground">{tasa?.evangelizados ?? 0}</span>
-                  <span className="text-muted-foreground">
+                  <span className="text-4xl font-bold tracking-tight text-foreground">{tasa?.evangelizados ?? 0}</span>
+                  <span className="text-sm text-muted-foreground">
                     {tasa?.meta != null ? `de ${tasa.meta} evangelizados` : 'sin meta definida'}
                   </span>
                 </div>
                 {tasa?.meta != null && (
                   <>
-                    <Progress value={porcentaje} />
-                    <p className="text-sm text-muted-foreground">{tasa.tasa}% de la meta {tasa.tasa && tasa.tasa > 100 ? '(superada)' : ''}</p>
+                    <Progress value={porcentaje} className="h-2 rounded-full" />
+                    <p className="text-xs text-muted-foreground">{tasa.tasa}% de la meta {tasa.tasa && tasa.tasa > 100 ? '(superada)' : ''}</p>
                   </>
                 )}
               </>
             )}
 
             {tasa?.origen !== 'ASIGNADA' && (
-              <div className="mt-2 flex items-end gap-2">
+              <div className="mt-3 flex items-end gap-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="meta_propia">Mi meta para este mes</Label>
+                  <Label htmlFor="meta_propia" className="text-xs text-muted-foreground">Mi meta para este mes</Label>
                   <Input
                     id="meta_propia"
                     type="number"
                     min={1}
-                    className="w-32"
+                    className="h-9 w-28 rounded-xl border-border/60 bg-muted/40 text-sm"
                     placeholder={String(tasa?.meta ?? '')}
                     value={metaLocal}
                     onChange={(e) => setMetaLocal(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" onClick={guardarMeta} disabled={actualizarMeta.isPending}>
+                <Button variant="outline" className="h-9 rounded-xl" onClick={guardarMeta} disabled={actualizarMeta.isPending}>
                   Guardar
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <HeartHandshake className="h-4 w-4" />
-              Evangelizados del mes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {cargandoLista && <Skeleton className="h-40 w-full" />}
+        <div className="glass-card-elevated rounded-2xl p-5">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <HeartHandshake className="h-4 w-4 text-chart-2" />
+            Evangelizados del mes
+          </h3>
+          <div className="flex flex-col gap-2">
+            {cargandoLista && <Skeleton className="h-40 w-full rounded-xl" />}
             {!cargandoLista && evangelizados.length === 0 && (
               <p className="text-sm text-muted-foreground">Nadie registrado todavía este mes.</p>
             )}
             {evangelizados.map((e) => (
               <div key={e.id} className="flex items-center justify-between text-sm">
-                <span>{e.nombre_completo}</span>
-                <span className="text-muted-foreground">{e.fecha}</span>
+                <span className="font-medium">{e.nombre_completo}</span>
+                <span className="text-xs text-muted-foreground">{e.fecha}</span>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {cdpActiva && (

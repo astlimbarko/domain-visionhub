@@ -1,12 +1,18 @@
+import { CalendarCheck2, CalendarClock, PhoneCall, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from './KpiCard';
 import { SemaforoBadge } from './SemaforoBadge';
+import { Timeline, type TimelineItem } from '@/components/shared/Timeline';
 import { useDashboardLiderCdp, useDashboardSubliderCdp } from '@/hooks/useDashboard';
 
 interface Props {
   casaDePazId: string;
   esSublider?: boolean;
+}
+
+function fmt(fecha: string) {
+  return new Date(fecha).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
 }
 
 export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
@@ -16,7 +22,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Skeleton className="h-32 w-full lg:col-span-3" />
         <Skeleton className="h-64 w-full lg:col-span-3" />
       </div>
@@ -25,8 +31,44 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
   const { casa_de_paz, kpi, miembros, alertas, asistencia_historico, proximos } = data;
 
+  const pctAsistencia =
+    casa_de_paz.miembros_total > 0 && kpi.asistencia_ultima.valor !== null
+      ? Math.round((kpi.asistencia_ultima.valor / casa_de_paz.miembros_total) * 100)
+      : null;
+
+  const paraLlamar: TimelineItem[] = [
+    ...(alertas.reconciliados ?? []).map((r) => ({
+      id: `rec-${r.persona_id}`,
+      titulo: r.nombre,
+      descripcion: 'Reconciliado',
+      fecha: fmt(r.fecha_reconciliacion),
+      dotColor: 'var(--chart-3)',
+    })),
+    ...(alertas.simpatizantes ?? []).map((s) => ({
+      id: `sim-${s.persona_id}`,
+      titulo: s.nombre,
+      descripcion: 'Simpatizante',
+      fecha: fmt(s.fecha_ingreso),
+      dotColor: 'var(--chart-1)',
+    })),
+  ];
+
+  const historialItems: TimelineItem[] = (asistencia_historico ?? []).map((h) => ({
+    id: h.fecha_reunion,
+    titulo: `${h.total_asistentes} asistentes`,
+    descripcion: `${h.total_mayores} mayores · ${h.total_menores} menores`,
+    fecha: fmt(h.fecha_reunion),
+  }));
+
+  const proximosItems: TimelineItem[] = (proximos ?? []).map((p, idx) => ({
+    id: `${idx}-${p.titulo}`,
+    titulo: p.titulo,
+    fecha: fmt(p.fecha),
+    dotColor: 'var(--chart-4)',
+  }));
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle>{casa_de_paz.nombre ?? 'Casa de Paz'}</CardTitle>
@@ -38,13 +80,16 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KpiCard titulo="Miembros activos" valor={kpi.miembros_activos.valor} variacionPct={kpi.miembros_activos.variacion_pct} />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <KpiCard titulo="Miembros activos" valor={kpi.miembros_activos.valor} variacionPct={kpi.miembros_activos.variacion_pct} icon={Users} />
         <KpiCard
           titulo="Asistencia última reunión"
           valor={kpi.asistencia_ultima.valor}
           variacionPct={kpi.asistencia_ultima.variacion_pct}
           subtitulo={kpi.asistencia_ultima.fecha ? new Date(kpi.asistencia_ultima.fecha).toLocaleDateString('es-BO') : undefined}
+          icon={CalendarCheck2}
+          porcentaje={pctAsistencia}
+          color="var(--chart-2)"
         />
         {kpi.ingresos_mes !== undefined && (
           <Card className="rounded-2xl">
@@ -66,25 +111,16 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         )}
       </div>
 
-      {(alertas.reconciliados?.length || alertas.simpatizantes?.length) ? (
+      {paraLlamar.length > 0 && (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-base">Para llamar</CardTitle>
+            <CardTitle className="flex items-center gap-1.5 text-base"><PhoneCall className="h-4 w-4 text-muted-foreground" /> Para llamar</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            {alertas.reconciliados?.map((r) => (
-              <p key={r.persona_id}>
-                <span className="font-medium">{r.nombre}</span> — reconciliado el {new Date(r.fecha_reconciliacion).toLocaleDateString('es-BO')}
-              </p>
-            ))}
-            {alertas.simpatizantes?.map((s) => (
-              <p key={s.persona_id}>
-                <span className="font-medium">{s.nombre}</span> — simpatizante desde {new Date(s.fecha_ingreso).toLocaleDateString('es-BO')}
-              </p>
-            ))}
+          <CardContent>
+            <Timeline items={paraLlamar} />
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
       <Card className="rounded-2xl">
         <CardHeader>
@@ -115,34 +151,19 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
           <CardHeader>
             <CardTitle className="text-base">Últimas reuniones</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1.5">
-            {!asistencia_historico || asistencia_historico.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin reportes todavía.</p>
-            ) : (
-              asistencia_historico.map((h) => (
-                <div key={h.fecha_reunion} className="flex items-center justify-between text-sm">
-                  <span>{new Date(h.fecha_reunion).toLocaleDateString('es-BO')}</span>
-                  <span className="text-muted-foreground">
-                    {h.total_asistentes} asistentes ({h.total_mayores} mayores, {h.total_menores} menores)
-                  </span>
-                </div>
-              ))
-            )}
+          <CardContent>
+            <Timeline items={historialItems} vacio="Sin reportes todavía." />
           </CardContent>
         </Card>
       )}
 
-      {proximos && proximos.length > 0 && (
+      {proximosItems.length > 0 && (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-base">Próximos</CardTitle>
+            <CardTitle className="flex items-center gap-1.5 text-base"><CalendarClock className="h-4 w-4 text-muted-foreground" /> Próximos</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1.5 text-sm">
-            {proximos.map((p, idx) => (
-              <p key={idx}>
-                {p.titulo} — {new Date(p.fecha).toLocaleDateString('es-BO')}
-              </p>
-            ))}
+          <CardContent>
+            <Timeline items={proximosItems} />
           </CardContent>
         </Card>
       )}
