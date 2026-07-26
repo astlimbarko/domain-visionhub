@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -17,11 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AsistenciaComposicionChart } from './AsistenciaComposicionChart';
 import { IndiceFidelidadRing } from './IndiceFidelidadRing';
-import { EvangelismoComparativoChart } from './EvangelismoComparativoChart';
-import { EstadosMiembrosChart } from './EstadosMiembrosChart';
-import { TendenciaAsistenciaChart } from './TendenciaAsistenciaChart';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import {
   useAsistenciaPromedioPeriodo,
@@ -41,6 +37,20 @@ import {
   type PeriodoDashboard,
 } from '@/utils/periodo-dashboard';
 
+// Los 4 gráficos usan recharts (~una de las dependencias más pesadas del bundle).
+// Se cargan bajo demanda para que roles que no ven este dashboard (pastor,
+// supervisor, líder de red sin CDP propia) nunca descarguen ese código.
+const AsistenciaComposicionChart = lazy(() =>
+  import('./AsistenciaComposicionChart').then((m) => ({ default: m.AsistenciaComposicionChart }))
+);
+const EvangelismoComparativoChart = lazy(() =>
+  import('./EvangelismoComparativoChart').then((m) => ({ default: m.EvangelismoComparativoChart }))
+);
+const EstadosMiembrosChart = lazy(() => import('./EstadosMiembrosChart').then((m) => ({ default: m.EstadosMiembrosChart })));
+const TendenciaAsistenciaChart = lazy(() =>
+  import('./TendenciaAsistenciaChart').then((m) => ({ default: m.TendenciaAsistenciaChart }))
+);
+
 interface Props {
   casaDePazId: string;
   esSublider?: boolean;
@@ -50,13 +60,10 @@ function fmt(fecha: string) {
   return new Date(fecha).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
 }
 
+/** Vive dentro de las tarjetas KPI de fondo sólido -- por eso siempre en blanco, el signo lo da el ícono. */
 function VariacionBadge({ pct }: { pct: number }) {
   return (
-    <span
-      className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-        pct > 0 ? 'bg-chart-2/10 text-chart-2' : pct < 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
-      }`}
-    >
+    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
       {pct > 0 ? <ArrowUp className="h-3 w-3" /> : pct < 0 ? <ArrowDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
       {Math.abs(pct)}% vs. período anterior
     </span>
@@ -157,7 +164,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
-            <SelectTrigger className="w-32 rounded-xl border-border/60 bg-muted/40 text-sm">
+            <SelectTrigger className="w-32 rounded-xl text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +176,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             </SelectContent>
           </Select>
           <Select value={String(cantidad)} onValueChange={(v) => setCantidad(Number(v))} disabled={!!rango}>
-            <SelectTrigger className="w-44 rounded-xl border-border/60 bg-muted/40 text-sm">
+            <SelectTrigger className="w-44 rounded-xl text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -186,145 +193,74 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
       {/* KPIs compactos */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="glass-card flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 text-white shadow-lg shadow-blue-500/20">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <Users className="h-5 w-5 text-primary" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <Users className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[11px] text-muted-foreground">Miembros</p>
-              <p className="text-2xl font-bold text-foreground">{kpi.miembros_activos.valor ?? totalMiembros}</p>
+              <p className="truncate text-[11px] text-white/80">Miembros</p>
+              <p className="text-2xl font-bold">{kpi.miembros_activos.valor ?? totalMiembros}</p>
             </div>
           </div>
           {kpi.miembros_activos.variacion_pct !== null && kpi.miembros_activos.variacion_pct !== undefined ? (
             <VariacionBadge pct={kpi.miembros_activos.variacion_pct} />
           ) : (
-            <p className="text-[11px] text-muted-foreground">Miembros activos en tu Casa de Paz</p>
+            <p className="text-[11px] text-white/80">Miembros activos en tu Casa de Paz</p>
           )}
         </div>
 
-        <div className="glass-card flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-600 p-5 text-white shadow-lg shadow-violet-500/20">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-4)]/10">
-              <Baby className="h-5 w-5" style={{ color: 'var(--chart-4)' }} />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <Baby className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[11px] text-muted-foreground">Niños</p>
-              <p className="text-2xl font-bold text-foreground">{ninos}</p>
+              <p className="truncate text-[11px] text-white/80">Niños</p>
+              <p className="text-2xl font-bold">{ninos}</p>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-white/80">
             {totalMiembros > 0 ? `${Math.round((ninos / totalMiembros) * 100)}% de ${totalMiembros} miembros` : 'Menores de 12 años'}
           </p>
         </div>
 
-        <div className="glass-card flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-5 text-white shadow-lg shadow-orange-500/20">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-3)]/10">
-              <UserPlus className="h-5 w-5" style={{ color: 'var(--chart-3)' }} />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <UserPlus className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[11px] text-muted-foreground">Evangelizados</p>
-              <p className="text-2xl font-bold text-foreground">{tasaEvangelismo?.evangelizados ?? 0}</p>
+              <p className="truncate text-[11px] text-white/80">Evangelizados</p>
+              <p className="text-2xl font-bold">{tasaEvangelismo?.evangelizados ?? 0}</p>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-white/80">
             {tasaEvangelismo?.meta != null ? `Meta: ${tasaEvangelismo.meta} · ${etiquetaPeriodo}` : `En ${etiquetaPeriodo}`}
           </p>
         </div>
 
-        <div className="glass-card flex flex-col gap-3 rounded-2xl p-5">
+        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/20">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-pink-500/10">
-              <CalendarCheck2 className="h-5 w-5 text-pink-600" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <CalendarCheck2 className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[11px] text-muted-foreground">Última reunión</p>
-              <p className="text-2xl font-bold text-foreground">{kpi.asistencia_ultima.valor ?? '—'}</p>
+              <p className="truncate text-[11px] text-white/80">Última reunión</p>
+              <p className="text-2xl font-bold">{kpi.asistencia_ultima.valor ?? '—'}</p>
             </div>
           </div>
           {kpi.asistencia_ultima.variacion_pct !== null && kpi.asistencia_ultima.variacion_pct !== undefined ? (
             <VariacionBadge pct={kpi.asistencia_ultima.variacion_pct} />
           ) : (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-white/80">
               {kpi.asistencia_ultima.fecha ? `Asistencia del ${fmt(kpi.asistencia_ultima.fecha)}` : 'Asistentes en la última reunión'}
             </p>
           )}
         </div>
       </div>
 
-      {/* Asistencia y composición + Índice de fidelidad */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader
-              icon={TrendingUp}
-              color="#5fa584"
-              titulo="Asistencia y composición"
-              descripcion={`Asistencia promedio de ${etiquetaPeriodo}`}
-            />
-          </CardHeader>
-          <CardContent>
-            <AsistenciaComposicionChart miembros={totalMiembros} asistenciaPromedio={asistenciaPromedio} ninos={ninos} />
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader icon={Heart} color="var(--destructive)" titulo="Índice de fidelidad" />
-          </CardHeader>
-          <CardContent>
-            <IndiceFidelidadRing verdes={verdes} amarillos={amarillos} rojos={rojos} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Evangelismo + Estados SSVA */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader
-              icon={UserPlus}
-              color="var(--chart-3)"
-              titulo="Evangelismo"
-              descripcion={`Evangelizados de ${etiquetaPeriodo}`}
-            />
-          </CardHeader>
-          <CardContent>
-            <EvangelismoComparativoChart evangelizados={tasaEvangelismo?.evangelizados ?? 0} meta={tasaEvangelismo?.meta ?? null} />
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader icon={BookOpen} color="var(--chart-1)" titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
-          </CardHeader>
-          <CardContent>
-            {totalMiembros > 0 ? (
-              <EstadosMiembrosChart miembros={miembros ?? []} />
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin miembros todavía.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tendencia de asistencia */}
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardIconHeader
-            icon={Calendar}
-            color="#6366f1"
-            titulo="Tendencia de asistencia"
-            descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
-          />
-        </CardHeader>
-        <CardContent>
-          <TendenciaAsistenciaChart datos={tendenciaAsistencia} granularidad={granularidad} />
-        </CardContent>
-      </Card>
-
-      {/* Resumen financiero */}
+      {/* Resumen financiero -- va justo debajo de los 4 indicadores */}
       {ingresos.length > 0 && (
         <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white shadow-lg shadow-emerald-500/20">
           <div className="mb-4 flex items-center gap-3">
@@ -376,6 +312,85 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
           </div>
         </div>
       )}
+
+      {/* Asistencia y composición + Índice de fidelidad */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardIconHeader
+              icon={TrendingUp}
+              color="#5fa584"
+              titulo="Asistencia y composición"
+              descripcion={`Asistencia promedio de ${etiquetaPeriodo}`}
+            />
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+              <AsistenciaComposicionChart miembros={totalMiembros} asistenciaPromedio={asistenciaPromedio} ninos={ninos} />
+            </Suspense>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardIconHeader icon={Heart} color="var(--destructive)" titulo="Índice de fidelidad" />
+          </CardHeader>
+          <CardContent>
+            <IndiceFidelidadRing verdes={verdes} amarillos={amarillos} rojos={rojos} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Evangelismo + Estados SSVA */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardIconHeader
+              icon={UserPlus}
+              color="var(--chart-3)"
+              titulo="Evangelismo"
+              descripcion={`Evangelizados de ${etiquetaPeriodo}`}
+            />
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+              <EvangelismoComparativoChart evangelizados={tasaEvangelismo?.evangelizados ?? 0} meta={tasaEvangelismo?.meta ?? null} />
+            </Suspense>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardIconHeader icon={BookOpen} color="var(--chart-1)" titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
+          </CardHeader>
+          <CardContent>
+            {totalMiembros > 0 ? (
+              <Suspense fallback={<Skeleton className="h-44 w-full rounded-xl" />}>
+                <EstadosMiembrosChart miembros={miembros ?? []} />
+              </Suspense>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin miembros todavía.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tendencia de asistencia */}
+      <Card className="rounded-2xl">
+        <CardHeader>
+          <CardIconHeader
+            icon={Calendar}
+            color="#6366f1"
+            titulo="Tendencia de asistencia"
+            descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
+          />
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
+            <TendenciaAsistenciaChart datos={tendenciaAsistencia} granularidad={granularidad} />
+          </Suspense>
+        </CardContent>
+      </Card>
     </div>
   );
 }

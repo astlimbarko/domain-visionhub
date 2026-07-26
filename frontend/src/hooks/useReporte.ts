@@ -10,6 +10,7 @@ import {
   obtenerMiembrosCdp,
   obtenerReporteSemanaExistente,
   obtenerReportesRecientes,
+  obtenerReportesRedRango,
   obtenerTemas,
 } from '@/services/reporte.service';
 import type { NuevoReporte } from '@/types/reporte.types';
@@ -68,6 +69,16 @@ export function useReportesRecientes(casaDePazIds: string[]) {
     queryKey: ['reporte', 'recientes', casaDePazIds],
     queryFn: () => obtenerReportesRecientes(casaDePazIds),
     enabled: casaDePazIds.length > 0,
+  });
+}
+
+/** Reportes de todas las Casas de Paz de la Red en un rango — vista supervisora del Líder de Red. */
+export function useReportesRedRango(casaDePazIds: string[], desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['reporte', 'red-rango', [...casaDePazIds].sort(), desde, hasta],
+    queryFn: () => obtenerReportesRedRango(casaDePazIds, desde, hasta),
+    enabled: casaDePazIds.length > 0,
+    placeholderData: keepPreviousData,
   });
 }
 

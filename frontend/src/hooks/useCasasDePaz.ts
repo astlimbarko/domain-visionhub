@@ -95,10 +95,18 @@ export function useCrearCdp(iglesiaId: string | undefined) {
 }
 
 export function useToggleActivoCdp() {
-  const invalidar = useInvalidarEstructura();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ cdpId, activo }: { cdpId: string; activo: boolean }) => toggleActivoCdp(cdpId, activo),
-    onSuccess: invalidar,
+    // Activar/desactivar una CdP cambia qué se ve en el Dashboard de la Red y en
+    // Control de Reportes (ambos excluyen las inactivas): sin invalidar esas
+    // queries, la CdP recién desactivada seguía apareciendo hasta el próximo
+    // refetch natural.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estructura'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte'] });
+    },
   });
 }
 

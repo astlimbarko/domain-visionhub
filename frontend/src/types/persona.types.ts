@@ -50,6 +50,35 @@ export interface PersonaResultadoBusqueda {
   telefono_principal: string | null;
 }
 
+export interface ProcedenciaItem {
+  casa_de_paz_id: string;
+  etiqueta: string;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  vigente: boolean;
+  /** La salida de esta CdP fue por una fusión vigente que la tuvo como origen. */
+  por_fusion: boolean;
+  motivo: string | null;
+}
+
+/** Fila del roster de "Personas" del Líder de Red — solo lectura, scopeada a la Red. */
+export interface PersonaDeRed {
+  persona_id: string;
+  nombre_completo: string;
+  sexo: Sexo;
+  edad: number | null;
+  estado_sigla: string | null;
+  estado_nombre: string | null;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  lider_nombre: string | null;
+  sublider_nombre: string | null;
+  fecha_ingreso: string | null;
+  /** Historial de CdP por las que pasó, de la más antigua a la actual. */
+  procedencia: ProcedenciaItem[];
+  proviene_de_fusion: boolean;
+}
+
 export interface NuevaPersona {
   iglesia_id: string;
   primer_nombre: string;

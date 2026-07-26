@@ -33,7 +33,7 @@ export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiar
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
-          className="h-10 rounded-xl border-border bg-muted/40 pl-9 pr-9 text-sm focus-visible:bg-background"
+          className="h-10 rounded-xl pl-9 pr-9 text-sm"
           placeholder={placeholder ?? 'Buscar persona por nombre...'}
           value={valor}
           onChange={(e) => {

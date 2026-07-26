@@ -5,12 +5,69 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { useBuscarPersonas } from '@/hooks/usePersonas';
 import { CrearPersonaDialog } from '@/components/personas/CrearPersonaDialog';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { PersonasDeRedVista } from '@/components/personas/PersonasDeRedVista';
 
-export function Personas() {
+function CargandoPersonas() {
+  return (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-10 w-48 rounded-xl" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+    </div>
+  );
+}
+
+/**
+ * Líder de Red: no administra personas, solo las visualiza. Ve el roster de las
+ * Casas de Paz de su Red (con procedencia y marca de fusión), no la búsqueda
+ * global de toda la iglesia. Si lidera varias redes, elige cuál mirar.
+ */
+function PersonasDeRed() {
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const { data: roles } = useMisRoles(iglesiaActivaId);
+  const redes = roles?.redes_lider ?? [];
+  const [redId, setRedId] = useState<string>();
+  const redActiva = redId ?? redes[0]?.id;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Personas</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Miembros de las Casas de Paz de tu Red, con su procedencia.</p>
+        </div>
+        {redes.length > 1 && (
+          <Select value={redActiva} onValueChange={setRedId}>
+            <SelectTrigger className="w-full rounded-2xl sm:w-56">
+              <SelectValue placeholder="Elegí una red" />
+            </SelectTrigger>
+            <SelectContent>
+              {redes.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      {redActiva && <PersonasDeRedVista key={redActiva} redId={redActiva} />}
+    </div>
+  );
+}
+
+/** Búsqueda global de personas de la iglesia (Supervisor, Pastor, Líder/Sublíder de CdP). */
+function BusquedaPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
@@ -84,4 +141,16 @@ export function Personas() {
       <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
     </div>
   );
+}
+
+/**
+ * El Líder de Red visualiza el roster de su Red (solo lectura); el resto de los
+ * roles con acceso usan la búsqueda global de la iglesia. Cada vista maneja sus
+ * propios hooks, igual que pages/CasasDePaz.tsx.
+ */
+export function Personas() {
+  const rolUI = useRolUI();
+  if (rolUI === null) return <CargandoPersonas />;
+  if (rolUI === 'LIDER_RED') return <PersonasDeRed />;
+  return <BusquedaPersonas />;
 }
