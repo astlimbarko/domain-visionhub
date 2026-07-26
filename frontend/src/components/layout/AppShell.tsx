@@ -1,7 +1,9 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, Menu, ChevronDown, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
@@ -39,6 +41,16 @@ function mismaVista(a: Vista, b: Vista): boolean {
 function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[] }) {
   const location = useLocation();
   const vistaActual = (location.state as { vista?: Vista } | null)?.vista;
+  const queryClient = useQueryClient();
+  const personaId = useAuthStore((s) => s.personaId);
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+
+  // Al pasar el mouse (o el foco, para navegación por teclado) por un link,
+  // ya se dispara la carga del módulo y del primer dato que va a pedir --
+  // para cuando el click llega, ya no hay nada que esperar.
+  function precargar(path: string) {
+    precargarRuta(path, queryClient, personaId, iglesiaActivaId);
+  }
 
   return (
     <nav className="flex flex-1 flex-col gap-0.5">
@@ -55,6 +67,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
                 const activoSombrero = activo && vistaActual && mismaVista(vistaActual, s.vista);
                 return (
                   <Link key={s.key} to={path} state={{ vista: s.vista }} onClick={onNavigate}
+                    onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
                     className={cn('truncate rounded-xl py-2 pr-3 pl-10 text-[13px] text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-sidebar-primary')}>
                     {s.label}
                   </Link>
@@ -66,6 +79,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
 
         return (
           <Link key={label} to={path} onClick={onNavigate}
+            onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
             className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activo && 'bg-sidebar-accent text-sidebar-primary')}>
             <Icon className={cn("h-[17px] w-[17px]", activo && "text-sidebar-primary")} />{label}
           </Link>
@@ -114,17 +128,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground">{nombreMarca}</span>
         </div>
         <NavLinks navItems={navItems} sombreros={sombreros} />
-        <div className="mt-3 border-t border-sidebar-border pt-3">
-          <div className="mb-2 flex items-center gap-2.5 px-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-              {(nombreCompleto ?? correo ?? '?')[0]?.toUpperCase()}
-            </div>
-            <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-muted-foreground">{nombreCompleto ?? correo}</p>
-          </div>
-          <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[13px] font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground" onClick={handleLogout}>
-            <LogOut className="h-[16px] w-[16px]" /> Salir
-          </button>
-        </div>
       </aside>
 
       {/* Header mobile */}
@@ -154,11 +157,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col p-4">
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} />
           </div>
-          <SheetFooter className="border-t border-sidebar-border px-5 py-4">
-            <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[13px] text-muted-foreground hover:text-foreground" onClick={handleLogout}>
-              <LogOut className="h-[16px] w-[16px]" /> Salir
-            </button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
 

@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { Activity, AlertTriangle, Home, Network, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from './KpiCard';
-import { useDashboardSupervisor } from '@/hooks/useDashboard';
+import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
+import { useDashboardSupervisor, useIngresosSupervisorPeriodo } from '@/hooks/useDashboard';
+import { PERIODOS_DASHBOARD, rangoPeriodoActual, type PeriodoDashboard } from '@/utils/periodo-dashboard';
 
 interface Props {
   iglesiaId: string;
@@ -22,6 +26,13 @@ const ALERTAS_LABELS: Record<string, string> = {
 export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
   const { data, isLoading } = useDashboardSupervisor(iglesiaId);
 
+  const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
+  const [rango, setRango] = useState<RangoFechas | null>(null);
+  const { desde, hasta } = rango ?? rangoPeriodoActual(periodo);
+  const etiquetaPeriodo = rango ? 'el rango elegido' : (PERIODOS_DASHBOARD.find((p) => p.value === periodo)?.etiqueta ?? 'este mes');
+  const redIds = (data?.redes_detalle ?? []).map((r) => r.id);
+  const { data: ingresosPeriodo } = useIngresosSupervisorPeriodo(redIds, desde, hasta);
+
   if (isLoading || !data) {
     return (
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,9 +43,26 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
 
   const { kpi, redes_detalle, departamentos_activos, alertas } = data;
   const alertasConDatos = Object.entries(alertas).filter(([, v]) => Array.isArray(v) && v.length > 0);
+  const ingresos = ingresosPeriodo ?? [];
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
+          <SelectTrigger className="w-32 rounded-xl border-border/60 bg-muted/40 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PERIODOS_DASHBOARD.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <RangoFechasPopover value={rango} onChange={setRango} />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard titulo="Redes" valor={kpi.redes} icon={Network} />
         <KpiCard titulo="Casas de Paz" valor={kpi.cdp} icon={Home} />
@@ -42,13 +70,13 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
         <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} icon={Activity} />
       </div>
 
-      {kpi.ingresos_mes && kpi.ingresos_mes.length > 0 && (
+      {ingresos.length > 0 && (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-base">Ingresos del mes</CardTitle>
+            <CardTitle className="text-base">Ingresos de {etiquetaPeriodo}</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-4">
-            {kpi.ingresos_mes.map((i) => (
+            {ingresos.map((i) => (
               <p key={i.moneda} className="text-lg font-semibold">
                 {i.moneda} {Number(i.total).toFixed(2)}
               </p>

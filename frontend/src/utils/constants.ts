@@ -7,6 +7,8 @@ export const ROUTES = {
   CASAS_DE_PAZ: '/casas-de-paz',
   MINISTERIOS: '/ministerios',
   REPORTES: '/reportes',
+  HISTORIAL_REPORTES: '/historial-reportes',
+  HISTORIAL_ASISTENCIA: '/historial-asistencia',
   CALENDARIO: '/calendario',
   EVANGELISMO: '/evangelismo',
   FINANZAS: '/finanzas',

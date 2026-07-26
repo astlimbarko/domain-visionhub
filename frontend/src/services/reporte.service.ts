@@ -1,7 +1,10 @@
 import { supabase } from './supabase';
+import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { inicioSemanaISO } from '@/utils/calendario-fechas';
+import { calcularEdad } from '@/utils/edad';
 import type {
   CamposObligatoriosReporte,
+  HistorialAsistencia,
   Libro,
   MegaFiestaDelDia,
   MiembroCdp,
@@ -40,8 +43,26 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
   return (data ?? []).map((r) => {
     const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
-    return { persona_id: r.persona_id, nombre_completo: nombre, tiene_fecha_nacimiento: !!p?.fecha_nacimiento };
+    return {
+      persona_id: r.persona_id,
+      nombre_completo: nombre,
+      tiene_fecha_nacimiento: !!p?.fecha_nacimiento,
+      edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+    };
   });
+}
+
+/**
+ * Umbral de edad que separa "niño" de "regular", configurable por iglesia
+ * (`EDAD_MINIMA_CREYENTE`, criterio ya usado por el backend para Estados
+ * SSVA y el Dashboard). Antes este umbral estaba hardcodeado en 12 acá: si
+ * una iglesia lo configura distinto, alguien podía quedar mal clasificado
+ * hasta que de casualidad coincidiera con el default.
+ */
+export async function obtenerEdadMinimaCreyente(iglesiaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: 'EDAD_MINIMA_CREYENTE' });
+  if (error) throw error;
+  return data ?? 12;
 }
 
 export async function obtenerCamposObligatorios(iglesiaId: string): Promise<CamposObligatoriosReporte> {
@@ -76,21 +97,113 @@ export async function obtenerMegaFiestaDelDia(casaDePazId: string, fecha: string
   return { evento_id: data.id, titulo: data.titulo };
 }
 
-export async function obtenerReportesRecientes(casaDePazId: string): Promise<ReporteReciente[]> {
+export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<ReporteReciente[]> {
+  if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
-    .select('reporte_id, fecha_reunion, total_asistentes, total_menores, total_mayores')
-    .eq('casa_de_paz_id', casaDePazId)
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, total_menores, total_mayores')
+    .in('casa_de_paz_id', casaDePazIds)
     .order('fecha_reunion', { ascending: false })
-    .limit(8);
+    .limit(10);
   if (error) throw error;
   return (data ?? []).map((r) => ({
     id: r.reporte_id,
+    casa_de_paz_id: r.casa_de_paz_id,
     fecha_reunion: r.fecha_reunion,
     total_asistentes: r.total_asistentes,
     total_menores: r.total_menores,
     total_mayores: r.total_mayores,
   }));
+}
+
+/** Fechas de reunion con reporte enviado dentro del rango -- para pintar el calendario de Historial de Reportes. */
+export async function obtenerFechasReportadas(casaDePazId: string, desde: string, hasta: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .gte('fecha_reunion', desde)
+    .lte('fecha_reunion', hasta);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.fecha_reunion);
+}
+
+// Ahora vive en su propia página (Historial de Asistencia), no en una card
+// compacta metida en Reportes -- hay más lugar en pantalla, así que se
+// muestran más reuniones que antes (8) para un historial más largo.
+const REUNIONES_HISTORIAL = 12;
+
+/**
+ * Historial de asistencia por miembro para las ultimas `REUNIONES_HISTORIAL`
+ * reuniones -- suficiente para ver la tendencia y para detectar 2 faltas
+ * seguidas sin traer todo el historico. El telefono sale de
+ * `telefono_asignacion` (RLS ya filtra datos confidenciales por cargo
+ * ministerial, ver 28_invitaciones_y_privacidad.sql), no hace falta
+ * replicar ese filtro aca.
+ */
+export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<HistorialAsistencia> {
+  const { data: reportes, error: errorReportes } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('id, fecha_reunion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .order('fecha_reunion', { ascending: false })
+    .limit(REUNIONES_HISTORIAL);
+  if (errorReportes) throw errorReportes;
+
+  const { data: miembros, error: errorMiembros } = await supabase
+    .from('casa_de_paz_membresia')
+    .select(
+      'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, sexo, fecha_nacimiento)'
+    )
+    .eq('casa_de_paz_id', casaDePazId)
+    .is('fecha_fin', null);
+  if (errorMiembros) throw errorMiembros;
+
+  const reuniones = (reportes ?? []).map((r) => ({ id: r.id, fecha_reunion: r.fecha_reunion }));
+  const reporteIds = reuniones.map((r) => r.id);
+  const personaIds = (miembros ?? []).map((m) => m.persona_id);
+
+  let asistencias: { reporte_id: string; persona_id: string }[] = [];
+  if (reporteIds.length > 0) {
+    const { data, error } = await supabase.from('casa_de_paz_asistencia').select('reporte_id, persona_id').in('reporte_id', reporteIds);
+    if (error) throw error;
+    asistencias = data ?? [];
+  }
+
+  let telefonos: { persona_id: string; telefono: { numero: string } | { numero: string }[] | null }[] = [];
+  if (personaIds.length > 0) {
+    const { data, error } = await supabase
+      .from('telefono_asignacion')
+      .select('persona_id, telefono:telefono_id(numero)')
+      .in('persona_id', personaIds)
+      .eq('es_principal', true)
+      .is('fecha_eliminacion', null);
+    if (error) throw error;
+    telefonos = data ?? [];
+  }
+
+  const asistioSet = new Set(asistencias.map((a) => `${a.reporte_id}:${a.persona_id}`));
+  const telefonoPorPersona = new Map<string, string>();
+  for (const t of telefonos) {
+    const tel = Array.isArray(t.telefono) ? t.telefono[0] : t.telefono;
+    if (tel?.numero) telefonoPorPersona.set(t.persona_id, tel.numero);
+  }
+
+  return {
+    reuniones,
+    miembros: (miembros ?? []).map((m) => {
+      const p = Array.isArray(m.persona) ? m.persona[0] : m.persona;
+      const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
+      return {
+        persona_id: m.persona_id,
+        nombre_completo: nombre,
+        sexo: (p?.sexo ?? 'M') as 'M' | 'F',
+        edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+        telefono: telefonoPorPersona.get(m.persona_id) ?? null,
+        asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${m.persona_id}`)),
+      };
+    }),
+  };
 }
 
 /** Un Reporte cuenta por semana, no por fecha exacta: avisa si la semana de `fecha` ya tiene uno. */
@@ -130,9 +243,10 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
   if (errorReporte) throw errorReporte;
   const reporteId = reporte.id;
 
-  const personaIds: { id: string; esMenor?: boolean }[] = datos.asistentesExistentes.map((a) => ({
+  const personaIds: { id: string; esMenor?: boolean; esVisita?: boolean }[] = datos.asistentesExistentes.map((a) => ({
     id: a.personaId,
     esMenor: a.esMenor,
+    esVisita: a.esVisita,
   }));
 
   for (const visita of datos.visitasNuevas) {
@@ -147,7 +261,14 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       .select('id')
       .single();
     if (errorPersona) throw errorPersona;
-    personaIds.push({ id: persona.id, esMenor: visita.es_menor });
+    personaIds.push({ id: persona.id, esMenor: visita.es_menor, esVisita: true });
+
+    if (visita.telefono?.trim()) {
+      const tipos = await obtenerTiposTelefono();
+      if (tipos[0]) {
+        await agregarTelefono(datos.iglesia_id, persona.id, tipos[0].id, visita.telefono.trim(), null, true);
+      }
+    }
   }
 
   if (personaIds.length > 0) {
@@ -157,6 +278,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
         reporte_id: reporteId,
         persona_id: p.id,
         es_menor: p.esMenor ?? null,
+        es_visita: p.esVisita ?? false,
       }))
     );
     if (errorAsistencia) throw errorAsistencia;

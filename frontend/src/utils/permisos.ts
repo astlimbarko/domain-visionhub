@@ -9,6 +9,8 @@ import {
   Home,
   Sparkles,
   ClipboardList,
+  History,
+  PhoneCall,
   Calendar,
   HeartHandshake,
   Wallet,
@@ -36,6 +38,8 @@ export interface NavItem {
 const RUTAS_LIDER_CDP: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.REPORTES,
+  ROUTES.HISTORIAL_REPORTES,
+  ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.EVANGELISMO,
   ROUTES.CALENDARIO,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Gestión de Sublíder"
@@ -51,6 +55,8 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
   ROUTES.REPORTES,
+  ROUTES.HISTORIAL_REPORTES,
+  ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.EVANGELISMO,
   ROUTES.CALENDARIO,
 ];
@@ -61,6 +67,8 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.CASAS_DE_PAZ,
   ROUTES.MINISTERIOS,
   ROUTES.REPORTES,
+  ROUTES.HISTORIAL_REPORTES,
+  ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.FINANZAS,
@@ -74,6 +82,8 @@ const RUTAS_SUPERVISOR: string[] = [
 const RUTAS_PASTOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.REPORTES,
+  ROUTES.HISTORIAL_REPORTES,
+  ROUTES.HISTORIAL_ASISTENCIA,
 ];
 
 const RUTAS_SUPER_ADMIN: string[] = [
@@ -97,6 +107,8 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, labelPorRol: { LIDER_CDP: 'Gestión de Sublíder', SUBLIDER_CDP: 'Gestión de Sublíder' } },
   { icon: Sparkles, label: 'Ministerios', path: ROUTES.MINISTERIOS },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES },
+  { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES },
+  { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO },
   { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS },

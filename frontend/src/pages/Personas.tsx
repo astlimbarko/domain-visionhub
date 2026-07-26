@@ -57,20 +57,21 @@ export function Personas() {
             <button key={p.id} type="button"
               className="glass-card group flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left transition-all hover:bg-muted/60 active:scale-[0.998]"
               onClick={() => setPersonaSeleccionadaId(p.id)}>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <UserRound className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
-                    {p.nombre_completo} {p.oculto && <EyeOff className="h-3 w-3 text-muted-foreground/60" />}
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold text-foreground">
+                    <span className="truncate">{p.nombre_completo}</span>
+                    {p.oculto && <EyeOff className="h-3 w-3 shrink-0 text-muted-foreground/60" />}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="truncate text-[11px] text-muted-foreground">
                     {p.edad !== null ? `${p.edad} años` : 'Edad no registrada'}{p.ci && ` · CI ${p.ci}`}{p.casa_de_paz_etiqueta && ` · ${p.casa_de_paz_etiqueta}`}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {p.telefono_principal && <span className="hidden text-[11px] text-muted-foreground sm:inline">{p.telefono_principal}</span>}
                 {p.estado_sigla && <Badge variant="secondary" className="rounded-full text-[10px]">{p.estado_sigla}</Badge>}
               </div>

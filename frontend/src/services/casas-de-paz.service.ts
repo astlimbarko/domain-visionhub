@@ -1,10 +1,14 @@
 import { supabase } from './supabase';
 import { aISO } from '@/utils/calendario-fechas';
+import { calcularEdad } from '@/utils/edad';
 import type {
   CargoCdpCodigo,
   CargoRedCodigo,
   CargoVigente,
   CdpResumen,
+  Ciudad,
+  DatosDomicilioCdp,
+  DomicilioCdp,
   PersonaBusqueda,
   RedResumen,
 } from '@/types/casas-de-paz.types';
@@ -94,7 +98,7 @@ export async function toggleActivoCdp(cdpId: string, activo: boolean) {
   if (error) throw error;
 }
 
-export async function buscarPersonas(iglesiaId: string, texto: string): Promise<PersonaBusqueda[]> {
+export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number): Promise<PersonaBusqueda[]> {
   const tokens = texto.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
 
@@ -113,7 +117,7 @@ export async function buscarPersonas(iglesiaId: string, texto: string): Promise<
 
   const { data, error } = await supabase
     .from('persona')
-    .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido')
+    .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento')
     .eq('iglesia_id', iglesiaId)
     .or(condiciones)
     .limit(30);
@@ -123,18 +127,23 @@ export async function buscarPersonas(iglesiaId: string, texto: string): Promise<
     .map((p) => ({
       id: p.id,
       nombre_completo: [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' '),
+      fecha_nacimiento: p.fecha_nacimiento as string | null,
     }))
     .filter((p) => {
       const nombreNormalizado = p.nombre_completo.toLowerCase();
       return tokens.every((t) => nombreNormalizado.includes(t.toLowerCase()));
     })
-    .slice(0, 10);
+    // Sin fecha de nacimiento registrada no se puede saber si es menor -- se
+    // deja pasar en vez de ocultar a alguien por falta de datos.
+    .filter((p) => !edadMinima || !p.fecha_nacimiento || calcularEdad(p.fecha_nacimiento) >= edadMinima)
+    .slice(0, 10)
+    .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
 }
 
 export async function obtenerCargoVigenteRed(redId: string, codigo: CargoRedCodigo): Promise<CargoVigente[]> {
   const { data, error } = await supabase
     .from('red_cargo')
-    .select('id, persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido), cargo:cargo_id(codigo)')
+    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
     .eq('red_id', redId)
     .is('fecha_fin', null);
   if (error) throw error;
@@ -148,6 +157,8 @@ export async function obtenerCargoVigenteRed(redId: string, codigo: CargoRedCodi
       return {
         id: r.id,
         persona_id: r.persona_id,
+        fecha_inicio: r.fecha_inicio,
+        correo: p?.correo ?? null,
         nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
       };
     });
@@ -156,7 +167,7 @@ export async function obtenerCargoVigenteRed(redId: string, codigo: CargoRedCodi
 export async function obtenerCargoVigenteCdp(cdpId: string, codigo: CargoCdpCodigo): Promise<CargoVigente[]> {
   const { data, error } = await supabase
     .from('casa_de_paz_cargo')
-    .select('id, persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido), cargo:cargo_id(codigo)')
+    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
     .eq('casa_de_paz_id', cdpId)
     .is('fecha_fin', null);
   if (error) throw error;
@@ -170,6 +181,8 @@ export async function obtenerCargoVigenteCdp(cdpId: string, codigo: CargoCdpCodi
       return {
         id: r.id,
         persona_id: r.persona_id,
+        fecha_inicio: r.fecha_inicio,
+        correo: p?.correo ?? null,
         nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
       };
     });
@@ -233,5 +246,75 @@ export async function quitarCargoRed(cargoAsignacionId: string) {
 
 export async function quitarCargoCdp(cargoAsignacionId: string) {
   const { error } = await supabase.from('casa_de_paz_cargo').update({ fecha_fin: aISO(new Date()) }).eq('id', cargoAsignacionId);
+  if (error) throw error;
+}
+
+export async function obtenerCiudades(): Promise<Ciudad[]> {
+  const { data, error } = await supabase.from('ciudad').select('id, codigo, nombre').eq('activo', true).order('orden');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerDomicilioCdp(cdpId: string): Promise<DomicilioCdp | null> {
+  const { data, error } = await supabase
+    .from('direccion_asignacion')
+    .select('id, direccion:direccion_id(id, ciudad_id, zona, calle, numero, referencia, ciudad:ciudad_id(nombre))')
+    .eq('casa_de_paz_id', cdpId)
+    .eq('activo', true)
+    .is('fecha_eliminacion', null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const d = Array.isArray(data.direccion) ? data.direccion[0] : data.direccion;
+  if (!d || !d.ciudad_id) return null;
+  const ciudad = Array.isArray(d.ciudad) ? d.ciudad[0] : d.ciudad;
+
+  return {
+    asignacion_id: data.id,
+    direccion_id: d.id,
+    ciudad_id: d.ciudad_id,
+    ciudad_nombre: ciudad?.nombre ?? '',
+    zona: d.zona,
+    calle: d.calle,
+    numero: d.numero,
+    referencia: d.referencia,
+  };
+}
+
+export async function guardarDomicilioCdp(iglesiaId: string, cdpId: string, datos: DatosDomicilioCdp) {
+  const payload = {
+    ciudad_id: datos.ciudadId,
+    zona: datos.zona,
+    calle: datos.calle,
+    numero: datos.numero,
+    referencia: datos.referencia,
+  };
+
+  const { data: existente, error: errBuscar } = await supabase
+    .from('direccion_asignacion')
+    .select('id, direccion_id')
+    .eq('casa_de_paz_id', cdpId)
+    .eq('activo', true)
+    .is('fecha_eliminacion', null)
+    .maybeSingle();
+  if (errBuscar) throw errBuscar;
+
+  if (existente) {
+    const { error } = await supabase.from('direccion').update(payload).eq('id', existente.direccion_id);
+    if (error) throw error;
+    return;
+  }
+
+  const { data: direccion, error: errDireccion } = await supabase
+    .from('direccion')
+    .insert({ iglesia_id: iglesiaId, ...payload })
+    .select('id')
+    .single();
+  if (errDireccion) throw errDireccion;
+
+  const { error } = await supabase
+    .from('direccion_asignacion')
+    .insert({ iglesia_id: iglesiaId, direccion_id: direccion.id, casa_de_paz_id: cdpId });
   if (error) throw error;
 }

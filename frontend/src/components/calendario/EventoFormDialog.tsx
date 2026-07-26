@@ -13,13 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
+import { iconoTipoEvento } from '@/utils/tipo-evento-icono';
 import type { TipoEvento } from '@/types/calendario.types';
 
 const esquema = z
@@ -35,7 +31,18 @@ const esquema = z
   .refine((v) => !v.fecha_fin || v.fecha_fin >= v.fecha_inicio, {
     message: 'La fecha de fin no puede ser anterior a la de inicio',
     path: ['fecha_fin'],
-  });
+  })
+  .refine(
+    (v) => {
+      // Un evento de un solo día no puede terminar antes de empezar. Un evento de
+      // varios días sí puede (un retiro puede arrancar el viernes 18:00 y cerrar
+      // el domingo 12:00) — por eso esto solo aplica cuando fecha_fin == fecha_inicio.
+      const esUnSoloDia = !v.fecha_fin || v.fecha_fin === v.fecha_inicio;
+      if (!esUnSoloDia || !v.hora_inicio || !v.hora_fin) return true;
+      return v.hora_fin >= v.hora_inicio;
+    },
+    { message: 'En un evento de un solo día, la hora de fin no puede ser anterior a la de inicio', path: ['hora_fin'] }
+  );
 
 type FormValues = z.infer<typeof esquema>;
 
@@ -88,20 +95,39 @@ export function EventoFormDialog({ open, onOpenChange, tipos, fechaInicial, onCr
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Tipo de evento *</Label>
-            <Select value={tipoActual ?? ''} onValueChange={(v) => setValue('tipo_evento_id', v, { shouldValidate: true })}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {tipos.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} />
-                    {t.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.tipo_evento_id && <p className="text-sm text-destructive">Requerido</p>}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {tipos.map((t) => {
+                const Icono = iconoTipoEvento(t.codigo);
+                const activo = tipoActual === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setValue('tipo_evento_id', t.id, { shouldValidate: true })}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all active:scale-[0.97]',
+                      activo ? 'border-transparent shadow-sm ring-2 ring-offset-1' : 'border-border/70 bg-background hover:border-border'
+                    )}
+                    style={
+                      activo
+                        ? ({ backgroundColor: `color-mix(in oklab, ${t.color} 12%, transparent)`, '--tw-ring-color': t.color } as React.CSSProperties)
+                        : undefined
+                    }
+                  >
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `color-mix(in oklab, ${t.color} ${activo ? 24 : 14}%, transparent)` }}
+                    >
+                      <Icono className="h-4.5 w-4.5" style={{ color: t.color }} />
+                    </span>
+                    <span className={cn('text-[11.5px] leading-tight font-semibold', activo ? 'text-foreground' : 'text-muted-foreground')}>
+                      {t.nombre}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {errors.tipo_evento_id && <p className="text-sm text-destructive">Elegí un tipo de evento</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -115,7 +141,7 @@ export function EventoFormDialog({ open, onOpenChange, tipos, fechaInicial, onCr
             <Textarea id="descripcion" {...register('descripcion')} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="fecha_inicio">Fecha inicio *</Label>
               <Input id="fecha_inicio" type="date" {...register('fecha_inicio')} />
@@ -136,7 +162,8 @@ export function EventoFormDialog({ open, onOpenChange, tipos, fechaInicial, onCr
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" className="gap-1.5" disabled={isSubmitting}>
+              {isSubmitting && <Spinner className="h-3.5 w-3.5" />}
               {isSubmitting ? 'Guardando...' : 'Crear evento'}
             </Button>
           </DialogFooter>

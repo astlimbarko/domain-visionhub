@@ -3,14 +3,33 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Circle, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { establecerContrasena, establecerPin, obtenerCorreoActual, tengoPin } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
-const esquemaContrasena = z.object({ contrasena: z.string().min(8, 'Mínimo 8 caracteres'), confirmar: z.string() }).refine((v) => v.contrasena === v.confirmar, { message: 'No coinciden', path: ['confirmar'] });
+const REQUISITOS_CONTRASENA = [
+  { clave: 'longitud', texto: 'Mínimo 8 caracteres', test: (v: string) => v.length >= 8 },
+  { clave: 'mayuscula', texto: 'Una letra mayúscula', test: (v: string) => /[A-Z]/.test(v) },
+  { clave: 'minuscula', texto: 'Una letra minúscula', test: (v: string) => /[a-z]/.test(v) },
+  { clave: 'numero', texto: 'Un número', test: (v: string) => /\d/.test(v) },
+  { clave: 'especial', texto: 'Un carácter especial (!@#$%^&*)', test: (v: string) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
+] as const;
+
+const esquemaContrasena = z
+  .object({
+    contrasena: z
+      .string()
+      .min(8, 'Mínimo 8 caracteres')
+      .regex(/[A-Z]/, 'Falta una mayúscula')
+      .regex(/[a-z]/, 'Falta una minúscula')
+      .regex(/\d/, 'Falta un número')
+      .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Falta un carácter especial'),
+    confirmar: z.string(),
+  })
+  .refine((v) => v.contrasena === v.confirmar, { message: 'No coinciden', path: ['confirmar'] });
 type FormContrasena = z.infer<typeof esquemaContrasena>;
 const esquemaPin = z.object({ pin: z.string().regex(/^[0-9]{6}$/, '6 dígitos'), confirmarPin: z.string() }).refine((v) => v.pin === v.confirmarPin, { message: 'No coinciden', path: ['confirmarPin'] });
 type FormPin = z.infer<typeof esquemaPin>;
@@ -24,6 +43,7 @@ export function Cuenta() {
   const [enviandoPin, setEnviandoPin] = useState(false);
   const formContrasena = useForm<FormContrasena>({ resolver: zodResolver(esquemaContrasena) });
   const formPin = useForm<FormPin>({ resolver: zodResolver(esquemaPin) });
+  const nuevaContrasena = formContrasena.watch('contrasena') ?? '';
 
   useEffect(() => { obtenerCorreoActual().then(setCorreo); if (esSuperAdmin) tengoPin().then(setTienePin); }, [esSuperAdmin]);
 
@@ -59,6 +79,25 @@ export function Cuenta() {
         </div>
         <form onSubmit={formContrasena.handleSubmit(onSubmitContrasena)} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Nueva</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('contrasena')} />{formContrasena.formState.errors.contrasena && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.contrasena.message}</p>}</div>
+
+          {nuevaContrasena && (
+            <div className="glass-subtle flex flex-col gap-1.5 rounded-xl p-3">
+              {REQUISITOS_CONTRASENA.map((req) => {
+                const cumple = req.test(nuevaContrasena);
+                return (
+                  <div key={req.clave} className="flex items-center gap-2">
+                    {cumple ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-chart-2" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+                    )}
+                    <span className={`text-[11px] ${cumple ? 'text-foreground' : 'text-muted-foreground'}`}>{req.texto}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('confirmar')} />{formContrasena.formState.errors.confirmar && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.confirmar.message}</p>}</div>
           <Button type="submit" disabled={enviandoContrasena} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoContrasena ? 'Guardando...' : 'Guardar'}</Button>
         </form>

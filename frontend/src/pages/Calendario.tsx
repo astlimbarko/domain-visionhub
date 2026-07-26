@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Cake, CalendarClock } from 'lucide-react';
+import { toast } from 'sonner';
+import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Globe2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Select,
   SelectContent,
@@ -9,10 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
 import {
   useCrearEvento,
   useCumpleanosMes,
+  useEliminarEvento,
   useEventosMes,
   useMisCasasDePaz,
   useProximos,
@@ -21,11 +27,18 @@ import {
 import { CalendarioGrid } from '@/components/calendario/CalendarioGrid';
 import { EventoFormDialog } from '@/components/calendario/EventoFormDialog';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { aISO, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { iconoTipoEvento } from '@/utils/tipo-evento-icono';
+
+// Requisito 5.1/5.2: la Mega Fiesta solo la puede crear el Líder de Red o un rol superior.
+// Se cuelga de una red (no de una Casa de Paz) y esta página siempre trabaja en contexto de CdP,
+// así que a un líder/sublíder de CdP ni se le ofrece como opción al crear un evento.
+const ROLES_PUEDEN_MEGA_FIESTA = new Set(['LIDER_RED', 'SUPERVISOR', 'PASTOR', 'SUPER_ADMIN']);
 
 export function Calendario() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const rolUI = useRolUI();
 
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
@@ -36,15 +49,47 @@ export function Calendario() {
   const [mes, setMes] = useState(hoy.getMonth());
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [filtroTipoId, setFiltroTipoId] = useState<string | undefined>(undefined);
+  const [eventoAEliminar, setEventoAEliminar] = useState<{ id: string; titulo: string } | null>(null);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
 
   const { data: tipos = [] } = useTiposEvento(iglesiaActivaId);
-  const { data: eventos = [], isLoading: cargandoEventos } = useEventosMes(cdpActiva, desde, hasta);
+  const { data: eventos = [], isLoading: cargandoEventos, isFetching: actualizandoEventos } = useEventosMes(cdpActiva, desde, hasta, filtroTipoId);
   const { data: cumpleanos = [] } = useCumpleanosMes(cdpActiva, desde, hasta);
   const { data: proximos = [] } = useProximos(cdpActiva);
   const crearEvento = useCrearEvento(cdpActiva);
+  const eliminarEvento = useEliminarEvento(cdpActiva);
+
+  function manejarEliminarEvento() {
+    if (!eventoAEliminar) return;
+    eliminarEvento.mutate(eventoAEliminar.id, {
+      onSuccess: () => {
+        toast.success('Evento eliminado');
+        setEventoAEliminar(null);
+      },
+      onError: (e) => {
+        const error = e as { message?: string } | null;
+        const mensaje = typeof error?.message === 'string' ? error.message : '';
+        if (mensaje.includes('row-level security') || mensaje.includes('permission denied')) {
+          toast.error('No tenés permiso para eliminar este evento');
+        } else {
+          toast.error('No se pudo eliminar el evento');
+        }
+        setEventoAEliminar(null);
+      },
+    });
+  }
+
+  // Requisito 1.1: catálogo sembrado con 8 tipos, incluyendo Cumpleaños — pero
+  // ese es generado (Requisito 4.2), nunca creable como Evento, así que no se
+  // ofrece en el formulario aunque exista como fila en tipo_evento.
+  const tiposCreables = tipos.filter((t) => {
+    if (t.codigo === 'CUMPLEANOS') return false;
+    if (t.codigo === 'MEGA_FIESTA') return rolUI !== null && ROLES_PUEDEN_MEGA_FIESTA.has(rolUI);
+    return true;
+  });
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -85,10 +130,26 @@ export function Calendario() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <CalendarDays className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Calendario</h1>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">Eventos y cumpleaños de tu Casa de Paz</p>
+          </div>
+        </div>
+        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 self-start rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98] sm:self-auto">
+          <Plus className="h-4 w-4" />
+          Nuevo evento
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-2 sm:pl-4">
+        <div className="flex flex-wrap items-center gap-2">
           {misCasas.length > 1 && (
             <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
+              <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
                 <SelectValue placeholder="Casa de Paz" />
               </SelectTrigger>
               <SelectContent>
@@ -103,15 +164,54 @@ export function Calendario() {
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="w-36 text-center text-sm font-semibold tracking-tight">{nombreMes(anio, mes)}</span>
+          <span className="flex w-36 items-center justify-center gap-1.5 text-center text-sm font-semibold tracking-tight capitalize">
+            {nombreMes(anio, mes)}
+            {actualizandoEventos && !cargandoEventos && <Spinner className="h-3 w-3 text-muted-foreground" />}
+          </span>
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
-          <Plus className="h-4 w-4" />
-          Nuevo evento
-        </Button>
+
+        {/* Requisito 3.4: filtrar por tipo de evento. Los chips también sirven de leyenda de colores. */}
+        {tipos.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFiltroTipoId(undefined)}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.97] ${
+                filtroTipoId === undefined
+                  ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                  : 'border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground'
+              }`}
+            >
+              Todos
+            </button>
+            {tipos.map((t) => {
+              const Icono = iconoTipoEvento(t.codigo);
+              const activo = filtroTipoId === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setFiltroTipoId(activo ? undefined : t.id)}
+                  className={`flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1 text-xs font-semibold transition-all active:scale-[0.97] ${
+                    activo ? 'text-foreground shadow-sm' : 'border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground'
+                  }`}
+                  style={activo ? { borderColor: t.color, backgroundColor: `color-mix(in oklab, ${t.color} 14%, transparent)` } : undefined}
+                >
+                  <span
+                    className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `color-mix(in oklab, ${t.color} ${activo ? 30 : 16}%, transparent)` }}
+                  >
+                    <Icono className="h-3.5 w-3.5" style={{ color: t.color }} />
+                  </span>
+                  {t.nombre}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -133,23 +233,68 @@ export function Calendario() {
         <div className="flex flex-col gap-4">
           {diaSeleccionado && (
             <div className="glass-card-elevated rounded-2xl p-5">
-              <h3 className="mb-3 text-sm font-semibold">{diaSeleccionado}</h3>
-              <div className="flex flex-col gap-2">
+              <SeccionIconHeader
+                icon={CalendarDays}
+                color="var(--primary)"
+                titulo={fechaLegible(diaSeleccionado)}
+                descripcion={
+                  eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length > 0
+                    ? `${eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length} para hoy`
+                    : undefined
+                }
+                size="sm"
+              />
+              <div className="mt-4 flex flex-col gap-2.5">
                 {eventosDelDiaSeleccionado.length === 0 && cumpleanosDelDiaSeleccionado.length === 0 && (
                   <p className="text-sm text-muted-foreground">Sin eventos ni cumpleaños.</p>
                 )}
-                {eventosDelDiaSeleccionado.map((e) => (
-                  <div key={e.id} className="flex items-center gap-2 text-sm">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: e.color }} />
-                    <span className="font-medium">{e.titulo}</span>
-                    <span className="text-muted-foreground">({e.tipo_nombre})</span>
-                  </div>
-                ))}
+                {eventosDelDiaSeleccionado.map((e) => {
+                  const Icono = iconoTipoEvento(e.tipo_codigo);
+                  return (
+                    <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `color-mix(in oklab, ${e.color} 15%, transparent)` }}
+                      >
+                        <Icono className="h-5 w-5" style={{ color: e.color }} />
+                      </div>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <p className="flex flex-wrap items-center gap-1.5 font-medium">
+                          {e.titulo}
+                          {e.ambito === 'RED' && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              <Globe2 className="h-2.5 w-2.5" />
+                              De la Red
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs font-medium" style={{ color: e.color }}>
+                          {e.tipo_nombre}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {e.hora_inicio && `${e.hora_inicio.slice(0, 5)}${e.hora_fin ? ` – ${e.hora_fin.slice(0, 5)}` : ''}`}
+                          {e.es_multi_dia && (e.hora_inicio ? ' · varios días' : 'Varios días')}
+                        </p>
+                        {e.descripcion && <p className="mt-0.5 text-xs text-muted-foreground">{e.descripcion}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Eliminar evento"
+                        onClick={() => setEventoAEliminar({ id: e.id, titulo: e.titulo })}
+                        className="shrink-0 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
                 {cumpleanosDelDiaSeleccionado.map((c) => (
-                  <div key={c.persona_id} className="flex items-center gap-2 text-sm">
-                    <Cake className="h-4 w-4 shrink-0 text-chart-4" />
-                    <span>
-                      {c.nombre} cumple {c.edad_cumple} años
+                  <div key={c.persona_id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-4)]/15">
+                      <Cake className="h-5 w-5" style={{ color: 'var(--chart-4)' }} />
+                    </div>
+                    <span className="font-medium">
+                      {c.nombre} <span className="font-normal text-muted-foreground">cumple {c.edad_cumple} años</span>
                     </span>
                   </div>
                 ))}
@@ -158,20 +303,36 @@ export function Calendario() {
           )}
 
           <div className="glass-card-elevated rounded-2xl p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              Próximos
-            </h3>
-            <div className="flex flex-col gap-2">
+            <SeccionIconHeader
+              icon={CalendarClock}
+              color="#6366f1"
+              titulo="Próximos"
+              descripcion="Eventos y cumpleaños de los próximos días"
+              size="sm"
+            />
+            <div className="mt-4 flex flex-col gap-1.5">
               {proximos.length === 0 && <p className="text-sm text-muted-foreground">Nada próximo.</p>}
-              {proximos.map((p, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span>{p.titulo}</span>
-                  <span className="rounded-lg bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
-                    {p.dias_faltantes === 0 ? 'hoy' : `en ${p.dias_faltantes}d`}
-                  </span>
-                </div>
-              ))}
+              {proximos.map((p, i) => {
+                const esCumple = p.clase === 'CUMPLEANOS';
+                const Icono = esCumple ? Cake : CalendarClock;
+                const color = esCumple ? 'var(--chart-4)' : '#6366f1';
+                return (
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1 text-sm transition-colors hover:bg-muted/50">
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                        style={{ backgroundColor: `color-mix(in oklab, ${color} 15%, transparent)` }}
+                      >
+                        <Icono className="h-4 w-4" style={{ color }} />
+                      </span>
+                      <span className="truncate font-medium">{p.titulo}</span>
+                    </span>
+                    <span className="shrink-0 rounded-lg bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
+                      {p.dias_faltantes === 0 ? 'hoy' : `en ${p.dias_faltantes}d`}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -181,7 +342,7 @@ export function Calendario() {
         <EventoFormDialog
           open={dialogoAbierto}
           onOpenChange={setDialogoAbierto}
-          tipos={tipos}
+          tipos={tiposCreables}
           fechaInicial={diaSeleccionado ?? aISO(hoy)}
           onCrear={(valores) =>
             crearEvento.mutateAsync({
@@ -198,6 +359,17 @@ export function Calendario() {
           }
         />
       )}
+
+      <ConfirmarQuitarDialog
+        open={!!eventoAEliminar}
+        onOpenChange={(open) => !open && setEventoAEliminar(null)}
+        titulo="Eliminar evento"
+        descripcion={eventoAEliminar ? `¿Seguro que querés eliminar "${eventoAEliminar.titulo}"? Esta acción no se puede deshacer.` : undefined}
+        procesando={eliminarEvento.isPending}
+        onConfirmar={manejarEliminarEvento}
+        textoConfirmar="Sí, eliminar"
+        textoProcesando="Eliminando..."
+      />
     </div>
   );
 }

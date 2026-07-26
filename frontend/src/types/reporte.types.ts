@@ -16,6 +16,25 @@ export interface MiembroCdp {
   persona_id: string;
   nombre_completo: string;
   tiene_fecha_nacimiento: boolean;
+  edad: number | null;
+}
+
+export interface EvangelizadoPendiente {
+  /** id temporal del lado del cliente, solo para la key de React y para poder quitarlo de la lista. */
+  clave: string;
+  persona_id?: string;
+  nombre_completo: string;
+  primer_nombre?: string;
+  primer_apellido?: string;
+  sexo?: 'M' | 'F';
+  domicilio?: string;
+  /** Ambos opcionales: la persona recién evangelizada puede no querer o no poder darlos todavía. */
+  telefono?: string;
+  fecha_nacimiento?: string;
+  /** Tipo de evangelismo elegido (1+1, Elite, Semilla...) al momento de agregarla. */
+  tipo_evangelismo_id?: string;
+  tipo_evangelismo_nombre?: string;
+  tipo_evangelismo_color?: string;
 }
 
 export interface CamposObligatoriosReporte {
@@ -36,6 +55,7 @@ export interface NuevaVisita {
   primer_apellido: string;
   sexo: 'M' | 'F';
   es_menor?: boolean;
+  telefono?: string;
 }
 
 export interface NuevoReporte {
@@ -51,7 +71,7 @@ export interface NuevoReporte {
   evangelizados_declarados?: number;
   testimonios?: string;
   comentarios?: string;
-  asistentesExistentes: { personaId: string; esMenor?: boolean }[];
+  asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
   visitasNuevas: NuevaVisita[];
   totalOfrendas: number;
   totalDiezmos?: number;
@@ -67,6 +87,7 @@ export interface ResultadoReporte {
 
 export interface ReporteReciente {
   id: string;
+  casa_de_paz_id: string;
   fecha_reunion: string;
   total_asistentes: number;
   total_menores: number;
@@ -75,4 +96,26 @@ export interface ReporteReciente {
 
 export interface ReporteDeLaSemana {
   fecha_reunion: string;
+}
+
+export interface ReunionAsistencia {
+  id: string;
+  fecha_reunion: string;
+}
+
+export interface MiembroAsistencia {
+  persona_id: string;
+  nombre_completo: string;
+  sexo: 'M' | 'F';
+  edad: number | null;
+  /** Numero crudo tal cual esta guardado -- el link de WhatsApp se arma en el componente. */
+  telefono: string | null;
+  /** Alineado 1 a 1 con `HistorialAsistencia.reuniones` (mismo orden). */
+  asistio: boolean[];
+}
+
+export interface HistorialAsistencia {
+  /** Ultimas reuniones de la CdP, de la mas reciente a la mas vieja. */
+  reuniones: ReunionAsistencia[];
+  miembros: MiembroAsistencia[];
 }

@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -129,14 +130,20 @@ export function AsignarCargoDialog({
                   value={correoInvitar}
                   onChange={(e) => setCorreoInvitar(e.target.value)}
                 />
-                <Button type="button" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim()}>
+                <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim()}>
+                  {invitando && <Spinner className="h-3.5 w-3.5" />}
                   {invitando ? 'Enviando...' : 'Invitar'}
                 </Button>
               </div>
             </div>
           )}
 
-          {asignando && <p className="text-sm text-muted-foreground">Asignando...</p>}
+          {asignando && (
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Spinner className="h-3.5 w-3.5" />
+              Asignando...
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

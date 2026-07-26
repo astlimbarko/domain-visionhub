@@ -84,7 +84,7 @@ export function FichaLlegada({ personaId, iglesiaId, llegadas, puedeEditar }: Pr
 
       {mostrarForm && (
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <Label className="text-xs">Motivo</Label>
               <Select value={motivoId} onValueChange={setMotivoId}>

@@ -168,12 +168,12 @@ export function Administracion() {
             <p className="text-sm text-muted-foreground">Todavía no hay iglesias.</p>
           )}
           {iglesias.map((i) => (
-            <div key={i.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-              <div>
-                <p className="font-medium">{i.nombre}</p>
-                <p className="text-sm text-muted-foreground">{i.ciudad}</p>
+            <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{i.nombre}</p>
+                <p className="truncate text-sm text-muted-foreground">{i.ciudad}</p>
               </div>
-              {!i.activo && <Badge variant="outline">Inactiva</Badge>}
+              {!i.activo && <Badge variant="outline" className="shrink-0">Inactiva</Badge>}
             </div>
           ))}
         </CardContent>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,16 @@ interface Props {
 export function CrearRedDialog({ open, onOpenChange, creando, onCrear }: Props) {
   const [nombre, setNombre] = useState('');
 
+  // Se resetea al abrir, no al enviar -- si el backend rechaza la creacion
+  // (nombre duplicado, sin permiso), el dialogo se queda abierto y el nombre
+  // que ya habia escrito no se debe perder.
+  useEffect(() => {
+    if (open) setNombre('');
+  }, [open]);
+
   function handleCrear() {
     if (!nombre.trim()) return;
     onCrear(nombre.trim());
-    setNombre('');
   }
 
   return (
