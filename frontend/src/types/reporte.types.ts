@@ -98,6 +98,18 @@ export interface ReporteDeLaSemana {
   fecha_reunion: string;
 }
 
+/**
+ * Fila cruda de un reporte enviado por alguna Casa de Paz de la Red, para la
+ * vista supervisora "Control de Reportes" del Líder de Red. La semana ISO se
+ * calcula en el cliente a partir de `fecha_reunion`.
+ */
+export interface ReporteRedFila {
+  reporte_id: string;
+  casa_de_paz_id: string;
+  fecha_reunion: string;
+  total_asistentes: number;
+}
+
 export interface ReunionAsistencia {
   id: string;
   fecha_reunion: string;

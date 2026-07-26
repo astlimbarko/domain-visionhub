@@ -11,6 +11,15 @@ export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, 
   });
 }
 
+/** Roster de personas de una Red (vista del Líder de Red). */
+export function usePersonasDeRed(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['personas', 'de-red', redId],
+    queryFn: () => personaService.obtenerPersonasDeRed(redId as string),
+    enabled: !!redId,
+  });
+}
+
 export function usePersonaFicha(personaId: string | undefined) {
   return useQuery({
     queryKey: ['personas', 'ficha', personaId],

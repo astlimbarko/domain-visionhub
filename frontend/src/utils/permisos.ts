@@ -9,6 +9,7 @@ import {
   Home,
   Sparkles,
   ClipboardList,
+  ClipboardCheck,
   History,
   PhoneCall,
   Calendar,
@@ -35,6 +36,8 @@ export interface NavItem {
   icon: LucideIcon;
   label: string;
   path: string;
+  /** Color vivo propio de la sección: su ícono lo usa para reconocerse de un vistazo. */
+  color: string;
   /** Label alternativo por rol (ej. "Gestión de Sublíder" en vez de "Casas de Paz") */
   labelPorRol?: Partial<Record<RolUI, string>>;
 }
@@ -56,15 +59,17 @@ const RUTAS_LIDER_CDP: string[] = [
 // modificar la CdP), no de qué módulos ve. Se aplica en CasasDePaz.tsx.
 const RUTAS_SUBLIDER_CDP: string[] = [...RUTAS_LIDER_CDP];
 
+// El Líder de Red supervisa, no carga reportes: en vez de "Reportes" (el
+// formulario de carga del líder de CdP) + los dos "Historial" sueltos, ve un
+// único "Control de Reportes" (vista supervisora de toda la Red). El orden del
+// menú lo fija CATALOGO_NAV, no este arreglo.
 const RUTAS_LIDER_RED: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
-  ROUTES.CASAS_DE_PAZ,
-  ROUTES.REPORTES,
-  ROUTES.HISTORIAL_REPORTES,
-  ROUTES.HISTORIAL_ASISTENCIA,
-  ROUTES.EVANGELISMO,
+  ROUTES.CASAS_DE_PAZ, // Se muestra como "Gestión de Casas de Paz"
+  ROUTES.CONTROL_REPORTES,
   ROUTES.CALENDARIO,
+  ROUTES.EVANGELISMO,
 ];
 
 const RUTAS_SUPERVISOR: string[] = [
@@ -110,19 +115,23 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
 
 // ─── Catálogo completo de nav items ──────────────────────────────────────────
 
+// Colores vivos (paleta de sistema Apple/HIG) — cada sección tiene el suyo para
+// que se reconozca por color + ícono sin tener que leer. Los 6 ítems del Líder
+// de Red se eligieron bien distintos entre sí.
 const CATALOGO_NAV: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD },
-  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS },
-  { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, labelPorRol: { LIDER_CDP: 'Gestión de Sublíder', SUBLIDER_CDP: 'Gestión de Sublíder' } },
-  { icon: Sparkles, label: 'Ministerios', path: ROUTES.MINISTERIOS },
-  { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES },
-  { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES },
-  { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA },
-  { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO },
-  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO },
-  { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS },
-  { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR },
-  { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION },
+  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, color: '#0071e3' },
+  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
+  { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Gestión de Sublíder', SUBLIDER_CDP: 'Gestión de Sublíder' } },
+  { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
+  { icon: Sparkles, label: 'Ministerios', path: ROUTES.MINISTERIOS, color: '#30b0c7' },
+  { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
+  { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
+  { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
+  { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
+  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: '#ff2d55' },
+  { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
+  { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
+  { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 
 // ─── Ítems de nav por capacidad (ortogonal al RolUI) ──────────────────────────

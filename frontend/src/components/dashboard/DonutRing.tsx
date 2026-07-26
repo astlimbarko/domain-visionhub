@@ -8,6 +8,8 @@ interface Props {
   strokeWidth?: number;
   /** Color del arco. Por defecto usa --primary. */
   color?: string;
+  /** Color del aro de fondo (la "pista"). Por defecto --border; usar algo tipo rgba(255,255,255,.25) sobre tarjetas de color solido. */
+  trackColor?: string;
   icon?: LucideIcon;
   children?: ReactNode;
 }
@@ -18,7 +20,15 @@ interface Props {
  * se muestra como marco decorativo con el ícono al centro, nunca con un
  * relleno inventado.
  */
-export function DonutRing({ porcentaje, size = 64, strokeWidth = 7, color = 'var(--primary)', icon: Icon, children }: Props) {
+export function DonutRing({
+  porcentaje,
+  size = 64,
+  strokeWidth = 7,
+  color = 'var(--primary)',
+  trackColor = 'var(--border)',
+  icon: Icon,
+  children,
+}: Props) {
   const radius = (size - strokeWidth) / 2;
   const circunferencia = 2 * Math.PI * radius;
   const tienePorcentaje = porcentaje !== null && porcentaje !== undefined;
@@ -33,7 +43,7 @@ export function DonutRing({ porcentaje, size = 64, strokeWidth = 7, color = 'var
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--border)"
+          stroke={trackColor}
           strokeWidth={strokeWidth}
         />
         {tienePorcentaje && (

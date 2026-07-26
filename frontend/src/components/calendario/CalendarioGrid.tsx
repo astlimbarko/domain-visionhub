@@ -91,12 +91,8 @@ export function CalendarioGrid({ anio, mes, eventos, cumpleanos, diaSeleccionado
               <div className="hidden w-full min-w-0 flex-col gap-1 sm:flex">
                 {hayCumples && (
                   <span
-                    className="flex items-center gap-1.5 truncate rounded-md border-l-[3px] py-0.5 pr-1.5 pl-1.5 text-[10.5px] font-bold"
-                    style={{
-                      borderColor: 'var(--chart-4)',
-                      backgroundColor: 'color-mix(in oklab, var(--chart-4) 20%, transparent)',
-                      color: 'var(--chart-4)',
-                    }}
+                    className="flex items-center gap-1.5 truncate rounded-md py-0.5 pr-1.5 pl-1.5 text-[10.5px] font-bold text-white shadow-sm"
+                    style={{ backgroundColor: 'var(--chart-4)' }}
                     title={cums.map((c) => `${c.nombre} cumple ${c.edad_cumple} años`).join(', ')}
                   >
                     <Cake className="h-3 w-3 shrink-0" />
@@ -108,12 +104,8 @@ export function CalendarioGrid({ anio, mes, eventos, cumpleanos, diaSeleccionado
                   return (
                     <span
                       key={e.id}
-                      className="flex items-center gap-1.5 truncate rounded-md border-l-[3px] py-0.5 pr-1.5 pl-1.5 text-[10.5px] font-bold"
-                      style={{
-                        borderColor: e.color,
-                        backgroundColor: `color-mix(in oklab, ${e.color} 20%, transparent)`,
-                        color: e.color,
-                      }}
+                      className="flex items-center gap-1.5 truncate rounded-md py-0.5 pr-1.5 pl-1.5 text-[10.5px] font-bold text-white shadow-sm"
+                      style={{ backgroundColor: e.color }}
                       title={`${e.titulo} (${e.tipo_nombre})${e.hora_inicio ? ` · ${e.hora_inicio.slice(0, 5)}` : ''}`}
                     >
                       <Icono className="h-3 w-3 shrink-0" />

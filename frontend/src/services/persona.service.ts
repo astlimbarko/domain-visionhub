@@ -4,6 +4,7 @@ import type {
   DatosIdentidad,
   MotivoLlegada,
   NuevaPersona,
+  PersonaDeRed,
   PersonaFicha,
   PersonaResultadoBusqueda,
   TipoRelacion,
@@ -28,6 +29,17 @@ export async function obtenerFicha(personaId: string): Promise<PersonaFicha> {
   const { data, error } = await supabase.rpc('fn_persona_ficha', { p_persona_id: personaId });
   if (error) throw error;
   return data as PersonaFicha;
+}
+
+/**
+ * Roster de solo lectura de las personas de una Red (todas las CdP que hoy le
+ * pertenecen), con procedencia y marca de fusión. Ver fn_personas_de_red
+ * (migración 46_personas_de_red.sql).
+ */
+export async function obtenerPersonasDeRed(redId: string): Promise<PersonaDeRed[]> {
+  const { data, error } = await supabase.rpc('fn_personas_de_red', { p_red_id: redId });
+  if (error) throw error;
+  return (data ?? []) as PersonaDeRed[];
 }
 
 export async function crearPersona(datos: NuevaPersona): Promise<{ id: string }> {

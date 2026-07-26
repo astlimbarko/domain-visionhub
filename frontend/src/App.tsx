@@ -24,6 +24,7 @@ const Personas = lazy(() => import('@/pages/Personas').then((m) => ({ default: m
 const CasasDePaz = lazy(() => import('@/pages/CasasDePaz').then((m) => ({ default: m.CasasDePaz })));
 const Ministerios = lazy(() => import('@/pages/Ministerios').then((m) => ({ default: m.Ministerios })));
 const Reportes = lazy(() => import('@/pages/Reportes').then((m) => ({ default: m.Reportes })));
+const ControlReportes = lazy(() => import('@/pages/ControlReportes').then((m) => ({ default: m.ControlReportes })));
 const HistorialReportes = lazy(() => import('@/pages/HistorialReportes').then((m) => ({ default: m.HistorialReportes })));
 const HistorialAsistencia = lazy(() => import('@/pages/HistorialAsistencia').then((m) => ({ default: m.HistorialAsistencia })));
 const Calendario = lazy(() => import('@/pages/Calendario').then((m) => ({ default: m.Calendario })));
@@ -110,6 +111,11 @@ function App() {
             <Route path={ROUTES.REPORTES} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.REPORTES)}><Reportes /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.CONTROL_REPORTES} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.CONTROL_REPORTES)}><ControlReportes /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.HISTORIAL_REPORTES} element={

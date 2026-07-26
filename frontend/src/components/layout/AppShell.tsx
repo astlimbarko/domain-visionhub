@@ -55,21 +55,32 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
 
   return (
     <nav className="flex flex-1 flex-col gap-0.5">
-      {navItems.map(({ icon: Icon, label, path }) => {
+      {navItems.map(({ icon: Icon, label, path, color }) => {
         const activo = path === ROUTES.DASHBOARD ? location.pathname === path : location.pathname.startsWith(path);
+
+        // Chip de color vivo por sección: el ícono en su color sobre una pastilla
+        // teñida. Se satura un poco más cuando la sección está activa.
+        const iconoChip = (
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+            style={{ backgroundColor: `color-mix(in oklab, ${color} ${activo ? 22 : 13}%, transparent)` }}
+          >
+            <Icon className="h-[16px] w-[16px]" style={{ color }} />
+          </span>
+        );
 
         if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
           return (
             <div key={label} className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-muted-foreground">
-                <Icon className="h-[17px] w-[17px]" />{label}
+              <div className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold text-foreground">
+                {iconoChip}{label}
               </div>
               {sombreros.map((s) => {
                 const activoSombrero = activo && vistaActual && mismaVista(vistaActual, s.vista);
                 return (
                   <Link key={s.key} to={path} state={{ vista: s.vista }} onClick={onNavigate}
                     onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-                    className={cn('truncate rounded-xl py-2 pr-3 pl-10 text-[13px] text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-sidebar-primary')}>
+                    className={cn('truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-foreground')}>
                     {s.label}
                   </Link>
                 );
@@ -81,8 +92,8 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
         return (
           <Link key={label} to={path} onClick={onNavigate}
             onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-            className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activo && 'bg-sidebar-accent text-sidebar-primary')}>
-            <Icon className={cn("h-[17px] w-[17px]", activo && "text-sidebar-primary")} />{label}
+            className={cn('flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            {iconoChip}<span className="truncate">{label}</span>
           </Link>
         );
       })}
@@ -180,12 +191,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex min-h-11 items-center gap-2 rounded-xl px-2 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              <button className="flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-xl px-2 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {(nombreCompleto ?? correo ?? '?')[0]?.toUpperCase()}
                 </div>
-                <span className="hidden truncate sm:inline">{textoUsuario}</span>
-                <ChevronDown className="h-3 w-3 opacity-40" />
+                {/* Antes: hidden sm:inline — en móvil solo se veía el avatar, nunca el
+                    nombre/título (Líder de CdP, Líder de Red...). Ahora se muestra
+                    siempre, truncado para no desbordar en pantallas chicas. */}
+                <span className="max-w-[70vw] truncate sm:max-w-[240px]">{textoUsuario}</span>
+                <ChevronDown className="h-3 w-3 shrink-0 opacity-40" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">

@@ -1,13 +1,16 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRolUI } from '@/hooks/useRolUI';
 import { GestionEstructuraVista } from '@/components/casas-de-paz/GestionEstructuraVista';
+import { GestionRedVista } from '@/components/casas-de-paz/GestionRedVista';
 import { GestionSubliderVista } from '@/components/casas-de-paz/GestionSubliderVista';
 
 /**
- * El líder/sublíder de Casa de Paz ve una vista propia enfocada solo en sus
- * sublíderes (GestionSubliderVista); Supervisor y Líder de Red ven la vista
- * estructural completa de Redes/Casas de Paz (GestionEstructuraVista).
- * Cada vista maneja sus propios hooks de datos, igual que pages/Dashboard.tsx.
+ * Cada rol ve su propia vista de esta sección, con su alcance:
+ * - Líder/Sublíder de CdP → GestionSubliderVista (solo sus sublíderes).
+ * - Líder de Red → GestionRedVista (SOLO las Casas de Paz de su propia Red;
+ *   no ve ni elige otras redes).
+ * - Supervisor → GestionEstructuraVista (todas las Redes/CdP de la iglesia).
+ * Cada vista maneja sus propios hooks, igual que pages/Dashboard.tsx.
  */
 export function CasasDePaz() {
   const rolUI = useRolUI();
@@ -23,6 +26,10 @@ export function CasasDePaz() {
 
   if (rolUI === 'LIDER_CDP' || rolUI === 'SUBLIDER_CDP') {
     return <GestionSubliderVista />;
+  }
+
+  if (rolUI === 'LIDER_RED') {
+    return <GestionRedVista />;
   }
 
   return <GestionEstructuraVista />;

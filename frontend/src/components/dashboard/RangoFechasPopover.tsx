@@ -58,7 +58,7 @@ export function RangoFechasPopover({ value, onChange }: Props) {
           type="button"
           variant="outline"
           size="sm"
-          className={`h-9 gap-1.5 rounded-xl border-border/60 bg-muted/40 text-sm font-normal ${value ? 'text-foreground' : 'text-muted-foreground'}`}
+          className={`h-9 gap-1.5 rounded-xl text-sm font-normal ${value ? 'text-foreground' : 'text-muted-foreground'}`}
         >
           <CalendarRange className="h-3.5 w-3.5" />
           {value ? `${fmtCorto(value.desde)} – ${fmtCorto(value.hasta)}` : 'Rango personalizado'}
