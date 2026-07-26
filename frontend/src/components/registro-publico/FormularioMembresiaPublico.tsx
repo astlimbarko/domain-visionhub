@@ -4,15 +4,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import { useRegistrarPersonaViaUrl } from '@/hooks/useRegistroPublico';
 import type { CamposObligatorios, DatosRegistroPublico } from '@/types/registro-publico.types';
 
@@ -41,20 +33,6 @@ interface Props {
   camposObligatorios: CamposObligatorios;
   onExito: (resultado: { nombreCompleto: string; casaDePazNombre: string }) => void;
 }
-
-const GRADOS_INSTRUCCION = [
-  'SIN_INSTRUCCION',
-  'PRIMARIA_INCOMPLETA',
-  'PRIMARIA_COMPLETA',
-  'SECUNDARIA_INCOMPLETA',
-  'SECUNDARIA_COMPLETA',
-  'TECNICO_MEDIO',
-  'TECNICO_SUPERIOR',
-  'LICENCIATURA_INGENIERIA',
-  'DIPLOMADO',
-  'MAESTRIA',
-  'DOCTORADO',
-] as const;
 
 export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }: Props) {
   const { t } = useTranslation();
@@ -106,110 +84,15 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="primer_nombre">{t('registroPublico.campos.primerNombre')} *</Label>
-          <Input id="primer_nombre" {...register('primer_nombre')} />
-          {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="segundo_nombre">{t('registroPublico.campos.segundoNombre')}</Label>
-          <Input id="segundo_nombre" {...register('segundo_nombre')} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="primer_apellido">{t('registroPublico.campos.primerApellido')} *</Label>
-          <Input id="primer_apellido" {...register('primer_apellido')} />
-          {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="segundo_apellido">{t('registroPublico.campos.segundoApellido')}</Label>
-          <Input id="segundo_apellido" {...register('segundo_apellido')} />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label>{t('registroPublico.campos.sexo')} *</Label>
-          <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="M">{t('registroPublico.sexoOpciones.M')}</SelectItem>
-              <SelectItem value="F">{t('registroPublico.sexoOpciones.F')}</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="fecha_nacimiento">
-            {t('registroPublico.campos.fechaNacimiento')} {camposObligatorios.fecha_nacimiento && '*'}
-          </Label>
-          <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
-          {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ci">
-            {t('registroPublico.campos.ci')} {camposObligatorios.ci && '*'}
-          </Label>
-          <Input id="ci" {...register('ci')} />
-          {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="correo">{t('registroPublico.campos.correo')}</Label>
-          <Input id="correo" type="email" {...register('correo')} />
-          {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label>{t('registroPublico.campos.estadoCivil')}</Label>
-          <Select
-            value={estadoCivilActual ?? ''}
-            onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SOLTERO">Soltero/a</SelectItem>
-              <SelectItem value="CASADO">Casado/a</SelectItem>
-              <SelectItem value="VIUDO">Viudo/a</SelectItem>
-              <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ocupacion">
-            {t('registroPublico.campos.ocupacion')} {camposObligatorios.ocupacion && '*'}
-          </Label>
-          <Input id="ocupacion" {...register('ocupacion')} />
-          {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5 sm:col-span-2">
-          <Label>
-            {t('registroPublico.campos.gradoInstruccion')} {camposObligatorios.grado_instruccion && '*'}
-          </Label>
-          <Select
-            value={gradoActual ?? ''}
-            onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent>
-              {GRADOS_INSTRUCCION.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g.replaceAll('_', ' ').toLowerCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.grado_instruccion && <p className="text-sm text-destructive">Requerido</p>}
-        </div>
-      </div>
+      <CamposMembresiaFields
+        register={register}
+        errors={errors}
+        camposObligatorios={camposObligatorios}
+        sexoActual={sexoActual}
+        estadoCivilActual={estadoCivilActual}
+        gradoActual={gradoActual}
+        setValue={setValue}
+      />
 
       <Button type="submit" disabled={isSubmitting} className="mt-2">
         {isSubmitting ? t('acciones.cargando') : t('registroPublico.enviar')}

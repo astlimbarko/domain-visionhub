@@ -1,0 +1,53 @@
+import type { EstadoCivil, GradoInstruccion } from '@/types/registro-publico.types';
+
+export interface LiderCdpAfirmacion {
+  casa_de_paz_cargo_id: string;
+  persona_id: string;
+  lider_nombre: string;
+  casa_de_paz_id: string;
+  cdp_etiqueta: string;
+}
+
+export interface DatosPersonaAfirmacion {
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  sexo: 'M' | 'F';
+  fecha_nacimiento?: string;
+  ci?: string;
+  correo?: string;
+  estado_civil?: EstadoCivil;
+  ocupacion?: string;
+  grado_instruccion?: GradoInstruccion;
+}
+
+export interface RegistrarPersonaAfirmacionResponse {
+  persona_id: string;
+  nombre_completo: string;
+  casa_de_paz_nombre: string;
+}
+
+export type EstadoUrl = 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO';
+
+export interface CasaPazUrlAfirmacion {
+  url_id: string;
+  slug: string;
+  estado: EstadoUrl;
+  lider_cdp_nombre: string;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  red_id: string | null;
+  red_nombre: string | null;
+  lider_red_nombre: string | null;
+}
+
+export interface SetEstadoUrlOmitida {
+  id: string;
+  motivo: 'NO_ENCONTRADA' | 'SIN_PERMISO' | 'LIDER_CDP_NO_VIGENTE';
+}
+
+export interface SetEstadoUrlResponse {
+  actualizadas: number;
+  omitidas: SetEstadoUrlOmitida[];
+}

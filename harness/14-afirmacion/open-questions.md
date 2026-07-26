@@ -29,9 +29,10 @@
   (`fn_registrar_persona_via_url`). ¿El panel de Afirmación debe mostrar/gestionar ese interruptor
   global, o se asume que el Supervisor ya lo activó? *Recomendado: mostrarlo como indicador de solo
   lectura y avisar si está apagado; su edición queda en Panel del Supervisor.*
-- **Q-5 — Primer Líder de Afirmación (designación por DB).** ¿Qué persona y en qué iglesia se
-  designa temporalmente? (Necesario para A3.) Recordar que en Centro de Vida Montero hoy faltan
-  Pastor/Supervisor (ver `visionhub-sesion-2026-07-25`), lo que puede afectar quién designa a futuro.
+- **Q-5 — RESUELTA (2026-07-26).** Primer Líder de Afirmación: **Silvestre Stalon**
+  (`envioskian@gmail.com`, contraseña temporal `123456` a cambiar desde Cuenta), iglesia
+  **Centro de Vida 4 Anillo (Santa Cruz)**. Cuenta creada desde cero por SQL directo + fila en
+  `departamento_cargo`. Verificado con login real y llamadas RPC reales.
 - **Q-6 — Motivo de llegada.** El registro interno usa `INVITACION_PERSONAL` (igual que el público).
   ¿Correcto para bautizados por Afirmación, o conviene un motivo propio (p. ej. `AFIRMACION`)?
   *Recomendado: mantener `INVITACION_PERSONAL` por ahora; agregar catálogo si el owner lo pide.*
@@ -60,3 +61,33 @@
 - **C-3 — Instructivo dice "cambiaré el modelo a Opus" para implementar.** La sesión ya corre en
   Opus 4.8. Se interpreta como el checkpoint de aprobación + posible cambio a un modelo mayor a
   criterio del owner; no cambia la arquitectura.
+
+## Implementación (2026-07-26) — hallazgos reales durante la verificación end-to-end
+
+- **H-1 — `auth.users` con columnas de token en `NULL` rompe el login (500 "Database error querying schema").**
+  El bootstrap de `envioskian@gmail.com` por SQL directo dejó `confirmation_token`,
+  `recovery_token`, `email_change_token_new`, `email_change` en `NULL` en vez de `''`. GoTrue no
+  tolera `NULL` en esos campos. Corregido con `UPDATE` a `''`. **Anotar para cualquier futuro
+  bootstrap de usuario por SQL directo:** esas 4 columnas deben ir siempre en `''`, nunca `NULL`
+  (la cuenta Super Admin ya las tenía bien; solo faltó replicarlo aquí).
+- **H-2 — Hueco de defensa en profundidad (no touched, solo mitigado para los objetos nuevos):**
+  `20_permisos_explicitos.sql` hace `ALTER DEFAULT PRIVILEGES ... REVOKE ALL ON FUNCTIONS FROM anon`,
+  pero eso no anula el default de fábrica de Postgres ("EXECUTE a PUBLIC" en toda función nueva),
+  y `anon` hereda PUBLIC. Una llamada anónima real a `fn_listar_lideres_cdp_afirmacion` llegó a
+  ejecutarse (sin fuga de datos, bloqueada por el chequeo interno `fn_es_lider_afirmacion_en`).
+  Corregido con `52_revocar_execute_publico_afirmacion.sql`, quirúrgico solo sobre las 7 funciones
+  de esta sesión. **Probablemente aplica a toda función creada después de `20_`** (no solo las de
+  Afirmación) — queda como hallazgo para que el equipo decida si vale la pena un
+  `ALTER DEFAULT PRIVILEGES ... REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` global.
+- **Renumeración de migraciones (2026-07-26):** las 8 migraciones de Afirmación se numeraron
+  originalmente `46`-`53`, pero el PR #3 del compañero (`46_personas_de_red.sql`, merged a `master`
+  el mismo día) también tomó el número `46`. Sin conflicto funcional (su archivo solo crea
+  `fn_personas_de_red`, ya verificado vivo en la base real, no toca nada de Afirmación) — se
+  renumeraron las 8 migraciones de Afirmación a `47`-`54` únicamente para no duplicar el prefijo
+  en el repo; el contenido SQL ya aplicado a la base real no cambió.
+- **Verificación real hecha:** login real de `envioskian@gmail.com`, llamadas RPC reales (listar
+  líderes de CdP, listar URLs, registrar persona con datos de prueba — verificado en las 4 tablas y
+  limpiado después), `fn_set_estado_casa_paz_url` probado con idempotencia + id inexistente + estado
+  revertido a producción. Las 5 auditorías del harness (RLS, auditoría, `search_path`, `trg_no_delete`,
+  privilegios de `anon`) dan cero filas tras las 6 migraciones (`46`–`51`). `tsc -b --force` y
+  `oxlint` del frontend, limpios.
