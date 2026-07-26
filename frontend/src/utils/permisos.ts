@@ -142,9 +142,9 @@ const CATALOGO_NAV: NavItem[] = [
 // sub-nav interno) -- decision del owner, 2026-07-26.
 
 export const NAV_ITEMS_AFIRMACION: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO },
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS },
+  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
+  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
 ];
 
 // ─── Funciones públicas ──────────────────────────────────────────────────────
