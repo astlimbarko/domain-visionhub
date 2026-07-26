@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,9 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useRolUI } from '@/hooks/useRolUI';
+import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
+import { ROUTES } from '@/utils/constants';
 import { DashboardPastor } from '@/components/dashboard/DashboardPastor';
 import { DashboardSupervisor } from '@/components/dashboard/DashboardSupervisor';
 import { DashboardLiderRed } from '@/components/dashboard/DashboardLiderRed';
@@ -23,6 +26,8 @@ export function Dashboard() {
   const iglesias = useAuthStore((s) => s.iglesias);
   const esPastor = iglesias.find((i) => i.id === iglesiaActivaId)?.es_pastor ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId);
+  const rolUI = useRolUI();
+  const esLiderAfirmacion = useEsLiderAfirmacion();
   const [pila, setPila] = useState<Vista[]>([]);
   const location = useLocation();
   const vistaForzada = (location.state as { vista?: Vista } | null)?.vista;
@@ -75,6 +80,12 @@ export function Dashboard() {
         <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
+  }
+
+  // Líder de Afirmación puro (sin ningún cargo de Casas de Paz): su panel
+  // es Afirmación, no este Dashboard genérico -- redirigir directo.
+  if (rolUI === 'SIN_ROL' && esLiderAfirmacion) {
+    return <Navigate to={ROUTES.AFIRMACION} replace />;
   }
 
   const vista = pila[pila.length - 1];

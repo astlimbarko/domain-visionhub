@@ -15,7 +15,7 @@ export function RegistroPublico() {
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg rounded-2xl shadow-lg">
+      <Card className="w-full max-w-2xl rounded-2xl shadow-lg">
         {isLoading && (
           <CardContent className="flex flex-col gap-4 pt-6">
             <Skeleton className="h-6 w-2/3" />
@@ -36,10 +36,17 @@ export function RegistroPublico() {
           <>
             <CardHeader>
               <CardTitle>{t('registroPublico.tituloFormulario')}</CardTitle>
+              <p className="text-sm font-semibold text-muted-foreground">{data.iglesia_nombre}</p>
               <CardDescription>
                 {t('registroPublico.liderResponsable')}: <strong>{data.lider_nombre}</strong>
                 <br />
                 {t('registroPublico.casaDePaz')}: <strong>{data.casa_de_paz_nombre}</strong>
+                {data.red_nombre && (
+                  <>
+                    <br />
+                    {t('registroPublico.red')}: <strong>{data.red_nombre}</strong>
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>

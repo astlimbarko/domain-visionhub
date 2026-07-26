@@ -24,7 +24,8 @@ import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
-import { obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
+import { NAV_ITEMS_AFIRMACION, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
 
@@ -116,7 +117,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
-  const navItems = rolUI ? obtenerNavItems(rolUI) : [];
+  const esLiderAfirmacion = useEsLiderAfirmacion();
+  const navItems = [
+    ...(rolUI ? obtenerNavItems(rolUI) : []),
+    ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+  ];
 
   // Sombreros para Dashboard multi-vista
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
