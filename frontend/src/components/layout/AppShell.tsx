@@ -110,6 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
@@ -131,7 +132,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
   for (const c of roles?.cdp_sublider ?? []) sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
 
-  async function handleLogout() { await cerrarSesion(); logout(); }
+  async function handleLogout() {
+    await cerrarSesion();
+    logout();
+    // El QueryClient es un singleton que vive toda la pestaña -- sin esto,
+    // el cache de datos cacheados por iglesiaId (no por usuario) sobrevive
+    // al logout, y la siguiente cuenta que inicie sesion en la MISMA
+    // iglesia ve por un instante los datos de la cuenta anterior (roles,
+    // titulo, etc.) hasta que el refetch en segundo plano los corrige.
+    // Bug real reportado por el owner, 2026-07-26.
+    queryClient.clear();
+  }
 
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
