@@ -49,17 +49,17 @@ export function DashboardPastor({ onSeleccionarIglesia }: Props) {
                 key={i.id}
                 type="button"
                 onClick={() => onSeleccionarIglesia(i.id)}
-                className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-accent"
+                className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-accent"
               >
-                <div>
-                  <p className="font-medium">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
                     {i.nombre} {!i.activa && '(inactiva)'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {i.ciudad} · {i.redes} red(es) · {i.cdp} CdP · {i.miembros_cdp} miembros · {i.familias} familias
                   </p>
                 </div>
-                <span className="text-xs text-muted-foreground">{i.moneda_defecto}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{i.moneda_defecto}</span>
               </button>
             ))
           )}
@@ -73,11 +73,11 @@ export function DashboardPastor({ onSeleccionarIglesia }: Props) {
           </CardHeader>
           <CardContent className="flex flex-col gap-1.5 text-sm">
             {ingresos_por_moneda.map((i, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span>
+              <div key={idx} className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate">
                   {i.iglesia} — {i.tipo}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="shrink-0 text-muted-foreground">
                   {i.moneda} {Number(i.total).toFixed(2)}
                 </span>
               </div>

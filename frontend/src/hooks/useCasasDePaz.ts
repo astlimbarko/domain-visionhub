@@ -5,17 +5,20 @@ import {
   buscarPersonas,
   crearCdp,
   crearRed,
+  guardarDomicilioCdp,
   obtenerCargoVigenteCdp,
   obtenerCargoVigenteRed,
   obtenerCargos,
   obtenerCdps,
+  obtenerCiudades,
+  obtenerDomicilioCdp,
   obtenerRedes,
   quitarCargoCdp,
   quitarCargoRed,
   toggleActivoCdp,
   toggleActivoRed,
 } from '@/services/casas-de-paz.service';
-import type { CargoCdpCodigo, CargoRedCodigo } from '@/types/casas-de-paz.types';
+import type { CargoCdpCodigo, CargoRedCodigo, DatosDomicilioCdp } from '@/types/casas-de-paz.types';
 
 export function useCargos() {
   return useQuery({ queryKey: ['estructura', 'cargos'], queryFn: obtenerCargos, staleTime: 1000 * 60 * 60 });
@@ -37,10 +40,10 @@ export function useCdps(iglesiaId: string | undefined, redId: string | undefined
   });
 }
 
-export function useBuscarPersonas(iglesiaId: string | undefined, texto: string) {
+export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, edadMinima?: number) {
   return useQuery({
-    queryKey: ['estructura', 'buscar-personas', iglesiaId, texto],
-    queryFn: () => buscarPersonas(iglesiaId as string, texto),
+    queryKey: ['estructura', 'buscar-personas', iglesiaId, texto, edadMinima],
+    queryFn: () => buscarPersonas(iglesiaId as string, texto, edadMinima),
     enabled: !!iglesiaId && texto.trim().length >= 2,
   });
 }
@@ -143,4 +146,25 @@ export function useQuitarCargoRed() {
 export function useQuitarCargoCdp() {
   const invalidar = useInvalidarEstructura();
   return useMutation({ mutationFn: quitarCargoCdp, onSuccess: invalidar });
+}
+
+export function useCiudades() {
+  return useQuery({ queryKey: ['estructura', 'ciudades'], queryFn: obtenerCiudades, staleTime: 1000 * 60 * 60 });
+}
+
+export function useDomicilioCdp(cdpId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'domicilio-cdp', cdpId],
+    queryFn: () => obtenerDomicilioCdp(cdpId as string),
+    enabled: !!cdpId,
+  });
+}
+
+export function useGuardarDomicilioCdp(iglesiaId: string | undefined) {
+  const invalidar = useInvalidarEstructura();
+  return useMutation({
+    mutationFn: ({ cdpId, datos }: { cdpId: string; datos: DatosDomicilioCdp }) =>
+      guardarDomicilioCdp(iglesiaId as string, cdpId, datos),
+    onSuccess: invalidar,
+  });
 }

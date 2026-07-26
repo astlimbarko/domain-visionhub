@@ -50,6 +50,12 @@ export interface AsistenciaHistorico {
   total_mayores: number;
 }
 
+export interface PuntoTendenciaAsistencia {
+  /** Clave del bucket: YYYY-MM-DD (semana, lunes), YYYY-MM (mes), YYYY-QN (trimestre) o YYYY (año). */
+  clave: string;
+  promedioAsistencia: number;
+}
+
 export interface DashboardLiderCdp {
   casa_de_paz: {
     id: string;

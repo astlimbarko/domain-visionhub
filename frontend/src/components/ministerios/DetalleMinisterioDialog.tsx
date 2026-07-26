@@ -51,15 +51,15 @@ export function DetalleMinisterioDialog({
           ) : participantes.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {participantes.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
-                  <div>
-                    <p className="flex items-center gap-1.5">
-                      {p.es_lider && <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />}
-                      {p.nombre_completo}
+                <div key={p.id} className="flex flex-col gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 truncate">
+                      {p.es_lider && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-500 text-amber-500" />}
+                      <span className="truncate">{p.nombre_completo}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground">{p.red_nombre}</p>
+                    <p className="truncate text-xs text-muted-foreground">{p.red_nombre}</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     {!p.es_lider && (
                       <Button variant="ghost" size="sm" onClick={() => onHacerLider(p.id)}>
                         Hacer líder

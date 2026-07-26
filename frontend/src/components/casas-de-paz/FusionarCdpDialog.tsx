@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,18 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
   const puedeFusionar = !!destinoId && origenIds.size > 0 && motivo.trim().length > 0 && pinValido;
 
+  // Se resetea al abrir, no al enviar -- si el backend rechaza la fusion (PIN
+  // incorrecto, sin permiso), el dialogo se queda abierto y perder la
+  // seleccion + el motivo ya escrito obligaria a rehacer todo de cero.
+  useEffect(() => {
+    if (open) {
+      setDestinoId('');
+      setOrigenIds(new Set());
+      setMotivo('');
+      setPin('');
+    }
+  }, [open]);
+
   function toggleOrigen(id: string, marcado: boolean) {
     setOrigenIds((prev) => {
       const next = new Set(prev);
@@ -53,10 +65,6 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
   function handleFusionar() {
     if (!puedeFusionar) return;
     onFusionar(Array.from(origenIds), destinoId, motivo.trim(), esSuperAdmin ? pin : undefined);
-    setDestinoId('');
-    setOrigenIds(new Set());
-    setMotivo('');
-    setPin('');
   }
 
   return (

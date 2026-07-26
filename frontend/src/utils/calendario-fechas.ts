@@ -32,6 +32,21 @@ export function grillaMes(anio: number, mes: number): { fecha: Date; delMes: boo
   });
 }
 
+/**
+ * Igual que `grillaMes`, pero recorta las filas (semanas de 7) que quedan
+ * enteramente fuera del mes -- ya no se reserva una sexta fila entera solo
+ * para mostrar días del mes siguiente. Las filas que sí tienen algún día del
+ * mes conservan sus 7 celdas (para no romper el alineado de columnas por
+ * día de semana); las celdas de relleno que sobran en esas filas siguen
+ * viniendo con `delMes: false` para que el componente las pinte en blanco.
+ */
+export function grillaMesRecortada(anio: number, mes: number): { fecha: Date; delMes: boolean }[] {
+  const celdas = grillaMes(anio, mes);
+  const filas: { fecha: Date; delMes: boolean }[][] = [];
+  for (let i = 0; i < celdas.length; i += 7) filas.push(celdas.slice(i, i + 7));
+  return filas.filter((fila) => fila.some((c) => c.delMes)).flat();
+}
+
 export function esHoy(fecha: Date) {
   const hoy = new Date();
   return (

@@ -71,3 +71,11 @@ export async function crearEvento(evento: NuevoEvento) {
   const { error } = await supabase.from('evento').insert(evento);
   if (error) throw error;
 }
+
+/** Baja lógica: la tabla `evento` bloquea el DELETE físico (trigger), así que
+ * se marca `fecha_eliminacion` — la misma política RLS de UPDATE que ya
+ * exige permiso de crear el evento también lo exige para borrarlo. */
+export async function eliminarEvento(eventoId: string) {
+  const { error } = await supabase.from('evento').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', eventoId);
+  if (error) throw error;
+}

@@ -33,4 +33,31 @@ export interface CargoVigente {
   id: string;
   persona_id: string;
   nombre_completo: string;
+  fecha_inicio: string;
+  correo: string | null;
+}
+
+export interface Ciudad {
+  id: string;
+  codigo: string;
+  nombre: string;
+}
+
+export interface DomicilioCdp {
+  asignacion_id: string;
+  direccion_id: string;
+  ciudad_id: string;
+  ciudad_nombre: string;
+  zona: string | null;
+  calle: string | null;
+  numero: string | null;
+  referencia: string | null;
+}
+
+export interface DatosDomicilioCdp {
+  ciudadId: string;
+  zona: string | null;
+  calle: string | null;
+  numero: string | null;
+  referencia: string | null;
 }

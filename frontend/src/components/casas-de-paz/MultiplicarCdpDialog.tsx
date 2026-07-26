@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -71,14 +71,19 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
     });
   }
 
-  function limpiar() {
-    setOrigenId('');
-    setNombreNueva('');
-    setPersonaIds(new Set());
-    setLiderNuevoId('');
-    setMotivo('');
-    setPin('');
-  }
+  // Se resetea al abrir, no al enviar -- si el backend rechaza la
+  // multiplicacion (PIN incorrecto, sin permiso), el dialogo se queda
+  // abierto y perder los miembros ya marcados obligaria a rehacer todo.
+  useEffect(() => {
+    if (open) {
+      setOrigenId('');
+      setNombreNueva('');
+      setPersonaIds(new Set());
+      setLiderNuevoId('');
+      setMotivo('');
+      setPin('');
+    }
+  }, [open]);
 
   function handleMultiplicar() {
     if (!puedeMultiplicar) return;
@@ -90,11 +95,10 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
       motivo: motivo.trim(),
       pin: esSuperAdmin ? pin : undefined,
     });
-    limpiar();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) limpiar(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Multiplicar Casa de Paz</DialogTitle>

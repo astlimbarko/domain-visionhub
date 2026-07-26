@@ -125,6 +125,14 @@ INSERT INTO tipo_evento (codigo, nombre, descripcion, color, orden) VALUES
 ON CONFLICT (COALESCE(iglesia_id, '00000000-0000-0000-0000-000000000000'::uuid), codigo) WHERE fecha_eliminacion IS NULL
   DO UPDATE SET nombre = EXCLUDED.nombre, descripcion = EXCLUDED.descripcion, color = EXCLUDED.color;
 
+-- tipo_evangelismo (3): pedido del owner, 2026-07-22 -- 1+1, Elite, Semilla
+INSERT INTO tipo_evangelismo (codigo, nombre, descripcion, color, orden) VALUES
+  ('UNO_A_UNO', '1+1', 'Evangelismo personal, uno a uno.', '#f97316', 1),
+  ('ELITE', 'Elite', 'Evangelismo Elite.', '#3b82f6', 2),
+  ('SEMILLA', 'Semilla', 'Evangelismo Semilla.', '#22c55e', 3)
+ON CONFLICT (COALESCE(iglesia_id, '00000000-0000-0000-0000-000000000000'::uuid), codigo) WHERE fecha_eliminacion IS NULL
+  DO UPDATE SET nombre = EXCLUDED.nombre, descripcion = EXCLUDED.descripcion, color = EXCLUDED.color;
+
 -- finanzas_tipo_ingreso (4)
 INSERT INTO finanzas_tipo_ingreso (codigo, nombre, orden) VALUES
   ('OFRENDA', 'Ofrenda', 1),
@@ -133,3 +141,17 @@ INSERT INTO finanzas_tipo_ingreso (codigo, nombre, orden) VALUES
   ('PACTO', 'Pacto', 4)
 ON CONFLICT (COALESCE(iglesia_id, '00000000-0000-0000-0000-000000000000'::uuid), codigo) WHERE fecha_eliminacion IS NULL
   DO UPDATE SET nombre = EXCLUDED.nombre;
+
+-- ciudad (10): municipios donde opera la vision (pedido del owner, 2026-07-22)
+INSERT INTO ciudad (codigo, nombre, orden) VALUES
+  ('SANTA_CRUZ_DE_LA_SIERRA', 'Santa Cruz de la Sierra', 1),
+  ('WARNES', 'Warnes', 2),
+  ('COTOCA', 'Cotoca', 3),
+  ('LA_GUARDIA', 'La Guardia', 4),
+  ('PORONGO', 'Porongo', 5),
+  ('EL_TORNO', 'El Torno', 6),
+  ('MONTERO', 'Montero', 7),
+  ('MINEROS', 'Mineros', 8),
+  ('GENERAL_SAAVEDRA', 'General Saavedra', 9),
+  ('PORTACHUELO', 'Portachuelo', 10)
+ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre, orden = EXCLUDED.orden;

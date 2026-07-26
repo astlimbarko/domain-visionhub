@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   Dialog,
@@ -27,21 +27,24 @@ export function CrearCdpDialog({ open, onOpenChange, redNombre, iglesiaId, crean
   const [nombre, setNombre] = useState('');
   const [sublideres, setSublideres] = useState<PersonaBusqueda[]>([]);
 
-  function limpiar() {
-    setNombre('');
-    setSublideres([]);
-  }
+  // Se resetea al abrir, no al enviar -- si el backend rechaza la creacion,
+  // el dialogo se queda abierto y lo ya cargado no se debe perder.
+  useEffect(() => {
+    if (open) {
+      setNombre('');
+      setSublideres([]);
+    }
+  }, [open]);
 
   function handleCrear() {
     onCrear(
       nombre.trim() || undefined,
       sublideres.map((s) => s.id)
     );
-    limpiar();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) limpiar(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Nueva Casa de Paz</DialogTitle>

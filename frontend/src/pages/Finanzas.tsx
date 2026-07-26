@@ -65,10 +65,10 @@ export function Finanzas() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {misCasas.length > 1 && (
             <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
+              <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
                 <SelectValue placeholder="Casa de Paz" />
               </SelectTrigger>
               <SelectContent>

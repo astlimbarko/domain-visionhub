@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { Activity, AlertTriangle, Home, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from './KpiCard';
-import { useDashboardLiderRed } from '@/hooks/useDashboard';
+import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
+import { useDashboardLiderRed, useIngresosRedPeriodo } from '@/hooks/useDashboard';
+import { PERIODOS_DASHBOARD, rangoPeriodoActual, type PeriodoDashboard } from '@/utils/periodo-dashboard';
 
 interface Props {
   redId: string;
@@ -12,6 +16,12 @@ interface Props {
 export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
   const { data, isLoading } = useDashboardLiderRed(redId);
 
+  const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
+  const [rango, setRango] = useState<RangoFechas | null>(null);
+  const { desde, hasta } = rango ?? rangoPeriodoActual(periodo);
+  const etiquetaPeriodo = rango ? 'el rango elegido' : (PERIODOS_DASHBOARD.find((p) => p.value === periodo)?.etiqueta ?? 'este mes');
+  const { data: ingresosPeriodo } = useIngresosRedPeriodo(redId, desde, hasta);
+
   if (isLoading || !data) {
     return (
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -20,11 +30,29 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
     );
   }
 
-  const { red, kpi, casas_de_paz, cdp_sin_reporte_semana, ingresos } = data;
+  const { red, kpi, casas_de_paz, cdp_sin_reporte_semana } = data;
+  const ingresos = ingresosPeriodo ?? data.ingresos ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-lg font-semibold">{red.nombre}</h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">{red.nombre}</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
+            <SelectTrigger className="w-32 rounded-xl border-border/60 bg-muted/40 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIODOS_DASHBOARD.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <RangoFechasPopover value={rango} onChange={setRango} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard titulo="Casas de Paz activas" valor={kpi.cdp_activas} icon={Home} />
@@ -32,18 +60,22 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
         <KpiCard titulo="Asistencia promedio" valor={kpi.asistencia_promedio ?? '—'} icon={Activity} />
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ofrendas del mes</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos de {etiquetaPeriodo}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-0.5">
-            {!kpi.ofrendas_mes || kpi.ofrendas_mes.length === 0 ? (
-              <p className="text-2xl font-semibold">—</p>
-            ) : (
-              kpi.ofrendas_mes.map((o) => (
-                <p key={o.moneda} className="text-lg font-semibold">
-                  {o.moneda} {Number(o.total).toFixed(2)}
-                </p>
-              ))
-            )}
+            {(() => {
+              const porMoneda = new Map<string, number>();
+              for (const i of ingresos) porMoneda.set(i.moneda_simbolo, (porMoneda.get(i.moneda_simbolo) ?? 0) + Number(i.total));
+              return porMoneda.size === 0 ? (
+                <p className="text-2xl font-semibold">—</p>
+              ) : (
+                Array.from(porMoneda.entries()).map(([simbolo, total]) => (
+                  <p key={simbolo} className="text-lg font-semibold">
+                    {simbolo} {total.toFixed(2)}
+                  </p>
+                ))
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -96,7 +128,7 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
       {ingresos && ingresos.length > 0 && (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-base">Ingresos por Casa de Paz</CardTitle>
+            <CardTitle className="text-base">Ingresos por Casa de Paz — {etiquetaPeriodo}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1.5 text-sm">
             {ingresos.map((i, idx) => (
