@@ -49,7 +49,7 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap justify-end gap-2">
         <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
-          <SelectTrigger className="w-32 rounded-xl border-border/60 bg-muted/40 text-sm">
+          <SelectTrigger className="w-32 rounded-xl text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

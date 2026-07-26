@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, PhoneCall, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -82,42 +83,41 @@ export function HistorialAsistencia() {
 
       {data && totalMiembros > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="glass-card-elevated flex items-center gap-4 rounded-2xl p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: '#ec4899' }}>
+          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 p-4 text-white shadow-lg shadow-pink-500/20">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
               <Users className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Miembros</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">{totalMiembros}</p>
+              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Miembros</p>
+              <p className="text-2xl font-bold tracking-tight">{totalMiembros}</p>
             </div>
           </div>
 
           {/* Rojo reservado para esto -- es la unica señal realmente urgente de la página. */}
-          <div className="glass-card-elevated flex items-center gap-4 rounded-2xl p-4">
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-              style={{ backgroundColor: totalUrgentes > 0 ? 'var(--destructive)' : 'var(--muted)' }}
-            >
-              <AlertTriangle className={totalUrgentes > 0 ? 'h-5 w-5 text-white' : 'h-5 w-5 text-muted-foreground'} />
+          <div
+            className={cn(
+              'flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg',
+              totalUrgentes > 0
+                ? 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/20'
+                : 'bg-gradient-to-br from-slate-500 to-slate-600 shadow-slate-500/20'
+            )}
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <AlertTriangle className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Con 2+ faltas seguidas</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">{totalUrgentes}</p>
+              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Con 2+ faltas seguidas</p>
+              <p className="text-2xl font-bold tracking-tight">{totalUrgentes}</p>
             </div>
           </div>
 
-          <div className="glass-card-elevated flex items-center gap-4 rounded-2xl p-4">
-            <DonutRing
-              porcentaje={participacion}
-              size={52}
-              strokeWidth={6}
-              color={participacion != null && participacion < 60 ? '#f59e0b' : '#06b6d4'}
-            >
-              <span className="text-xs font-bold text-foreground">{participacion != null ? `${participacion}%` : '—'}</span>
+          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 p-4 text-white shadow-lg shadow-cyan-500/20">
+            <DonutRing porcentaje={participacion} size={52} strokeWidth={6} color="white" trackColor="rgba(255,255,255,0.3)">
+              <span className="text-xs font-bold text-white">{participacion != null ? `${participacion}%` : '—'}</span>
             </DonutRing>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Participación</p>
-              <p className="text-[11px] text-muted-foreground">Últimas {data.reuniones.length} reuniones</p>
+              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Participación</p>
+              <p className="text-[11px] text-white/80">Últimas {data.reuniones.length} reuniones</p>
             </div>
           </div>
         </div>

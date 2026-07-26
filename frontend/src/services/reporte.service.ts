@@ -10,6 +10,7 @@ import type {
   MiembroCdp,
   NuevoReporte,
   ReporteDeLaSemana,
+  ReporteRedFila,
   ReporteReciente,
   ResultadoReporte,
   Tema,
@@ -126,6 +127,30 @@ export async function obtenerFechasReportadas(casaDePazId: string, desde: string
     .lte('fecha_reunion', hasta);
   if (error) throw error;
   return (data ?? []).map((r) => r.fecha_reunion);
+}
+
+/**
+ * Reportes enviados por un conjunto de Casas de Paz (las de una Red) dentro de
+ * un rango — alimenta la matriz CdP × semana del "Control de Reportes" del
+ * Líder de Red. Reusa `v_reporte_totales` (misma vista que "Reportes
+ * recientes"); RLS ya limita las filas a las Casas de Paz que el usuario puede
+ * ver, así que no hace falta un endpoint nuevo. Una fila = un reporte enviado.
+ */
+export async function obtenerReportesRedRango(
+  casaDePazIds: string[],
+  desde: string,
+  hasta: string
+): Promise<ReporteRedFila[]> {
+  if (casaDePazIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('v_reporte_totales')
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes')
+    .in('casa_de_paz_id', casaDePazIds)
+    .gte('fecha_reunion', desde)
+    .lte('fecha_reunion', hasta)
+    .order('fecha_reunion', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ReporteRedFila[];
 }
 
 // Ahora vive en su propia página (Historial de Asistencia), no en una card

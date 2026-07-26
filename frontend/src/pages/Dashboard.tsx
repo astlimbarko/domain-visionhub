@@ -108,7 +108,7 @@ export function Dashboard() {
 
       {vista.tipo === 'red' && roles.redes_lider && roles.redes_lider.length > 1 && pila.length === 1 && (
         <Select value={vista.redId} onValueChange={(redId) => setPila([{ tipo: 'red', redId }])}>
-          <SelectTrigger className="w-full rounded-xl border-border/60 bg-muted/40 text-sm sm:w-64">
+          <SelectTrigger className="w-full rounded-xl text-sm sm:w-64">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -123,7 +123,7 @@ export function Dashboard() {
 
       {vista.tipo === 'cdp' && !vista.esSublider && roles.cdp_lider && roles.cdp_lider.length > 1 && pila.length === 1 && (
         <Select value={vista.cdpId} onValueChange={(cdpId) => setPila([{ tipo: 'cdp', cdpId, esSublider: false }])}>
-          <SelectTrigger className="w-full rounded-xl border-border/60 bg-muted/40 text-sm sm:w-64">
+          <SelectTrigger className="w-full rounded-xl text-sm sm:w-64">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

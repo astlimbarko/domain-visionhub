@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   ArrowDown,
   ArrowUp,
@@ -239,20 +240,20 @@ export function Evangelismo() {
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {/* KPI: evangelizados del mes vs. meta */}
-                <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <DonutRing porcentaje={tasa?.meta != null ? porcentaje : null} size={80} strokeWidth={8} color="var(--primary)">
-                    <span className="text-base font-bold text-foreground">{tasa?.meta != null ? `${tasa.tasa}%` : '—'}</span>
+                <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-lg shadow-blue-500/20">
+                  <DonutRing porcentaje={tasa?.meta != null ? porcentaje : null} size={80} strokeWidth={8} color="white" trackColor="rgba(255,255,255,0.3)">
+                    <span className="text-base font-bold text-white">{tasa?.meta != null ? `${tasa.tasa}%` : '—'}</span>
                   </DonutRing>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Evangelizados</p>
+                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Evangelizados</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tracking-tight text-foreground">{tasa?.evangelizados ?? 0}</span>
-                      <span className={tasa?.meta != null ? 'text-sm font-bold text-foreground' : 'text-xs text-muted-foreground'}>
+                      <span className="text-3xl font-bold tracking-tight">{tasa?.evangelizados ?? 0}</span>
+                      <span className="text-sm font-bold text-white/90">
                         {tasa?.meta != null ? `de ${tasa.meta}` : 'sin meta definida'}
                       </span>
                     </div>
                     {tasa?.meta != null && (
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-white/80">
                         {tasa.tasa}% de la meta{tasa.tasa && tasa.tasa > 100 ? ' — ¡meta superada!' : ''}
                       </p>
                     )}
@@ -262,21 +263,19 @@ export function Evangelismo() {
                 {/* KPI: meta asignada por un rol superior (Líder de Red, Supervisor...) -- solo lectura,
                     vive aparte de la meta propia porque en la BD son mutuamente excluyentes: si hay una
                     asignada vigente, es la que cuenta para el % de arriba y la propia queda "en pausa". */}
-                <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-1)]/10">
-                    <Award className="h-5 w-5" style={{ color: 'var(--chart-1)' }} />
+                <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-lg shadow-indigo-500/20">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                    <Award className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Meta asignada</p>
+                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Meta asignada</p>
                     {tasa?.origen === 'ASIGNADA' ? (
                       <>
-                        <span className="text-3xl font-bold tracking-tight" style={{ color: 'var(--chart-1)' }}>
-                          {tasa.meta}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground">Fijada por un rol superior, no editable acá</p>
+                        <span className="text-3xl font-bold tracking-tight">{tasa.meta}</span>
+                        <p className="text-[11px] text-white/80">Fijada por un rol superior, no editable acá</p>
                       </>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Sin meta asignada por ahora</span>
+                      <span className="text-sm text-white/80">Sin meta asignada por ahora</span>
                     )}
                   </div>
                 </div>
@@ -297,7 +296,7 @@ export function Evangelismo() {
                         id="meta_propia"
                         type="number"
                         min={1}
-                        className="h-9 w-24 rounded-xl border-border/60 bg-background text-sm"
+                        className="h-9 w-24 rounded-xl text-sm"
                         placeholder="Sin definir"
                         value={metaLocal}
                         onChange={(e) => setMetaLocal(e.target.value)}
@@ -322,41 +321,40 @@ export function Evangelismo() {
                 </div>
 
                 {/* KPI: variación vs. mes anterior */}
-                <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                    style={{
-                      backgroundColor:
-                        variacionAbsoluta > 0
-                          ? 'color-mix(in oklab, var(--chart-2) 12%, transparent)'
-                          : variacionAbsoluta < 0
-                            ? 'color-mix(in oklab, var(--destructive) 12%, transparent)'
-                            : 'var(--muted)',
-                    }}
-                  >
+                <div
+                  className={cn(
+                    'flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg',
+                    variacionAbsoluta > 0
+                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/20'
+                      : variacionAbsoluta < 0
+                        ? 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/20'
+                        : 'bg-gradient-to-br from-slate-500 to-slate-600 shadow-slate-500/20'
+                  )}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
                     {variacionAbsoluta > 0 ? (
-                      <ArrowUp className="h-5 w-5 text-chart-2" />
+                      <ArrowUp className="h-5 w-5 text-white" />
                     ) : variacionAbsoluta < 0 ? (
-                      <ArrowDown className="h-5 w-5 text-destructive" />
+                      <ArrowDown className="h-5 w-5 text-white" />
                     ) : (
-                      <Minus className="h-5 w-5 text-muted-foreground" />
+                      <Minus className="h-5 w-5 text-white" />
                     )}
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Vs. mes anterior</p>
+                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Vs. mes anterior</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tracking-tight text-foreground">
+                      <span className="text-3xl font-bold tracking-tight">
                         {variacionAbsoluta > 0 ? '+' : ''}
                         {variacionAbsoluta}
                       </span>
                       {variacionPct !== null && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-white/80">
                           ({variacionPct > 0 ? '+' : ''}
                           {variacionPct}%)
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[11px] text-white/80">
                       {evangelizadosAnterior === 0 && evangelizadosActual > 0
                         ? 'El mes pasado no hubo evangelizados'
                         : `${evangelizadosAnterior} el mes pasado`}
@@ -365,26 +363,24 @@ export function Evangelismo() {
                 </div>
 
                 {/* KPI: tipo de evangelismo con más evangelizados este mes */}
-                <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `color-mix(in oklab, ${tipoMasFrecuente?.color ?? '#6B7280'} 12%, transparent)` }}
-                  >
-                    <Sparkles className="h-5 w-5" style={{ color: tipoMasFrecuente?.color ?? 'var(--muted-foreground)' }} />
+                <div
+                  className="flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg"
+                  style={{ backgroundColor: tipoMasFrecuente?.color ?? '#6B7280' }}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                    <Sparkles className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Tipo más frecuente</p>
+                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Tipo más frecuente</p>
                     {tipoMasFrecuente ? (
                       <>
-                        <span className="text-3xl font-bold tracking-tight" style={{ color: tipoMasFrecuente.color }}>
-                          {tipoMasFrecuente.nombre}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground">
+                        <span className="text-3xl font-bold tracking-tight">{tipoMasFrecuente.nombre}</span>
+                        <p className="text-[11px] text-white/80">
                           {tipoMasFrecuente.cantidad} de {evangelizadosActual} este mes
                         </p>
                       </>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Sin clasificar todavía</span>
+                      <span className="text-sm text-white/80">Sin clasificar todavía</span>
                     )}
                   </div>
                 </div>

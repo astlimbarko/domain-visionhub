@@ -15,6 +15,7 @@ const CHUNK_POR_RUTA: Partial<Record<string, () => Promise<unknown>>> = {
   [ROUTES.CASAS_DE_PAZ]: () => import('@/pages/CasasDePaz'),
   [ROUTES.MINISTERIOS]: () => import('@/pages/Ministerios'),
   [ROUTES.REPORTES]: () => import('@/pages/Reportes'),
+  [ROUTES.CONTROL_REPORTES]: () => import('@/pages/ControlReportes'),
   [ROUTES.HISTORIAL_REPORTES]: () => import('@/pages/HistorialReportes'),
   [ROUTES.HISTORIAL_ASISTENCIA]: () => import('@/pages/HistorialAsistencia'),
   [ROUTES.CALENDARIO]: () => import('@/pages/Calendario'),
@@ -64,7 +65,9 @@ export function precargarRuta(path: string, queryClient: QueryClient, personaId:
     });
   }
 
-  if (path === ROUTES.DASHBOARD && iglesiaId) {
+  // Dashboard y Control de Reportes arrancan resolviendo "mis roles" (para
+  // saber qué red mirar); precargarlo evita ese primer viaje al abrir.
+  if ((path === ROUTES.DASHBOARD || path === ROUTES.CONTROL_REPORTES) && iglesiaId) {
     queryClient.prefetchQuery({
       queryKey: ['dashboard', 'mis-roles', iglesiaId],
       queryFn: () => obtenerMisRoles(iglesiaId),

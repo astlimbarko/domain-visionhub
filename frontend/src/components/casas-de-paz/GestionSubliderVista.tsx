@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Crown, Home, Mail, MapPin, Pencil, Plus, UserRound, Users, X } from 'lucide-react';
+import { Crown, Home, Mail, MapPin, Pencil, Plus, UserRound, Users, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -45,6 +45,34 @@ function AvatarPersona({ nombre, color }: { nombre: string; color: string }) {
       style={{ backgroundColor: `color-mix(in oklab, ${color} 16%, transparent)`, color }}
     >
       {iniciales(nombre) || <UserRound className="h-4 w-4" />}
+    </div>
+  );
+}
+
+/** Encabezado de banda a todo el ancho, color solido + texto blanco -- una seccion por tarjeta (Lider/Sublideres/Anfitrion). */
+function SeccionBanner({
+  icon: Icon,
+  color,
+  titulo,
+  descripcion,
+  accion,
+}: {
+  icon: LucideIcon;
+  color: string;
+  titulo: string;
+  descripcion?: string;
+  accion?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-2xl px-5 py-4" style={{ backgroundColor: color }}>
+      <div className="flex items-center gap-3">
+        <Icon className="h-5 w-5 shrink-0 text-white" />
+        <div>
+          <p className="font-semibold text-white">{titulo}</p>
+          {descripcion && <p className="text-[12px] text-white/80">{descripcion}</p>}
+        </div>
+      </div>
+      {accion}
     </div>
   );
 }
@@ -185,7 +213,7 @@ export function GestionSubliderVista() {
         <div className="flex flex-wrap items-center gap-2">
           {misCasas.length > 1 && (
             <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-muted/40 text-sm">
+              <SelectTrigger className="w-full sm:w-56 rounded-xl text-sm">
                 <SelectValue placeholder="Casa de Paz" />
               </SelectTrigger>
               <SelectContent>
@@ -207,16 +235,19 @@ export function GestionSubliderVista() {
       </div>
 
       {/* Líder */}
-      <div className="glass-card rounded-2xl p-5">
-        <SeccionIconHeader icon={Crown} color="var(--chart-3)" titulo="Líder de la Casa de Paz" size="sm" />
-        <div className="mt-3">
+      <div className="overflow-hidden rounded-2xl border border-border/60">
+        <SeccionBanner icon={Crown} color="var(--chart-3)" titulo="Líder de la Casa de Paz" />
+        <div className="bg-card p-4">
           {cargandoLider ? (
             <Skeleton className="h-12 w-full rounded-xl" />
           ) : liderActual ? (
             <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
               <AvatarPersona nombre={liderActual.nombre_completo} color="var(--chart-3)" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{liderActual.nombre_completo}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-sm font-semibold text-foreground">{liderActual.nombre_completo}</p>
+                  <Badge className="shrink-0 border-0 bg-[var(--chart-3)]/15 text-[var(--chart-3)]">Líder</Badge>
+                </div>
                 {liderActual.correo && (
                   <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                     <Mail className="h-3 w-3 shrink-0" />
@@ -232,14 +263,14 @@ export function GestionSubliderVista() {
       </div>
 
       {/* Sublíderes */}
-      <div className="glass-card-elevated rounded-2xl p-6">
-        <SeccionIconHeader
+      <div className="overflow-hidden rounded-2xl border border-border/60">
+        <SeccionBanner
           icon={Users}
           color="var(--chart-2)"
           titulo="Sublíderes actuales"
           descripcion={`${sublideres.length} sublíder${sublideres.length === 1 ? '' : 'es'} activo${sublideres.length === 1 ? '' : 's'}`}
         />
-        <div className="mt-4">
+        <div className="bg-card p-4">
           {cargandoSublideres ? (
             <div className="flex flex-col gap-2">
               {Array.from({ length: 2 }).map((_, i) => (
@@ -268,12 +299,15 @@ export function GestionSubliderVista() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.18 }}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3"
+                    className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <AvatarPersona nombre={s.nombre_completo} color="var(--chart-2)" />
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">{s.nombre_completo}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">{s.nombre_completo}</p>
+                          <Badge className="shrink-0 border-0 bg-[var(--chart-2)]/15 text-[var(--chart-2)]">Activo</Badge>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           Sublíder desde {fmtFecha(s.fecha_inicio)}
                           {s.correo && ` · ${s.correo}`}
@@ -282,14 +316,14 @@ export function GestionSubliderVista() {
                     </div>
                     {esLider && (
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 rounded-xl text-muted-foreground hover:text-destructive"
-                        aria-label="Quitar sublíder"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 self-start border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:self-auto"
                         disabled={quitarCargoCdp.isPending}
                         onClick={() => manejarQuitar(s.id, s.nombre_completo)}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
+                        Quitar como sublíder
                       </Button>
                     )}
                   </motion.div>
@@ -301,21 +335,30 @@ export function GestionSubliderVista() {
       </div>
 
       {/* Anfitrión */}
-      <div className="glass-card rounded-2xl p-5">
-        <div className="flex items-center justify-between gap-3">
-          <SeccionIconHeader icon={Home} color="var(--chart-4)" titulo="Anfitrión" descripcion="Quién presta la casa para la reunión" size="sm" />
-          {esLider && (
-            <Button variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={() => setMostrarAnfitrion(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              {anfitrionActual ? 'Cambiar' : 'Asignar'}
-            </Button>
-          )}
-        </div>
-        <div className="mt-3">
+      <div className="overflow-hidden rounded-2xl border border-border/60">
+        <SeccionBanner
+          icon={Home}
+          color="var(--chart-4)"
+          titulo="Anfitrión"
+          descripcion="Quién presta la casa para la reunión"
+          accion={
+            esLider && (
+              <Button
+                size="sm"
+                className="shrink-0 gap-1.5 border-white/30 bg-white/15 text-white hover:bg-white/25"
+                onClick={() => setMostrarAnfitrion(true)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {anfitrionActual ? 'Cambiar anfitrión' : 'Asignar anfitrión'}
+              </Button>
+            )
+          }
+        />
+        <div className="bg-card p-4">
           {cargandoAnfitrion ? (
             <Skeleton className="h-12 w-full rounded-xl" />
           ) : anfitrionActual ? (
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-border px-4 py-3">
+            <div className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
                 <AvatarPersona nombre={anfitrionActual.nombre_completo} color="var(--chart-4)" />
                 <div className="min-w-0">
@@ -327,16 +370,16 @@ export function GestionSubliderVista() {
                     </p>
                   )}
                   {domicilio ? (
-                    <div className="mt-1.5 flex items-start gap-1 text-[12px] text-muted-foreground">
-                      <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                      <div>
-                        <p>
+                    <div className="mt-1.5 flex flex-col gap-1.5 text-[12px] text-muted-foreground sm:flex-row sm:flex-wrap sm:items-start sm:gap-4">
+                      <span className="flex items-start gap-1">
+                        <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>
                           {[domicilio.calle, domicilio.numero].filter(Boolean).join(' ') || 'Sin calle registrada'}
                           {domicilio.ciudad_nombre && `, ${domicilio.ciudad_nombre}`}
-                        </p>
-                        {domicilio.zona && <p>{domicilio.zona}</p>}
-                        {domicilio.referencia && <p>Ref: {domicilio.referencia}</p>}
-                      </div>
+                        </span>
+                      </span>
+                      {domicilio.zona && <span>Zona: {domicilio.zona}</span>}
+                      {domicilio.referencia && <span>Ref: {domicilio.referencia}</span>}
                     </div>
                   ) : (
                     esLider && <p className="mt-1.5 text-[12px] text-muted-foreground">Sin domicilio registrado.</p>
@@ -344,7 +387,12 @@ export function GestionSubliderVista() {
                 </div>
               </div>
               {esLider && (
-                <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={() => setMostrarDomicilio(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5 self-start border-[var(--chart-4)]/40 text-[var(--chart-4)] hover:bg-[var(--chart-4)]/10 sm:self-auto"
+                  onClick={() => setMostrarDomicilio(true)}
+                >
                   <MapPin className="h-3.5 w-3.5" />
                   {domicilio ? 'Editar domicilio' : 'Agregar domicilio'}
                 </Button>

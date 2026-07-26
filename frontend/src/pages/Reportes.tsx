@@ -381,7 +381,10 @@ export function Reportes() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
               {/* Información General */}
-              <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-5">
+              <div
+                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
+                style={{ borderLeftColor: 'var(--chart-1)', backgroundColor: 'color-mix(in oklab, var(--chart-1) 7%, var(--card))' }}
+              >
                 <SeccionIconHeader
                   icon={CalendarDays}
                   color="var(--chart-1)"
@@ -460,7 +463,10 @@ export function Reportes() {
               </div>
 
               {/* Asistencia */}
-              <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-5">
+              <div
+                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
+                style={{ borderLeftColor: '#5fa584', backgroundColor: 'color-mix(in oklab, #5fa584 7%, var(--card))' }}
+              >
                 <SeccionIconHeader
                   icon={Users}
                   color="#5fa584"
@@ -622,7 +628,10 @@ export function Reportes() {
 
               {/* Evangelismo */}
               {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
-                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-5">
+                <div
+                  className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
+                  style={{ borderLeftColor: 'var(--chart-3)', backgroundColor: 'color-mix(in oklab, var(--chart-3) 7%, var(--card))' }}
+                >
                   <SeccionIconHeader
                     icon={HeartHandshake}
                     color="var(--chart-3)"
@@ -645,7 +654,10 @@ export function Reportes() {
               )}
 
               {/* Finanzas */}
-              <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-5">
+              <div
+                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
+                style={{ borderLeftColor: '#10b981', backgroundColor: 'color-mix(in oklab, #10b981 7%, var(--card))' }}
+              >
                 <SeccionIconHeader icon={DollarSign} color="#10b981" titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
@@ -680,7 +692,10 @@ export function Reportes() {
               </div>
 
               {/* Narración */}
-              <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-5">
+              <div
+                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
+                style={{ borderLeftColor: 'var(--chart-4)', backgroundColor: 'color-mix(in oklab, var(--chart-4) 7%, var(--card))' }}
+              >
                 <SeccionIconHeader icon={MessageSquare} color="var(--chart-4)" titulo="Narración" descripcion="Qué pasó durante la reunión" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
