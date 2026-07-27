@@ -5,6 +5,7 @@ import {
   buscarPersonas,
   crearCdp,
   crearRed,
+  eliminarCdp,
   guardarDomicilioCdp,
   obtenerCargoVigenteCdp,
   obtenerCargoVigenteRed,
@@ -102,6 +103,20 @@ export function useToggleActivoCdp() {
     // Control de Reportes (ambos excluyen las inactivas): sin invalidar esas
     // queries, la CdP recién desactivada seguía apareciendo hasta el próximo
     // refetch natural.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estructura'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte'] });
+    },
+  });
+}
+
+export function useEliminarCdp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cdpId: string) => eliminarCdp(cdpId),
+    // Igual que useToggleActivoCdp: una CdP eliminada deja de aparecer en
+    // Dashboard y Control de Reportes, así que hay que invalidar también esas.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });

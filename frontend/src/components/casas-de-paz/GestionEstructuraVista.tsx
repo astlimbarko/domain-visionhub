@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { GitBranch, GitMerge, Home, KeyRound, Plus, RefreshCw, Undo2, Users } from 'lucide-react';
+import { GitBranch, GitMerge, Home, KeyRound, Plus, RefreshCw, Trash2, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -19,6 +19,7 @@ import {
   useCdps,
   useCrearCdp,
   useCrearRed,
+  useEliminarCdp,
   useQuitarCargoCdp,
   useQuitarCargoRed,
   useRedes,
@@ -48,6 +49,7 @@ import { FusionarRedDialog } from '@/components/casas-de-paz/FusionarRedDialog';
 import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
 import { MultiplicarRedDialog } from '@/components/casas-de-paz/MultiplicarRedDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
 
@@ -89,6 +91,7 @@ export function GestionEstructuraVista() {
   const [mostrarMultiplicarRed, setMostrarMultiplicarRed] = useState(false);
   const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
   const [deshacerRedId, setDeshacerRedId] = useState<string>();
+  const [cdpAEliminar, setCdpAEliminar] = useState<{ id: string; etiqueta: string }>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
   const [dialogoCdp, setDialogoCdp] = useState<CargoDialogoCdp | null>(null);
 
@@ -105,6 +108,7 @@ export function GestionEstructuraVista() {
   const toggleActivoRed = useToggleActivoRed();
   const crearCdp = useCrearCdp(iglesiaActivaId);
   const toggleActivoCdp = useToggleActivoCdp();
+  const eliminarCdp = useEliminarCdp();
   const asignarCargoRed = useAsignarCargoRed(iglesiaActivaId);
   const asignarCargoCdp = useAsignarCargoCdp(iglesiaActivaId);
   const quitarCargoRed = useQuitarCargoRed();
@@ -133,6 +137,8 @@ export function GestionEstructuraVista() {
     const mensaje = typeof error?.message === 'string' ? error.message : '';
     if (mensaje.includes('RED_CON_CDP_ACTIVAS')) {
       toast.error('Esta red tiene Casas de Paz activas: reasignalas antes de desactivarla');
+    } else if (mensaje.includes('CDP_INEXISTENTE')) {
+      toast.error('Esa casa de paz ya no existe');
     } else if (mensaje.includes('RED_CARGO_DUPLICADO') || mensaje.includes('CDP_CARGO_DUPLICADO')) {
       toast.error('Ya hay alguien en ese cargo');
     } else if (mensaje.includes('CDP_CARGO_IGLESIA_DISTINTA') || mensaje.includes('CARGO_IGLESIA_DISTINTA')) {
@@ -189,6 +195,17 @@ export function GestionEstructuraVista() {
         onError: (e) => manejarError(e, 'No se pudo invitar'),
       }
     );
+  }
+
+  function manejarEliminarCdp() {
+    if (!cdpAEliminar) return;
+    eliminarCdp.mutate(cdpAEliminar.id, {
+      onSuccess: () => {
+        toast.success('Casa de Paz eliminada');
+        setCdpAEliminar(undefined);
+      },
+      onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
+    });
   }
 
   function manejarReenviarInvitacion(invitacionId: string) {
@@ -458,6 +475,17 @@ export function GestionEstructuraVista() {
                     }
                   />
                 </label>
+                {!esSublider && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-destructive hover:text-destructive"
+                    onClick={() => setCdpAEliminar({ id: cdp.id, etiqueta: cdp.etiqueta })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Eliminar
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -803,6 +831,21 @@ export function GestionEstructuraVista() {
             }
           );
         }}
+      />
+
+      <ConfirmarQuitarDialog
+        open={!!cdpAEliminar}
+        onOpenChange={(open) => !open && setCdpAEliminar(undefined)}
+        titulo="Eliminar Casa de Paz"
+        descripcion={
+          cdpAEliminar
+            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema. Esta acción no se puede deshacer.`
+            : undefined
+        }
+        procesando={eliminarCdp.isPending}
+        onConfirmar={manejarEliminarCdp}
+        textoConfirmar="Sí, eliminar"
+        textoProcesando="Eliminando..."
       />
     </div>
   );
