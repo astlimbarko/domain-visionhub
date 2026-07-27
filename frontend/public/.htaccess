@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Si el archivo o carpeta pedido existe de verdad (assets, logo, etc.), servirlo tal cual.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Cualquier otra ruta (ej. /afirmacion, /casas-de-paz) la resuelve React Router:
+  # todas caen a index.html en vez de dar 404 de Apache.
+  RewriteRule ^ index.html [L]
+</IfModule>
