@@ -56,7 +56,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
   return (
     <nav className="flex flex-1 flex-col gap-0.5">
       {navItems.map(({ icon: Icon, label, path, color }) => {
-        const activo = path === ROUTES.DASHBOARD ? location.pathname === path : location.pathname.startsWith(path);
+        const activo = location.pathname === path || location.pathname.startsWith(`${path}/`);
 
         // Chip de color vivo por sección: el ícono en su color sobre una pastilla
         // teñida. Se satura un poco más cuando la sección está activa.

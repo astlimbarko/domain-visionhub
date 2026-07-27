@@ -114,8 +114,8 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         <Label>Líder de Casa de Paz *</Label>
         <SelectorLiderCdp
           iglesiaId={iglesiaId}
@@ -138,7 +138,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
         setValue={setValue}
       />
 
-      <Button type="submit" disabled={isSubmitting} className="mt-2">
+      <Button type="submit" disabled={isSubmitting} className="mt-2 h-12 text-base font-semibold">
         {isSubmitting ? 'Registrando...' : 'Registrar persona'}
       </Button>
     </form>
