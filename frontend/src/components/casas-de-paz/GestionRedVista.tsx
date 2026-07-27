@@ -12,6 +12,7 @@ import {
   Power,
   RefreshCw,
   Search,
+  Trash2,
   Undo2,
   Users,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ import {
   useCargos,
   useCdps,
   useCrearCdp,
+  useEliminarCdp,
   useQuitarCargoCdp,
   useQuitarCargoRed,
   useRedes,
@@ -59,6 +61,7 @@ import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 // Color propio del módulo — teal, para contrastar con los verdes de asistencia
@@ -141,11 +144,13 @@ export function GestionRedVista() {
   const [mostrarFusionar, setMostrarFusionar] = useState(false);
   const [mostrarMultiplicar, setMostrarMultiplicar] = useState(false);
   const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
+  const [cdpAEliminar, setCdpAEliminar] = useState<{ id: string; etiqueta: string }>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
   const [dialogoCdp, setDialogoCdp] = useState<CargoDialogoCdp | null>(null);
 
   const crearCdp = useCrearCdp(iglesiaActivaId);
   const toggleActivoCdp = useToggleActivoCdp();
+  const eliminarCdp = useEliminarCdp();
   const asignarCargoRed = useAsignarCargoRed(iglesiaActivaId);
   const asignarCargoCdp = useAsignarCargoCdp(iglesiaActivaId);
   const quitarCargoRed = useQuitarCargoRed();
@@ -161,7 +166,8 @@ export function GestionRedVista() {
 
   function manejarError(e: unknown, generico: string) {
     const mensaje = (e as { message?: string } | null)?.message ?? '';
-    if (mensaje.includes('CDP_CARGO_DUPLICADO')) toast.error('Ya hay alguien en ese cargo');
+    if (mensaje.includes('CDP_INEXISTENTE')) toast.error('Esa casa de paz ya no existe');
+    else if (mensaje.includes('CDP_CARGO_DUPLICADO')) toast.error('Ya hay alguien en ese cargo');
     else if (mensaje.includes('CARGO_IGLESIA_DISTINTA') || mensaje.includes('CDP_CARGO_IGLESIA_DISTINTA')) toast.error('Esa persona no pertenece a esta iglesia');
     else if (mensaje.includes('permission denied') || mensaje.includes('row-level security') || mensaje.includes('SIN_PERMISO')) toast.error('No tenés permiso para hacer este cambio');
     else if (mensaje.includes('PIN_INCORRECTO')) toast.error('El PIN es incorrecto');
@@ -204,6 +210,16 @@ export function GestionRedVista() {
     toggleActivoCdp.mutate({ cdpId, activo }, {
       onSuccess: () => toast.success(activo ? 'Casa de Paz activada' : 'Casa de Paz desactivada'),
       onError: (e) => manejarError(e, 'No se pudo cambiar el estado'),
+    });
+  }
+  function manejarEliminarCdp() {
+    if (!cdpAEliminar) return;
+    eliminarCdp.mutate(cdpAEliminar.id, {
+      onSuccess: () => {
+        toast.success('Casa de Paz eliminada');
+        setCdpAEliminar(undefined);
+      },
+      onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
     });
   }
   async function manejarAsignarRed(persona: PersonaBusqueda) {
@@ -344,6 +360,12 @@ export function GestionRedVista() {
                       <DropdownMenuItem onSelect={() => setDialogoCdp({ cdpId: cdp.id, codigo: 'ANFITRION', titulo: `Anfitrión de ${cdp.etiqueta}`, exclusivo: true })}>Anfitrión</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => manejarToggleActivo(cdp.id, !cdp.activo)} className={cdp.activo ? 'text-destructive focus:text-destructive' : ''}>
                         <Power className="mr-2 h-4 w-4" /> {cdp.activo ? 'Desactivar' : 'Activar'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => setCdpAEliminar({ id: cdp.id, etiqueta: cdp.etiqueta })}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -501,6 +523,21 @@ export function GestionRedVista() {
             onError: (e) => manejarError(e, 'No se pudo deshacer la fusión'),
           });
         }}
+      />
+
+      <ConfirmarQuitarDialog
+        open={!!cdpAEliminar}
+        onOpenChange={(open) => !open && setCdpAEliminar(undefined)}
+        titulo="Eliminar Casa de Paz"
+        descripcion={
+          cdpAEliminar
+            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema. Esta acción no se puede deshacer.`
+            : undefined
+        }
+        procesando={eliminarCdp.isPending}
+        onConfirmar={manejarEliminarCdp}
+        textoConfirmar="Sí, eliminar"
+        textoProcesando="Eliminando..."
       />
     </div>
   );

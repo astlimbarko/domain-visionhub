@@ -98,6 +98,17 @@ export async function toggleActivoCdp(cdpId: string, activo: boolean) {
   if (error) throw error;
 }
 
+/** Baja lógica: la tabla `casa_de_paz` bloquea el DELETE físico (trigger), así
+ * que se desactiva y se marca `fecha_eliminacion` a la vez. Va por RPC
+ * (SECURITY DEFINER) en vez de un UPDATE directo porque el trigger que cierra
+ * membresías activas de la CdP escribe en `casa_de_paz_membresia`, tabla cuya
+ * política RLS no incluye a un Líder de Red -- mismo patrón que
+ * fn_fusionar_cdp/fn_multiplicar_cdp. */
+export async function eliminarCdp(cdpId: string) {
+  const { error } = await supabase.rpc('fn_eliminar_cdp', { p_casa_de_paz_id: cdpId });
+  if (error) throw error;
+}
+
 export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number): Promise<PersonaBusqueda[]> {
   const tokens = texto.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
