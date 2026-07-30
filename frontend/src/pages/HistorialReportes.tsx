@@ -1,4 +1,4 @@
-import { CalendarCheck2, Flame, History } from 'lucide-react';
+import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -8,15 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
-import { DonutRing } from '@/components/dashboard/DonutRing';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
-import { cn } from '@/lib/utils';
 
 const VENTANA_SEMANAS = 8;
 
@@ -76,16 +75,7 @@ export function HistorialReportes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-2)]/10">
-            <History className="h-5 w-5" style={{ color: 'var(--chart-2)' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Historial de Reportes</h1>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">Qué semanas mandó reporte tu Casa de Paz, y cuáles se quedaron sin enviar</p>
-          </div>
-        </div>
+      <div className="flex justify-end">
         {misCasas.length > 1 && (
           <Select value={cdpActiva} onValueChange={setCasaDePazId}>
             <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
@@ -103,63 +93,43 @@ export function HistorialReportes() {
       </div>
 
       {cargandoVentana ? (
-        <Skeleton className="h-32 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-[72px] w-full rounded-2xl" />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {/* Semanas con reporte: número grande + tira de segmentos, uno por semana. */}
-          <div className="glass-card-elevated flex flex-col gap-3 rounded-2xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-2)]">
-                <CalendarCheck2 className="h-4.5 w-4.5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Semanas con reporte</p>
-                <p className="text-2xl font-bold tracking-tight text-foreground">
-                  {semanasReportadas} <span className="text-sm font-medium text-muted-foreground">de {VENTANA_SEMANAS}</span>
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              {semanas
-                .slice()
-                .reverse()
-                .map((s) => (
-                  <span
-                    key={s.inicio}
-                    className={cn('h-1.5 flex-1 rounded-full', semanasConReporte.has(s.inicio) ? 'bg-[var(--chart-2)]' : 'bg-muted')}
-                  />
-                ))}
-            </div>
-          </div>
+          <KpiMosaico
+            compact
+            label="Semanas con reporte"
+            icon={CalendarCheck2}
+            color={VERDE}
+            sub={`De las últimas ${VENTANA_SEMANAS} semanas`}
+          >
+            {semanasReportadas}/{VENTANA_SEMANAS}
+          </KpiMosaico>
 
-          {/* Racha: rachas largas son un logro, por eso el color calido/energico. */}
-          <div className="glass-card-elevated flex items-center gap-4 rounded-2xl p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: 'var(--chart-3)' }}>
-              <Flame className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Racha actual</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">
-                {racha} <span className="text-sm font-medium text-muted-foreground">semana{racha === 1 ? '' : 's'} seguidas</span>
-              </p>
-            </div>
-          </div>
+          {/* Rachas largas son un logro, por eso el color calido/energico. */}
+          <KpiMosaico
+            compact
+            label="Racha actual"
+            icon={Flame}
+            color={AMBAR}
+            sub={`semana${racha === 1 ? '' : 's'} seguidas`}
+          >
+            {racha}
+          </KpiMosaico>
 
-          {/* Cumplimiento: el arco ya comunica el nivel sin necesitar rojo -- ambar solo bajo 80%. */}
-          <div className="glass-card-elevated flex items-center gap-4 rounded-2xl p-4">
-            <DonutRing
-              porcentaje={cumplimiento}
-              size={52}
-              strokeWidth={6}
-              color={cumplimiento != null && cumplimiento < 80 ? '#f59e0b' : '#06b6d4'}
-            >
-              <span className="text-xs font-bold text-foreground">{cumplimiento != null ? `${cumplimiento}%` : '—'}</span>
-            </DonutRing>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Cumplimiento</p>
-              <p className="text-[11px] text-muted-foreground">Semanas cerradas con reporte a tiempo</p>
-            </div>
-          </div>
+          <KpiMosaico
+            compact
+            label="Cumplimiento"
+            icon={Sparkles}
+            color={AZUL}
+            sub="Semanas cerradas con reporte a tiempo"
+          >
+            {cumplimiento != null ? `${cumplimiento}%` : '—'}
+          </KpiMosaico>
         </div>
       )}
 
@@ -168,14 +138,17 @@ export function HistorialReportes() {
           <HistorialReportesCalendario casaDePazId={cdpActiva} />
         </div>
 
-        <div className="glass-card-elevated rounded-2xl p-5">
-          <SeccionIconHeader icon={History} color="#06b6d4" titulo="Reportes recientes" size="sm" />
-          <div className="mt-4 flex flex-col gap-1.5">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={History} color={AZUL} titulo="Reportes recientes" descripcion="Últimos envíos de esta Casa de Paz" />
+          <div className="flex flex-col gap-1.5 p-5">
             {recientes.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay reportes.</p>}
             {recientes.map((r) => (
               <div key={r.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-muted/50">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#06b6d4]/12">
-                  <CalendarCheck2 className="h-4 w-4" style={{ color: '#06b6d4' }} />
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}
+                >
+                  <CalendarCheck2 className="h-4 w-4" style={{ color: AZUL }} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{fechaLegible(r.fecha_reunion)}</p>
@@ -186,7 +159,7 @@ export function HistorialReportes() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

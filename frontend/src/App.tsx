@@ -10,6 +10,8 @@ import { RegistroPublico } from '@/pages/RegistroPublico';
 import { Login } from '@/pages/Login';
 import { RecuperarContrasena } from '@/pages/RecuperarContrasena';
 import { CompletarCuenta } from '@/pages/CompletarCuenta';
+import { SeleccionarRol } from '@/pages/SeleccionarRol';
+import { AuthCallback } from '@/pages/AuthCallback';
 import { Dashboard } from '@/pages/Dashboard';
 import { Cuenta } from '@/pages/Cuenta';
 import { PrivateLayout } from '@/components/layout/PrivateLayout';
@@ -84,6 +86,11 @@ function App() {
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.RECUPERAR_CONTRASENA} element={<RecuperarContrasena />} />
           <Route path={ROUTES.COMPLETAR_CUENTA} element={<CompletarCuenta />} />
+          <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallback />} />
+          {/* Fuera de PrivateLayout a propósito: PrivateLayout redirige *hacia* acá
+              cuando hay ambigüedad de rol, así que esta ruta no puede depender de
+              PrivateLayout para su propio guard (se autoprotege con isAuthenticated). */}
+          <Route path={ROUTES.SELECCIONAR_ROL} element={<SeleccionarRol />} />
 
           <Route element={<PrivateLayout />}>
             {/* Dashboard: accesible para todos los roles */}

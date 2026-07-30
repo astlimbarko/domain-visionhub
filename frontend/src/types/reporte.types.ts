@@ -94,10 +94,6 @@ export interface ReporteReciente {
   total_mayores: number;
 }
 
-export interface ReporteDeLaSemana {
-  fecha_reunion: string;
-}
-
 /**
  * Fila cruda de un reporte enviado por alguna Casa de Paz de la Red, para la
  * vista supervisora "Control de Reportes" del Líder de Red. La semana ISO se

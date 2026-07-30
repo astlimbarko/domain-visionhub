@@ -4,20 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  iniciarSesion,
-  obtenerCorreoActual,
-  obtenerIglesiasAccesibles,
-  obtenerPersonaActual,
-  soySuperAdmin,
-} from '@/services/auth.service';
-import { obtenerMiInvitacionPendiente } from '@/services/invitacion-lider.service';
+import { GoogleIcon } from '@/components/icons/GoogleIcon';
+import { iniciarSesion, iniciarSesionConGoogle } from '@/services/auth.service';
+import { construirSesionDesdeAuth } from '@/services/sesion.service';
 import { useAuthStore } from '@/store/auth.store';
-import { ROUTES } from '@/utils/constants';
+import { GOOGLE_AUTH_HABILITADO, ROUTES } from '@/utils/constants';
 
 const esquema = z.object({ correo: z.string().email(), contrasena: z.string().min(1) });
 type FormLogin = z.infer<typeof esquema>;
@@ -25,6 +21,7 @@ type FormLogin = z.infer<typeof esquema>;
 export function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setSesion = useAuthStore((s) => s.setSesion);
   const [enviando, setEnviando] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormLogin>({ resolver: zodResolver(esquema) });
@@ -33,18 +30,25 @@ export function Login() {
     setEnviando(true);
     try {
       await iniciarSesion(datos.correo, datos.contrasena);
-      const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente] = await Promise.all([
-        obtenerPersonaActual(), obtenerIglesiasAccesibles(), soySuperAdmin(), obtenerCorreoActual(), obtenerMiInvitacionPendiente(),
-      ]);
-      setSesion({ personaId: persona?.id ?? null, nombreCompleto: persona?.nombre_completo ?? null, correo, iglesias, esSuperAdmin, membresiaPendiente });
+      // Nueva identidad: descartar la caché de la cuenta anterior. Sin esto,
+      // dos cuentas de la misma iglesia comparten queryKey (ej. mis-roles) y
+      // la segunda ve los roles cacheados de la primera (sidebar/panel del rol
+      // equivocado).
+      queryClient.clear();
+      setSesion(await construirSesionDesdeAuth());
       navigate(ROUTES.DASHBOARD, { replace: true });
     } catch { toast.error(t('auth.errorCredenciales')); }
     finally { setEnviando(false); }
   }
 
+  async function onClickGoogle() {
+    try { await iniciarSesionConGoogle(); }
+    catch { toast.error('No se pudo iniciar sesión con Google.'); }
+  }
+
   return (
-    <div className="aurora-bg flex min-h-svh items-center justify-center p-6">
-      <div className="glass-card-elevated w-full max-w-[380px] rounded-3xl p-8">
+    <div className="flex min-h-svh items-center justify-center bg-muted p-6">
+      <div className="w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="mb-8 flex flex-col items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
             <img src="/logo.png" alt="VisionHub" className="h-8 w-8 object-contain brightness-0 invert" />
@@ -80,6 +84,24 @@ export function Login() {
             ¿Olvidaste tu contraseña?
           </Link>
         </form>
+
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[11px] font-medium text-muted-foreground uppercase">o</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!GOOGLE_AUTH_HABILITADO}
+          title={GOOGLE_AUTH_HABILITADO ? undefined : 'Próximamente'}
+          onClick={onClickGoogle}
+          className="h-11 w-full gap-2.5 rounded-2xl border-border text-[14px] font-semibold text-foreground hover:bg-muted"
+        >
+          <GoogleIcon className="h-4.5 w-4.5" />
+          Continuar con Google
+        </Button>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Flame, History, Sparkles, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Flame, History, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
 import { useHistorialReportes } from '@/hooks/useReporte';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
@@ -11,10 +12,10 @@ interface Props {
   casaDePazId: string | undefined;
 }
 
-const NOMBRES_MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-/** Numero de dia (1-31) a partir de una fecha ISO, para el rotulo compacto de cada celda. */
-const diaDelMes = (iso: string) => Number(iso.slice(8, 10));
+const NOMBRES_MES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
 
 /**
  * Todas las semanas (lunes a domingo) del año, con criterio ISO 8601: la
@@ -73,12 +74,10 @@ function semanasDelAnioPorMes(anio: number) {
 }
 
 /**
- * Calendario anual compacto: una fila por mes, una celda por semana (52 en
- * total), con el rango de dias de cada semana rotulado directamente en la
- * celda -- no solo en el tooltip -- para que se lea sin pasar el mouse.
- * Verde = se envió el reporte esa semana; ámbar punteado = la semana ya
- * cerró sin reporte (no rojo -- una semana suelta no es una emergencia);
- * neutro punteado = semana actual o futura, todavía no corresponde.
+ * Calendario anual: una fila por mes, un círculo numerado por semana (1-53,
+ * numeración continua a lo largo del año). Verde = se envió el reporte esa
+ * semana; rojo = la semana ya cerró sin reporte; gris = semana actual o
+ * futura, todavía no corresponde.
  */
 export function HistorialReportesCalendario({ casaDePazId }: Props) {
   const hoy = new Date();
@@ -92,6 +91,14 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
   const { data: fechasReportadas = [], isLoading } = useHistorialReportes(casaDePazId, desde, hasta);
 
   const semanasConReporte = useMemo(() => new Set(fechasReportadas.map((f) => inicioSemanaISO(f))), [fechasReportadas]);
+
+  // Numeración continua de semanas (1..N) en orden cronológico, para el rótulo de cada círculo.
+  const numeroDeSemana = useMemo(() => {
+    const mapa = new Map<string, number>();
+    let n = 1;
+    for (const g of grupos) for (const s of g.semanas) mapa.set(s.inicio, n++);
+    return mapa;
+  }, [grupos]);
 
   const { enviadas, vencidas, rachaActual } = useMemo(() => {
     const semanasVencidas = grupos.flatMap((g) => g.semanas).filter((s) => s.fin < hoyISO);
@@ -107,113 +114,112 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
   }, [grupos, semanasConReporte, hoyISO]);
 
   const cumplimiento = vencidas > 0 ? Math.round((enviadas / vencidas) * 100) : 0;
-  const totalSemanas = grupos.reduce((acc, g) => acc + g.semanas.length, 0);
 
   return (
-    <div className="glass-card-elevated rounded-2xl p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <SeccionIconHeader icon={History} color="var(--chart-2)" titulo="Calendario anual" descripcion={`Las ${totalSemanas} semanas del año`} size="sm" />
-        <div className="flex items-center justify-between gap-3 sm:justify-end">
-          {/* Resumen compacto en una sola línea -- sin tarjetas que empujen el calendario hacia abajo */}
-          <div className="flex items-center gap-3 text-[11px] font-semibold">
-            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <Check className="h-3.5 w-3.5" />
-              {enviadas}/{vencidas}
-            </span>
-            <span className="inline-flex items-center gap-1" style={{ color: 'var(--chart-1)' }}>
-              <Sparkles className="h-3.5 w-3.5" />
-              {cumplimiento}%
-            </span>
-            <span className={cn('inline-flex items-center gap-1', rachaActual > 0 ? 'text-orange-500' : 'text-muted-foreground/50')}>
-              <Flame className="h-3.5 w-3.5" />
-              {rachaActual}
-            </span>
+    <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <TarjetaHeader
+        icon={History}
+        color={VERDE}
+        titulo="Calendario"
+        descripcion="Qué semanas mandó reporte esta Casa de Paz"
+        accion={
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Resumen compacto en una sola línea -- sin tarjetas que empujen el calendario hacia abajo */}
+            <div className="flex items-center gap-3 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                {enviadas}/{vencidas}
+              </span>
+              <span className="inline-flex items-center gap-1" style={{ color: AZUL }}>
+                <Sparkles className="h-3.5 w-3.5" />
+                {cumplimiento}%
+              </span>
+              <span className={cn('inline-flex items-center gap-1', rachaActual > 0 ? 'text-orange-500' : 'text-muted-foreground/50')}>
+                <Flame className="h-3.5 w-3.5" />
+                {rachaActual}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setAnio((a) => a - 1)} aria-label="Año anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs font-semibold tracking-tight whitespace-nowrap">Año {anio}</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setAnio((a) => a + 1)} aria-label="Año siguiente">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setAnio((a) => a - 1)} aria-label="Año anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="w-11 text-center text-xs font-semibold tracking-tight">{anio}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setAnio((a) => a + 1)} aria-label="Año siguiente">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
-      {isLoading ? (
-        <Skeleton className="mt-3 h-80 w-full rounded-2xl" />
-      ) : (
-        <>
-          {/* Grilla anual: una fila por mes, una celda por cada una de las 52 semanas */}
-          <div className="mt-3 flex flex-col gap-0.5">
-            {grupos.map((grupo) => {
-              const esMesActual = grupo.mes === hoy.getMonth() && anio === hoy.getFullYear();
+      <div className="p-5">
+        {isLoading ? (
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        ) : (
+          <>
+            {/* Leyenda */}
+            <div className="mb-4 flex flex-wrap items-center gap-4 text-[12px] font-medium text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: VERDE }} />
+                Entregado
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-destructive" />
+                No entregado
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
+                Próxima semana
+              </span>
+            </div>
 
-              return (
-                <div
-                  key={grupo.mes}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-md px-1 py-0.5 sm:gap-2',
-                    esMesActual && 'bg-primary/5 ring-1 ring-primary/20'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'w-7 shrink-0 text-[10px] font-semibold tracking-wide uppercase',
-                      esMesActual ? 'text-primary' : 'text-muted-foreground'
-                    )}
+            {/* Filas por mes: nombre completo + círculos numerados (semana 1-53 del año) */}
+            <div className="flex flex-col gap-1">
+              {grupos.map((grupo) => {
+                const esMesActual = grupo.mes === hoy.getMonth() && anio === hoy.getFullYear();
+
+                return (
+                  <div
+                    key={grupo.mes}
+                    className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-1.5"
+                    style={esMesActual ? { backgroundColor: `color-mix(in oklab, ${VERDE} 8%, transparent)` } : undefined}
                   >
-                    {NOMBRES_MES_CORTO[grupo.mes]}
-                  </span>
-                  <div className="flex flex-1 gap-0.5 sm:gap-1">
-                    {grupo.semanas.map((s) => {
-                      const enviado = semanasConReporte.has(s.inicio);
-                      const semanaVencida = s.fin < hoyISO;
-                      const faltante = !enviado && semanaVencida;
-                      const esSemanaActual = hoyISO >= s.inicio && hoyISO <= s.fin;
+                    <span
+                      className="w-28 shrink-0 text-[13px] font-semibold"
+                      style={{ color: esMesActual ? VERDE : 'var(--muted-foreground)' }}
+                    >
+                      {NOMBRES_MES[grupo.mes]}
+                    </span>
+                    <div className="flex flex-1 flex-wrap gap-1.5">
+                      {grupo.semanas.map((s) => {
+                        const enviado = semanasConReporte.has(s.inicio);
+                        const semanaVencida = s.fin < hoyISO;
+                        const faltante = !enviado && semanaVencida;
 
-                      return (
-                        <div
-                          key={s.inicio}
-                          title={`${fechaLegible(s.inicio)} – ${fechaLegible(s.fin)}: ${enviado ? 'reporte enviado' : faltante ? 'sin reporte' : 'todavía no corresponde'}`}
-                          className={cn(
-                            'relative flex flex-1 flex-col items-center justify-center gap-px rounded-md py-1 leading-none transition-all duration-150 hover:z-10 hover:scale-110',
-                            enviado && 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm shadow-emerald-500/30',
-                            faltante && 'border-2 border-dashed border-amber-500/70 bg-amber-500/5 text-amber-600 dark:text-amber-400',
-                            !enviado && !faltante && 'border border-dashed border-border/50 bg-muted/10 text-muted-foreground/40',
-                            esSemanaActual && 'ring-2 ring-primary ring-offset-1 ring-offset-card'
-                          )}
-                        >
-                          {enviado ? <Check className="h-3 w-3" /> : faltante ? <X className="h-3 w-3" /> : <span className="h-3 w-3" />}
-                          <span className="text-[7px] font-bold tabular-nums sm:text-[8px]">
-                            {diaDelMes(s.inicio)}-{diaDelMes(s.fin)}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div
+                            key={s.inicio}
+                            title={`${fechaLegible(s.inicio)} – ${fechaLegible(s.fin)}: ${enviado ? 'reporte entregado' : faltante ? 'no entregado' : 'todavía no corresponde'}`}
+                            className={cn(
+                              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
+                              enviado && 'text-white',
+                              faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
+                              !enviado && !faltante && 'bg-muted text-muted-foreground/60'
+                            )}
+                            style={enviado ? { backgroundColor: VERDE, boxShadow: `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)` } : undefined}
+                          >
+                            {numeroDeSemana.get(s.inicio)}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600" />
-              Reporte enviado
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-dashed border-amber-500/70" />
-              Semana sin reporte
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border border-dashed border-border/50" />
-              Todavía no corresponde
-            </span>
-          </div>
-        </>
-      )}
-    </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
   );
 }

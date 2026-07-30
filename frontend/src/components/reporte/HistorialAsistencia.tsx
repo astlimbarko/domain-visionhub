@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, Cake, Check, ChevronDown, MessageCircle, Search, User, UserRound, Users, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL } from '@/components/dashboard/DashboardUI';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
 import { fechaLegible } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
@@ -91,71 +92,72 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
   const reunionesRecientesPrimero = data?.reuniones ?? [];
 
   return (
-    <div className="glass-card-elevated rounded-2xl p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SeccionIconHeader
-          icon={Users}
-          color="var(--muted-foreground)"
-          titulo="Miembros"
-          descripcion={
-            totalUrgentes > 0
-              ? `${totalUrgentes} miembro${totalUrgentes === 1 ? '' : 's'} con 2+ faltas seguidas`
-              : 'Tocá un miembro para ver su ficha completa'
-          }
-          size="sm"
-        />
-        {data && data.miembros.length > 0 && (
-          <div className="flex items-center gap-2 self-stretch sm:self-auto">
-            <div className="relative flex-1 sm:w-48 sm:flex-none">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar miembro..."
-                className="h-9 rounded-xl border-border/60 bg-background pl-8 text-sm"
-              />
+    <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <TarjetaHeader
+        icon={Users}
+        color={AZUL}
+        titulo="Miembros"
+        descripcion={
+          totalUrgentes > 0
+            ? `${totalUrgentes} miembro${totalUrgentes === 1 ? '' : 's'} con 2+ faltas seguidas`
+            : 'Tocá un miembro para ver su ficha completa'
+        }
+        accion={
+          data && data.miembros.length > 0 ? (
+            <div className="flex items-center gap-2 self-stretch sm:self-auto">
+              <div className="relative flex-1 sm:w-48 sm:flex-none">
+                <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar miembro..."
+                  className="h-9 rounded-xl border-border/60 bg-background pl-8 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSoloUrgentes((v) => !v)}
+                className={cn(
+                  'shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all',
+                  soloUrgentes
+                    ? 'border-destructive bg-destructive text-white shadow-sm shadow-destructive/25'
+                    : 'border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground'
+                )}
+              >
+                Solo urgentes
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setSoloUrgentes((v) => !v)}
-              className={cn(
-                'shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all',
-                soloUrgentes
-                  ? 'border-destructive bg-destructive text-white shadow-sm shadow-destructive/25'
-                  : 'border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground'
-              )}
-            >
-              Solo urgentes
-            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="p-5">
+        {isLoading ? (
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        ) : !data || data.miembros.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Esta Casa de Paz todavía no tiene miembros registrados.</p>
+        ) : data.reuniones.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Todavía no hay reuniones reportadas para armar un historial.</p>
+        ) : miembrosFiltrados.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ningún miembro coincide con ese filtro.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {miembrosVisibles.map((m) => (
+              <FilaMiembro key={m.persona_id} miembro={m} reuniones={reunionesRecientesPrimero} />
+            ))}
+            {restantes > 0 && (
+              <button
+                type="button"
+                onClick={() => setMostrarTodos(true)}
+                className="mt-1 rounded-xl border border-dashed border-border/70 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+              >
+                Mostrar {restantes} miembro{restantes === 1 ? '' : 's'} más
+              </button>
+            )}
           </div>
         )}
       </div>
-
-      {isLoading ? (
-        <Skeleton className="mt-4 h-64 w-full rounded-2xl" />
-      ) : !data || data.miembros.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">Esta Casa de Paz todavía no tiene miembros registrados.</p>
-      ) : data.reuniones.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">Todavía no hay reuniones reportadas para armar un historial.</p>
-      ) : miembrosFiltrados.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">Ningún miembro coincide con ese filtro.</p>
-      ) : (
-        <div className="mt-4 flex flex-col gap-2">
-          {miembrosVisibles.map((m) => (
-            <FilaMiembro key={m.persona_id} miembro={m} reuniones={reunionesRecientesPrimero} />
-          ))}
-          {restantes > 0 && (
-            <button
-              type="button"
-              onClick={() => setMostrarTodos(true)}
-              className="mt-1 rounded-xl border border-dashed border-border/70 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-            >
-              Mostrar {restantes} miembro{restantes === 1 ? '' : 's'} más
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </section>
   );
 }
 

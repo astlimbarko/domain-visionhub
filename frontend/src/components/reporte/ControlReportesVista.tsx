@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck, Search, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DonutRing } from '@/components/dashboard/DonutRing';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
 import { useReportesRedRango } from '@/hooks/useReporte';
@@ -21,8 +21,6 @@ import { aISO, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
 const LOTE = 12;
-const VERDE = 'var(--chart-2)';
-const AMBAR = 'var(--chart-3)';
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -169,11 +167,9 @@ export function ControlReportesVista({ redId }: Props) {
       </div>
 
       {/* ── Matriz Casa de Paz × semana (compacta y escalable) ─────────────────── */}
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <SeccionIconHeader icon={ClipboardCheck} color={VERDE} titulo="Entrega por Casa de Paz" descripcion={`Últimas ${VENTANA_SEMANAS} semanas · ${cdpsFiltradas.length} de ${total} Casa(s) de Paz activa(s)`} />
-        </CardHeader>
-        <CardContent>
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={ClipboardCheck} color={VERDE} titulo="Entrega por Casa de Paz" descripcion={`Últimas ${VENTANA_SEMANAS} semanas · ${cdpsFiltradas.length} de ${total} Casa(s) de Paz activa(s)`} />
+        <div className="p-4">
           {cargando ? (
             <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11 w-full rounded-xl" />)}</div>
           ) : total === 0 ? (
@@ -235,8 +231,8 @@ export function ControlReportesVista({ redId }: Props) {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

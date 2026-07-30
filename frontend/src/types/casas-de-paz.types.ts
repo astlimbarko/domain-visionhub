@@ -52,6 +52,7 @@ export interface DomicilioCdp {
   calle: string | null;
   numero: string | null;
   referencia: string | null;
+  url_gps: string | null;
 }
 
 export interface DatosDomicilioCdp {
@@ -60,4 +61,27 @@ export interface DatosDomicilioCdp {
   calle: string | null;
   numero: string | null;
   referencia: string | null;
+  url_gps: string | null;
+}
+
+/** Todo lo que se pide al crear una Casa de Paz: ya sale con líder, gente y lugar de reunión definidos. */
+export interface DatosNuevaCdp {
+  liderId: string;
+  sublideresIds: string[];
+  anfitrionId?: string;
+  diaReunion: number | null;
+  horaReunion: string | null;
+  domicilio?: DatosDomicilioCdp;
+}
+
+/** Resumen del Perfil de Casa de Paz (fn_mi_cdp_perfil). */
+export interface CdpPerfil {
+  nombre: string;
+  activo: boolean;
+  fecha_creacion: string;
+  /** 0=domingo … 6=sábado (getDay()), o null si no se definió. */
+  dia_reunion: number | null;
+  /** 'HH:MM:SS' o null. */
+  hora_reunion: string | null;
+  red_nombre: string | null;
 }

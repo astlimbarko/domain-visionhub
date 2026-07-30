@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  actualizarReunionCdp,
   asignarCargoCdp,
   asignarCargoRed,
   buscarPersonas,
@@ -10,6 +11,7 @@ import {
   obtenerCargoVigenteCdp,
   obtenerCargoVigenteRed,
   obtenerCargos,
+  obtenerCdpPerfil,
   obtenerCdps,
   obtenerCiudades,
   obtenerDomicilioCdp,
@@ -19,7 +21,7 @@ import {
   toggleActivoCdp,
   toggleActivoRed,
 } from '@/services/casas-de-paz.service';
-import type { CargoCdpCodigo, CargoRedCodigo, DatosDomicilioCdp } from '@/types/casas-de-paz.types';
+import type { CargoCdpCodigo, CargoRedCodigo, DatosDomicilioCdp, DatosNuevaCdp } from '@/types/casas-de-paz.types';
 
 export function useCargos() {
   return useQuery({ queryKey: ['estructura', 'cargos'], queryFn: obtenerCargos, staleTime: 1000 * 60 * 60 });
@@ -89,8 +91,7 @@ export function useToggleActivoRed() {
 export function useCrearCdp(iglesiaId: string | undefined) {
   const invalidar = useInvalidarEstructura();
   return useMutation({
-    mutationFn: ({ redId, nombre, sublideresIds }: { redId: string; nombre?: string; sublideresIds?: string[] }) =>
-      crearCdp(iglesiaId as string, redId, nombre, sublideresIds),
+    mutationFn: ({ redId, datos }: { redId: string; datos: DatosNuevaCdp }) => crearCdp(iglesiaId as string, redId, datos),
     onSuccess: invalidar,
   });
 }
@@ -188,6 +189,23 @@ export function useGuardarDomicilioCdp(iglesiaId: string | undefined) {
   return useMutation({
     mutationFn: ({ cdpId, datos }: { cdpId: string; datos: DatosDomicilioCdp }) =>
       guardarDomicilioCdp(iglesiaId as string, cdpId, datos),
+    onSuccess: invalidar,
+  });
+}
+
+export function useCdpPerfil(cdpId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'cdp-perfil', cdpId],
+    queryFn: () => obtenerCdpPerfil(cdpId as string),
+    enabled: !!cdpId,
+  });
+}
+
+export function useActualizarReunionCdp() {
+  const invalidar = useInvalidarEstructura();
+  return useMutation({
+    mutationFn: ({ cdpId, diaReunion, horaReunion }: { cdpId: string; diaReunion: number | null; horaReunion: string | null }) =>
+      actualizarReunionCdp(cdpId, diaReunion, horaReunion),
     onSuccess: invalidar,
   });
 }

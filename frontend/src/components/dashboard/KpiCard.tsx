@@ -15,7 +15,7 @@ interface Props {
 
 export function KpiCard({ titulo, valor, variacionPct, subtitulo, icon = Gauge, porcentaje, color }: Props) {
   return (
-    <div className="glass-card flex items-center gap-4 rounded-3xl p-5">
+    <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm">
       <DonutRing porcentaje={porcentaje} icon={icon} color={color ?? 'var(--primary)'} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{titulo}</p>

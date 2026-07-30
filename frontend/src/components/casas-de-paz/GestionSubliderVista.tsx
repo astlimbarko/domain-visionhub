@@ -1,7 +1,23 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Crown, Home, Mail, MapPin, Pencil, Plus, UserRound, Users, X, type LucideIcon } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  Clock,
+  Copy,
+  ExternalLink,
+  Home,
+  Link2,
+  MapPin,
+  Network,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  UserRound,
+  Users,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,14 +36,20 @@ import {
   useAsignarCargoCdp,
   useCargoVigenteCdp,
   useCargos,
+  useCdpPerfil,
   useDomicilioCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from './AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from './DomicilioAnfitrionDialog';
+import { EditarReunionCdpDialog, DIAS_SEMANA } from './EditarReunionCdpDialog';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import { HeroDato, TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
+import type { DomicilioCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
+
+/** Colores de avatar que rotan por posición, para dar variedad como en el diseño. */
+const COLORES_AVATAR = ['var(--chart-2)', 'var(--chart-1)', 'var(--chart-3)', 'var(--chart-4)'];
 
 function fmtFecha(fecha: string) {
   return new Date(fecha).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -38,41 +60,22 @@ function iniciales(nombreCompleto: string) {
   return ((palabras[0]?.[0] ?? '') + (palabras[1]?.[0] ?? '')).toUpperCase();
 }
 
-function AvatarPersona({ nombre, color }: { nombre: string; color: string }) {
+/** Dirección de reunión en una sola línea: calle+número, ciudad, zona. */
+function lineaDireccion(d: DomicilioCdp) {
+  const calle = [d.calle, d.numero].filter(Boolean).join(' ');
+  return [calle || null, d.ciudad_nombre || null, d.zona ? `Zona: ${d.zona}` : null]
+    .filter(Boolean)
+    .join(', ');
+}
+
+function AvatarPersona({ nombre, color, size = 'md' }: { nombre: string; color: string; size?: 'md' | 'lg' }) {
+  const dim = size === 'lg' ? 'h-11 w-11 text-sm' : 'h-9 w-9 text-[13px]';
   return (
     <div
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+      className={`flex ${dim} shrink-0 items-center justify-center rounded-full font-bold`}
       style={{ backgroundColor: `color-mix(in oklab, ${color} 16%, transparent)`, color }}
     >
       {iniciales(nombre) || <UserRound className="h-4 w-4" />}
-    </div>
-  );
-}
-
-/** Encabezado de banda a todo el ancho, color solido + texto blanco -- una seccion por tarjeta (Lider/Sublideres/Anfitrion). */
-function SeccionBanner({
-  icon: Icon,
-  color,
-  titulo,
-  descripcion,
-  accion,
-}: {
-  icon: LucideIcon;
-  color: string;
-  titulo: string;
-  descripcion?: string;
-  accion?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-2xl px-5 py-4" style={{ backgroundColor: color }}>
-      <div className="flex items-center gap-3">
-        <Icon className="h-5 w-5 shrink-0 text-white" />
-        <div>
-          <p className="font-semibold text-white">{titulo}</p>
-          {descripcion && <p className="text-[12px] text-white/80">{descripcion}</p>}
-        </div>
-      </div>
-      {accion}
     </div>
   );
 }
@@ -97,10 +100,11 @@ export function GestionSubliderVista() {
   const [mostrarAsignar, setMostrarAsignar] = useState(false);
   const [mostrarAnfitrion, setMostrarAnfitrion] = useState(false);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
+  const [mostrarReunion, setMostrarReunion] = useState(false);
   const [confirmarQuitar, setConfirmarQuitar] = useState<{ cargoId: string; nombre: string } | null>(null);
 
+  const { data: perfil } = useCdpPerfil(cdpActiva);
   const { data: cargos = [] } = useCargos();
-  const { data: lider = [], isLoading: cargandoLider } = useCargoVigenteCdp(cdpActiva, 'LIDER_CDP');
   const { data: sublideres = [], isLoading: cargandoSublideres } = useCargoVigenteCdp(cdpActiva, 'SUBLIDER_CDP');
   const { data: anfitrion = [], isLoading: cargandoAnfitrion } = useCargoVigenteCdp(cdpActiva, 'ANFITRION');
   const { data: domicilio } = useDomicilioCdp(cdpActiva);
@@ -155,7 +159,7 @@ export function GestionSubliderVista() {
     );
   }
 
-  // Quitar un sublíder pide confirmación explícita: el click en la X solo
+  // Quitar un sublíder pide confirmación explícita: el click en Quitar solo
   // abre este diálogo, y hace falta un segundo click para ejecutar la baja.
   function manejarQuitar(cargoId: string, nombre: string) {
     setConfirmarQuitar({ cargoId, nombre });
@@ -182,95 +186,277 @@ export function GestionSubliderVista() {
     });
   }
 
+  function copiarEnlace(url: string) {
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Enlace copiado'),
+      () => toast.error('No se pudo copiar el enlace')
+    );
+  }
+
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
   if (!misCasas || misCasas.length === 0) {
     return (
       <ProximamentePlaceholder
-        titulo="Gestión de Sublíder"
-        descripcion="Todavía no tenés una Casa de Paz asignada como líder o sublíder, así que no hay sublíderes que gestionar."
+        titulo="Perfil de Casa de Paz"
+        descripcion="Todavía no tenés una Casa de Paz asignada como líder o sublíder."
       />
     );
   }
 
-  const liderActual = lider[0];
   const anfitrionActual = anfitrion[0];
+  const direccion = domicilio ? lineaDireccion(domicilio) : null;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Users className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Gestión de Sublíder</h1>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              {nombreCdpActiva ? `Sublíderes de ${nombreCdpActiva}` : 'Sublíderes de tu Casa de Paz'}
-            </p>
-          </div>
+      {misCasas.length > 1 && (
+        <div className="flex justify-end">
+          <Select value={cdpActiva} onValueChange={setCasaDePazId}>
+            <SelectTrigger size="sm" className="w-full text-sm sm:w-56">
+              <SelectValue placeholder="Casa de Paz" />
+            </SelectTrigger>
+            <SelectContent>
+              {misCasas.map((c) => (
+                <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
+                  {c.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {misCasas.length > 1 && (
-            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56 rounded-xl text-sm">
-                <SelectValue placeholder="Casa de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                {misCasas.map((c) => (
-                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                    {c.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {esLider && (
-            <Button onClick={() => setMostrarAsignar(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
-              <Plus className="h-4 w-4" />
-              Asignar sublíder
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
-      {/* Líder */}
-      <div className="overflow-hidden rounded-2xl border border-border/60">
-        <SeccionBanner icon={Crown} color="var(--chart-3)" titulo="Líder de la Casa de Paz" />
-        <div className="bg-card p-4">
-          {cargandoLider ? (
-            <Skeleton className="h-12 w-full rounded-xl" />
-          ) : liderActual ? (
-            <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
-              <AvatarPersona nombre={liderActual.nombre_completo} color="var(--chart-3)" />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-foreground">{liderActual.nombre_completo}</p>
-                  <Badge className="shrink-0 border-0 bg-[var(--chart-3)]/15 text-[var(--chart-3)]">Líder</Badge>
+      {/* ============ Encabezado ============ */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
+        style={{ background: GRADIENTE_HERO }}
+      >
+        <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
+        <div className="relative flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
+                <Home className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-medium text-white/60">Casa de Paz</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{nombreCdpActiva ?? 'Casa de Paz'}</h1>
+                  {perfil?.red_nombre && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
+                      <Network className="h-3.5 w-3.5" /> Red: {perfil.red_nombre}
+                    </span>
+                  )}
                 </div>
-                {liderActual.correo && (
-                  <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-                    <Mail className="h-3 w-3 shrink-0" />
-                    {liderActual.correo}
+                {direccion && (
+                  <p className="flex items-start gap-1.5 text-[13px] text-white/70">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" /> {direccion}
                   </p>
                 )}
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Esta Casa de Paz todavía no tiene líder asignado.</p>
-          )}
+            {esLider && cdpActiva && (
+              <Button
+                onClick={() => setMostrarReunion(true)}
+                className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
+              >
+                <CalendarClock className="h-4 w-4" />
+                Editar reunión
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-4">
+            <HeroDato icon={Network} label="Red" valor={perfil?.red_nombre ?? 'Sin red'} />
+            <HeroDato
+              icon={ShieldCheck}
+              label="Estado"
+              valor={perfil ? (perfil.activo ? 'Activa' : 'Inactiva') : '—'}
+              dot={perfil ? (perfil.activo ? 'var(--chart-2)' : 'var(--chart-5)') : undefined}
+              valorClase={perfil ? (perfil.activo ? 'text-[var(--chart-2)]' : 'text-white/70') : 'text-white'}
+            />
+            <HeroDato
+              icon={CalendarDays}
+              label="Día de reunión"
+              valor={perfil?.dia_reunion != null ? DIAS_SEMANA[perfil.dia_reunion] : 'Sin definir'}
+              dot={perfil?.dia_reunion != null ? 'var(--chart-4)' : undefined}
+              valorClase={perfil?.dia_reunion != null ? 'text-[var(--chart-4)]' : 'text-white/70'}
+            />
+            <HeroDato
+              icon={Clock}
+              label="Hora de reunión"
+              valor={perfil?.hora_reunion ? perfil.hora_reunion.slice(0, 5) : 'Sin definir'}
+              dot={perfil?.hora_reunion ? 'var(--chart-3)' : undefined}
+              valorClase={perfil?.hora_reunion ? 'text-[var(--chart-3)]' : 'text-white/70'}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Sublíderes */}
-      <div className="overflow-hidden rounded-2xl border border-border/60">
-        <SeccionBanner
-          icon={Users}
-          color="var(--chart-2)"
-          titulo="Sublíderes actuales"
-          descripcion={`${sublideres.length} sublíder${sublideres.length === 1 ? '' : 'es'} activo${sublideres.length === 1 ? '' : 's'}`}
+      {/* ============ Lugar de reunión ============ */}
+      {/* Color de la sección: cambiar solo --acc (independiente del color de la Red). */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card" style={{ '--acc': 'var(--teal)' } as CSSProperties}>
+        <TarjetaHeader
+          icon={Home}
+          color="var(--acc)"
+          titulo="Lugar de reunión"
+          descripcion="Información del lugar donde se realiza la Casa de Paz."
         />
-        <div className="bg-card p-4">
+        <div className="grid grid-cols-1 gap-6 p-5 lg:grid-cols-3 lg:gap-0">
+          {/* Anfitrión */}
+          <div className="flex flex-col gap-3 lg:pr-6">
+            {cargandoAnfitrion ? (
+              <Skeleton className="h-24 w-full rounded-xl" />
+            ) : anfitrionActual ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <AvatarPersona nombre={anfitrionActual.nombre_completo} color="var(--acc)" size="lg" />
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-muted-foreground">Anfitrión</p>
+                    <p className="truncate text-[15px] font-bold text-foreground">{anfitrionActual.nombre_completo}</p>
+                  </div>
+                </div>
+                <p className="text-[13px] text-muted-foreground">Persona que presta su hogar para la reunión.</p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <UserRound className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-medium text-muted-foreground">Anfitrión</p>
+                    <p className="text-[15px] font-bold text-muted-foreground">Sin asignar</p>
+                  </div>
+                </div>
+                <p className="text-[13px] text-muted-foreground">Todavía no se asignó un anfitrión para esta Casa de Paz.</p>
+              </>
+            )}
+            {esLider && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                onClick={() => setMostrarAnfitrion(true)}
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                {anfitrionActual ? 'Cambiar anfitrión' : 'Asignar anfitrión'}
+              </Button>
+            )}
+          </div>
+
+          {/* Dirección de reunión */}
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-6 lg:border-t-0 lg:border-l lg:px-6 lg:pt-0">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+              <MapPin className="h-4 w-4 text-[var(--acc)]" /> Dirección de reunión
+            </p>
+            {direccion ? (
+              <p className="text-[13px] leading-relaxed text-foreground">{direccion}</p>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">Sin dirección registrada.</p>
+            )}
+            {domicilio?.referencia && (
+              <div>
+                <p className="text-[12px] font-medium text-[var(--acc)]">Referencia (opcional)</p>
+                <p className="text-[13px] text-foreground">{domicilio.referencia}</p>
+              </div>
+            )}
+            {esLider && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-auto w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                onClick={() => setMostrarDomicilio(true)}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                {domicilio ? 'Editar dirección' : 'Agregar dirección'}
+              </Button>
+            )}
+          </div>
+
+          {/* Ubicación en Google Maps */}
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-6 lg:border-t-0 lg:border-l lg:pl-6 lg:pt-0">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+              <Link2 className="h-4 w-4 text-[var(--acc)]" /> Ubicación en Google Maps
+            </p>
+            {domicilio?.url_gps ? (
+              <>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12px]">
+                  <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-foreground">{domicilio.url_gps}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {esLider && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                      onClick={() => setMostrarDomicilio(true)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar enlace
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                    onClick={() => copiarEnlace(domicilio.url_gps!)}
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                    asChild
+                  >
+                    <a href={domicilio.url_gps} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" /> Abrir en Maps
+                    </a>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] text-muted-foreground">Sin enlace de Google Maps.</p>
+                {esLider && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                    onClick={() => setMostrarDomicilio(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Agregar enlace
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Sublíderes ============ */}
+      {/* Color de la sección: cambiar solo --acc (independiente del color de la Red). */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card" style={{ '--acc': 'var(--chart-3)' } as CSSProperties}>
+        <TarjetaHeader
+          icon={Users}
+          color="var(--acc)"
+          titulo="Sublíderes"
+          descripcion="Personas que apoyan al líder en la Casa de Paz."
+          accion={
+            esLider && (
+              <Button
+                size="sm"
+                className="h-9 gap-1.5 rounded-xl px-3.5 shadow-sm shadow-primary/20"
+                onClick={() => setMostrarAsignar(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Asignar sublíder
+              </Button>
+            )
+          }
+        />
+        <div className="p-5">
           {cargandoSublideres ? (
             <div className="flex flex-col gap-2">
               {Array.from({ length: 2 }).map((_, i) => (
@@ -289,9 +475,9 @@ export function GestionSubliderVista() {
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               <AnimatePresence initial={false}>
-                {sublideres.map((s) => (
+                {sublideres.map((s, i) => (
                   <motion.div
                     key={s.id}
                     layout
@@ -302,107 +488,34 @@ export function GestionSubliderVista() {
                     className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <AvatarPersona nombre={s.nombre_completo} color="var(--chart-2)" />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-foreground">{s.nombre_completo}</p>
-                          <Badge className="shrink-0 border-0 bg-[var(--chart-2)]/15 text-[var(--chart-2)]">Activo</Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Sublíder desde {fmtFecha(s.fecha_inicio)}
-                          {s.correo && ` · ${s.correo}`}
-                        </p>
-                      </div>
+                      <AvatarPersona nombre={s.nombre_completo} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} />
+                      <p className="truncate text-sm font-bold text-foreground">{s.nombre_completo}</p>
+                      <Badge className="shrink-0 border-0 bg-[var(--chart-2)]/15 text-[var(--chart-2)]">Activo</Badge>
                     </div>
-                    {esLider && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 gap-1.5 self-start border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:self-auto"
-                        disabled={quitarCargoCdp.isPending}
-                        onClick={() => manejarQuitar(s.id, s.nombre_completo)}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Quitar como sublíder
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
+                      <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0" /> Asignado el {fmtFecha(s.fecha_inicio)}
+                      </span>
+                      {esLider && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          disabled={quitarCargoCdp.isPending}
+                          onClick={() => manejarQuitar(s.id, s.nombre_completo)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Quitar
+                        </Button>
+                      )}
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Anfitrión */}
-      <div className="overflow-hidden rounded-2xl border border-border/60">
-        <SeccionBanner
-          icon={Home}
-          color="var(--chart-4)"
-          titulo="Anfitrión"
-          descripcion="Quién presta la casa para la reunión"
-          accion={
-            esLider && (
-              <Button
-                size="sm"
-                className="shrink-0 gap-1.5 border-white/30 bg-white/15 text-white hover:bg-white/25"
-                onClick={() => setMostrarAnfitrion(true)}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                {anfitrionActual ? 'Cambiar anfitrión' : 'Asignar anfitrión'}
-              </Button>
-            )
-          }
-        />
-        <div className="bg-card p-4">
-          {cargandoAnfitrion ? (
-            <Skeleton className="h-12 w-full rounded-xl" />
-          ) : anfitrionActual ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <AvatarPersona nombre={anfitrionActual.nombre_completo} color="var(--chart-4)" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{anfitrionActual.nombre_completo}</p>
-                  {anfitrionActual.correo && (
-                    <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-                      <Mail className="h-3 w-3 shrink-0" />
-                      {anfitrionActual.correo}
-                    </p>
-                  )}
-                  {domicilio ? (
-                    <div className="mt-1.5 flex flex-col gap-1.5 text-[12px] text-muted-foreground sm:flex-row sm:flex-wrap sm:items-start sm:gap-4">
-                      <span className="flex items-start gap-1">
-                        <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                        <span>
-                          {[domicilio.calle, domicilio.numero].filter(Boolean).join(' ') || 'Sin calle registrada'}
-                          {domicilio.ciudad_nombre && `, ${domicilio.ciudad_nombre}`}
-                        </span>
-                      </span>
-                      {domicilio.zona && <span>Zona: {domicilio.zona}</span>}
-                      {domicilio.referencia && <span>Ref: {domicilio.referencia}</span>}
-                    </div>
-                  ) : (
-                    esLider && <p className="mt-1.5 text-[12px] text-muted-foreground">Sin domicilio registrado.</p>
-                  )}
-                </div>
-              </div>
-              {esLider && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 gap-1.5 self-start border-[var(--chart-4)]/40 text-[var(--chart-4)] hover:bg-[var(--chart-4)]/10 sm:self-auto"
-                  onClick={() => setMostrarDomicilio(true)}
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  {domicilio ? 'Editar domicilio' : 'Agregar domicilio'}
-                </Button>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Todavía no se asignó un anfitrión para esta Casa de Paz.</p>
-          )}
-        </div>
-      </div>
+      </section>
 
       {esLider && cdpActiva && (
         <AsignarCargoDialog
@@ -444,6 +557,16 @@ export function GestionSubliderVista() {
           cdpId={cdpActiva}
           iglesiaId={iglesiaActivaId}
           domicilio={domicilio}
+        />
+      )}
+
+      {esLider && cdpActiva && (
+        <EditarReunionCdpDialog
+          open={mostrarReunion}
+          onOpenChange={setMostrarReunion}
+          cdpId={cdpActiva}
+          diaReunion={perfil?.dia_reunion ?? null}
+          horaReunion={perfil?.hora_reunion ?? null}
         />
       )}
 

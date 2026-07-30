@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -6,17 +6,17 @@ import {
   BookOpen,
   Calendar,
   CalendarCheck2,
-  DollarSign,
   Heart,
   Minus,
   TrendingUp,
   UserPlus,
   Users,
-  type LucideIcon,
+  Wallet,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DashboardHero, KpiMosaico } from './DashboardUI';
 import { IndiceFidelidadRing } from './IndiceFidelidadRing';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import {
@@ -60,41 +60,14 @@ function fmt(fecha: string) {
   return new Date(fecha).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
 }
 
-/** Vive dentro de las tarjetas KPI de fondo sólido -- por eso siempre en blanco, el signo lo da el ícono. */
-function VariacionBadge({ pct }: { pct: number }) {
+/** Línea chica de variación para el pie de un mosaico KPI; cae al texto por defecto si no hay dato. */
+function subVariacion(pct: number | null | undefined, fallback: ReactNode): ReactNode {
+  if (pct === null || pct === undefined) return fallback;
+  const Ico = pct > 0 ? ArrowUp : pct < 0 ? ArrowDown : Minus;
   return (
-    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
-      {pct > 0 ? <ArrowUp className="h-3 w-3" /> : pct < 0 ? <ArrowDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-      {Math.abs(pct)}% vs. período anterior
+    <span className="inline-flex items-center gap-1">
+      <Ico className="h-3 w-3" /> {Math.abs(pct)}% vs. anterior
     </span>
-  );
-}
-
-/** Ícono + color propios de cada card, para identificar el tema de cada gráfica de un vistazo. */
-function CardIconHeader({
-  icon: Icon,
-  color,
-  titulo,
-  descripcion,
-}: {
-  icon: LucideIcon;
-  color: string;
-  titulo: string;
-  descripcion?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `color-mix(in oklab, ${color} 14%, transparent)` }}
-      >
-        <Icon className="h-4.5 w-4.5" style={{ color }} />
-      </div>
-      <div>
-        <CardTitle className="text-base">{titulo}</CardTitle>
-        {descripcion && <CardDescription>{descripcion}</CardDescription>}
-      </div>
-    </div>
   );
 }
 
@@ -128,9 +101,12 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-32 w-full lg:col-span-3" />
-        <Skeleton className="h-64 w-full lg:col-span-3" />
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-28 w-full rounded-3xl" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
+        </div>
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -157,213 +133,140 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">Vista general de {casa_de_paz.nombre ?? 'tu Casa de Paz'}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
-            <SelectTrigger className="w-32 rounded-xl text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIODOS_DASHBOARD.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={String(cantidad)} onValueChange={(v) => setCantidad(Number(v))} disabled={!!rango}>
-            <SelectTrigger className="w-44 rounded-xl text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {opcionesCantidad.map((c) => (
-                <SelectItem key={c} value={String(c)}>
-                  {etiquetaCantidad(periodo, c)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <RangoFechasPopover value={rango} onChange={setRango} />
-        </div>
+      <DashboardHero
+        icon={Users}
+        eyebrow="Casa de Paz"
+        title={casa_de_paz.nombre ?? 'Tu Casa de Paz'}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
+              <SelectTrigger size="sm" className="w-28 border-white/25 bg-white/10 text-sm text-white [&_svg]:text-white/70"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODOS_DASHBOARD.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={String(cantidad)} onValueChange={(v) => setCantidad(Number(v))} disabled={!!rango}>
+              <SelectTrigger size="sm" className="w-40 border-white/25 bg-white/10 text-sm text-white [&_svg]:text-white/70"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {opcionesCantidad.map((c) => (<SelectItem key={c} value={String(c)}>{etiquetaCantidad(periodo, c)}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <RangoFechasPopover value={rango} onChange={setRango} />
+          </div>
+        }
+      />
+
+      {/* ── Indicadores ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiMosaico
+          label="Miembros"
+          icon={Users}
+          color={TEAL}
+          sub={subVariacion(kpi.miembros_activos.variacion_pct, 'Miembros activos')}
+        >
+          {kpi.miembros_activos.valor ?? totalMiembros}
+        </KpiMosaico>
+        <KpiMosaico
+          label="Niños"
+          icon={Baby}
+          color={AMBAR}
+          sub={totalMiembros > 0 ? `${Math.round((ninos / totalMiembros) * 100)}% de ${totalMiembros} miembros` : 'Menores de 12 años'}
+        >
+          {ninos}
+        </KpiMosaico>
+        <KpiMosaico
+          label="Evangelizados"
+          icon={UserPlus}
+          color={MORADO}
+          sub={tasaEvangelismo?.meta != null ? `Meta: ${tasaEvangelismo.meta} · ${etiquetaPeriodo}` : `En ${etiquetaPeriodo}`}
+        >
+          {tasaEvangelismo?.evangelizados ?? 0}
+        </KpiMosaico>
+        <KpiMosaico
+          label="Última reunión"
+          icon={CalendarCheck2}
+          color={VERDE}
+          sub={subVariacion(
+            kpi.asistencia_ultima.variacion_pct,
+            kpi.asistencia_ultima.fecha ? `Asistencia del ${fmt(kpi.asistencia_ultima.fecha)}` : 'Última reunión'
+          )}
+        >
+          {kpi.asistencia_ultima.valor ?? '—'}
+        </KpiMosaico>
       </div>
 
-      {/* KPIs compactos */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 text-white shadow-lg shadow-blue-500/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[11px] text-white/80">Miembros</p>
-              <p className="text-2xl font-bold">{kpi.miembros_activos.valor ?? totalMiembros}</p>
-            </div>
-          </div>
-          {kpi.miembros_activos.variacion_pct !== null && kpi.miembros_activos.variacion_pct !== undefined ? (
-            <VariacionBadge pct={kpi.miembros_activos.variacion_pct} />
-          ) : (
-            <p className="text-[11px] text-white/80">Miembros activos en tu Casa de Paz</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-600 p-5 text-white shadow-lg shadow-violet-500/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Baby className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[11px] text-white/80">Niños</p>
-              <p className="text-2xl font-bold">{ninos}</p>
-            </div>
-          </div>
-          <p className="text-[11px] text-white/80">
-            {totalMiembros > 0 ? `${Math.round((ninos / totalMiembros) * 100)}% de ${totalMiembros} miembros` : 'Menores de 12 años'}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-5 text-white shadow-lg shadow-orange-500/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <UserPlus className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[11px] text-white/80">Evangelizados</p>
-              <p className="text-2xl font-bold">{tasaEvangelismo?.evangelizados ?? 0}</p>
-            </div>
-          </div>
-          <p className="text-[11px] text-white/80">
-            {tasaEvangelismo?.meta != null ? `Meta: ${tasaEvangelismo.meta} · ${etiquetaPeriodo}` : `En ${etiquetaPeriodo}`}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-5 text-white shadow-lg shadow-rose-500/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <CalendarCheck2 className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[11px] text-white/80">Última reunión</p>
-              <p className="text-2xl font-bold">{kpi.asistencia_ultima.valor ?? '—'}</p>
-            </div>
-          </div>
-          {kpi.asistencia_ultima.variacion_pct !== null && kpi.asistencia_ultima.variacion_pct !== undefined ? (
-            <VariacionBadge pct={kpi.asistencia_ultima.variacion_pct} />
-          ) : (
-            <p className="text-[11px] text-white/80">
-              {kpi.asistencia_ultima.fecha ? `Asistencia del ${fmt(kpi.asistencia_ultima.fecha)}` : 'Asistentes en la última reunión'}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Resumen financiero -- va justo debajo de los 4 indicadores */}
+      {/* ── Resumen financiero ────────────────────────────────────────────────── */}
       {ingresos.length > 0 && (
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white shadow-lg shadow-emerald-500/20">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <DollarSign className="h-4.5 w-4.5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Resumen financiero</h3>
-              <p className="text-[11px] text-emerald-100">Total de {etiquetaPeriodo}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[11px] text-emerald-100">Ofrendas</p>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Wallet} color={VERDE} titulo="Resumen financiero" descripcion={`Total de ${etiquetaPeriodo}`} />
+          <div className="grid gap-3 p-5 sm:grid-cols-3">
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-[11px] font-medium text-muted-foreground">Ofrendas</p>
               {ofrendas.length === 0 ? (
-                <p className="text-xl font-bold">—</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">—</p>
               ) : (
                 ofrendas.map((o, i) => (
-                  <p key={i} className="text-xl font-bold">
-                    {o.moneda_simbolo} {Number(o.total).toFixed(2)}
-                  </p>
+                  <p key={i} className="text-xl font-bold tabular-nums text-foreground">{o.moneda_simbolo} {Number(o.total).toFixed(2)}</p>
                 ))
               )}
             </div>
-            <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[11px] text-emerald-100">Diezmos</p>
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-[11px] font-medium text-muted-foreground">Diezmos</p>
               {diezmos.length === 0 ? (
-                <p className="text-xl font-bold">—</p>
+                <p className="text-xl font-bold tabular-nums text-foreground">—</p>
               ) : (
                 diezmos.map((d, i) => (
-                  <p key={i} className="text-xl font-bold">
-                    {d.moneda_simbolo} {Number(d.total).toFixed(2)}
-                  </p>
+                  <p key={i} className="text-xl font-bold tabular-nums text-foreground">{d.moneda_simbolo} {Number(d.total).toFixed(2)}</p>
                 ))
               )}
             </div>
-            <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[11px] text-emerald-100">Total</p>
+            <div className="rounded-xl border border-border p-4" style={{ background: `color-mix(in oklab, ${VERDE} 7%, transparent)` }}>
+              <p className="text-[11px] font-medium text-muted-foreground">Total</p>
               {monedasDistintas.size === 0 ? (
-                <p className="text-xl font-bold">—</p>
+                <p className="text-xl font-bold tabular-nums" style={{ color: VERDE }}>—</p>
               ) : (
                 Array.from(totalPorMoneda.values()).map((t, i) => (
-                  <p key={i} className="text-xl font-bold">
-                    {t.simbolo} {t.total.toFixed(2)}
-                  </p>
+                  <p key={i} className="text-xl font-bold tabular-nums" style={{ color: VERDE }}>{t.simbolo} {t.total.toFixed(2)}</p>
                 ))
               )}
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Asistencia y composición + Índice de fidelidad */}
+      {/* ── Asistencia y composición + Índice de fidelidad ────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader
-              icon={TrendingUp}
-              color="#5fa584"
-              titulo="Asistencia y composición"
-              descripcion={`Asistencia promedio de ${etiquetaPeriodo}`}
-            />
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={TrendingUp} color={VERDE} titulo="Asistencia y composición" descripcion={`Asistencia promedio de ${etiquetaPeriodo}`} />
+          <div className="p-5">
             <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
               <AsistenciaComposicionChart miembros={totalMiembros} asistenciaPromedio={asistenciaPromedio} ninos={ninos} />
             </Suspense>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader icon={Heart} color="var(--destructive)" titulo="Índice de fidelidad" />
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Heart} color={MORADO} titulo="Índice de fidelidad" descripcion="Semáforo espiritual de los miembros" />
+          <div className="p-5">
             <IndiceFidelidadRing verdes={verdes} amarillos={amarillos} rojos={rojos} />
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      {/* Evangelismo + Estados SSVA */}
+      {/* ── Evangelismo + Estados SSVA ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader
-              icon={UserPlus}
-              color="var(--chart-3)"
-              titulo="Evangelismo"
-              descripcion={`Evangelizados de ${etiquetaPeriodo}`}
-            />
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={UserPlus} color={AMBAR} titulo="Evangelismo" descripcion={`Evangelizados de ${etiquetaPeriodo}`} />
+          <div className="p-5">
             <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
               <EvangelismoComparativoChart evangelizados={tasaEvangelismo?.evangelizados ?? 0} meta={tasaEvangelismo?.meta ?? null} />
             </Suspense>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardIconHeader icon={BookOpen} color="var(--chart-1)" titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={BookOpen} color={AZUL} titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
+          <div className="p-5">
             {totalMiembros > 0 ? (
               <Suspense fallback={<Skeleton className="h-44 w-full rounded-xl" />}>
                 <EstadosMiembrosChart miembros={miembros ?? []} />
@@ -371,26 +274,24 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             ) : (
               <p className="text-sm text-muted-foreground">Sin miembros todavía.</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      {/* Tendencia de asistencia */}
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardIconHeader
-            icon={Calendar}
-            color="#6366f1"
-            titulo="Tendencia de asistencia"
-            descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
-          />
-        </CardHeader>
-        <CardContent>
+      {/* ── Tendencia de asistencia ───────────────────────────────────────────── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Calendar}
+          color={MARINO}
+          titulo="Tendencia de asistencia"
+          descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
+        />
+        <div className="p-5">
           <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
             <TendenciaAsistenciaChart datos={tendenciaAsistencia} granularidad={granularidad} />
           </Suspense>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

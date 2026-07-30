@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Building2, Database, IdCard, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, AMBAR, MARINO, TEAL, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { useIglesiasTodas, useUsuarios, useCrearIglesia, useInvitarUsuario, useDashboardSuperAdmin } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
 import { InvitarUsuarioDialog } from '@/components/admin/InvitarUsuarioDialog';
@@ -61,25 +61,29 @@ export function Administracion() {
       </div>
 
       {cargandoPanorama || !panorama ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-28 w-full lg:col-span-4" />
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+          </div>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard titulo="Iglesias" valor={panorama.iglesias.length} />
-            <KpiCard titulo="Personas (todo el sistema)" valor={panorama.crecimiento.total_personas} />
-            <KpiCard titulo="Cuentas" valor={panorama.cuentas.total} subtitulo={`${panorama.cuentas.nunca_inicio_sesion} nunca iniciaron sesión`} />
-            <KpiCard titulo="Tamaño de la base" valor={`${panorama.salud_bd.tamano_mb} MB`} />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiMosaico label="Iglesias" icon={Building2} color={MARINO}>{panorama.iglesias.length}</KpiMosaico>
+            <KpiMosaico label="Personas (todo el sistema)" icon={Users} color={AZUL}>{panorama.crecimiento.total_personas}</KpiMosaico>
+            <KpiMosaico label="Cuentas" icon={IdCard} color={TEAL} sub={`${panorama.cuentas.nunca_inicio_sesion} nunca iniciaron sesión`}>
+              {panorama.cuentas.total}
+            </KpiMosaico>
+            <KpiMosaico label="Tamaño de la base" icon={Database} color={AMBAR}>{`${panorama.salud_bd.tamano_mb} MB`}</KpiMosaico>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-base">Crecimiento de personas</CardTitle>
-                <CardDescription>Nuevas personas por mes, últimos 6 meses, todas las iglesias.</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={TrendingUp} color={AZUL} titulo="Crecimiento de personas" descripcion="Nuevas personas por mes, últimos 6 meses, todas las iglesias." />
+              <div className="p-5">
                 {panorama.crecimiento.por_mes.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sin altas registradas en este período.</p>
                 ) : (
@@ -92,29 +96,24 @@ export function Administracion() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-base">Cuentas por rol</CardTitle>
-                <CardDescription>{panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-1.5">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={UserCog} color={TEAL} titulo="Cuentas por rol" descripcion={`${panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.`} />
+              <div className="flex flex-col gap-1.5 p-5">
                 {panorama.cuentas.por_rol.map((r) => (
                   <div key={r.rol} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{NOMBRE_ROL_CORTO[r.rol]}</span>
                     <span className="font-medium">{r.cantidad}</span>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-base">Resumen por iglesia</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={Building2} color={MARINO} titulo="Resumen por iglesia" descripcion="Redes, CdP y personas por iglesia." />
+              <div className="flex flex-col gap-2 p-5">
                 {panorama.iglesias.map((i) => (
                   <div key={i.id} className="rounded-lg border border-border px-3 py-2 text-sm">
                     <div className="flex items-center justify-between">
@@ -128,84 +127,96 @@ export function Administracion() {
                     </p>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-base">Salud de la base de datos</CardTitle>
-                <CardDescription>
-                  RLS en {panorama.salud_bd.rls_cobertura.con_rls}/{panorama.salud_bd.rls_cobertura.total} tablas
-                  {panorama.salud_bd.super_admin_con_rol_operativo > 0 &&
-                    ` · ⚠ ${panorama.salud_bd.super_admin_con_rol_operativo} Super Admin con rol operativo`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-1.5">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader
+                icon={ShieldCheck}
+                color={AMBAR}
+                titulo="Salud de la base de datos"
+                descripcion={`RLS en ${panorama.salud_bd.rls_cobertura.con_rls}/${panorama.salud_bd.rls_cobertura.total} tablas${
+                  panorama.salud_bd.super_admin_con_rol_operativo > 0
+                    ? ` · ⚠ ${panorama.salud_bd.super_admin_con_rol_operativo} Super Admin con rol operativo`
+                    : ''
+                }`}
+              />
+              <div className="flex flex-col gap-1.5 p-5">
                 {panorama.salud_bd.tablas_mas_grandes.map((t) => (
                   <div key={t.tabla} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t.tabla}</span>
                     <span className="font-medium">{t.mb} MB</span>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           </div>
         </>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card className="rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Iglesias</CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrearIglesia(true)}>
-            <Plus className="h-4 w-4" />
-            Iglesia
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {cargandoIglesias && <Skeleton className="h-24 w-full" />}
-          {!cargandoIglesias && iglesias.length === 0 && (
-            <p className="text-sm text-muted-foreground">Todavía no hay iglesias.</p>
-          )}
-          {iglesias.map((i) => (
-            <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{i.nombre}</p>
-                <p className="truncate text-sm text-muted-foreground">{i.ciudad}</p>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={Building2}
+            color={MARINO}
+            titulo="Iglesias"
+            descripcion="Todas las iglesias registradas en el sistema."
+            accion={
+              <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrearIglesia(true)}>
+                <Plus className="h-4 w-4" />
+                Iglesia
+              </Button>
+            }
+          />
+          <div className="flex flex-col gap-2 p-5">
+            {cargandoIglesias && <Skeleton className="h-24 w-full rounded-2xl" />}
+            {!cargandoIglesias && iglesias.length === 0 && (
+              <p className="text-sm text-muted-foreground">Todavía no hay iglesias.</p>
+            )}
+            {iglesias.map((i) => (
+              <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{i.nombre}</p>
+                  <p className="truncate text-sm text-muted-foreground">{i.ciudad}</p>
+                </div>
+                {!i.activo && <Badge variant="outline" className="shrink-0">Inactiva</Badge>}
               </div>
-              {!i.activo && <Badge variant="outline" className="shrink-0">Inactiva</Badge>}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            ))}
+          </div>
+        </section>
 
-      <Card className="rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Usuarios</CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setMostrarInvitar(true)}>
-            <Plus className="h-4 w-4" />
-            Invitar
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {cargandoUsuarios && <Skeleton className="h-24 w-full" />}
-          {!cargandoUsuarios && usuarios.length === 0 && (
-            <p className="text-sm text-muted-foreground">Todavía no hay usuarios.</p>
-          )}
-          {usuarios.map((u) => (
-            <div key={u.usuario_rol_id} className="flex flex-col gap-0.5 rounded-xl border border-border px-4 py-3">
-              <p className="font-medium">{u.correo}</p>
-              <p className="text-sm text-muted-foreground">
-                {NOMBRE_ROL[u.rol]}
-                {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
-              </p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={Users}
+            color={TEAL}
+            titulo="Usuarios"
+            descripcion="Cuentas con acceso al sistema."
+            accion={
+              <Button size="sm" className="gap-1.5" onClick={() => setMostrarInvitar(true)}>
+                <Plus className="h-4 w-4" />
+                Invitar
+              </Button>
+            }
+          />
+          <div className="flex flex-col gap-2 p-5">
+            {cargandoUsuarios && <Skeleton className="h-24 w-full rounded-2xl" />}
+            {!cargandoUsuarios && usuarios.length === 0 && (
+              <p className="text-sm text-muted-foreground">Todavía no hay usuarios.</p>
+            )}
+            {usuarios.map((u) => (
+              <div key={u.usuario_rol_id} className="flex flex-col gap-0.5 rounded-xl border border-border px-4 py-3">
+                <p className="font-medium">{u.correo}</p>
+                <p className="text-sm text-muted-foreground">
+                  {NOMBRE_ROL[u.rol]}
+                  {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       <CrearIglesiaDialog

@@ -46,13 +46,7 @@ export function ControlReportes() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Control de Reportes</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            Entrega semanal de las Casas de Paz de tu Red.
-          </p>
-        </div>
+      <div className="flex justify-end">
         {redes.length > 1 && (
           <Select value={redActiva} onValueChange={setRedId}>
             <SelectTrigger className="w-full rounded-2xl sm:w-56">

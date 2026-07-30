@@ -30,7 +30,7 @@ interface Props {
   domicilio?: DomicilioCdp | null;
 }
 
-const VACIO = { ciudadId: '', zona: '', calle: '', numero: '', referencia: '' };
+const VACIO = { ciudadId: '', zona: '', calle: '', numero: '', referencia: '', urlGps: '' };
 
 export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId, domicilio }: Props) {
   const [form, setForm] = useState(VACIO);
@@ -45,6 +45,7 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
       calle: domicilio?.calle ?? '',
       numero: domicilio?.numero ?? '',
       referencia: domicilio?.referencia ?? '',
+      urlGps: domicilio?.url_gps ?? '',
     });
   }, [open, domicilio]);
 
@@ -59,6 +60,7 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
           calle: form.calle.trim() || null,
           numero: form.numero.trim() || null,
           referencia: form.referencia.trim() || null,
+          url_gps: form.urlGps.trim() || null,
         },
       },
       {
@@ -120,6 +122,18 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
               placeholder="Ej. Portón verde, frente a la plaza"
               value={form.referencia}
               onChange={(e) => setForm((f) => ({ ...f, referencia: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="domicilio_gps">Enlace de ubicación (Google Maps)</Label>
+            <Input
+              id="domicilio_gps"
+              type="url"
+              inputMode="url"
+              placeholder="https://maps.app.goo.gl/…"
+              value={form.urlGps}
+              onChange={(e) => setForm((f) => ({ ...f, urlGps: e.target.value }))}
             />
           </div>
         </div>

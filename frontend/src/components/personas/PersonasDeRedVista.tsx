@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, GitMerge, Home, Search, UserRound, Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, GitMerge, Home, Search, UserRound, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -13,16 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { Timeline, type TimelineItem } from '@/components/shared/Timeline';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { usePersonasDeRed } from '@/hooks/usePersonas';
 import type { PersonaDeRed } from '@/types/persona.types';
 
-const AZUL = '#0071e3';
-const VERDE = '#34c759';
-const AMBAR = '#ff9f0a';
-const MORADO = '#af52de';
 const GRIS = '#8e8e93';
 const INDIGO = '#5856d6';
 
@@ -72,6 +68,14 @@ function trailProcedencia(p: PersonaDeRed): TimelineItem[] {
   }));
 }
 
+type Orden = 'NOMBRE' | 'RECIENTE' | 'ANTIGUO';
+
+const OPCIONES_ORDEN: { value: Orden; label: string }[] = [
+  { value: 'NOMBRE', label: 'Nombre (A-Z)' },
+  { value: 'RECIENTE', label: 'Ingreso más reciente' },
+  { value: 'ANTIGUO', label: 'Ingreso más antiguo' },
+];
+
 interface Props {
   redId: string;
 }
@@ -88,14 +92,26 @@ export function PersonasDeRedVista({ redId }: Props) {
   const [texto, setTexto] = useState('');
   const [estado, setEstado] = useState('TODOS');
   const [cdp, setCdp] = useState('TODAS');
+  const [orden, setOrden] = useState<Orden>('NOMBRE');
   const [visibles, setVisibles] = useState(LOTE);
   const [expandidoId, setExpandidoId] = useState<string>();
   const [seleccionadaId, setSeleccionadaId] = useState<string>();
+
+  function alternarEstado(sigla: string) {
+    setEstado((actual) => (actual === sigla ? 'TODOS' : sigla));
+    setVisibles(LOTE);
+  }
 
   const estados = useMemo(() => {
     const m = new Map<string, string>();
     for (const p of personas) if (p.estado_sigla) m.set(p.estado_sigla, p.estado_nombre ?? p.estado_sigla);
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [personas]);
+
+  const conteoPorEstado = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of personas) if (p.estado_sigla) m.set(p.estado_sigla, (m.get(p.estado_sigla) ?? 0) + 1);
+    return m;
   }, [personas]);
 
   const casas = useMemo(() => {
@@ -121,13 +137,26 @@ export function PersonasDeRedVista({ redId }: Props) {
 
   const filtradas = useMemo(() => {
     const q = texto.trim().toLowerCase();
-    return personas.filter((p) => {
+    const resultado = personas.filter((p) => {
       if (q && !p.nombre_completo.toLowerCase().includes(q) && !p.casa_de_paz_etiqueta.toLowerCase().includes(q) && !(p.lider_nombre ?? '').toLowerCase().includes(q)) return false;
       if (estado !== 'TODOS' && p.estado_sigla !== estado) return false;
       if (cdp !== 'TODAS' && p.casa_de_paz_etiqueta !== cdp) return false;
       return true;
     });
-  }, [personas, texto, estado, cdp]);
+    const ordenadas = [...resultado];
+    if (orden === 'NOMBRE') {
+      ordenadas.sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
+    } else {
+      // Sin fecha de ingreso, la persona queda al final sin importar la dirección elegida.
+      ordenadas.sort((a, b) => {
+        if (!a.fecha_ingreso && !b.fecha_ingreso) return 0;
+        if (!a.fecha_ingreso) return 1;
+        if (!b.fecha_ingreso) return -1;
+        return orden === 'RECIENTE' ? b.fecha_ingreso.localeCompare(a.fecha_ingreso) : a.fecha_ingreso.localeCompare(b.fecha_ingreso);
+      });
+    }
+    return ordenadas;
+  }, [personas, texto, estado, cdp, orden]);
   const visiblesLista = filtradas.slice(0, visibles);
 
   return (
@@ -151,19 +180,36 @@ export function PersonasDeRedVista({ redId }: Props) {
           </div>
           {composicion.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {composicion.map((c) => (
-                <span key={c.sigla} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[13px] font-medium text-white" title={c.nombre}>
-                  <span className="h-2 w-2 rounded-full" style={{ background: c.color }} /> {c.count} {c.sigla}
-                </span>
-              ))}
+              {composicion.map((c) => {
+                const activo = estado === c.sigla;
+                const clickable = c.sigla !== '—';
+                return (
+                  <button
+                    key={c.sigla}
+                    type="button"
+                    disabled={!clickable}
+                    aria-pressed={activo}
+                    onClick={() => clickable && alternarEstado(c.sigla)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium text-white transition-colors',
+                      clickable ? 'cursor-pointer hover:bg-white/20' : 'cursor-default',
+                      activo ? 'bg-white/25' : 'bg-white/10'
+                    )}
+                    style={activo ? { boxShadow: `0 0 0 1.5px color-mix(in oklab, ${c.color} 70%, white)` } : undefined}
+                    title={clickable ? `Filtrar por ${c.nombre}` : c.nombre}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ background: c.color }} /> {c.count} {c.sigla}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
       {/* ── Filtros ────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative w-full flex-1 sm:min-w-[220px]">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
           <Input className="h-11 rounded-2xl border-border bg-muted/50 pl-10 text-[14px]" placeholder="Buscar persona, Casa de Paz o líder..." value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(LOTE); }} />
         </div>
@@ -172,7 +218,11 @@ export function PersonasDeRedVista({ redId }: Props) {
             <SelectTrigger className="h-11 w-full rounded-2xl sm:w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="TODOS">Todos los estados</SelectItem>
-              {estados.map(([sigla, nombre]) => (<SelectItem key={sigla} value={sigla}>{nombre}</SelectItem>))}
+              {estados.map(([sigla, nombre]) => (
+                <SelectItem key={sigla} value={sigla}>
+                  {nombre} ({conteoPorEstado.get(sigla) ?? 0})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
@@ -185,14 +235,18 @@ export function PersonasDeRedVista({ redId }: Props) {
             </SelectContent>
           </Select>
         )}
+        <Select value={orden} onValueChange={(v) => setOrden(v as Orden)}>
+          <SelectTrigger className="h-11 w-full rounded-2xl sm:w-48"><SelectValue placeholder="Ordenar" /></SelectTrigger>
+          <SelectContent>
+            {OPCIONES_ORDEN.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── Listado ────────────────────────────────────────────────────────────── */}
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <SeccionIconHeader icon={Users} color={INDIGO} titulo="Miembros de la Red" descripcion={`${filtradas.length} de ${personas.length} persona(s)`} />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Users} color={INDIGO} titulo="Miembros de la Red" descripcion={`${filtradas.length} de ${personas.length} persona(s)`} />
+        <div className="flex flex-col gap-2 p-5">
           {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)
           ) : personas.length === 0 ? (
@@ -237,6 +291,8 @@ export function PersonasDeRedVista({ redId }: Props) {
                             <span className="truncate">{p.casa_de_paz_etiqueta}</span>
                             <span className="text-muted-foreground/40">·</span>
                             <span className="truncate">{p.lider_nombre ?? 'Sin líder'}</span>
+                            {p.edad !== null && <span className="hidden text-muted-foreground/40 sm:inline">·</span>}
+                            {p.edad !== null && <span className="hidden shrink-0 sm:inline">{p.edad} años</span>}
                             <span className="hidden text-muted-foreground/40 sm:inline">·</span>
                             <span className="hidden shrink-0 sm:inline">Ingreso {fechaCorta(p.fecha_ingreso)}</span>
                           </p>
@@ -254,6 +310,7 @@ export function PersonasDeRedVista({ redId }: Props) {
                           <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', abierto && 'rotate-180')} />
                         </Button>
                       )}
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" aria-hidden />
                     </div>
 
                     {abierto && (
@@ -273,8 +330,8 @@ export function PersonasDeRedVista({ redId }: Props) {
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <FichaPersonaSheet personaId={seleccionadaId} onOpenChange={(open) => !open && setSeleccionadaId(undefined)} />
     </div>

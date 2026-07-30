@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Building2, LayoutGrid, Settings2, Wallet } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AMBAR, AZUL, MARINO, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useCambiarMonedaDefecto,
@@ -115,24 +117,28 @@ export function PanelSupervisor() {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (!panel) return null;
 
+  const COLORES_CATEGORIA = [AZUL, MORADO, TEAL];
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">{panel.advertencia}</p>
 
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-base">Nombre de la iglesia</CardTitle>
-          <CardDescription>Se muestra como "{prefijoIglesia || '…'} {sufijoIglesia || '…'}".</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Building2}
+          color={MARINO}
+          titulo="Nombre de la iglesia"
+          descripcion={`Se muestra como "${prefijoIglesia || '…'} ${sufijoIglesia || '…'}".`}
+        />
+        <div className="flex flex-col gap-2 p-5 sm:flex-row sm:items-end">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Prefijo</Label>
             <Input value={prefijoIglesia} onChange={(e) => setPrefijoIglesia(e.target.value)} />
@@ -149,15 +155,12 @@ export function PanelSupervisor() {
           >
             {renombrar.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-base">Moneda por defecto</CardTitle>
-          <CardDescription>Solo afecta a los ingresos nuevos.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Wallet} color={TEAL} titulo="Moneda por defecto" descripcion="Solo afecta a los ingresos nuevos." />
+        <div className="p-5">
           <Select
             value={monedas?.find((m) => m.codigo === panel.iglesia.moneda_defecto)?.moneda_id ?? ''}
             onValueChange={handleCambiarMoneda}
@@ -173,15 +176,17 @@ export function PanelSupervisor() {
               ))}
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-base">Departamentos</CardTitle>
-          <CardDescription>Desactivar oculta el departamento de los dashboards; conserva el histórico.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={LayoutGrid}
+          color={AMBAR}
+          titulo="Departamentos"
+          descripcion="Desactivar oculta el departamento de los dashboards; conserva el histórico."
+        />
+        <div className="flex flex-col gap-3 p-5">
           {panel.departamentos.map((d) => (
             <div key={d.id} className="flex items-center justify-between">
               <Label className="text-sm text-foreground">{d.nombre}</Label>
@@ -191,20 +196,23 @@ export function PanelSupervisor() {
               />
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {Object.entries(panel.categorias).map(([categoria, items]) => (
-        <Card key={categoria} className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base">{NOMBRE_CATEGORIA[categoria] ?? categoria}</CardTitle>
-          </CardHeader>
-          <CardContent>
+      {Object.entries(panel.categorias).map(([categoria, items], idx) => (
+        <section key={categoria} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={Settings2}
+            color={COLORES_CATEGORIA[idx % COLORES_CATEGORIA.length]}
+            titulo={NOMBRE_CATEGORIA[categoria] ?? categoria}
+            descripcion="Opciones de configuración de esta sección."
+          />
+          <div className="p-5">
             {items.map((item) => (
               <ConfiguracionRow key={item.codigo} item={item} onGuardar={handleGuardar} />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       ))}
 
       <ConfirmarCambioDialog
