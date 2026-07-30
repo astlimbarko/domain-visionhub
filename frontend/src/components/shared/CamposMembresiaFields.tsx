@@ -25,7 +25,7 @@ import type { CamposObligatorios } from '@/types/registro-publico.types';
 // componente <Input>. Usa los tokens de tema (--ring) para respetar
 // claro/oscuro sin colores fijos.
 export const CAMPO_ESTILO =
-  'border-2 border-border/70 transition-shadow duration-200 hover:border-ring/50 ' +
+  'h-10 border-2 border-border/70 transition-shadow duration-200 hover:border-ring/50 ' +
   'hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-ring)_18%,transparent)] ' +
   'focus-visible:border-ring/70 focus-visible:ring-0 ' +
   'focus-visible:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-ring)_28%,transparent)]';
@@ -84,27 +84,27 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
   const { t } = useTranslation();
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-1.5">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="primer_nombre">{t('registroPublico.campos.primerNombre')} *</Label>
         <Input id="primer_nombre" className={CAMPO_ESTILO} {...register('primer_nombre' as never)} />
         {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="segundo_nombre">{t('registroPublico.campos.segundoNombre')}</Label>
         <Input id="segundo_nombre" className={CAMPO_ESTILO} {...register('segundo_nombre' as never)} />
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="primer_apellido">{t('registroPublico.campos.primerApellido')} *</Label>
         <Input id="primer_apellido" className={CAMPO_ESTILO} {...register('primer_apellido' as never)} />
         {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="segundo_apellido">{t('registroPublico.campos.segundoApellido')}</Label>
         <Input id="segundo_apellido" className={CAMPO_ESTILO} {...register('segundo_apellido' as never)} />
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label>{t('registroPublico.campos.sexo')} *</Label>
         <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo' as never, v as never, { shouldValidate: true })}>
           <SelectTrigger className={cn("w-full", CAMPO_ESTILO)}>
@@ -118,7 +118,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="fecha_nacimiento">
           {t('registroPublico.campos.fechaNacimiento')} {camposObligatorios.fecha_nacimiento && '*'}
         </Label>
@@ -126,7 +126,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="ci">
           {t('registroPublico.campos.ci')} {camposObligatorios.ci && '*'}
         </Label>
@@ -134,13 +134,13 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="correo">{t('registroPublico.campos.correo')}</Label>
         <Input id="correo" className={CAMPO_ESTILO} type="email" {...register('correo' as never)} />
         {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label>{t('registroPublico.campos.estadoCivil')}</Label>
         <Select
           value={estadoCivilActual ?? ''}
@@ -158,7 +158,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="ocupacion">
           {t('registroPublico.campos.ocupacion')} {camposObligatorios.ocupacion && '*'}
         </Label>
@@ -166,7 +166,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
       </div>
 
-      <div className="flex flex-col gap-1.5 sm:col-span-2">
+      <div className="flex flex-col gap-1 sm:col-span-2">
         <Label>
           {t('registroPublico.campos.gradoInstruccion')} {camposObligatorios.grado_instruccion && '*'}
         </Label>

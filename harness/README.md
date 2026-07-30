@@ -30,6 +30,10 @@ Especificaciones técnicas para construir VisionHub. Cada área tiene tres docum
 | [13](13-registro-publico-cdp/) | Registro público por URL | Enlace único por líder de CdP, formulario sin login, modalidad de registro |
 | [99](99-modulos-futuros.md) | Módulos futuros | Esbozo de los módulos 2 al 6 |
 
+| Documento | Contenido |
+|-----------|-----------|
+| [DEPLOY.md](DEPLOY.md) | Stack declarado y reglas de despliegue. **Leer antes de subir a cualquier hosting** — explica por qué Node.js no debe correr en producción y qué hacer si un cPanel compartido avisa que "no soporta Node.js". |
+
 ---
 
 ## Alcance

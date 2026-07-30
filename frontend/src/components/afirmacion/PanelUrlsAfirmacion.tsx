@@ -194,41 +194,50 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
 
               {!colapsado && (
                 <div className="flex flex-col gap-2 border-t border-border/50 p-2.5">
-                  {grupo.items.map((u) => (
-                    <div
-                      key={u.url_id}
-                      className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/60 px-3.5 py-2.5 transition-all hover:border-primary/20 hover:shadow-sm"
-                    >
-                      <Checkbox checked={seleccionadas.has(u.url_id)} onCheckedChange={() => toggleSeleccion(u.url_id)} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{u.lider_cdp_nombre}</p>
-                        <p className="truncate text-xs text-muted-foreground">{u.casa_de_paz_etiqueta}</p>
-                        <button
-                          type="button"
-                          onClick={() => copiarUrl(u.slug)}
-                          className="mt-0.5 flex max-w-full items-center gap-1 truncate rounded-md font-mono text-[11px] text-primary/80 underline decoration-primary/30 underline-offset-2 hover:text-primary"
-                          title="Click para copiar"
-                        >
-                          {rutaRegistroPublico(u.slug)}
-                        </button>
+                  {grupo.items.map((u) => {
+                    // La etiqueta de CdP por defecto ES el nombre del lider (fn_etiqueta_cdp,
+                    // 23_etiqueta_cdp.sql) -- solo difiere si hay nombre manual o el lider
+                    // tiene 2+ CdP (desambiguacion por zona). Repetirla cuando es igual solo
+                    // duplicaba el nombre en pantalla.
+                    const etiquetaAporta = u.casa_de_paz_etiqueta !== u.lider_cdp_nombre;
+                    return (
+                      <div
+                        key={u.url_id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/40 bg-background/60 px-3.5 py-2 transition-all hover:border-primary/20 hover:shadow-sm"
+                      >
+                        <Checkbox checked={seleccionadas.has(u.url_id)} onCheckedChange={() => toggleSeleccion(u.url_id)} />
+                        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                          <span className="truncate text-sm font-semibold">
+                            {u.lider_cdp_nombre}
+                            {etiquetaAporta && <span className="font-normal text-muted-foreground"> ({u.casa_de_paz_etiqueta})</span>}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copiarUrl(u.slug)}
+                            className="truncate rounded-md font-mono text-[11px] text-primary/80 underline decoration-primary/30 underline-offset-2 hover:text-primary"
+                            title="Click para copiar"
+                          >
+                            {rutaRegistroPublico(u.slug)}
+                          </button>
+                        </div>
+                        <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide', ESTADO_ESTILO[u.estado])}>
+                          {u.estado}
+                        </span>
+                        <Button variant="ghost" size="icon" aria-label="Copiar enlace" onClick={() => copiarUrl(u.slug)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        {u.estado === 'ACTIVO' ? (
+                          <Button size="sm" variant="outline" disabled={mutacion.isPending} onClick={() => cambiarEstado([u.url_id], 'INACTIVO')}>
+                            Desactivar
+                          </Button>
+                        ) : (
+                          <Button size="sm" disabled={mutacion.isPending} onClick={() => cambiarEstado([u.url_id], 'ACTIVO')}>
+                            Activar
+                          </Button>
+                        )}
                       </div>
-                      <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide', ESTADO_ESTILO[u.estado])}>
-                        {u.estado}
-                      </span>
-                      <Button variant="ghost" size="icon" aria-label="Copiar enlace" onClick={() => copiarUrl(u.slug)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      {u.estado === 'ACTIVO' ? (
-                        <Button size="sm" variant="outline" disabled={mutacion.isPending} onClick={() => cambiarEstado([u.url_id], 'INACTIVO')}>
-                          Desactivar
-                        </Button>
-                      ) : (
-                        <Button size="sm" disabled={mutacion.isPending} onClick={() => cambiarEstado([u.url_id], 'ACTIVO')}>
-                          Activar
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
