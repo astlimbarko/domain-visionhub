@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AMBAR } from '@/components/dashboard/DashboardUI';
 import { aISO, esHoy, grillaMesRecortada, nombresDias } from '@/utils/calendario-fechas';
 import type { Evangelizado } from '@/types/evangelismo.types';
 
@@ -30,7 +31,7 @@ export function CalendarioEvangelismo({ anio, mes, evangelizados, diaSeleccionad
   }, [evangelizados]);
 
   return (
-    <div className="glass-card overflow-hidden rounded-2xl">
+    <div className="overflow-hidden rounded-xl border border-border/60">
       <div className="grid grid-cols-7 border-b border-border/70 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
         {nombresDias().map((d, i) => (
           <div key={d} className={cn('py-2.5', esFinDeSemana(i) && 'text-muted-foreground/60')}>
@@ -65,7 +66,7 @@ export function CalendarioEvangelismo({ anio, mes, evangelizados, diaSeleccionad
                 !seleccionado && 'hover:bg-accent/60',
                 seleccionado && 'bg-accent ring-1 ring-inset ring-primary/50'
               )}
-              style={hayActividad && !seleccionado ? { backgroundColor: `color-mix(in oklab, var(--chart-3) ${14 + intensidad * 22}%, transparent)` } : undefined}
+              style={hayActividad && !seleccionado ? { backgroundColor: `color-mix(in oklab, ${AMBAR} ${14 + intensidad * 22}%, transparent)` } : undefined}
             >
               {hoy && <span className="absolute inset-x-0 top-0 h-[3px] rounded-full bg-primary" />}
               <span
@@ -77,14 +78,14 @@ export function CalendarioEvangelismo({ anio, mes, evangelizados, diaSeleccionad
                       ? 'font-bold text-white shadow-sm shadow-[var(--chart-3)]/40 group-hover:scale-105'
                       : 'font-medium group-hover:scale-105'
                 )}
-                style={hayActividad && !hoy ? { backgroundColor: 'var(--chart-3)' } : undefined}
+                style={hayActividad && !hoy ? { backgroundColor: AMBAR } : undefined}
               >
                 {fecha.getDate()}
               </span>
               {hayActividad && (
                 <span
                   className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white shadow-sm"
-                  style={{ backgroundColor: 'var(--chart-3)' }}
+                  style={{ backgroundColor: AMBAR }}
                 >
                   <HeartHandshake className="h-3 w-3" />
                   {cantidad}

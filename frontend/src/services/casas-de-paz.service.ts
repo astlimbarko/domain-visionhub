@@ -5,9 +5,11 @@ import type {
   CargoCdpCodigo,
   CargoRedCodigo,
   CargoVigente,
+  CdpPerfil,
   CdpResumen,
   Ciudad,
   DatosDomicilioCdp,
+  DatosNuevaCdp,
   DomicilioCdp,
   PersonaBusqueda,
   RedResumen,
@@ -48,15 +50,17 @@ export async function toggleActivoRed(redId: string, activo: boolean) {
   if (error) throw error;
 }
 
-export async function crearCdp(
-  iglesiaId: string,
-  redId: string,
-  nombre?: string,
-  sublideresIds: string[] = []
-): Promise<{ id: string }> {
+/**
+ * Crea una Casa de Paz ya con líder, gente y lugar de reunión definidos --
+ * sin líder la etiqueta cae en "Casa de Paz sin líder" (fn_etiqueta_cdp), así
+ * que ya no se pide un nombre manual: se pide directamente quién lidera.
+ * Reusa `actualizarReunionCdp`/`guardarDomicilioCdp` (misma lógica que la
+ * edición del Perfil) en vez de duplicarla acá.
+ */
+export async function crearCdp(iglesiaId: string, redId: string, datos: DatosNuevaCdp): Promise<{ id: string }> {
   const { data: cdp, error: errorCdp } = await supabase
     .from('casa_de_paz')
-    .insert({ iglesia_id: iglesiaId, nombre: nombre || null })
+    .insert({ iglesia_id: iglesiaId })
     .select('id')
     .single();
   if (errorCdp) throw errorCdp;
@@ -69,25 +73,52 @@ export async function crearCdp(
   });
   if (errorRed) throw errorRed;
 
-  if (sublideresIds.length > 0) {
-    const { data: cargo, error: errorCargo } = await supabase
-      .from('cargo')
-      .select('id')
-      .eq('codigo', 'SUBLIDER_CDP')
-      .eq('activo', true)
-      .single();
-    if (errorCargo) throw errorCargo;
+  const codigosCargo: CargoCdpCodigo[] = ['LIDER_CDP'];
+  if (datos.sublideresIds.length > 0) codigosCargo.push('SUBLIDER_CDP');
+  if (datos.anfitrionId) codigosCargo.push('ANFITRION');
 
-    const { error: errorSublideres } = await supabase.from('casa_de_paz_cargo').insert(
-      sublideresIds.map((personaId) => ({
-        iglesia_id: iglesiaId,
-        casa_de_paz_id: cdp.id,
-        persona_id: personaId,
-        cargo_id: cargo.id,
-        fecha_inicio: aISO(new Date()),
-      }))
-    );
-    if (errorSublideres) throw errorSublideres;
+  const { data: cargosData, error: errorCargos } = await supabase
+    .from('cargo')
+    .select('id, codigo')
+    .in('codigo', codigosCargo)
+    .eq('activo', true);
+  if (errorCargos) throw errorCargos;
+  const cargoIdPorCodigo = new Map((cargosData ?? []).map((c) => [c.codigo, c.id]));
+
+  const fechaHoy = aISO(new Date());
+  const filasCargo: { iglesia_id: string; casa_de_paz_id: string; persona_id: string; cargo_id: string; fecha_inicio: string }[] = [
+    { iglesia_id: iglesiaId, casa_de_paz_id: cdp.id, persona_id: datos.liderId, cargo_id: cargoIdPorCodigo.get('LIDER_CDP')!, fecha_inicio: fechaHoy },
+  ];
+  for (const personaId of datos.sublideresIds) {
+    filasCargo.push({ iglesia_id: iglesiaId, casa_de_paz_id: cdp.id, persona_id: personaId, cargo_id: cargoIdPorCodigo.get('SUBLIDER_CDP')!, fecha_inicio: fechaHoy });
+  }
+  if (datos.anfitrionId) {
+    filasCargo.push({ iglesia_id: iglesiaId, casa_de_paz_id: cdp.id, persona_id: datos.anfitrionId, cargo_id: cargoIdPorCodigo.get('ANFITRION')!, fecha_inicio: fechaHoy });
+  }
+
+  const { error: errorFilasCargo } = await supabase.from('casa_de_paz_cargo').insert(filasCargo);
+  if (errorFilasCargo) throw errorFilasCargo;
+
+  // Día/hora y domicilio son datos opcionales de un perfil que ya existe: si
+  // fallan (p.ej. la migración de dia_reunion/hora_reunion todavía no está
+  // aplicada en esta base) la Casa de Paz no debe quedar sin crear ni el
+  // usuario debe reintentar sobre lo mismo -- eso fue justamente lo que dejó
+  // Casas de Paz huérfanas la primera vez. Degradan en silencio, igual que ya
+  // hace el Perfil de Casa de Paz con estos mismos campos.
+  if (datos.diaReunion !== null || datos.horaReunion !== null) {
+    try {
+      await actualizarReunionCdp(cdp.id, datos.diaReunion, datos.horaReunion);
+    } catch (e) {
+      console.warn('No se pudo guardar el día/hora de reunión al crear la Casa de Paz', e);
+    }
+  }
+
+  if (datos.domicilio) {
+    try {
+      await guardarDomicilioCdp(iglesiaId, cdp.id, datos.domicilio);
+    } catch (e) {
+      console.warn('No se pudo guardar la dirección de reunión al crear la Casa de Paz', e);
+    }
   }
 
   return cdp;
@@ -95,6 +126,25 @@ export async function crearCdp(
 
 export async function toggleActivoCdp(cdpId: string, activo: boolean) {
   const { error } = await supabase.from('casa_de_paz').update({ activo }).eq('id', cdpId);
+  if (error) throw error;
+}
+
+/** Resumen del Perfil (red vigente, estado, apertura, día/hora de reunión). */
+export async function obtenerCdpPerfil(cdpId: string): Promise<CdpPerfil> {
+  const { data, error } = await supabase.rpc('fn_mi_cdp_perfil', { p_casa_de_paz_id: cdpId });
+  if (error) throw error;
+  return data as CdpPerfil;
+}
+
+/**
+ * Actualiza día/hora de reunión de la CdP. Update directo: la política
+ * pol_casa_de_paz_update ya autoriza al Líder de CdP (igual que toggleActivoCdp).
+ */
+export async function actualizarReunionCdp(cdpId: string, diaReunion: number | null, horaReunion: string | null) {
+  const { error } = await supabase
+    .from('casa_de_paz')
+    .update({ dia_reunion: diaReunion, hora_reunion: horaReunion })
+    .eq('id', cdpId);
   if (error) throw error;
 }
 
@@ -269,7 +319,7 @@ export async function obtenerCiudades(): Promise<Ciudad[]> {
 export async function obtenerDomicilioCdp(cdpId: string): Promise<DomicilioCdp | null> {
   const { data, error } = await supabase
     .from('direccion_asignacion')
-    .select('id, direccion:direccion_id(id, ciudad_id, zona, calle, numero, referencia, ciudad:ciudad_id(nombre))')
+    .select('id, direccion:direccion_id(id, ciudad_id, zona, calle, numero, referencia, url_gps, ciudad:ciudad_id(nombre))')
     .eq('casa_de_paz_id', cdpId)
     .eq('activo', true)
     .is('fecha_eliminacion', null)
@@ -290,6 +340,7 @@ export async function obtenerDomicilioCdp(cdpId: string): Promise<DomicilioCdp |
     calle: d.calle,
     numero: d.numero,
     referencia: d.referencia,
+    url_gps: d.url_gps ?? null,
   };
 }
 
@@ -300,6 +351,7 @@ export async function guardarDomicilioCdp(iglesiaId: string, cdpId: string, dato
     calle: datos.calle,
     numero: datos.numero,
     referencia: datos.referencia,
+    url_gps: datos.url_gps,
   };
 
   const { data: existente, error: errBuscar } = await supabase

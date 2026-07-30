@@ -82,7 +82,6 @@ CREATE TABLE casa_de_paz_reporte (
   actualizado_por      UUID REFERENCES auth.users(id),
   fecha_eliminacion    TIMESTAMPTZ,
   eliminado_por        UUID REFERENCES auth.users(id),
-  CONSTRAINT chk_reporte_fecha CHECK (fecha_reunion <= CURRENT_DATE),
   CONSTRAINT chk_reporte_evangelizados CHECK (salio_evangelizar OR COALESCE(evangelizados_declarados, 0) = 0),
   CONSTRAINT chk_reporte_evangelizados_no_negativo CHECK (evangelizados_declarados IS NULL OR evangelizados_declarados >= 0)
 );

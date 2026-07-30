@@ -21,10 +21,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DashboardHero, AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
 import {
   Select,
   SelectContent,
@@ -68,6 +68,9 @@ const esquema = z.object({
 });
 
 type FormValues = z.infer<typeof esquema>;
+
+/** Wrapper estándar del design system para toda card de sección (ver skill frontend-style). */
+const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
 
 export function Reportes() {
   const personaId = useAuthStore((s) => s.personaId);
@@ -215,7 +218,14 @@ export function Reportes() {
   // digan a mano si son menores, en vez de asumirlo y arriesgar un dato mal
   // cargado. Se muestran todos juntos acá para que no haya que enviar el
   // formulario una vez por persona para enterarse de a uno.
-  const pendientesEsMenor = idsRegulares
+  //
+  // Se controla a CUALQUIER asistente ya registrado sin fecha de nacimiento,
+  // sin importar en qué lista esté seleccionado (nuevos, regulares o niños).
+  // Antes solo se miraba la lista de "regulares": elegir a alguien sin fecha
+  // como "asistente nuevo" pasaba este control y recién explotaba con un 400
+  // del backend (fn_validar_asistencia rechaza es_menor nulo sin fecha de
+  // nacimiento), dejando además un reporte huérfano.
+  const pendientesEsMenor = Array.from(asistentes.keys())
     .map((id) => miembros.find((mm) => mm.persona_id === id))
     .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined);
 
@@ -324,8 +334,13 @@ export function Reportes() {
     } catch (e) {
       const error = e as { code?: string; message?: string } | null;
       const mensaje = typeof error?.message === 'string' ? error.message : '';
-      if (error?.code === '23514' || mensaje.includes('chk_reporte_fecha')) {
+      if (error?.code === '23514' && mensaje.includes('chk_reporte_fecha')) {
         toast.error('La fecha de la reunión no puede ser en el futuro');
+      } else if (mensaje.includes('ASISTENCIA_EDAD_INDEFINIDA')) {
+        // Red de seguridad: el formulario ya obliga a declarar si cada persona
+        // sin fecha de nacimiento es menor (ver pendientesEsMenor), pero por si
+        // acaso llega a pasar, el mensaje es claro en vez del genérico.
+        toast.error('Falta indicar si algún asistente sin fecha de nacimiento es menor de edad');
       } else if (mensaje.includes('REPORTE_OFRENDAS_OBLIGATORIO')) {
         toast.error('El total de ofrendas es obligatorio, aunque sea 0');
       } else if (mensaje.includes('CAMPO_OBLIGATORIO')) {
@@ -351,51 +366,43 @@ export function Reportes() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <ClipboardList className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Reporte de la reunión</CardTitle>
-                <CardDescription>Registrá la actividad semanal de tu Casa de Paz</CardDescription>
-              </div>
-            </div>
-            {misCasas.length > 1 && (
-              <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-                <SelectTrigger className="mt-2 w-56">
-                  <SelectValue placeholder="Casa de Paz" />
-                </SelectTrigger>
-                <SelectContent>
-                  {misCasas.map((c) => (
-                    <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                      {c.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
-              {/* Información General */}
-              <div
-                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
-                style={{ borderLeftColor: 'var(--chart-1)', backgroundColor: 'color-mix(in oklab, var(--chart-1) 7%, var(--card))' }}
-              >
-                <SeccionIconHeader
-                  icon={CalendarDays}
-                  color="var(--chart-1)"
-                  titulo="Información general"
-                  descripcion="Cuándo fue la reunión y quién enseñó"
-                />
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <DashboardHero
+        icon={ClipboardList}
+        eyebrow="Reporte semanal"
+        title="Reporte de la reunión"
+        actions={
+          misCasas.length > 1 && (
+            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
+              <SelectTrigger size="sm" className="w-full border-white/25 bg-white/10 text-sm text-white [&_svg]:text-white/70 sm:w-56">
+                <SelectValue placeholder="Casa de Paz" />
+              </SelectTrigger>
+              <SelectContent>
+                {misCasas.map((c) => (
+                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
+                    {c.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
+        }
+      />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+        {/* Información General */}
+        <section className={CARD_SECCION}>
+          <TarjetaHeader
+            icon={CalendarDays}
+            color={AZUL}
+            titulo="Información general"
+            descripcion="Cuándo fue la reunión y quién enseñó"
+          />
+          <div className="p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input id="fecha_reunion" type="date" {...register('fecha_reunion')} />
+                    <Input id="fecha_reunion" type="date" max={hoy} {...register('fecha_reunion')} />
                   </div>
 
                   {megaFiesta && (
@@ -460,19 +467,18 @@ export function Reportes() {
                     <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
                   </div>
                 </div>
-              </div>
+          </div>
+        </section>
 
-              {/* Asistencia */}
-              <div
-                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
-                style={{ borderLeftColor: '#5fa584', backgroundColor: 'color-mix(in oklab, #5fa584 7%, var(--card))' }}
-              >
-                <SeccionIconHeader
-                  icon={Users}
-                  color="#5fa584"
-                  titulo="Asistencia"
-                  descripcion={`${totalAsistentesActual} persona${totalAsistentesActual === 1 ? '' : 's'} marcada${totalAsistentesActual === 1 ? '' : 's'} hasta ahora`}
-                />
+        {/* Asistencia */}
+        <section className={CARD_SECCION}>
+          <TarjetaHeader
+            icon={Users}
+            color={TEAL}
+            titulo="Asistencia"
+            descripcion={`${totalAsistentesActual} persona${totalAsistentesActual === 1 ? '' : 's'} marcada${totalAsistentesActual === 1 ? '' : 's'} hasta ahora`}
+          />
+          <div className="flex flex-col gap-4 p-5">
                 {cargandoMiembros ? (
                   <Skeleton className="h-32 w-full" />
                 ) : (
@@ -485,7 +491,7 @@ export function Reportes() {
                         seleccionados={idsNuevos}
                         onToggle={(id) => toggleAsistente(id, true)}
                         placeholder="Buscar personas..."
-                        colorChip="#06b6d4"
+                        colorChip={VERDE}
                       />
                     </div>
 
@@ -497,46 +503,10 @@ export function Reportes() {
                         seleccionados={idsRegulares}
                         onToggle={(id) => toggleAsistente(id, false)}
                         placeholder={`Buscar personas mayores de ${edadMinima} años...`}
-                        colorChip="var(--chart-1)"
+                        colorChip={AZUL}
                         esMenorPorPersona={esMenorPorPersona}
                         onEsMenorChange={cambiarEsMenorAsistente}
                       />
-                      {pendientesEsMenor.length > 0 && (
-                        <div className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-                          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                            {pendientesEsMenor.length === 1
-                              ? 'Esta persona no tiene fecha de nacimiento registrada. ¿Es menor?'
-                              : 'Estas personas no tienen fecha de nacimiento registrada. ¿Son menores?'}
-                          </p>
-                          <div className="flex flex-col gap-1.5">
-                            {pendientesEsMenor.map((m) => (
-                              <div key={m.persona_id} className="flex items-center justify-between gap-3 rounded-lg bg-background/60 px-3 py-1.5 text-sm">
-                                <span className="truncate font-medium">{m.nombre_completo}</span>
-                                <div className="flex shrink-0 gap-1.5">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 px-2.5 text-xs"
-                                    onClick={() => cambiarEsMenorAsistente(m.persona_id, true)}
-                                  >
-                                    Sí, es menor
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 px-2.5 text-xs"
-                                    onClick={() => cambiarEsMenorAsistente(m.persona_id, false)}
-                                  >
-                                    No
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -547,9 +517,46 @@ export function Reportes() {
                         seleccionados={idsNinos}
                         onToggle={(id) => toggleAsistente(id, false)}
                         placeholder={`Buscar niños menores de ${edadMinima} años...`}
-                        colorChip="var(--chart-4)"
+                        colorChip={AMBAR}
                       />
                     </div>
+
+                    {pendientesEsMenor.length > 0 && (
+                      <div className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                          {pendientesEsMenor.length === 1
+                            ? 'Esta persona no tiene fecha de nacimiento registrada. ¿Es menor?'
+                            : 'Estas personas no tienen fecha de nacimiento registrada. ¿Son menores?'}
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {pendientesEsMenor.map((m) => (
+                            <div key={m.persona_id} className="flex items-center justify-between gap-3 rounded-lg bg-background/60 px-3 py-1.5 text-sm">
+                              <span className="truncate font-medium">{m.nombre_completo}</span>
+                              <div className="flex shrink-0 gap-1.5">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2.5 text-xs"
+                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, true)}
+                                >
+                                  Sí, es menor
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2.5 text-xs"
+                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, false)}
+                                >
+                                  No
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-2">
                       {visitasNuevas.map((v, i) => (
@@ -624,20 +631,19 @@ export function Reportes() {
                     </div>
                   </>
                 )}
-              </div>
+          </div>
+        </section>
 
-              {/* Evangelismo */}
-              {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
-                <div
-                  className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
-                  style={{ borderLeftColor: 'var(--chart-3)', backgroundColor: 'color-mix(in oklab, var(--chart-3) 7%, var(--card))' }}
-                >
-                  <SeccionIconHeader
-                    icon={HeartHandshake}
-                    color="var(--chart-3)"
-                    titulo="Evangelismo"
-                    descripcion="¿Salieron a evangelizar en esta reunión?"
-                  />
+        {/* Evangelismo */}
+        {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
+          <section className={CARD_SECCION}>
+            <TarjetaHeader
+              icon={HeartHandshake}
+              color={MORADO}
+              titulo="Evangelismo"
+              descripcion="¿Salieron a evangelizar en esta reunión?"
+            />
+            <div className="flex flex-col gap-4 p-5">
                   <label className="flex items-center gap-2 text-sm">
                     <Checkbox checked={salioEvangelizar} onCheckedChange={(v) => setValue('salio_evangelizar', v === true)} />
                     Salieron a evangelizar
@@ -650,16 +656,15 @@ export function Reportes() {
                       onQuitar={(clave) => setEvangelizadosPendientes((prev) => prev.filter((p) => p.clave !== clave))}
                     />
                   )}
-                </div>
-              )}
+            </div>
+          </section>
+        )}
 
-              {/* Finanzas */}
-              <div
-                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
-                style={{ borderLeftColor: '#10b981', backgroundColor: 'color-mix(in oklab, #10b981 7%, var(--card))' }}
-              >
-                <SeccionIconHeader icon={DollarSign} color="#10b981" titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Finanzas */}
+        <section className={CARD_SECCION}>
+          <TarjetaHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
+          <div className="p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="total_ofrendas">Total ofrendas *</Label>
                     <Input id="total_ofrendas" type="number" step="0.01" min="0" {...register('total_ofrendas')} />
@@ -689,15 +694,14 @@ export function Reportes() {
                     </Select>
                   </div>
                 </div>
-              </div>
+          </div>
+        </section>
 
-              {/* Narración */}
-              <div
-                className="flex flex-col gap-4 rounded-2xl border-l-4 p-5"
-                style={{ borderLeftColor: 'var(--chart-4)', backgroundColor: 'color-mix(in oklab, var(--chart-4) 7%, var(--card))' }}
-              >
-                <SeccionIconHeader icon={MessageSquare} color="var(--chart-4)" titulo="Narración" descripcion="Qué pasó durante la reunión" />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Narración */}
+        <section className={CARD_SECCION}>
+          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Narración" descripcion="Qué pasó durante la reunión" />
+          <div className="p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="testimonios">Testimonios {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
                     <Textarea id="testimonios" placeholder="¿Alguien compartió un testimonio?" {...register('testimonios')} />
@@ -707,15 +711,14 @@ export function Reportes() {
                     <Textarea id="comentarios" placeholder="Cualquier otro detalle de la reunión" {...register('comentarios')} />
                   </div>
                 </div>
-              </div>
+          </div>
+        </section>
 
-              <Button type="submit" disabled={isSubmitting} className="h-11 gap-2 self-start rounded-xl px-6">
-                {isSubmitting && <Spinner className="h-4 w-4" />}
-                {isSubmitting ? 'Enviando...' : 'Enviar reporte'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <Button type="submit" disabled={isSubmitting} className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:self-start sm:px-8">
+          {isSubmitting && <Spinner className="h-4 w-4" />}
+          {isSubmitting ? 'Enviando...' : 'Enviar reporte'}
+        </Button>
+      </form>
     </div>
   );
 }

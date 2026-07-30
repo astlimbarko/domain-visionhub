@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
@@ -95,12 +97,9 @@ export function Finanzas() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="glass-card-elevated rounded-2xl p-6">
-          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-            <Wallet className="h-4 w-4 text-primary" />
-            Ingresos del mes
-          </h3>
-          <div className="flex flex-col gap-2.5">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Wallet} color={VERDE} titulo="Ingresos del mes" descripcion={nombreMes(anio, mes)} />
+          <div className="flex flex-col gap-2.5 p-5">
             {cargandoTotales && <Skeleton className="h-24 w-full rounded-xl" />}
             {!cargandoTotales && totales.length === 0 && (
               <p className="text-sm text-muted-foreground">Sin ingresos registrados este mes.</p>
@@ -114,11 +113,11 @@ export function Finanzas() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="glass-card-elevated rounded-2xl p-6">
-          <h3 className="mb-4 text-sm font-semibold">Contra el mes anterior</h3>
-          <div className="flex flex-col gap-2.5">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={TrendingUp} color={MARINO} titulo="Contra el mes anterior" descripcion="Variación de ingresos vs. el mes previo" />
+          <div className="flex flex-col gap-2.5 p-5">
             {comparativo.length === 0 && <p className="text-sm text-muted-foreground">Sin datos para comparar.</p>}
             {comparativo.map((c) => (
               <div key={c.moneda_id} className="flex items-center justify-between text-sm">
@@ -142,7 +141,7 @@ export function Finanzas() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
       {cdpActiva && (

@@ -26,8 +26,8 @@ export function RecuperarContrasena() {
   }
 
   return (
-    <div className="aurora-bg flex min-h-svh items-center justify-center p-6">
-      <div className="glass-card-elevated w-full max-w-[380px] rounded-3xl p-8">
+    <div className="flex min-h-svh items-center justify-center bg-muted p-6">
+      <div className="w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="mb-8 flex flex-col items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
             <img src="/logo.png" alt="VisionHub" className="h-8 w-8 object-contain brightness-0 invert" />

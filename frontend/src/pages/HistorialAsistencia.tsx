@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { AlertTriangle, PhoneCall, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, type ReactNode } from 'react';
+import { AlertTriangle, Users, type LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -9,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { mosaico, AZUL, VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { HistorialAsistencia as HistorialAsistenciaSeccion } from '@/components/reporte/HistorialAsistencia';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
@@ -25,6 +25,43 @@ function faltasConsecutivas(asistio: boolean[]) {
     n++;
   }
   return n;
+}
+
+/** Card compacta con el degradado del dashboard: ícono o donut a la izquierda, número y etiqueta a la derecha. */
+function StatMini({
+  color,
+  icon: Icon,
+  valor,
+  label,
+  sub,
+  visual,
+}: {
+  color: string;
+  icon?: LucideIcon;
+  valor?: ReactNode;
+  label: string;
+  sub?: ReactNode;
+  visual?: ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 overflow-hidden rounded-2xl p-4 text-white"
+      style={{ background: mosaico(color), boxShadow: `0 12px 22px -14px color-mix(in oklab, ${color} 75%, transparent)` }}
+    >
+      {visual ?? (
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+          {Icon && <Icon className="h-5 w-5" strokeWidth={2.2} />}
+        </span>
+      )}
+      <div className="min-w-0">
+        {valor !== undefined && (
+          <p className="text-2xl leading-none font-bold tabular-nums [text-shadow:0_1px_2px_rgb(0_0_0_/_0.18)]">{valor}</p>
+        )}
+        <p className="mt-1 text-[11px] font-semibold tracking-wider text-white/85 uppercase">{label}</p>
+        {sub && <p className="text-[11px] text-white/75">{sub}</p>}
+      </div>
+    </div>
+  );
 }
 
 export function HistorialAsistencia() {
@@ -55,16 +92,7 @@ export function HistorialAsistencia() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#6366f1]/10">
-            <PhoneCall className="h-5 w-5" style={{ color: '#6366f1' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Historial de Asistencia</h1>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">Quién viene, quién se está alejando, y a quién llamar primero</p>
-          </div>
-        </div>
+      <div className="flex justify-end">
         {misCasas.length > 1 && (
           <Select value={cdpActiva} onValueChange={setCasaDePazId}>
             <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
@@ -83,43 +111,24 @@ export function HistorialAsistencia() {
 
       {data && totalMiembros > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 p-4 text-white shadow-lg shadow-pink-500/20">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Miembros</p>
-              <p className="text-2xl font-bold tracking-tight">{totalMiembros}</p>
-            </div>
-          </div>
-
-          {/* Rojo reservado para esto -- es la unica señal realmente urgente de la página. */}
-          <div
-            className={cn(
-              'flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg',
-              totalUrgentes > 0
-                ? 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/20'
-                : 'bg-gradient-to-br from-slate-500 to-slate-600 shadow-slate-500/20'
-            )}
-          >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <AlertTriangle className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Con 2+ faltas seguidas</p>
-              <p className="text-2xl font-bold tracking-tight">{totalUrgentes}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 p-4 text-white shadow-lg shadow-cyan-500/20">
-            <DonutRing porcentaje={participacion} size={52} strokeWidth={6} color="white" trackColor="rgba(255,255,255,0.3)">
-              <span className="text-xs font-bold text-white">{participacion != null ? `${participacion}%` : '—'}</span>
-            </DonutRing>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-white/80 uppercase">Participación</p>
-              <p className="text-[11px] text-white/80">Últimas {data.reuniones.length} reuniones</p>
-            </div>
-          </div>
+          <StatMini color={AZUL} icon={Users} valor={totalMiembros} label="Miembros" />
+          {/* Rojo reservado para esto -- es la única señal realmente urgente de la página. */}
+          <StatMini
+            color={totalUrgentes > 0 ? 'var(--destructive)' : MARINO}
+            icon={AlertTriangle}
+            valor={totalUrgentes}
+            label="Con 2+ faltas seguidas"
+          />
+          <StatMini
+            color={VERDE}
+            label="Participación"
+            sub={`Últimas ${data.reuniones.length} reuniones`}
+            visual={
+              <DonutRing porcentaje={participacion} size={48} strokeWidth={6} color="white" trackColor="rgba(255,255,255,0.3)">
+                <span className="text-[11px] font-bold text-white">{participacion != null ? `${participacion}%` : '—'}</span>
+              </DonutRing>
+            }
+          />
         </div>
       )}
 

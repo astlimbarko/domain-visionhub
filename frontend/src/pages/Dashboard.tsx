@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useRolUI } from '@/hooks/useRolUI';
+import { vistaPorDefectoParaRol } from '@/utils/permisos';
 import { DashboardPastor } from '@/components/dashboard/DashboardPastor';
 import { DashboardSupervisor } from '@/components/dashboard/DashboardSupervisor';
 import { DashboardLiderRed } from '@/components/dashboard/DashboardLiderRed';
@@ -20,32 +22,21 @@ import type { Vista } from '@/types/dashboard.types';
 
 export function Dashboard() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const iglesias = useAuthStore((s) => s.iglesias);
-  const esPastor = iglesias.find((i) => i.id === iglesiaActivaId)?.es_pastor ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId);
+  const rolUI = useRolUI();
   const [pila, setPila] = useState<Vista[]>([]);
   const location = useLocation();
   const vistaForzada = (location.state as { vista?: Vista } | null)?.vista;
-
-  function vistaPorDefecto(): Vista | null {
-    if (!roles) return null;
-    if (esPastor) return { tipo: 'pastor' };
-    if (roles.es_operativo && iglesiaActivaId) return { tipo: 'supervisor', iglesiaId: iglesiaActivaId };
-    if (roles.redes_lider?.length) return { tipo: 'red', redId: roles.redes_lider[0].id };
-    if (roles.cdp_lider?.length) return { tipo: 'cdp', cdpId: roles.cdp_lider[0].id, esSublider: false };
-    if (roles.cdp_sublider?.length) return { tipo: 'cdp', cdpId: roles.cdp_sublider[0].id, esSublider: true };
-    return null;
-  }
 
   useEffect(() => {
     if (vistaForzada) {
       setPila([vistaForzada]);
       return;
     }
-    const defecto = vistaPorDefecto();
+    const defecto = rolUI ? vistaPorDefectoParaRol(rolUI, roles, iglesiaActivaId) : null;
     setPila(defecto ? [defecto] : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roles, esPastor, iglesiaActivaId, location.key]);
+  }, [roles, rolUI, iglesiaActivaId, location.key]);
 
   function avanzar(nueva: Vista) {
     setPila((prev) => [...prev, nueva]);

@@ -8,7 +8,6 @@ import {
   obtenerLibros,
   obtenerMegaFiestaDelDia,
   obtenerMiembrosCdp,
-  obtenerReporteSemanaExistente,
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
@@ -82,14 +81,6 @@ export function useReportesRedRango(casaDePazIds: string[], desde: string, hasta
   });
 }
 
-export function useReporteSemanaExistente(casaDePazId: string | undefined, fecha: string) {
-  return useQuery({
-    queryKey: ['reporte', 'semana-existente', casaDePazId, fecha],
-    queryFn: () => obtenerReporteSemanaExistente(casaDePazId as string, fecha),
-    enabled: !!casaDePazId && !!fecha,
-  });
-}
-
 export function useHistorialReportes(casaDePazId: string | undefined, desde: string, hasta: string) {
   return useQuery({
     queryKey: ['reporte', 'historial-fechas', casaDePazId, desde, hasta],
@@ -113,7 +104,6 @@ export function useCrearReporte(casaDePazId: string | undefined) {
     mutationFn: (datos: NuevoReporte) => crearReporte(datos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
-      queryClient.invalidateQueries({ queryKey: ['reporte', 'semana-existente', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['calendario'] });

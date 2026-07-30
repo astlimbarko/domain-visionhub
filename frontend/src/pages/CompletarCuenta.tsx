@@ -3,14 +3,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/services/supabase';
-import { establecerContrasena, obtenerCorreoActual, obtenerIglesiasAccesibles, obtenerPersonaActual, soySuperAdmin } from '@/services/auth.service';
-import { obtenerMiInvitacionPendiente } from '@/services/invitacion-lider.service';
+import { establecerContrasena } from '@/services/auth.service';
+import { construirSesionDesdeAuth } from '@/services/sesion.service';
 import { useAuthStore } from '@/store/auth.store';
 import { ROUTES } from '@/utils/constants';
 
@@ -19,6 +20,7 @@ type FormValues = z.infer<typeof esquema>;
 
 export function CompletarCuenta() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setSesion = useAuthStore((s) => s.setSesion);
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'invalido'>('cargando');
   const [enviando, setEnviando] = useState(false);
@@ -36,15 +38,15 @@ export function CompletarCuenta() {
     setEnviando(true);
     try {
       await establecerContrasena(datos.contrasena);
-      const [persona, iglesias, esSuperAdmin, correo, mem] = await Promise.all([obtenerPersonaActual(), obtenerIglesiasAccesibles(), soySuperAdmin(), obtenerCorreoActual(), obtenerMiInvitacionPendiente()]);
-      setSesion({ personaId: persona?.id ?? null, nombreCompleto: persona?.nombre_completo ?? null, correo, iglesias, esSuperAdmin, membresiaPendiente: mem });
+      queryClient.clear();
+      setSesion(await construirSesionDesdeAuth());
       toast.success('Contraseña creada'); navigate(ROUTES.DASHBOARD, { replace: true });
     } catch { toast.error('No se pudo guardar'); } finally { setEnviando(false); }
   }
 
   return (
-    <div className="aurora-bg flex min-h-svh items-center justify-center p-6">
-      <div className="glass-card-elevated w-full max-w-[380px] rounded-3xl p-8">
+    <div className="flex min-h-svh items-center justify-center bg-muted p-6">
+      <div className="w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="mb-8 flex flex-col items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
             <img src="/logo.png" alt="VisionHub" className="h-8 w-8 object-contain brightness-0 invert" />

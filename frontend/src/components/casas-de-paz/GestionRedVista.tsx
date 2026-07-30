@@ -19,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -34,7 +33,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { TEAL, AZUL, MORADO, AMBAR } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
@@ -63,13 +63,6 @@ import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDi
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
-
-// Color propio del módulo — teal, para contrastar con los verdes de asistencia
-// del resto de la app (Dashboard / Control de Reportes).
-const TEAL = '#0aa5c0';
-const AZUL = '#0071e3';
-const MORADO = '#af52de';
-const AMBAR = '#ff9f0a';
 
 /** Cuántas Casas de Paz se muestran antes de "Mostrar más" (escala a redes grandes). */
 const LOTE = 10;
@@ -296,14 +289,19 @@ export function GestionRedVista() {
       </div>
 
       {/* ── Casas de Paz de la Red (foco principal, escalable) ─────────────────── */}
-      <Card className="rounded-3xl">
-        <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-          <SeccionIconHeader icon={Home} color={TEAL} titulo="Casas de Paz" descripcion={`${activas} activa(s) de ${cdps.length} en tu Red`} />
-          <Button size="sm" className="shrink-0 gap-1.5 rounded-xl" disabled={!redActiva} onClick={() => setMostrarCrearCdp(true)}>
-            <Plus className="h-4 w-4" /> Nueva
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Home}
+          color={TEAL}
+          titulo="Casas de Paz"
+          descripcion={`${activas} activa(s) de ${cdps.length} en tu Red`}
+          accion={
+            <Button size="sm" className="shrink-0 gap-1.5 rounded-xl" disabled={!redActiva} onClick={() => setMostrarCrearCdp(true)}>
+              <Plus className="h-4 w-4" /> Nueva
+            </Button>
+          }
+        />
+        <div className="flex flex-col gap-3 p-5">
           {/* Buscador + filtro (clave para redes con muchas Casas de Paz) */}
           {cdps.length > 0 && (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -379,14 +377,14 @@ export function GestionRedVista() {
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* ── Operaciones especiales (solo entre CdP de la red) ──────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="rounded-3xl">
-          <CardHeader><SeccionIconHeader icon={GitMerge} color={AZUL} titulo="Fusionar Casas de Paz" descripcion="Uní dos Casas de Paz en una; se conserva todo el historial" /></CardHeader>
-          <CardContent className="flex flex-col gap-3">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={GitMerge} color={AZUL} titulo="Fusionar Casas de Paz" descripcion="Uní dos Casas de Paz en una; se conserva todo el historial" />
+          <div className="flex flex-col gap-3 p-5">
             <Button variant="outline" className="w-fit gap-1.5 rounded-xl" disabled={activas < 2} onClick={() => setMostrarFusionar(true)}>
               <GitMerge className="h-4 w-4" /> Fusionar
             </Button>
@@ -405,12 +403,12 @@ export function GestionRedVista() {
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="rounded-3xl">
-          <CardHeader><SeccionIconHeader icon={GitBranch} color={MORADO} titulo="Multiplicar Casa de Paz" descripcion="Dividí una Casa de Paz y llevá miembros a una nueva" /></CardHeader>
-          <CardContent className="flex flex-col gap-3">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={GitBranch} color={MORADO} titulo="Multiplicar Casa de Paz" descripcion="Dividí una Casa de Paz y llevá miembros a una nueva" />
+          <div className="flex flex-col gap-3 p-5">
             <Button variant="outline" className="w-fit gap-1.5 rounded-xl" disabled={activas === 0} onClick={() => setMostrarMultiplicar(true)}>
               <GitBranch className="h-4 w-4" /> Multiplicar
             </Button>
@@ -424,15 +422,15 @@ export function GestionRedVista() {
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       {/* ── Invitaciones (acotadas a la red) ───────────────────────────────────── */}
       {invitacionesRed.length > 0 && (
-        <Card className="rounded-3xl">
-          <CardHeader><SeccionIconHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="De las Casas de Paz de tu Red" /></CardHeader>
-          <CardContent className="flex flex-col gap-2">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="De las Casas de Paz de tu Red" />
+          <div className="flex flex-col gap-2 p-5">
             {invitacionesRed.map((inv) => (
               <div key={inv.id} className="flex flex-col gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
@@ -454,8 +452,8 @@ export function GestionRedVista() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
       {/* ── Diálogos ───────────────────────────────────────────────────────────── */}
@@ -465,9 +463,9 @@ export function GestionRedVista() {
         redNombre={redInfo?.nombre}
         iglesiaId={iglesiaActivaId}
         creando={crearCdp.isPending}
-        onCrear={(nombre, sublideresIds) => {
+        onCrear={(datos) => {
           if (!redActiva) return;
-          crearCdp.mutate({ redId: redActiva, nombre, sublideresIds }, {
+          crearCdp.mutate({ redId: redActiva, datos }, {
             onSuccess: () => { toast.success('Casa de Paz creada'); setMostrarCrearCdp(false); },
             onError: (e) => manejarError(e, 'No se pudo crear la casa de paz'),
           });

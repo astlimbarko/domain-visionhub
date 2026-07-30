@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { GitBranch, GitMerge, Home, KeyRound, Plus, RefreshCw, Trash2, Undo2, Users } from 'lucide-react';
+import { GitBranch, GitMerge, Home, KeyRound, Mail, Network, Plus, RefreshCw, Trash2, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, MARINO, MORADO, AMBAR, TEAL } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
@@ -311,15 +312,20 @@ export function GestionEstructuraVista() {
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card className="rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Redes</CardTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrearRed(true)}>
-            <Plus className="h-4 w-4" />
-            Red
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Network}
+          color={MARINO}
+          titulo="Redes"
+          descripcion="Estructura de Redes de la iglesia"
+          accion={
+            <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrearRed(true)}>
+              <Plus className="h-4 w-4" />
+              Red
+            </Button>
+          }
+        />
+        <div className="flex flex-col gap-3 p-5">
           {cargandoRedes && <Skeleton className="h-32 w-full" />}
           {!cargandoRedes && redes.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay redes.</p>}
           {redes.map((red) => (
@@ -400,18 +406,23 @@ export function GestionEstructuraVista() {
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-          <CardTitle className="min-w-0 truncate">{redSeleccionada ? `Casas de Paz — ${redSeleccionada.nombre}` : 'Casas de Paz'}</CardTitle>
-          <Button size="sm" className="shrink-0 gap-1.5" disabled={!redSeleccionadaId} onClick={() => setMostrarCrearCdp(true)}>
-            <Plus className="h-4 w-4" />
-            Casa de Paz
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Home}
+          color={TEAL}
+          titulo={redSeleccionada ? `Casas de Paz — ${redSeleccionada.nombre}` : 'Casas de Paz'}
+          descripcion="Casas de Paz de la red seleccionada"
+          accion={
+            <Button size="sm" className="shrink-0 gap-1.5" disabled={!redSeleccionadaId} onClick={() => setMostrarCrearCdp(true)}>
+              <Plus className="h-4 w-4" />
+              Casa de Paz
+            </Button>
+          }
+        />
+        <div className="flex flex-col gap-3 p-5">
           {!redSeleccionadaId && (
             <p className="text-sm text-muted-foreground">Elegí una red de la izquierda para ver sus Casas de Paz.</p>
           )}
@@ -489,32 +500,37 @@ export function GestionEstructuraVista() {
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader className="flex-col items-start gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Fusiones</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={!redSeleccionadaId}
-              onClick={() => setMostrarFusionarCdp(true)}
-            >
-              <GitMerge className="h-4 w-4" />
-              Fusionar Casas de Paz
-            </Button>
-            {esOperativo && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarFusionarRed(true)}>
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+        <TarjetaHeader
+          icon={GitMerge}
+          color={AZUL}
+          titulo="Fusiones"
+          descripcion="Uní Casas de Paz o Redes; se conserva todo el historial"
+          accion={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={!redSeleccionadaId}
+                onClick={() => setMostrarFusionarCdp(true)}
+              >
                 <GitMerge className="h-4 w-4" />
-                Fusionar Redes
+                Fusionar Casas de Paz
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+              {esOperativo && (
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarFusionarRed(true)}>
+                  <GitMerge className="h-4 w-4" />
+                  Fusionar Redes
+                </Button>
+              )}
+            </div>
+          }
+        />
+        <div className="flex flex-col gap-4 p-5">
           {!redSeleccionadaId && (
             <p className="text-sm text-muted-foreground">
               Elegí una red arriba para poder fusionar sus Casas de Paz. Fusionar Redes no depende de elegir una.
@@ -568,32 +584,37 @@ export function GestionEstructuraVista() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader className="flex-col items-start gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Multiplicación</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={!redSeleccionadaId}
-              onClick={() => setMostrarMultiplicarCdp(true)}
-            >
-              <GitBranch className="h-4 w-4" />
-              Multiplicar Casa de Paz
-            </Button>
-            {esOperativo && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarMultiplicarRed(true)}>
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+        <TarjetaHeader
+          icon={GitBranch}
+          color={MORADO}
+          titulo="Multiplicación"
+          descripcion="Dividí una Casa de Paz o Red y llevá miembros a una nueva"
+          accion={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={!redSeleccionadaId}
+                onClick={() => setMostrarMultiplicarCdp(true)}
+              >
                 <GitBranch className="h-4 w-4" />
-                Multiplicar Red
+                Multiplicar Casa de Paz
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+              {esOperativo && (
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarMultiplicarRed(true)}>
+                  <GitBranch className="h-4 w-4" />
+                  Multiplicar Red
+                </Button>
+              )}
+            </div>
+          }
+        />
+        <div className="flex flex-col gap-4 p-5">
           {!redSeleccionadaId && (
             <p className="text-sm text-muted-foreground">
               Elegí una red arriba para poder multiplicar sus Casas de Paz. Multiplicar Red no depende de elegir una.
@@ -631,14 +652,12 @@ export function GestionEstructuraVista() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Invitaciones a líderes</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+        <TarjetaHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="Invitaciones a Redes y Casas de Paz de la iglesia" />
+        <div className="flex flex-col gap-2 p-5">
           {invitacionesLider.length === 0 && (
             <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>
           )}
@@ -683,8 +702,8 @@ export function GestionEstructuraVista() {
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <CrearRedDialog
         open={mostrarCrearRed}
@@ -707,10 +726,10 @@ export function GestionEstructuraVista() {
         redNombre={redSeleccionada?.nombre}
         iglesiaId={iglesiaActivaId}
         creando={crearCdp.isPending}
-        onCrear={(nombre, sublideresIds) => {
+        onCrear={(datos) => {
           if (!redSeleccionadaId) return;
           crearCdp.mutate(
-            { redId: redSeleccionadaId, nombre, sublideresIds },
+            { redId: redSeleccionadaId, datos },
             {
               onSuccess: () => {
                 toast.success('Casa de Paz creada');

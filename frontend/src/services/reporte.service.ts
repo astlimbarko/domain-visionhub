@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
-import { inicioSemanaISO } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
 import type {
   CamposObligatoriosReporte,
@@ -9,7 +8,6 @@ import type {
   MegaFiestaDelDia,
   MiembroCdp,
   NuevoReporte,
-  ReporteDeLaSemana,
   ReporteRedFila,
   ReporteReciente,
   ResultadoReporte,
@@ -231,21 +229,6 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
   };
 }
 
-/** Un Reporte cuenta por semana, no por fecha exacta: avisa si la semana de `fecha` ya tiene uno. */
-export async function obtenerReporteSemanaExistente(
-  casaDePazId: string,
-  fecha: string
-): Promise<ReporteDeLaSemana | null> {
-  const { data, error } = await supabase
-    .from('casa_de_paz_reporte')
-    .select('fecha_reunion')
-    .eq('casa_de_paz_id', casaDePazId)
-    .eq('semana_inicio', inicioSemanaISO(fecha))
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReporte> {
   const { data: reporte, error: errorReporte } = await supabase
     .from('casa_de_paz_reporte')
@@ -268,66 +251,90 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
   if (errorReporte) throw errorReporte;
   const reporteId = reporte.id;
 
-  const personaIds: { id: string; esMenor?: boolean; esVisita?: boolean }[] = datos.asistentesExistentes.map((a) => ({
-    id: a.personaId,
-    esMenor: a.esMenor,
-    esVisita: a.esVisita,
-  }));
+  // El reporte ya quedó insertado. Como no hay transacción del lado del
+  // cliente, si un paso posterior (asistencia, ingresos) falla, el reporte
+  // quedaría huérfano (0 asistencias) visible en Historial/Dashboard. Por eso
+  // todo lo que sigue va dentro de un try que, ante cualquier error, revierte
+  // el reporte con una baja lógica de mejor esfuerzo antes de propagar.
+  try {
+    const personaIds: { id: string; esMenor?: boolean; esVisita?: boolean }[] = datos.asistentesExistentes.map((a) => ({
+      id: a.personaId,
+      esMenor: a.esMenor,
+      esVisita: a.esVisita,
+    }));
 
-  for (const visita of datos.visitasNuevas) {
-    const { data: persona, error: errorPersona } = await supabase
-      .from('persona')
-      .insert({
-        iglesia_id: datos.iglesia_id,
-        primer_nombre: visita.primer_nombre,
-        primer_apellido: visita.primer_apellido,
-        sexo: visita.sexo,
-      })
-      .select('id')
-      .single();
-    if (errorPersona) throw errorPersona;
-    personaIds.push({ id: persona.id, esMenor: visita.es_menor, esVisita: true });
+    for (const visita of datos.visitasNuevas) {
+      const { data: persona, error: errorPersona } = await supabase
+        .from('persona')
+        .insert({
+          iglesia_id: datos.iglesia_id,
+          primer_nombre: visita.primer_nombre,
+          primer_apellido: visita.primer_apellido,
+          sexo: visita.sexo,
+        })
+        .select('id')
+        .single();
+      if (errorPersona) throw errorPersona;
+      personaIds.push({ id: persona.id, esMenor: visita.es_menor, esVisita: true });
 
-    if (visita.telefono?.trim()) {
-      const tipos = await obtenerTiposTelefono();
-      if (tipos[0]) {
-        await agregarTelefono(datos.iglesia_id, persona.id, tipos[0].id, visita.telefono.trim(), null, true);
+      if (visita.telefono?.trim()) {
+        const tipos = await obtenerTiposTelefono();
+        if (tipos[0]) {
+          await agregarTelefono(datos.iglesia_id, persona.id, tipos[0].id, visita.telefono.trim(), null, true);
+        }
       }
     }
+
+    if (personaIds.length > 0) {
+      const { error: errorAsistencia } = await supabase.from('casa_de_paz_asistencia').insert(
+        personaIds.map((p) => ({
+          iglesia_id: datos.iglesia_id,
+          reporte_id: reporteId,
+          persona_id: p.id,
+          es_menor: p.esMenor ?? null,
+          es_visita: p.esVisita ?? false,
+        }))
+      );
+      if (errorAsistencia) throw errorAsistencia;
+    }
+
+    const { error: errorIngresos } = await supabase.rpc('fn_registrar_ingresos_reporte', {
+      p_reporte_id: reporteId,
+      p_total_ofrendas: datos.totalOfrendas,
+      p_total_diezmos: datos.totalDiezmos ?? null,
+      p_moneda_id: datos.monedaId,
+    });
+    if (errorIngresos) throw errorIngresos;
+
+    const { data: totales, error: errorTotales } = await supabase
+      .from('v_reporte_totales')
+      .select('total_menores, total_mayores, total_asistentes')
+      .eq('reporte_id', reporteId)
+      .single();
+    if (errorTotales) throw errorTotales;
+
+    return {
+      reporteId,
+      totalMenores: totales.total_menores,
+      totalMayores: totales.total_mayores,
+      totalAsistentes: totales.total_asistentes,
+    };
+  } catch (e) {
+    // Baja lógica de mejor esfuerzo del reporte huérfano. La tabla bloquea el
+    // DELETE físico (trigger), así que se marca fecha_eliminacion. Si esto
+    // también falla, prevalece el error original.
+    //
+    // OJO: para un Líder/Sublíder de CdP este UPDATE lo rechaza la RLS
+    // (pol_casa_de_paz_reporte_update no permite que un líder marque
+    // fecha_eliminacion; borrar historial queda para operativo/supervisor), así
+    // que para ese rol la reversión no surte efecto y el reporte quedaría
+    // huérfano igual. La defensa real es no llegar hasta acá: el formulario ya
+    // valida es_menor de cada asistente sin fecha de nacimiento antes de enviar.
+    try {
+      await supabase.from('casa_de_paz_reporte').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', reporteId);
+    } catch {
+      // Ignorado a propósito: no debe tapar el error real de arriba.
+    }
+    throw e;
   }
-
-  if (personaIds.length > 0) {
-    const { error: errorAsistencia } = await supabase.from('casa_de_paz_asistencia').insert(
-      personaIds.map((p) => ({
-        iglesia_id: datos.iglesia_id,
-        reporte_id: reporteId,
-        persona_id: p.id,
-        es_menor: p.esMenor ?? null,
-        es_visita: p.esVisita ?? false,
-      }))
-    );
-    if (errorAsistencia) throw errorAsistencia;
-  }
-
-  const { error: errorIngresos } = await supabase.rpc('fn_registrar_ingresos_reporte', {
-    p_reporte_id: reporteId,
-    p_total_ofrendas: datos.totalOfrendas,
-    p_total_diezmos: datos.totalDiezmos ?? null,
-    p_moneda_id: datos.monedaId,
-  });
-  if (errorIngresos) throw errorIngresos;
-
-  const { data: totales, error: errorTotales } = await supabase
-    .from('v_reporte_totales')
-    .select('total_menores, total_mayores, total_asistentes')
-    .eq('reporte_id', reporteId)
-    .single();
-  if (errorTotales) throw errorTotales;
-
-  return {
-    reporteId,
-    totalMenores: totales.total_menores,
-    totalMayores: totales.total_mayores,
-    totalAsistentes: totales.total_asistentes,
-  };
 }

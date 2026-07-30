@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { ROUTES } from '@/utils/constants';
 import type { IglesiaAccesible } from '@/types/auth.types';
 
 export async function iniciarSesion(correo: string, contrasena: string) {
@@ -8,6 +9,15 @@ export async function iniciarSesion(correo: string, contrasena: string) {
   });
   if (error) throw error;
   return data;
+}
+
+/** Redirige a Google y vuelve a AuthCallback, que termina de armar la sesión de la app. */
+export async function iniciarSesionConGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}${ROUTES.AUTH_CALLBACK}` },
+  });
+  if (error) throw error;
 }
 
 export async function cerrarSesion() {

@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -129,17 +130,8 @@ export function Calendario() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <CalendarDays className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Calendario</h1>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">Eventos y cumpleaños de tu Casa de Paz</p>
-          </div>
-        </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 self-start rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98] sm:self-auto">
+      <div className="flex justify-end">
+        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
           <Plus className="h-4 w-4" />
           Nuevo evento
         </Button>
@@ -215,36 +207,38 @@ export function Calendario() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {cargandoEventos ? (
-            <Skeleton className="h-96 w-full rounded-2xl" />
-          ) : (
-            <CalendarioGrid
-              anio={anio}
-              mes={mes}
-              eventos={eventos}
-              cumpleanos={cumpleanos}
-              diaSeleccionado={diaSeleccionado}
-              onSeleccionarDia={setDiaSeleccionado}
-            />
-          )}
-        </div>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+          <TarjetaHeader icon={CalendarDays} color={MARINO} titulo="Calendario" descripcion={`Eventos de ${nombreMes(anio, mes)}`} />
+          <div className="p-4">
+            {cargandoEventos ? (
+              <Skeleton className="h-96 w-full rounded-2xl" />
+            ) : (
+              <CalendarioGrid
+                anio={anio}
+                mes={mes}
+                eventos={eventos}
+                cumpleanos={cumpleanos}
+                diaSeleccionado={diaSeleccionado}
+                onSeleccionarDia={setDiaSeleccionado}
+              />
+            )}
+          </div>
+        </section>
 
         <div className="flex flex-col gap-4">
           {diaSeleccionado && (
-            <div className="glass-card-elevated rounded-2xl p-5">
-              <SeccionIconHeader
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader
                 icon={CalendarDays}
-                color="var(--primary)"
+                color={AZUL}
                 titulo={fechaLegible(diaSeleccionado)}
                 descripcion={
                   eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length > 0
                     ? `${eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length} para hoy`
-                    : undefined
+                    : 'Sin eventos ni cumpleaños'
                 }
-                size="sm"
               />
-              <div className="mt-4 flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2.5 p-4">
                 {eventosDelDiaSeleccionado.length === 0 && cumpleanosDelDiaSeleccionado.length === 0 && (
                   <p className="text-sm text-muted-foreground">Sin eventos ni cumpleaños.</p>
                 )}
@@ -290,8 +284,8 @@ export function Calendario() {
                 })}
                 {cumpleanosDelDiaSeleccionado.map((c) => (
                   <div key={c.persona_id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-4)]/15">
-                      <Cake className="h-5 w-5" style={{ color: 'var(--chart-4)' }} />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 15%, transparent)` }}>
+                      <Cake className="h-5 w-5" style={{ color: MORADO }} />
                     </div>
                     <span className="font-medium">
                       {c.nombre} <span className="font-normal text-muted-foreground">cumple {c.edad_cumple} años</span>
@@ -299,23 +293,17 @@ export function Calendario() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          <div className="glass-card-elevated rounded-2xl p-5">
-            <SeccionIconHeader
-              icon={CalendarClock}
-              color="#6366f1"
-              titulo="Próximos"
-              descripcion="Eventos y cumpleaños de los próximos días"
-              size="sm"
-            />
-            <div className="mt-4 flex flex-col gap-1.5">
+          <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <TarjetaHeader icon={CalendarClock} color={VERDE} titulo="Próximos" descripcion="Eventos y cumpleaños de los próximos días" />
+            <div className="flex flex-col gap-1.5 p-4">
               {proximos.length === 0 && <p className="text-sm text-muted-foreground">Nada próximo.</p>}
               {proximos.map((p, i) => {
                 const esCumple = p.clase === 'CUMPLEANOS';
                 const Icono = esCumple ? Cake : CalendarClock;
-                const color = esCumple ? 'var(--chart-4)' : '#6366f1';
+                const color = esCumple ? MORADO : VERDE;
                 return (
                   <div key={i} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1 text-sm transition-colors hover:bg-muted/50">
                     <span className="flex min-w-0 items-center gap-2.5">
@@ -334,7 +322,7 @@ export function Calendario() {
                 );
               })}
             </div>
-          </div>
+          </section>
         </div>
       </div>
 

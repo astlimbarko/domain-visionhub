@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
+import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { obtenerNavItems, type NavItem } from '@/utils/permisos';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
@@ -106,9 +107,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const iglesias = useAuthStore((s) => s.iglesias);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
+  const setRolActivo = useAuthStore((s) => s.setRolActivo);
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const opcionesRol = useOpcionesRol();
 
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
@@ -126,7 +130,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
   for (const c of roles?.cdp_sublider ?? []) sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
 
-  async function handleLogout() { await cerrarSesion(); logout(); }
+  async function handleLogout() { await cerrarSesion(); logout(); queryClient.clear(); }
+
+  function handleCambiarRol() {
+    setRolActivo(null);
+    navigate(ROUTES.SELECCIONAR_ROL);
+  }
 
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
@@ -165,40 +174,72 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="text-[15px] font-bold">{nombreMarca}</span>
             </SheetTitle>
           </SheetHeader>
-          <div className="flex flex-1 flex-col p-4">
+          {iglesias.length > 1 && (
+            <div className="px-4 pt-4">
+              <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
+                <SelectContent>{iglesias.map((i) => (<SelectItem key={i.id} value={i.id}>{i.nombre}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="flex flex-1 flex-col overflow-y-auto p-4">
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} />
           </div>
+          <SheetFooter className="gap-1 border-t border-sidebar-border p-3">
+            <button
+              onClick={() => { setMenuAbierto(false); navigate(ROUTES.CUENTA); }}
+              className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+            >
+              <UserCog className="h-4 w-4" /> Mi cuenta
+            </button>
+            {opcionesRol && opcionesRol.length > 1 && (
+              <button
+                onClick={() => { setMenuAbierto(false); handleCambiarRol(); }}
+                className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+              >
+                <Repeat className="h-4 w-4" /> Cambiar rol
+              </button>
+            )}
+            <button
+              onClick={async () => { setMenuAbierto(false); await handleLogout(); }}
+              className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4" /> Salir
+            </button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
       {/* Content */}
-      <div className="aurora-bg-subtle flex min-w-0 flex-1 flex-col">
-        <header className="glass-subtle mx-5 mt-5 flex flex-col gap-3 rounded-2xl px-5 py-3.5 sm:mx-8 sm:mt-8 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-1 flex-col bg-muted/30">
+        {/* Barra superior delgada — solo en desktop; en móvil las acciones de
+            cuenta viven en el pie del drawer. */}
+        <header className="hidden items-center justify-between gap-3 border-b border-border bg-card px-8 py-1.5 sm:flex">
           <div className="min-w-0">
             {iglesias.length > 1 ? (
               <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
-                <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
+                <SelectTrigger size="sm" className="w-52"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
                 <SelectContent>{iglesias.map((i) => (<SelectItem key={i.id} value={i.id}>{i.nombre}</SelectItem>))}</SelectContent>
               </Select>
             ) : (
-              <p className="text-[14px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
+              <p className="text-[13px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
             )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-xl px-2 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
+              <button className="flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {(nombreCompleto ?? correo ?? '?')[0]?.toUpperCase()}
                 </div>
-                {/* Antes: hidden sm:inline — en móvil solo se veía el avatar, nunca el
-                    nombre/título (Líder de CdP, Líder de Red...). Ahora se muestra
-                    siempre, truncado para no desbordar en pantallas chicas. */}
-                <span className="max-w-[70vw] truncate sm:max-w-[240px]">{textoUsuario}</span>
+                <span className="max-w-[240px] truncate">{textoUsuario}</span>
                 <ChevronDown className="h-3 w-3 shrink-0 opacity-40" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem onSelect={() => navigate(ROUTES.CUENTA)} className="gap-2"><UserCog className="h-4 w-4" /> Mi cuenta</DropdownMenuItem>
+              {opcionesRol && opcionesRol.length > 1 && (
+                <DropdownMenuItem onSelect={handleCambiarRol} className="gap-2"><Repeat className="h-4 w-4" /> Cambiar rol</DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={handleLogout} className="gap-2 text-destructive focus:text-destructive"><LogOut className="h-4 w-4" /> Salir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

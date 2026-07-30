@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
 import type { InvitacionPendiente } from '../types/invitacion-lider.types';
+import type { RolUI } from '../utils/permisos';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -12,6 +13,8 @@ interface AuthState {
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
   membresiaPendiente: InvitacionPendiente | null;
+  /** Rol elegido en /seleccionar-rol cuando el usuario tiene más de un sombrero en la iglesia activa. */
+  rolActivo: RolUI | null;
   setSesion: (data: {
     personaId: string | null;
     nombreCompleto: string | null;
@@ -21,6 +24,7 @@ interface AuthState {
     membresiaPendiente?: InvitacionPendiente | null;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
+  setRolActivo: (rol: RolUI | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
   logout: () => void;
@@ -37,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
       iglesiaActivaId: null,
       esSuperAdmin: false,
       membresiaPendiente: null,
+      rolActivo: null,
 
       setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null }) => {
         const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
@@ -49,10 +54,14 @@ export const useAuthStore = create<AuthState>()(
           esSuperAdmin,
           membresiaPendiente,
           iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : (iglesias[0]?.id ?? null),
+          // Cada login nuevo re-obliga a elegir rol si hay ambigüedad.
+          rolActivo: null,
         });
       },
 
-      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId }),
+      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId, rolActivo: null }),
+
+      setRolActivo: (rol) => set({ rolActivo: rol }),
 
       renombrarIglesiaLocal: (iglesiaId, nombre) =>
         set({
@@ -72,6 +81,7 @@ export const useAuthStore = create<AuthState>()(
           iglesiaActivaId: null,
           esSuperAdmin: false,
           membresiaPendiente: null,
+          rolActivo: null,
         }),
     }),
     {
@@ -85,6 +95,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         esSuperAdmin: state.esSuperAdmin,
         membresiaPendiente: state.membresiaPendiente,
+        rolActivo: state.rolActivo,
       }),
     }
   )

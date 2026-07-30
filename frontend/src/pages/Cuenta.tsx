@@ -7,6 +7,8 @@ import { CheckCircle2, Circle, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, MORADO } from '@/components/dashboard/DashboardUI';
 import { establecerContrasena, establecerPin, obtenerCorreoActual, tengoPin } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -62,7 +64,7 @@ export function Cuenta() {
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4">
-      <div className="glass-card-elevated flex flex-col items-center gap-4 rounded-3xl p-8">
+      <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
           {(nombreCompleto ?? '?')[0]?.toUpperCase()}
         </div>
@@ -72,16 +74,13 @@ export function Cuenta() {
         </div>
       </div>
 
-      <div className="glass-card rounded-2xl p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10"><Lock className="h-4 w-4 text-primary" /></div>
-          <h2 className="text-[14px] font-bold text-foreground">Cambiar contraseña</h2>
-        </div>
-        <form onSubmit={formContrasena.handleSubmit(onSubmitContrasena)} className="flex flex-col gap-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Lock} color={AZUL} titulo="Cambiar contraseña" descripcion="Usá una contraseña que no repitas en otro lado" />
+        <form onSubmit={formContrasena.handleSubmit(onSubmitContrasena)} className="flex flex-col gap-3 p-5">
           <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Nueva</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('contrasena')} />{formContrasena.formState.errors.contrasena && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.contrasena.message}</p>}</div>
 
           {nuevaContrasena && (
-            <div className="glass-subtle flex flex-col gap-1.5 rounded-xl p-3">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/40 p-3">
               {REQUISITOS_CONTRASENA.map((req) => {
                 const cumple = req.test(nuevaContrasena);
                 return (
@@ -101,20 +100,17 @@ export function Cuenta() {
           <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('confirmar')} />{formContrasena.formState.errors.confirmar && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.confirmar.message}</p>}</div>
           <Button type="submit" disabled={enviandoContrasena} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoContrasena ? 'Guardando...' : 'Guardar'}</Button>
         </form>
-      </div>
+      </section>
 
       {esSuperAdmin && (
-        <div className="glass-card rounded-2xl p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10"><ShieldCheck className="h-4 w-4 text-primary" /></div>
-            <h2 className="text-[14px] font-bold text-foreground">PIN de Super Admin</h2>
-          </div>
-          <form onSubmit={formPin.handleSubmit(onSubmitPin)} className="flex flex-col gap-3">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={ShieldCheck} color={MORADO} titulo="PIN de Super Admin" descripcion="Se pide en cada cambio de configuración sensible" />
+          <form onSubmit={formPin.handleSubmit(onSubmitPin)} className="flex flex-col gap-3 p-5">
             <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{tienePin ? 'PIN nuevo' : 'PIN'} (6 dígitos)</Label><Input type="password" inputMode="numeric" maxLength={6} className={inputCls} {...formPin.register('pin')} onChange={(e) => formPin.setValue('pin', e.target.value.replace(/\D/g, '').slice(0, 6))} />{formPin.formState.errors.pin && <p className="text-[11px] text-destructive">{formPin.formState.errors.pin.message}</p>}</div>
             <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><Input type="password" inputMode="numeric" maxLength={6} className={inputCls} {...formPin.register('confirmarPin')} onChange={(e) => formPin.setValue('confirmarPin', e.target.value.replace(/\D/g, '').slice(0, 6))} />{formPin.formState.errors.confirmarPin && <p className="text-[11px] text-destructive">{formPin.formState.errors.confirmarPin.message}</p>}</div>
             <Button type="submit" disabled={enviandoPin} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoPin ? 'Guardando...' : tienePin ? 'Cambiar' : 'Configurar'}</Button>
           </form>
-        </div>
+        </section>
       )}
     </div>
   );

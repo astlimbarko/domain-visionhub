@@ -29,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
@@ -181,17 +182,8 @@ export function Evangelismo() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-3)]/10">
-            <HeartHandshake className="h-5 w-5" style={{ color: 'var(--chart-3)' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Evangelismo</h1>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">Metas, evangelizados y salidas de tu Casa de Paz</p>
-          </div>
-        </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 self-start rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98] sm:self-auto">
+      <div className="flex justify-end">
+        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
           <Plus className="h-4 w-4" />
           Nuevo evangelizado
         </Button>
@@ -227,14 +219,14 @@ export function Evangelismo() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="glass-card-elevated rounded-2xl p-6 lg:col-span-2">
-          <SeccionIconHeader
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+          <TarjetaHeader
             icon={Target}
-            color="var(--primary)"
+            color={AZUL}
             titulo="Tasa de evangelismo"
-            descripcion={tasa?.origen ? `Meta ${tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}` : undefined}
+            descripcion={tasa?.origen ? `Meta ${tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
           />
-          <div className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-4 p-6">
             {cargandoTasa ? (
               <Skeleton className="h-24 w-full rounded-xl" />
             ) : (
@@ -284,8 +276,8 @@ export function Evangelismo() {
                     esté rigiendo el % de arriba (esa se lee aparte, sin depender de fn_tasa_evangelismo,
                     porque esa RPC oculta la propia mientras haya una asignada vigente). */}
                 <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--chart-2)]/10">
-                    <Flag className="h-5 w-5" style={{ color: 'var(--chart-2)' }} />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 10%, transparent)` }}>
+                    <Flag className="h-5 w-5" style={{ color: VERDE }} />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -406,16 +398,16 @@ export function Evangelismo() {
               </div>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="glass-card-elevated rounded-2xl p-5">
-          <SeccionIconHeader
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
             icon={HeartHandshake}
-            color="var(--chart-3)"
+            color={AMBAR}
             titulo="Evangelizados del mes"
             descripcion={`${evangelizados.length} en ${nombreMes(anio, mes)}`}
           />
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 p-5">
             {cargandoLista && <Skeleton className="h-40 w-full rounded-xl" />}
             {!cargandoLista && evangelizados.length === 0 && (
               <p className="text-sm text-muted-foreground">Nadie registrado todavía este mes.</p>
@@ -434,20 +426,19 @@ export function Evangelismo() {
               </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Calendario: qué días se salió a evangelizar, con el detalle de a quién se ganó ese día */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="glass-card-elevated rounded-2xl p-5 lg:col-span-2">
-          <SeccionIconHeader
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+          <TarjetaHeader
             icon={CalendarRange}
-            color="#6366f1"
+            color={AMBAR}
             titulo="Calendario de evangelismo"
             descripcion="Días en los que se registró al menos un evangelizado"
-            size="sm"
           />
-          <div className="mt-4">
+          <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
             ) : (
@@ -460,38 +451,38 @@ export function Evangelismo() {
               />
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="glass-card-elevated rounded-2xl p-5">
-          <div className="flex items-center justify-between gap-2">
-            <SeccionIconHeader
-              icon={HeartHandshake}
-              color="var(--chart-3)"
-              titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Resumen del mes'}
-              descripcion={
-                diaSeleccionado
-                  ? `${evangelizadosDelDiaSeleccionado.length} evangelizado${evangelizadosDelDiaSeleccionado.length === 1 ? '' : 's'}`
-                  : 'Lo más destacado y lo más reciente'
-              }
-              size="sm"
-            />
-            {diaSeleccionado && (
-              <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => setDiaSeleccionado(null)}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Resumen
-              </Button>
-            )}
-          </div>
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={HeartHandshake}
+            color={AMBAR}
+            titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Resumen del mes'}
+            descripcion={
+              diaSeleccionado
+                ? `${evangelizadosDelDiaSeleccionado.length} evangelizado${evangelizadosDelDiaSeleccionado.length === 1 ? '' : 's'}`
+                : 'Lo más destacado y lo más reciente'
+            }
+            accion={
+              diaSeleccionado && (
+                <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => setDiaSeleccionado(null)}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Resumen
+                </Button>
+              )
+            }
+          />
 
+          <div className="p-5">
           {diaSeleccionado ? (
-            <div className="mt-4 flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2.5">
               {evangelizadosDelDiaSeleccionado.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nadie registrado este día.</p>
               ) : (
                 evangelizadosDelDiaSeleccionado.map((e) => (
                   <div key={e.id} className="flex items-start gap-2 text-sm">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--chart-3)]/15">
-                      <HeartHandshake className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} />
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${AMBAR} 15%, transparent)` }}>
+                      <HeartHandshake className="h-3.5 w-3.5" style={{ color: AMBAR }} />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium">{e.nombre_completo}</p>
@@ -507,7 +498,7 @@ export function Evangelismo() {
               )}
             </div>
           ) : (
-            <div className="mt-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -515,8 +506,8 @@ export function Evangelismo() {
                   onClick={() => mejorDia && setDiaSeleccionado(mejorDia.fecha)}
                   className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-3 text-left transition-colors enabled:hover:bg-accent/60 disabled:cursor-default"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--chart-1)]/12">
-                    <Trophy className="h-4 w-4" style={{ color: 'var(--chart-1)' }} />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}>
+                    <Trophy className="h-4 w-4" style={{ color: AZUL }} />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Mejor día</p>
@@ -533,8 +524,8 @@ export function Evangelismo() {
                   </div>
                 </button>
                 <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--chart-4)]/12">
-                    <Flame className="h-4 w-4" style={{ color: 'var(--chart-4)' }} />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 12%, transparent)` }}>
+                    <Flame className="h-4 w-4" style={{ color: MORADO }} />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Racha este mes</p>
@@ -574,7 +565,8 @@ export function Evangelismo() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </section>
       </div>
 
       {cdpActiva && (

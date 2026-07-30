@@ -43,11 +43,7 @@ function PersonasDeRed() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Personas</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">Miembros de las Casas de Paz de tu Red, con su procedencia.</p>
-        </div>
+      <div className="flex justify-end">
         {redes.length > 1 && (
           <Select value={redActiva} onValueChange={setRedId}>
             <SelectTrigger className="w-full rounded-2xl sm:w-56">
@@ -80,11 +76,7 @@ function BusquedaPersonas() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Personas</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">Identidad, censo, familia y llegada.</p>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={() => setMostrarCrear(true)} className="gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90">
           <Plus className="h-4 w-4" /> Nueva persona
         </Button>
@@ -104,7 +96,7 @@ function BusquedaPersonas() {
       {isLoading ? (
         <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[68px] w-full rounded-2xl" />)}</div>
       ) : resultados.length === 0 ? (
-        <div className="glass-card flex flex-col items-center gap-3 rounded-3xl py-16">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-card py-16 shadow-sm">
           <UserRound className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-[13px] text-muted-foreground">{texto.trim() ? 'Sin resultados.' : 'No hay personas registradas.'}</p>
         </div>
@@ -112,7 +104,7 @@ function BusquedaPersonas() {
         <div className={`flex flex-col gap-1.5 transition-opacity duration-200 ${isFetching ? 'opacity-50' : ''}`}>
           {resultados.map((p) => (
             <button key={p.id} type="button"
-              className="glass-card group flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left transition-all hover:bg-muted/60 active:scale-[0.998]"
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition-all hover:bg-muted/60 active:scale-[0.998]"
               onClick={() => setPersonaSeleccionadaId(p.id)}>
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">

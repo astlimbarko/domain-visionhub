@@ -4,6 +4,8 @@ import { Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { MORADO } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useAgregarParticipante,
@@ -47,15 +49,20 @@ export function Ministerios() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="glass-card-elevated rounded-2xl p-6">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Ministerios</h2>
-          <Button size="sm" className="gap-1.5 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" onClick={() => setMostrarCrear(true)}>
-            <Plus className="h-4 w-4" />
-            Ministerio
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Users}
+          color={MORADO}
+          titulo="Ministerios"
+          descripcion="Equipos y grupos de servicio de la iglesia"
+          accion={
+            <Button size="sm" className="gap-1.5 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" onClick={() => setMostrarCrear(true)}>
+              <Plus className="h-4 w-4" />
+              Ministerio
+            </Button>
+          }
+        />
+        <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading && <Skeleton className="h-24 w-full rounded-2xl sm:col-span-2 lg:col-span-3" />}
           {!isLoading && ministerios.length === 0 && (
             <p className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Todavía no hay ministerios.</p>
@@ -84,7 +91,7 @@ export function Ministerios() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       <CrearMinisterioDialog
         open={mostrarCrear}
