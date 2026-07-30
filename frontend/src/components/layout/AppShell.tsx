@@ -25,7 +25,8 @@ import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
-import { obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
+import { NAV_ITEMS_AFIRMACION, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
 
@@ -120,7 +121,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
-  const navItems = rolUI ? obtenerNavItems(rolUI) : [];
+  const esLiderAfirmacion = useEsLiderAfirmacion();
+  const navItems = [
+    ...(rolUI ? obtenerNavItems(rolUI) : []),
+    ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+  ];
 
   // Sombreros para Dashboard multi-vista
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
@@ -130,7 +135,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
   for (const c of roles?.cdp_sublider ?? []) sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
 
-  async function handleLogout() { await cerrarSesion(); logout(); queryClient.clear(); }
+  async function handleLogout() {
+    await cerrarSesion();
+    logout();
+    // El QueryClient es un singleton que vive toda la pestaña -- sin esto,
+    // el cache de datos cacheados por iglesiaId (no por usuario) sobrevive
+    // al logout, y la siguiente cuenta que inicie sesion en la MISMA
+    // iglesia ve por un instante los datos de la cuenta anterior (roles,
+    // titulo, etc.) hasta que el refetch en segundo plano los corrige.
+    // Bug real reportado por el owner, 2026-07-26.
+    queryClient.clear();
+  }
 
   function handleCambiarRol() {
     setRolActivo(null);

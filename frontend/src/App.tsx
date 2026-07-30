@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -15,6 +16,8 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Cuenta } from '@/pages/Cuenta';
 import { PrivateLayout } from '@/components/layout/PrivateLayout';
 import { RequiereRol } from '@/components/layout/RequiereRol';
+import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
+import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 
 // Módulos menos visitados que Dashboard/Cuenta: se cargan bajo demanda para
 // que el bundle inicial no incluya código de páginas que la mayoría de
@@ -31,6 +34,9 @@ const Evangelismo = lazy(() => import('@/pages/Evangelismo').then((m) => ({ defa
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
+const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
+const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
+const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
 
 function CargandoPagina() {
   return (
@@ -38,6 +44,20 @@ function CargandoPagina() {
       <Skeleton className="h-10 w-48 rounded-xl" />
       <Skeleton className="h-64 w-full rounded-2xl" />
     </div>
+  );
+}
+
+// Afirmación no se protege por RolUI (RequiereRol) sino por una capacidad
+// ortogonal (departamento_cargo) -- necesita su propio hook, de ahi el
+// componente aparte en vez de un elemento JSX inline como el resto. Tres
+// rutas hermanas (Dashboard/Formulario/URLs), cada una con su propio item
+// de nav (ver NAV_ITEMS_AFIRMACION) -- no una sola pagina con sub-nav interno.
+function RutaAfirmacion({ children }: { children: ReactNode }) {
+  const esLiderAfirmacion = useEsLiderAfirmacion();
+  return (
+    <Suspense fallback={<CargandoPagina />}>
+      <RequiereCapacidad permitido={esLiderAfirmacion}>{children}</RequiereCapacidad>
+    </Suspense>
   );
 }
 
@@ -140,6 +160,9 @@ function App() {
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.ADMINISTRACION)}><Administracion /></RequiereRol>
               </Suspense>
             } />
+            <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_FORMULARIO} element={<RutaAfirmacion><AfirmacionFormulario /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_URLS} element={<RutaAfirmacion><AfirmacionUrls /></RutaAfirmacion>} />
           </Route>
 
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />

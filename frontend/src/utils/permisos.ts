@@ -17,6 +17,8 @@ import {
   Wallet,
   Settings,
   ShieldCheck,
+  UserPlus,
+  Link2,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
@@ -24,7 +26,11 @@ import type { LucideIcon } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
-export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP';
+// SIN_ROL: la persona no tiene ningún rol_sistema_enum vigente (ej. un
+// Líder de Afirmación puro, sin cargo de Casas de Paz). No debe heredar
+// nav ni rutas de ningún otro rol -- ver NAV_ITEM_AFIRMACION para cómo se
+// agrega su propio acceso, ortogonal a este tipo.
+export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'SIN_ROL';
 
 export interface NavItem {
   icon: LucideIcon;
@@ -102,6 +108,9 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   SUPERVISOR: RUTAS_SUPERVISOR,
   PASTOR: RUTAS_PASTOR,
   SUPER_ADMIN: RUTAS_SUPER_ADMIN,
+  // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
+  // una capacidad ortogonal (Afirmación) o /cuenta.
+  SIN_ROL: [],
 };
 
 // ─── Catálogo completo de nav items ──────────────────────────────────────────
@@ -125,6 +134,19 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 
+// ─── Ítems de nav por capacidad (ortogonal al RolUI) ──────────────────────────
+// Afirmación no depende de rol_sistema_enum: se muestran segun
+// useEsLiderAfirmacion(), no segun RUTAS_POR_ROL. Se agregan aparte del
+// catalogo/obtenerNavItems para no romper la union RolUI existente.
+// Tres items separados en el nav principal (no una sola entrada con
+// sub-nav interno) -- decision del owner, 2026-07-26.
+
+export const NAV_ITEMS_AFIRMACION: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
+  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
+];
+
 // ─── Funciones públicas ──────────────────────────────────────────────────────
 
 /**
@@ -140,11 +162,11 @@ const CATALOGO_NAV: NavItem[] = [
  *
  * `null` cuando ninguna condición aplica -- ej. cargos de Líder/Encargado de
  * Departamento (`LIDER_DEPARTAMENTO`, `ENCARGADO_DEPARTAMENTOS_RED`/`_VISION`
- * en el catálogo de `cargo`), que existen en la base pero `fn_mis_roles_dashboard`
- * todavía no los expone y el frontend no tiene una vista para ellos. Antes esto
- * caía por defecto en `LIDER_CDP`, mandando a esas personas al panel de una
- * Casa de Paz ajena. `useRolUI` y `Dashboard` ya saben mostrar el estado vacío
- * correspondiente ("Todavía no tenés ningún panel asignado") en vez de eso.
+ * en el catálogo de `cargo`), o un Líder de Afirmación puro sin ningún cargo
+ * de Casas de Paz. Antes esto caía por defecto en `LIDER_CDP`, mandando a esas
+ * personas al panel de una Casa de Paz ajena (bug real, corregido 2026-07-26).
+ * `useRolUI` y `Dashboard` ya saben mostrar el estado vacío correspondiente
+ * ("Todavía no tenés ningún panel asignado") o redirigir a Afirmación.
  */
 export function determinarRolUI(
   esSuperAdmin: boolean,

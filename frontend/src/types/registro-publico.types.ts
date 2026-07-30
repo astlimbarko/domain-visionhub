@@ -11,6 +11,8 @@ export type ResolverUrlRegistroResponse =
       admite_registro: true;
       lider_nombre: string;
       casa_de_paz_nombre: string;
+      red_nombre: string | null;
+      iglesia_nombre: string;
       campos_obligatorios: CamposObligatorios;
     };
 

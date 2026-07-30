@@ -23,3 +23,5 @@
 !/supabase/**
 /supabase/.temp
 !/docker-compose.yml
+# Secretos: credenciales SMTP en texto plano (ya cubierto por /*, explicito por seguridad)
+/smtp.txt

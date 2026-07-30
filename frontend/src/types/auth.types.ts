@@ -13,6 +13,8 @@ export interface IglesiaAccesible {
   ciudad: string;
   es_operativo: boolean;
   es_pastor: boolean;
+  /** Capacidad ortogonal al rol: asignacion vigente en departamento_cargo (LIDER_DEPARTAMENTO, AFIRMACION). */
+  es_lider_afirmacion: boolean;
 }
 
 export interface SesionUsuario {
