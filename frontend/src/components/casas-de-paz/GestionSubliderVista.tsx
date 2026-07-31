@@ -379,6 +379,17 @@ export function GestionSubliderVista() {
             <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
               <Link2 className="h-4 w-4 text-[var(--acc)]" /> Ubicación en Google Maps
             </p>
+            {direccion && (
+              <div className="overflow-hidden rounded-lg border border-border">
+                <iframe
+                  title="Mapa de la Casa de Paz"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(direccion)}&output=embed`}
+                  className="h-36 w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
             {domicilio?.url_gps ? (
               <>
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12px]">

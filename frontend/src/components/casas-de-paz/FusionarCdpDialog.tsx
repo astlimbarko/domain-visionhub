@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { GitMerge, Home, KeyRound, MessageSquareText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
 
@@ -71,14 +74,15 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Fusionar Casas de Paz</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="sr-only">Fusionar Casas de Paz</DialogTitle>
+          <SeccionIconHeader icon={GitMerge} color={MORADO} titulo="Fusionar Casas de Paz" />
+          <DialogDescription className="pt-1">
             Las que se marquen como "a absorber" se desactivan y sus miembros pasan a la que quede como líder.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>Queda como líder</Label>
+            <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Queda como líder</Label>
             <Select value={destinoId} onValueChange={setDestinoId}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Elegí la Casa de Paz que queda" />
@@ -94,13 +98,22 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Se absorben (elegí una o más)</Label>
-            <div className="flex flex-col gap-1 rounded-lg border border-border p-2">
+            <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Se absorben (elegí una o más)</Label>
+            <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-muted/20 p-2">
               {activas
                 .filter((c) => c.id !== destinoId)
                 .map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-background/80"
+                  >
                     <Checkbox checked={origenIds.has(c.id)} onCheckedChange={(v) => toggleOrigen(c.id, v === true)} />
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 14%, transparent)` }}
+                    >
+                      <Home className="h-3.5 w-3.5" style={{ color: MORADO }} />
+                    </span>
                     {c.etiqueta}
                   </label>
                 ))}
@@ -108,14 +121,18 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="motivo_fusion_cdp">Motivo (obligatorio)</Label>
+          <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3.5">
+            <Label htmlFor="motivo_fusion_cdp" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <MessageSquareText className="h-3.5 w-3.5" /> Motivo (obligatorio)
+            </Label>
             <Textarea id="motivo_fusion_cdp" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se fusionan" />
           </div>
 
           {esSuperAdmin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pin_fusion_cdp">Tu PIN de Super Admin</Label>
+            <div className="flex flex-col gap-1.5 rounded-xl border p-3" style={{ borderColor: `color-mix(in oklab, ${AMBAR} 30%, transparent)`, backgroundColor: `color-mix(in oklab, ${AMBAR} 6%, transparent)` }}>
+              <Label htmlFor="pin_fusion_cdp" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase" style={{ color: AMBAR }}>
+                <KeyRound className="h-3.5 w-3.5" /> Tu PIN de Super Admin
+              </Label>
               <Input
                 id="pin_fusion_cdp"
                 type="password"
@@ -129,7 +146,8 @@ export function FusionarCdpDialog({ open, onOpenChange, cdps, procesando, onFusi
           )}
         </div>
         <DialogFooter>
-          <Button type="button" onClick={handleFusionar} disabled={procesando || !puedeFusionar}>
+          <Button type="button" onClick={handleFusionar} disabled={procesando || !puedeFusionar} className="gap-1.5">
+            <GitMerge className="h-4 w-4" />
             {procesando ? 'Fusionando...' : 'Fusionar'}
           </Button>
         </DialogFooter>

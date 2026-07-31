@@ -3,12 +3,14 @@ import { HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AMBAR } from '@/components/dashboard/DashboardUI';
 import { aISO, esHoy, grillaMesRecortada, nombresDias } from '@/utils/calendario-fechas';
-import type { Evangelizado } from '@/types/evangelismo.types';
 
 interface Props {
   anio: number;
   mes: number;
-  evangelizados: Evangelizado[];
+  // Solo se lee `.fecha` -- estructural a propósito, así lo puede reusar
+  // tanto Evangelismo.tsx (Evangelizado[], por CdP) como EvangelismoRed.tsx
+  // (EvangelizadoRed[], agregado de toda la Red).
+  evangelizados: { fecha: string }[];
   diaSeleccionado: string | null;
   onSeleccionarDia: (fechaISO: string) => void;
 }
