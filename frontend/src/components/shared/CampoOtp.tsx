@@ -11,7 +11,7 @@ interface Props {
   onChange: (value: string) => void;
 }
 
-const COOLDOWN_MS = 30_000;
+const COOLDOWN_MS = 60_000;
 
 function formatearMmSs(segundos: number): string {
   const m = Math.floor(segundos / 60);

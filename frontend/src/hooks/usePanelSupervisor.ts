@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  asignarCargoDepartamento,
   cambiarMonedaDefecto,
+  obtenerCargoVigenteDepartamento,
   obtenerMonedasActivas,
   obtenerPanelConfiguracion,
+  quitarCargoDepartamento,
   renombrarIglesia,
   setConfiguracion,
   toggleDepartamento,
@@ -52,6 +55,32 @@ export function useCambiarMonedaDefecto(iglesiaId: string | undefined) {
     mutationFn: ({ monedaId, pin }: { monedaId: string; pin?: string }) =>
       cambiarMonedaDefecto(iglesiaId as string, monedaId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY(iglesiaId) }),
+  });
+}
+
+export function useCargoVigenteDepartamento(departamentoId: string | undefined) {
+  return useQuery({
+    queryKey: ['panel-supervisor-cargo-depto', departamentoId],
+    queryFn: () => obtenerCargoVigenteDepartamento(departamentoId as string),
+    enabled: !!departamentoId,
+  });
+}
+
+export function useAsignarCargoDepartamento(iglesiaId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ departamentoId, personaId, cargoId }: { departamentoId: string; personaId: string; cargoId: string }) =>
+      asignarCargoDepartamento(iglesiaId as string, departamentoId, personaId, cargoId),
+    onSuccess: (_data, { departamentoId }) =>
+      queryClient.invalidateQueries({ queryKey: ['panel-supervisor-cargo-depto', departamentoId] }),
+  });
+}
+
+export function useQuitarCargoDepartamento(departamentoId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: quitarCargoDepartamento,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['panel-supervisor-cargo-depto', departamentoId] }),
   });
 }
 
