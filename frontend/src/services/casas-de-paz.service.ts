@@ -258,7 +258,22 @@ export async function asignarCargoRed(
   personaId: string,
   codigo: CargoRedCodigo,
   cargoId: string
-) {
+): Promise<{ pendiente: boolean }> {
+  // Cambiar de Líder de Red pasa por el RPC server-side: si lo pide el
+  // Supervisor y la Red ya tiene Líder vigente, queda pendiente de su
+  // autorización en vez de aplicarse al instante (ver 58_solicitudes_estructura.sql).
+  // El resto de los cargos (encargados, etc.) sigue el camino directo de siempre.
+  if (codigo === 'LIDER_RED') {
+    const { data, error } = await supabase.rpc('fn_asignar_cargo_red', {
+      p_red_id: redId,
+      p_persona_id: personaId,
+      p_codigo: codigo,
+      p_cargo_id: cargoId,
+    });
+    if (error) throw error;
+    return { pendiente: data === null };
+  }
+
   if (CARGOS_EXCLUSIVOS_RED.includes(codigo)) {
     const vigentes = await obtenerCargoVigenteRed(redId, codigo);
     for (const v of vigentes) {
@@ -274,6 +289,7 @@ export async function asignarCargoRed(
     fecha_inicio: aISO(new Date()),
   });
   if (error) throw error;
+  return { pendiente: false };
 }
 
 export async function asignarCargoCdp(
@@ -282,7 +298,19 @@ export async function asignarCargoCdp(
   personaId: string,
   codigo: CargoCdpCodigo,
   cargoId: string
-) {
+): Promise<{ pendiente: boolean }> {
+  // Cambiar de Líder de CdP -- mismo gate que asignarCargoRed, ver ahí.
+  if (codigo === 'LIDER_CDP') {
+    const { data, error } = await supabase.rpc('fn_asignar_cargo_cdp', {
+      p_cdp_id: cdpId,
+      p_persona_id: personaId,
+      p_codigo: codigo,
+      p_cargo_id: cargoId,
+    });
+    if (error) throw error;
+    return { pendiente: data === null };
+  }
+
   if (CARGOS_EXCLUSIVOS_CDP.includes(codigo)) {
     const vigentes = await obtenerCargoVigenteCdp(cdpId, codigo);
     for (const v of vigentes) {
@@ -298,6 +326,7 @@ export async function asignarCargoCdp(
     fecha_inicio: aISO(new Date()),
   });
   if (error) throw error;
+  return { pendiente: false };
 }
 
 export async function quitarCargoRed(cargoAsignacionId: string) {

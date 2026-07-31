@@ -7,7 +7,9 @@ export async function listarFusionesCdp(iglesiaId: string): Promise<FusionCdp[]>
   return data ?? [];
 }
 
-export async function fusionarCdp(origenId: string, destinoId: string, motivo: string, pin?: string): Promise<string> {
+// `null` significa "quedó pendiente de autorización del Líder de Red" (el
+// Supervisor la pidió pero no se aplicó todavía -- ver 58_solicitudes_estructura.sql).
+export async function fusionarCdp(origenId: string, destinoId: string, motivo: string, pin?: string): Promise<string | null> {
   const { data, error } = await supabase.rpc('fn_fusionar_cdp', {
     p_origen_id: origenId,
     p_destino_id: destinoId,
@@ -33,7 +35,8 @@ export async function listarFusionesRed(iglesiaId: string): Promise<FusionRed[]>
   return data ?? [];
 }
 
-export async function fusionarRed(origenId: string, destinoId: string, motivo: string, pin?: string): Promise<string> {
+// `null` significa "quedó pendiente de autorización del Líder de Red" (idem fusionarCdp).
+export async function fusionarRed(origenId: string, destinoId: string, motivo: string, pin?: string): Promise<string | null> {
   const { data, error } = await supabase.rpc('fn_fusionar_red', {
     p_origen_id: origenId,
     p_destino_id: destinoId,
