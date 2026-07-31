@@ -11,7 +11,6 @@ import {
   TrendingUp,
   UserPlus,
   Users,
-  Wallet,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +22,6 @@ import {
   useAsistenciaPromedioPeriodo,
   useDashboardLiderCdp,
   useDashboardSubliderCdp,
-  useIngresosCdpPeriodo,
   useTendenciaAsistencia,
 } from '@/hooks/useDashboard';
 import { useTasaEvangelismo } from '@/hooks/useEvangelismo';
@@ -90,14 +88,9 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
     setCantidad(cantidadPorDefecto(periodo));
   }, [periodo]);
 
-  // Si el sublíder no tiene permiso para ver ofrendas, el backend ya quita `kpi.ingresos_mes`
-  // del payload: no hay que pedirle lo mismo por otro lado.
-  const ingresosPermitidos = data?.kpi?.ingresos_mes !== undefined;
-
   const { data: tasaEvangelismo } = useTasaEvangelismo(casaDePazId, desde, hasta);
   const { data: asistenciaPromedioPeriodo } = useAsistenciaPromedioPeriodo(casaDePazId, desde, hasta);
   const { data: tendenciaAsistencia = [] } = useTendenciaAsistencia(casaDePazId, granularidad, cantidad, rango ?? undefined);
-  const { data: ingresosPeriodo } = useIngresosCdpPeriodo(casaDePazId, desde, hasta, ingresosPermitidos);
 
   if (isLoading || !data) {
     return (
@@ -119,17 +112,6 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const amarillos = (miembros ?? []).filter((m) => m.semaforo === 'AMARILLO').length;
   const rojos = (miembros ?? []).filter((m) => m.semaforo === 'ROJO').length;
   const asistenciaPromedio = asistenciaPromedioPeriodo ?? kpi.asistencia_ultima.valor ?? 0;
-
-  const ingresos = ingresosPermitidos ? (ingresosPeriodo ?? kpi.ingresos_mes ?? []) : [];
-  const ofrendas = ingresos.filter((i) => i.tipo_codigo === 'OFRENDA');
-  const diezmos = ingresos.filter((i) => i.tipo_codigo === 'DIEZMO');
-  const monedasDistintas = new Set(ingresos.map((i) => i.moneda_codigo));
-  const totalPorMoneda = new Map<string, { simbolo: string; total: number }>();
-  for (const i of ingresos) {
-    const actual = totalPorMoneda.get(i.moneda_codigo) ?? { simbolo: i.moneda_simbolo, total: 0 };
-    actual.total += Number(i.total);
-    totalPorMoneda.set(i.moneda_codigo, actual);
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -194,45 +176,6 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
           {kpi.asistencia_ultima.valor ?? '—'}
         </KpiMosaico>
       </div>
-
-      {/* ── Resumen financiero ────────────────────────────────────────────────── */}
-      {ingresos.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={Wallet} color={VERDE} titulo="Resumen financiero" descripcion={`Total de ${etiquetaPeriodo}`} />
-          <div className="grid gap-3 p-5 sm:grid-cols-3">
-            <div className="rounded-xl border border-border p-4">
-              <p className="text-[11px] font-medium text-muted-foreground">Ofrendas</p>
-              {ofrendas.length === 0 ? (
-                <p className="text-xl font-bold tabular-nums text-foreground">—</p>
-              ) : (
-                ofrendas.map((o, i) => (
-                  <p key={i} className="text-xl font-bold tabular-nums text-foreground">{o.moneda_simbolo} {Number(o.total).toFixed(2)}</p>
-                ))
-              )}
-            </div>
-            <div className="rounded-xl border border-border p-4">
-              <p className="text-[11px] font-medium text-muted-foreground">Diezmos</p>
-              {diezmos.length === 0 ? (
-                <p className="text-xl font-bold tabular-nums text-foreground">—</p>
-              ) : (
-                diezmos.map((d, i) => (
-                  <p key={i} className="text-xl font-bold tabular-nums text-foreground">{d.moneda_simbolo} {Number(d.total).toFixed(2)}</p>
-                ))
-              )}
-            </div>
-            <div className="rounded-xl border border-border p-4" style={{ background: `color-mix(in oklab, ${VERDE} 7%, transparent)` }}>
-              <p className="text-[11px] font-medium text-muted-foreground">Total</p>
-              {monedasDistintas.size === 0 ? (
-                <p className="text-xl font-bold tabular-nums" style={{ color: VERDE }}>—</p>
-              ) : (
-                Array.from(totalPorMoneda.values()).map((t, i) => (
-                  <p key={i} className="text-xl font-bold tabular-nums" style={{ color: VERDE }}>{t.simbolo} {t.total.toFixed(2)}</p>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Asistencia y composición + Índice de fidelidad ────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
