@@ -14,7 +14,9 @@ export interface UsuarioListado {
 export interface IglesiaAdmin {
   id: string;
   nombre: string;
+  sufijo: string;
   ciudad: string;
+  correo: string | null;
   activo: boolean;
 }
 

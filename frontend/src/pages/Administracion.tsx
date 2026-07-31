@@ -1,15 +1,37 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Building2, Database, IdCard, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
+import { Building2, Database, IdCard, MoreVertical, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import { AZUL, AMBAR, MARINO, TEAL, KpiMosaico } from '@/components/dashboard/DashboardUI';
-import { useIglesiasTodas, useUsuarios, useCrearIglesia, useInvitarUsuario, useDashboardSuperAdmin } from '@/hooks/useAdmin';
+import {
+  useIglesiasTodas,
+  useUsuarios,
+  useCrearIglesia,
+  useActualizarIglesia,
+  useToggleIglesiaActiva,
+  useEliminarIglesia,
+  useInvitarUsuario,
+  useAsignarUsuarioExistente,
+  useActualizarUsuarioRol,
+  useToggleUsuarioRol,
+  useDashboardSuperAdmin,
+} from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
+import { EditarIglesiaDialog } from '@/components/admin/EditarIglesiaDialog';
 import { InvitarUsuarioDialog } from '@/components/admin/InvitarUsuarioDialog';
+import { EditarUsuarioDialog } from '@/components/admin/EditarUsuarioDialog';
 import type { RolSistema } from '@/types/auth.types';
+import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
 
 const NOMBRE_ROL_CORTO: Record<RolSistema, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -29,25 +51,83 @@ const NOMBRE_ROL: Record<RolSistema, string> = {
   SUBLIDER_CDP: 'Sublíder de Casa de Paz',
 };
 
+// Mismo limite que InvitarUsuarioDialog (owner, 2026-07-19 -- "acotar Super
+// Admin"): Lider de Red/CdP/Sublider se gestionan desde Casas de Paz, nunca
+// desde aca. Se listan igual (para que el panorama sea completo) pero sin
+// acciones de edicion/remocion -- fn_actualizar_usuario_rol/fn_toggle_usuario_rol
+// tambien lo rechazan del lado del backend.
+const ROLES_GESTIONABLES_DESDE_ADMIN: RolSistema[] = ['SUPER_ADMIN', 'PASTOR', 'SUPERVISOR_VISION_ACCION'];
+
+interface ConfirmarIglesia {
+  iglesia: IglesiaAdmin;
+  accion: 'suspender' | 'reactivar' | 'eliminar';
+}
+
 export function Administracion() {
   const [mostrarCrearIglesia, setMostrarCrearIglesia] = useState(false);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
+  const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
+  const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
+  const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
+  const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
 
   const { data: iglesias = [], isLoading: cargandoIglesias } = useIglesiasTodas();
   const { data: usuarios = [], isLoading: cargandoUsuarios } = useUsuarios(undefined);
   const { data: panorama, isLoading: cargandoPanorama } = useDashboardSuperAdmin();
   const crearIglesia = useCrearIglesia();
+  const actualizarIglesia = useActualizarIglesia();
+  const toggleIglesiaActiva = useToggleIglesiaActiva();
+  const eliminarIglesia = useEliminarIglesia();
   const invitarUsuario = useInvitarUsuario();
+  const asignarUsuarioExistente = useAsignarUsuarioExistente();
+  const actualizarUsuarioRol = useActualizarUsuarioRol();
+  const toggleUsuarioRol = useToggleUsuarioRol();
 
   function manejarError(e: unknown, generico: string) {
     const error = e as { message?: string } | null;
     const mensaje = typeof error?.message === 'string' ? error.message : '';
     if (mensaje.includes('PIN_INCORRECTO')) {
-      toast.error('El PIN es incorrecto');
+      toast.error('El código es incorrecto o expiró');
     } else if (mensaje.includes('email_exists') || mensaje.includes('Ya existe una cuenta')) {
       toast.error(mensaje);
+    } else if (mensaje.includes('ULTIMO_SUPER_ADMIN')) {
+      toast.error('No se puede quitar al único Super Admin del sistema');
+    } else if (mensaje.includes('ROL_AUTOMODIFICACION')) {
+      toast.error('No podés modificar tu propio cargo');
+    } else if (mensaje.includes('IGLESIA_CON_REDES_ACTIVAS') || mensaje.includes('IGLESIA_CON_HIJAS')) {
+      toast.error('Esta iglesia tiene estructura vigente; reasignala antes de eliminar');
+    } else if (mensaje.includes('USUARIO_FUERA_DE_ALCANCE')) {
+      toast.error('Los cargos de Red y Casa de Paz se gestionan desde Casas de Paz');
     } else {
       toast.error(mensaje || generico);
+    }
+  }
+
+  function tituloConfirmarIglesia(c: ConfirmarIglesia) {
+    if (c.accion === 'eliminar') return `Eliminar ${c.iglesia.nombre}`;
+    if (c.accion === 'suspender') return `Suspender ${c.iglesia.nombre}`;
+    return `Reactivar ${c.iglesia.nombre}`;
+  }
+
+  function confirmarAccionIglesia(_motivo: string, pin?: string) {
+    if (!confirmarIglesia) return;
+    const { iglesia, accion } = confirmarIglesia;
+    if (accion === 'eliminar') {
+      eliminarIglesia.mutate(
+        { iglesiaId: iglesia.id, pin },
+        {
+          onSuccess: () => { toast.success('Iglesia eliminada'); setConfirmarIglesia(null); },
+          onError: (e) => manejarError(e, 'No se pudo eliminar la iglesia'),
+        }
+      );
+    } else {
+      toggleIglesiaActiva.mutate(
+        { iglesiaId: iglesia.id, activa: accion === 'reactivar', pin },
+        {
+          onSuccess: () => { toast.success(accion === 'reactivar' ? 'Iglesia reactivada' : 'Iglesia suspendida'); setConfirmarIglesia(null); },
+          onError: (e) => manejarError(e, 'No se pudo actualizar la iglesia'),
+        }
+      );
     }
   }
 
@@ -179,7 +259,28 @@ export function Administracion() {
                   <p className="truncate font-medium">{i.nombre}</p>
                   <p className="truncate text-sm text-muted-foreground">{i.ciudad}</p>
                 </div>
-                {!i.activo && <Badge variant="outline" className="shrink-0">Inactiva</Badge>}
+                <div className="flex shrink-0 items-center gap-2">
+                  {!i.activo && <Badge variant="outline">Inactiva</Badge>}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-sm" aria-label="Acciones">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setIglesiaEditar(i)}>Editar</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })}>
+                        {i.activo ? 'Suspender' : 'Reactivar'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => setConfirmarIglesia({ iglesia: i, accion: 'eliminar' })}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             ))}
           </div>
@@ -194,7 +295,7 @@ export function Administracion() {
             accion={
               <Button size="sm" className="gap-1.5" onClick={() => setMostrarInvitar(true)}>
                 <Plus className="h-4 w-4" />
-                Invitar
+                Agregar
               </Button>
             }
           />
@@ -204,15 +305,32 @@ export function Administracion() {
               <p className="text-sm text-muted-foreground">Todavía no hay usuarios.</p>
             )}
             {usuarios.map((u) => (
-              <div key={u.usuario_rol_id} className="flex flex-col gap-0.5 rounded-xl border border-border px-4 py-3">
-                <p className="font-medium">{u.correo}</p>
-                <p className="text-sm text-muted-foreground">
-                  {NOMBRE_ROL[u.rol]}
-                  {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
-                </p>
+              <div key={u.usuario_rol_id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{u.correo}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {NOMBRE_ROL[u.rol]}
+                    {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
+                  </p>
+                </div>
+                {ROLES_GESTIONABLES_DESDE_ADMIN.includes(u.rol) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label="Acciones">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setUsuarioEditar(u)}>Editar cargo</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:text-destructive">
+                        Remover
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             ))}
           </div>
@@ -237,11 +355,46 @@ export function Administracion() {
         }
       />
 
+      <EditarIglesiaDialog
+        open={!!iglesiaEditar}
+        onOpenChange={(abierto) => !abierto && setIglesiaEditar(null)}
+        iglesia={iglesiaEditar}
+        guardando={actualizarIglesia.isPending}
+        onGuardar={(sufijo, ciudad, correo, pin) => {
+          if (!iglesiaEditar) return;
+          actualizarIglesia.mutate(
+            { iglesiaId: iglesiaEditar.id, sufijo, ciudad, correo, pin },
+            {
+              onSuccess: () => { toast.success('Iglesia actualizada'); setIglesiaEditar(null); },
+              onError: (e) => manejarError(e, 'No se pudo actualizar la iglesia'),
+            }
+          );
+        }}
+      />
+
+      {confirmarIglesia && (
+        <ConfirmarCambioDialog
+          open={!!confirmarIglesia}
+          onOpenChange={(abierto) => !abierto && setConfirmarIglesia(null)}
+          titulo={tituloConfirmarIglesia(confirmarIglesia)}
+          descripcion={
+            confirmarIglesia.accion === 'eliminar'
+              ? 'Deja de contarse en la operación diaria; el historial se conserva.'
+              : undefined
+          }
+          requiereMotivo={confirmarIglesia.accion === 'eliminar'}
+          procesando={eliminarIglesia.isPending || toggleIglesiaActiva.isPending}
+          onConfirmar={confirmarAccionIglesia}
+        />
+      )}
+
       <InvitarUsuarioDialog
         open={mostrarInvitar}
         onOpenChange={setMostrarInvitar}
         iglesias={iglesias}
+        usuariosExistentes={usuarios}
         invitando={invitarUsuario.isPending}
+        asignando={asignarUsuarioExistente.isPending}
         onInvitar={(correo, rol, iglesiaId, pin) =>
           invitarUsuario.mutate(
             { correo, rol, iglesiaId, pin },
@@ -254,7 +407,57 @@ export function Administracion() {
             }
           )
         }
+        onAsignarExistente={(usuarioId, rol, iglesiaId, pin) =>
+          asignarUsuarioExistente.mutate(
+            { usuarioId, rol, iglesiaId, pin },
+            {
+              onSuccess: () => {
+                toast.success('Cargo asignado');
+                setMostrarInvitar(false);
+              },
+              onError: (e) => manejarError(e, 'No se pudo asignar el cargo'),
+            }
+          )
+        }
       />
+
+      <EditarUsuarioDialog
+        open={!!usuarioEditar}
+        onOpenChange={(abierto) => !abierto && setUsuarioEditar(null)}
+        usuario={usuarioEditar}
+        iglesias={iglesias}
+        guardando={actualizarUsuarioRol.isPending}
+        onGuardar={(rol, iglesiaId, pin) => {
+          if (!usuarioEditar) return;
+          actualizarUsuarioRol.mutate(
+            { usuarioRolId: usuarioEditar.usuario_rol_id, rol, iglesiaId, pin },
+            {
+              onSuccess: () => { toast.success('Cargo actualizado'); setUsuarioEditar(null); },
+              onError: (e) => manejarError(e, 'No se pudo actualizar el cargo'),
+            }
+          );
+        }}
+      />
+
+      {usuarioRemover && (
+        <ConfirmarCambioDialog
+          open={!!usuarioRemover}
+          onOpenChange={(abierto) => !abierto && setUsuarioRemover(null)}
+          titulo={`Remover a ${usuarioRemover.correo}`}
+          descripcion="Pierde acceso al sistema con este cargo; el historial se conserva."
+          requiereMotivo
+          procesando={toggleUsuarioRol.isPending}
+          onConfirmar={(_motivo, pin) =>
+            toggleUsuarioRol.mutate(
+              { usuarioRolId: usuarioRemover.usuario_rol_id, activo: false, pin },
+              {
+                onSuccess: () => { toast.success('Usuario removido'); setUsuarioRemover(null); },
+                onError: (e) => manejarError(e, 'No se pudo remover al usuario'),
+              }
+            )
+          }
+        />
+      )}
     </div>
   );
 }
