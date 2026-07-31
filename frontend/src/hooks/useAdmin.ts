@@ -72,7 +72,10 @@ export function useCrearIglesia() {
 export function useInvitarUsuario() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
+    // invitar-usuario ya asigna el cargo del lado del servidor, en la misma
+    // request (un solo codigo OTP) -- no hace falta un segundo llamado a
+    // crearUsuarioRol, que además fallaría al reusar un código ya consumido.
+    mutationFn: ({
       correo,
       rol,
       iglesiaId,
@@ -82,11 +85,7 @@ export function useInvitarUsuario() {
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
-    }) => {
-      const resultado = await invitarUsuario(correo, rol, iglesiaId, pin);
-      await crearUsuarioRol(resultado.id, rol, iglesiaId, pin);
-      return resultado;
-    },
+    }) => invitarUsuario(correo, rol, iglesiaId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }

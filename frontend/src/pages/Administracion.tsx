@@ -409,8 +409,12 @@ export function Administracion() {
           invitarUsuario.mutate(
             { correo, rol, iglesiaId, pin },
             {
-              onSuccess: () => {
-                toast.success(`Invitación enviada a ${correo}`);
+              onSuccess: (resultado) => {
+                if (resultado.error) {
+                  toast.warning(resultado.error);
+                } else {
+                  toast.success(`Invitación enviada a ${correo}`);
+                }
                 setMostrarInvitar(false);
               },
               onError: (e) => manejarError(e, 'No se pudo invitar al usuario'),

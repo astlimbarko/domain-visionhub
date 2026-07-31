@@ -34,6 +34,7 @@ export interface CuentaBusqueda {
 export interface ResultadoInvitacion {
   id: string;
   correo: string;
+  error?: string;
 }
 
 export interface DashboardSuperAdmin {

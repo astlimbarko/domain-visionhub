@@ -10,12 +10,14 @@ const ROLES_VALIDOS = [
   "SUBLIDER_CDP",
 ];
 
-// Lo unico que esta funcion hace es lo unico que EXIGE la service_role key:
-// crear la cuenta de auth.users y mandar el correo de invitacion. La regla
-// fina de "quien puede asignar que rol" no se duplica aca -- ya vive en
-// trg_validar_rol (05_funciones_acceso.sql) y se aplica cuando el frontend
-// inserta en usuario_rol despues de esta llamada. Aca solo hay un filtro
-// grueso (fn_puede_invitar) para que nadie gaste invitaciones sin motivo.
+// Crea la cuenta de auth.users (EXIGE service_role) y de una vez le asigna
+// el cargo -- las 2 escrituras en la MISMA request, con un solo codigo OTP.
+// Bug real encontrado 2026-08-01: antes el frontend hacia una segunda
+// llamada a fn_crear_usuario_rol con el mismo pin, pero fn_exigir_pin ya
+// lo habia consumido aca mismo -- esa segunda verificacion siempre fallaba
+// ("PIN_INCORRECTO"). fn_asignar_rol_recien_invitado (69_) no pide PIN
+// propio, solo revalida el permiso (misma regla que fn_crear_usuario_rol,
+// trg_validar_rol se aplica igual al insertar).
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
     let body: { correo?: string; rol?: string; iglesiaId?: string | null; redirectTo?: string; pin?: string };
@@ -66,6 +68,18 @@ export default {
         );
       }
       return Response.json({ error: error.message }, { status: 500 });
+    }
+
+    const { error: errorRol } = await ctx.supabase.rpc("fn_asignar_rol_recien_invitado", {
+      p_usuario_id: data.user.id,
+      p_rol: rol,
+      p_iglesia_id: iglesiaId,
+    });
+    if (errorRol) {
+      return Response.json(
+        { id: data.user.id, correo: data.user.email, error: `Se invito a ${correo}, pero no se pudo asignar el cargo: ${errorRol.message}` },
+        { status: 200 }
+      );
     }
 
     return Response.json({ id: data.user.id, correo: data.user.email });

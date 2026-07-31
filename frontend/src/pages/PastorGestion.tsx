@@ -59,8 +59,12 @@ export function PastorGestion() {
         toast.success('Supervisor asignado');
       } else {
         if (!correo.trim().includes('@')) return;
-        await invitarUsuario.mutateAsync({ correo: correo.trim().toLowerCase(), rol: 'SUPERVISOR_VISION_ACCION', iglesiaId: iglesiaActiva.id });
-        toast.success(`Invitación enviada a ${correo}`);
+        const resultado = await invitarUsuario.mutateAsync({ correo: correo.trim().toLowerCase(), rol: 'SUPERVISOR_VISION_ACCION', iglesiaId: iglesiaActiva.id });
+        if (resultado.error) {
+          toast.warning(resultado.error);
+        } else {
+          toast.success(`Invitación enviada a ${correo}`);
+        }
       }
       setCorreo('');
       setBusqueda('');
