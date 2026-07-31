@@ -23,6 +23,7 @@ export default {
       rol?: string;
       redId?: string | null;
       casaDePazId?: string | null;
+      departamentoId?: string | null;
       invitacionId?: string;
       redirectTo?: string;
     };
@@ -53,27 +54,31 @@ export default {
     }
 
     const correo = body.correo?.trim().toLowerCase();
-    const rol = body.rol;
+    const rol = body.rol ?? null;
     const redId = body.redId ?? null;
     const casaDePazId = body.casaDePazId ?? null;
+    const departamentoId = body.departamentoId ?? null;
 
     if (!correo || !correo.includes("@")) {
       return Response.json({ error: "Correo invalido" }, { status: 400 });
     }
-    if (!rol || !ROLES_VALIDOS.includes(rol)) {
-      return Response.json({ error: "Rol invalido" }, { status: 400 });
-    }
-    if (rol === "LIDER_RED" && !redId) {
-      return Response.json({ error: "Falta la red" }, { status: 400 });
-    }
-    if (rol !== "LIDER_RED" && !casaDePazId) {
-      return Response.json({ error: "Falta la casa de paz" }, { status: 400 });
+    if (!departamentoId) {
+      if (!rol || !ROLES_VALIDOS.includes(rol)) {
+        return Response.json({ error: "Rol invalido" }, { status: 400 });
+      }
+      if (rol === "LIDER_RED" && !redId) {
+        return Response.json({ error: "Falta la red" }, { status: 400 });
+      }
+      if (rol !== "LIDER_RED" && !casaDePazId) {
+        return Response.json({ error: "Falta la casa de paz" }, { status: 400 });
+      }
     }
 
     const { data: puedeInvitar, error: errorPermiso } = await ctx.supabase.rpc("fn_puede_invitar_lider", {
       p_rol: rol,
       p_red_id: redId,
       p_casa_de_paz_id: casaDePazId,
+      p_departamento_id: departamentoId,
     });
     if (errorPermiso || !puedeInvitar) {
       return Response.json({ error: "No tenes permiso para invitar aqui" }, { status: 403 });
@@ -102,6 +107,7 @@ export default {
       p_rol: rol,
       p_red_id: redId,
       p_casa_de_paz_id: casaDePazId,
+      p_departamento_id: departamentoId,
     });
     if (errorInvitar) {
       return Response.json({ error: errorInvitar.message }, { status: 500 });

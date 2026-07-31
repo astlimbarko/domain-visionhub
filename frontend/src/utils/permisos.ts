@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   UserPlus,
   Link2,
+  LayoutGrid,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
@@ -84,6 +85,7 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.EVANGELISMO,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
+  ROUTES.DEPARTAMENTOS,
 ];
 
 // Pastor = solo supervisión y consulta (Dashboard + Reportes globales).
@@ -131,6 +133,7 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: '#ff2d55' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
+  { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#af52de' },
   { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 

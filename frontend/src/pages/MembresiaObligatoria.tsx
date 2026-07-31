@@ -43,7 +43,7 @@ function construirEsquema(obligatorios: InvitacionPendiente['campos_obligatorios
   });
 }
 
-const NOMBRE_ROL: Record<InvitacionPendiente['rol'], string> = {
+const NOMBRE_ROL: Record<NonNullable<InvitacionPendiente['rol']>, string> = {
   LIDER_RED: 'Líder de Red',
   LIDER_CDP: 'Líder de Casa de Paz',
   SUBLIDER_CDP: 'Sublíder de Casa de Paz',
@@ -115,9 +115,17 @@ export function MembresiaObligatoria({ invitacion }: Props) {
         <CardHeader>
           <CardTitle>Completá tu membresía</CardTitle>
           <CardDescription>
-            Te invitaron como <strong>{NOMBRE_ROL[invitacion.rol]}</strong> de{' '}
-            <strong>{invitacion.destino}</strong> en {invitacion.iglesia_nombre}. Antes de ver tu panel necesitamos
-            estos datos.
+            {invitacion.rol ? (
+              <>
+                Te invitaron como <strong>{NOMBRE_ROL[invitacion.rol]}</strong> de{' '}
+                <strong>{invitacion.destino}</strong> en {invitacion.iglesia_nombre}.
+              </>
+            ) : (
+              <>
+                Te invitaron como <strong>Líder de {invitacion.destino}</strong> en {invitacion.iglesia_nombre}.
+              </>
+            )}{' '}
+            Antes de ver tu panel necesitamos estos datos.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -16,6 +16,7 @@ export const ROUTES = {
   EVANGELISMO: '/evangelismo',
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',
+  DEPARTAMENTOS: '/departamentos',
   CUENTA: '/cuenta',
   ADMINISTRACION: '/administracion',
   // Paneles minimos de 15-gestion-administrativa (Panel 3/4, 2026-07-31):

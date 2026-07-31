@@ -184,10 +184,11 @@ en el layout, no por página.
 ### Colores institucionales de Departamento
 
 Los 4 departamentos oficiales (Evangelismo/Afirmación/Discipulado/Envío en la
-BD) se muestran en la UI con **verbo** + color propio. Aún no existe columna
-`color` en la tabla `departamento` (llega con el Panel 3 de
-`15-gestion-administrativa/implementation-plan.md`) — cuando se implemente,
-usar esta paleta, consistente en toda pantalla que muestre departamentos:
+BD) se muestran en la UI con **verbo** + color propio. No hay columna `color`
+en la tabla `departamento` -- se optó por centralizar la paleta solo en el
+frontend (`frontend/src/utils/departamentos.ts`, `DEPARTAMENTO_META`), no en
+la BD, ya construida en la pantalla "Departamentos" (`pages/Departamentos.tsx`,
+2026-08-01, menú del Supervisor):
 
 | Código BD | Verbo (UI) | Color | Hex de referencia |
 |---|---|---|---|
@@ -196,9 +197,11 @@ usar esta paleta, consistente en toda pantalla que muestre departamentos:
 | `DISCIPULADO` | Discipular | Rojo | `#FF3B30` |
 | `ENVIO` | Enviar | Gris | `#8E8E93` |
 
-No hardcodear estos hex sueltos por archivo: cuando se construya la pantalla
-"Departamentos", centralizarlos en un único lugar (mapa `codigo -> {verbo,
-color}`), igual que `NOMBRE_ROL`/`NOMBRE_ROL_CORTO` en `Administracion.tsx`.
+No hardcodear estos hex sueltos por archivo: **usar siempre
+`DEPARTAMENTO_META`** en cualquier pantalla nueva que muestre departamentos,
+no duplicar el mapa. Hoy solo `AFIRMACION` tiene gestión funcional
+(`DEPARTAMENTO_FUNCIONAL` en el mismo archivo) -- los otros 3 ya existen en
+la BD pero muestran "Próximamente" hasta que se pida construirlos.
 
 ### Iglesia satélite (concepto visual, backend en Panel 4)
 

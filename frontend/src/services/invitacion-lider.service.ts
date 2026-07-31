@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
+import type { InvitacionDepartamento, InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
 
 async function extraerError(error: unknown): Promise<Error> {
   const contexto = (error as { context?: Response }).context;
@@ -12,9 +12,10 @@ async function extraerError(error: unknown): Promise<Error> {
 
 export async function invitarLider(
   correo: string,
-  rol: RolInvitable,
+  rol: RolInvitable | null,
   redId: string | null,
-  casaDePazId: string | null
+  casaDePazId: string | null,
+  departamentoId: string | null = null
 ): Promise<{ id: string; correo: string }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
@@ -23,11 +24,18 @@ export async function invitarLider(
       rol,
       redId,
       casaDePazId,
+      departamentoId,
       redirectTo: `${window.location.origin}/completar-cuenta`,
     },
   });
   if (error) throw await extraerError(error);
   return data;
+}
+
+export async function obtenerInvitacionesDepartamento(iglesiaId: string): Promise<InvitacionDepartamento[]> {
+  const { data, error } = await supabase.rpc('fn_listar_invitaciones_departamento', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function reenviarInvitacionLider(invitacionId: string): Promise<void> {

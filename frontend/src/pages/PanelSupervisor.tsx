@@ -17,21 +17,15 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AMBAR, AZUL, MARINO, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  useAsignarCargoDepartamento,
   useCambiarMonedaDefecto,
-  useCargoVigenteDepartamento,
   useMonedasActivas,
   usePanelConfiguracion,
-  useQuitarCargoDepartamento,
   useRenombrarIglesia,
   useSetConfiguracion,
   useToggleDepartamento,
 } from '@/hooks/usePanelSupervisor';
-import { useCargos } from '@/hooks/useCasasDePaz';
 import { ConfiguracionRow } from '@/components/panel-supervisor/ConfiguracionRow';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
-import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
-import type { DepartamentoItem } from '@/types/panel-supervisor.types';
 
 const NOMBRE_CATEGORIA: Record<string, string> = {
   CDP: 'Casa de Paz',
@@ -59,16 +53,6 @@ export function PanelSupervisor() {
 
   const [prefijoIglesia, setPrefijoIglesia] = useState('');
   const [sufijoIglesia, setSufijoIglesia] = useState('');
-
-  // Líder de Departamento (básico, 2026-08-01): hoy solo existe el
-  // Departamento de Afirmación -- no había ninguna pantalla para asignarlo,
-  // solo "se hace por DB" (ver 47_departamento_cargo.sql).
-  const [deptoLiderDialogo, setDeptoLiderDialogo] = useState<DepartamentoItem | null>(null);
-  const { data: cargos = [] } = useCargos();
-  const cargoLiderDepartamento = cargos.find((c) => c.codigo === 'LIDER_DEPARTAMENTO');
-  const { data: vigentesDepto = [], isLoading: cargandoVigentesDepto } = useCargoVigenteDepartamento(deptoLiderDialogo?.id);
-  const asignarCargoDepto = useAsignarCargoDepartamento(iglesiaActivaId);
-  const quitarCargoDepto = useQuitarCargoDepartamento(deptoLiderDialogo?.id);
 
   // Como Super Admin, cada cambio pide el PIN antes de aplicarse -- se
   // pausa la funcion async hasta que el dialogo se confirme o se cancele.
@@ -127,20 +111,6 @@ export function PanelSupervisor() {
       toast.success('Moneda por defecto actualizada. No afecta los ingresos ya registrados.');
     } catch {
       toast.error('No se pudo cambiar la moneda');
-    }
-  }
-
-  async function handleAsignarLiderDepartamento(persona: { id: string; nombre_completo: string }) {
-    if (!deptoLiderDialogo || !cargoLiderDepartamento) return;
-    try {
-      await asignarCargoDepto.mutateAsync({
-        departamentoId: deptoLiderDialogo.id,
-        personaId: persona.id,
-        cargoId: cargoLiderDepartamento.id,
-      });
-      toast.success(`${persona.nombre_completo} asignado`);
-    } catch {
-      toast.error('No se pudo asignar el líder del departamento');
     }
   }
 
@@ -214,21 +184,16 @@ export function PanelSupervisor() {
           icon={LayoutGrid}
           color={AMBAR}
           titulo="Departamentos"
-          descripcion="Desactivar oculta el departamento de los dashboards; conserva el histórico."
+          descripcion="Desactivar oculta el departamento de los dashboards; conserva el histórico. Para asignar el líder, ver el menú Departamentos."
         />
         <div className="flex flex-col gap-3 p-5">
           {panel.departamentos.map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-3">
+            <div key={d.id} className="flex items-center justify-between">
               <Label className="text-sm text-foreground">{d.nombre}</Label>
-              <div className="flex items-center gap-3">
-                <Button type="button" variant="outline" size="sm" onClick={() => setDeptoLiderDialogo(d)}>
-                  Líder
-                </Button>
-                <Switch
-                  checked={d.activo}
-                  onCheckedChange={(checked) => handleToggleDepto(d.id, checked)}
-                />
-              </div>
+              <Switch
+                checked={d.activo}
+                onCheckedChange={(checked) => handleToggleDepto(d.id, checked)}
+              />
             </div>
           ))}
         </div>
@@ -267,21 +232,6 @@ export function PanelSupervisor() {
           setPinPendiente(false);
         }}
       />
-
-      {deptoLiderDialogo && (
-        <AsignarCargoDialog
-          open={!!deptoLiderDialogo}
-          onOpenChange={(open) => !open && setDeptoLiderDialogo(null)}
-          titulo={`Líder de ${deptoLiderDialogo.nombre}`}
-          exclusivo
-          iglesiaId={iglesiaActivaId}
-          vigentes={vigentesDepto}
-          cargandoVigentes={cargandoVigentesDepto}
-          asignando={asignarCargoDepto.isPending}
-          onAsignar={handleAsignarLiderDepartamento}
-          onQuitar={(id) => quitarCargoDepto.mutate(id, { onError: () => toast.error('No se pudo quitar el cargo') })}
-        />
-      )}
     </div>
   );
 }

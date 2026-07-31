@@ -13,11 +13,22 @@ export interface InvitacionLider {
   fecha_completada: string | null;
 }
 
+/** Invitación a Líder de Departamento (2026-08-01) -- no tiene `rol` (no es
+ * un rol_sistema_enum, ver 71_invitar_lider_departamento.sql). */
+export interface InvitacionDepartamento {
+  id: string;
+  correo: string;
+  departamento_id: string;
+  estado: 'PENDIENTE' | 'COMPLETADA';
+  fecha_creacion: string;
+}
+
 export interface InvitacionPendiente {
   id: string;
-  rol: RolInvitable;
+  rol: RolInvitable | null;
   iglesia_nombre: string;
   destino: string;
+  departamento_nombre?: string | null;
   campos_obligatorios: {
     ci: boolean;
     fecha_nacimiento: boolean;
