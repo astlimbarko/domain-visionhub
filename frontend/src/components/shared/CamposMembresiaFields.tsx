@@ -7,6 +7,7 @@
 import { useTranslation } from 'react-i18next';
 import type { FieldErrors, FieldValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,17 +19,7 @@ import {
 } from '@/components/ui/select';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
 
-// Estilo propio de este formulario (mas contraste que el <Input>/<SelectTrigger>
-// por defecto, con un resplandor tipo "neon" al pasar el mouse/enfocar) --
-// acotado a los dos formularios de membresia (publico + Afirmacion interno)
-// que usan este componente compartido, NO es un cambio global del
-// componente <Input>. Usa los tokens de tema (--ring) para respetar
-// claro/oscuro sin colores fijos.
-export const CAMPO_ESTILO =
-  'h-10 border-2 border-border/70 transition-shadow duration-200 hover:border-ring/50 ' +
-  'hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-ring)_18%,transparent)] ' +
-  'focus-visible:border-ring/70 focus-visible:ring-0 ' +
-  'focus-visible:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-ring)_28%,transparent)]';
+export { CAMPO_ESTILO };
 
 export const GRADOS_INSTRUCCION = [
   'SIN_INSTRUCCION',

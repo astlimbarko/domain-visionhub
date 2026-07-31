@@ -155,6 +155,58 @@ tal cual — `Button` ya trae `rounded-xl`, tamaños (`sm`/`icon`/`icon-sm`...) 
 variantes (`default`/`outline`/`ghost`/`destructive`). No armes un botón a
 mano con `<button className="...">`.
 
+## Patrones de gestión administrativa (15-gestion-administrativa)
+
+### Hover azul de formularios — estándar de todo formulario nuevo
+
+`CAMPO_ESTILO` (`@/lib/estilos.ts`) es el estándar de proyecto para campos de
+formulario de captura de datos (`Input`/`SelectTrigger`): más contraste que el
+default, con resplandor al pasar el mouse/enfocar, usando el token `--ring`
+(respeta claro/oscuro solo). Nació en Afirmación (14-afirmacion) y se adoptó
+como estándar (REQ-UI-2). **Todo formulario nuevo de captura de datos debe
+usarlo**, no el borde default de `<Input>`.
+
+```tsx
+import { CAMPO_ESTILO } from '@/lib/estilos';
+
+<Input className={CAMPO_ESTILO} {...register('campo')} />
+<SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>...</SelectTrigger>
+```
+
+### Pie de soporte institucional
+
+`SoporteFooter` (definido en `components/layout/AppShell.tsx`) es el bloque
+discreto al pie del sidebar/drawer que abre un `mailto:soporte@somoscdv.com`
+con asunto y cuerpo prellenados (usuario, rol, iglesia, sección actual). No
+duplicar este patrón en otra pantalla sin necesidad real — vive una sola vez
+en el layout, no por página.
+
+### Colores institucionales de Departamento
+
+Los 4 departamentos oficiales (Evangelismo/Afirmación/Discipulado/Envío en la
+BD) se muestran en la UI con **verbo** + color propio. Aún no existe columna
+`color` en la tabla `departamento` (llega con el Panel 3 de
+`15-gestion-administrativa/implementation-plan.md`) — cuando se implemente,
+usar esta paleta, consistente en toda pantalla que muestre departamentos:
+
+| Código BD | Verbo (UI) | Color | Hex de referencia |
+|---|---|---|---|
+| `EVANGELISMO` | Evangelizar | Amarillo | `#F5C518` |
+| `AFIRMACION` | Afirmar | Azul | `#0071E3` |
+| `DISCIPULADO` | Discipular | Rojo | `#FF3B30` |
+| `ENVIO` | Enviar | Gris | `#8E8E93` |
+
+No hardcodear estos hex sueltos por archivo: cuando se construya la pantalla
+"Departamentos", centralizarlos en un único lugar (mapa `codigo -> {verbo,
+color}`), igual que `NOMBRE_ROL`/`NOMBRE_ROL_CORTO` en `Administracion.tsx`.
+
+### Iglesia satélite (concepto visual, backend en Panel 4)
+
+Cuando exista `iglesia.tipo` (`HIJA` | `SATELITE`, ver Panel 4), la diferencia
+es **solo conceptual/visual** por ahora: mismo comportamiento funcional, distinta
+etiqueta/ícono/badge. No inventar lógica de negocio distinta entre ambos tipos
+sin que el owner lo pida explícitamente (ver `open-questions.md OQ-SAT-DIFF`).
+
 ## Antes de dar por terminado un cambio visual
 
 - `npx tsc -b` y `npm run lint` (oxlint) desde `frontend/` sin errores nuevos.

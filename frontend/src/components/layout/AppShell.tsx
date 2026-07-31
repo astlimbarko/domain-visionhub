@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,29 @@ function mismaVista(a: Vista, b: Vista): boolean {
   if (a.tipo === 'cdp' && b.tipo === 'cdp') return a.cdpId === b.cdpId && a.esSublider === b.esSublider;
   if (a.tipo === 'supervisor' && b.tipo === 'supervisor') return a.iglesiaId === b.iglesiaId;
   return a.tipo === 'pastor';
+}
+
+// Bloque discreto de soporte institucional, al pie del menú lateral (15-gestion-
+// administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
+// prellenados -- no es un formulario propio, para no construir/mantener
+// backend solo para esto.
+function SoporteFooter({ href, onClick, className }: { href: string; onClick?: () => void; className?: string }) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className={cn(
+        'flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-[12px] text-muted-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-foreground',
+        className
+      )}
+    >
+      <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0" />
+      <span className="flex flex-col gap-0.5 text-left">
+        <span className="font-medium text-foreground/70">¿Encontraste un problema?</span>
+        <span className="text-[11px] leading-snug">Ayúdanos a mejorar la plataforma</span>
+      </span>
+    </a>
+  );
 }
 
 function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[] }) {
@@ -127,6 +150,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
   ];
 
+  // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
+  // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
+  // el usuario operativo describa el problema sin tener que copiar esos datos
+  // a mano.
+  const location = useLocation();
+  const cuerpoSoporte = [
+    'Hola equipo,',
+    '',
+    'Encontré un problema en el sistema. Estos son los detalles:',
+    '',
+    `- Usuario: ${textoUsuario || correo || 'N/D'}`,
+    `- Rol: ${rolUI ?? 'N/D'}`,
+    `- Iglesia: ${nombreMarca}`,
+    `- Sección: ${location.pathname}`,
+    '',
+    'Descripción del problema:',
+    '(Contá qué pasó, qué esperabas que pasara, y los pasos para reproducirlo)',
+  ].join('\n');
+  const mailtoSoporte = `mailto:soporte@somoscdv.com?subject=${encodeURIComponent('Reporte de incidencia')}&body=${encodeURIComponent(cuerpoSoporte)}`;
+
   // Sombreros para Dashboard multi-vista
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
   const sombreros: Sombrero[] = [];
@@ -163,6 +206,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground">{nombreMarca}</span>
         </div>
         <NavLinks navItems={navItems} sombreros={sombreros} />
+        <SoporteFooter href={mailtoSoporte} className="mt-2 border-t border-sidebar-border pt-3" />
       </aside>
 
       {/* Header mobile */}
@@ -200,7 +244,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} />
           </div>
-          <SheetFooter className="gap-1 border-t border-sidebar-border p-3">
+          <div className="border-t border-sidebar-border px-3 pt-3">
+            <SoporteFooter href={mailtoSoporte} onClick={() => setMenuAbierto(false)} />
+          </div>
+          <SheetFooter className="gap-1 p-3">
             <button
               onClick={() => { setMenuAbierto(false); navigate(ROUTES.CUENTA); }}
               className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
