@@ -42,6 +42,18 @@ Supervisor de la Visión en Acción > Supervisor de Red (en Acción) > Líder de
 - [x] Confirmé el punto 7 de Matías (selección de rol multi-rol): coincide con lo que ya había verificado, funciona, no depende de ninguna migración
 - [ ] **Avisar a Matías**: dice `GOOGLE_AUTH_HABILITADO=false` pero el código que subió tiene `= true` — no rompe nada grave, pero confirmar cuál es el estado que realmente quiere
 
+## Multi-rol real para cualquier cuenta (incluido Super Admin)
+
+- [x] Decisión explícita del owner: ninguna cuenta debe estar limitada a un solo rol — si se asigna otro, simplemente tendrá 2. Quité la restricción `ROL_SUPER_ADMIN_NO_OPERATIVO` de `fn_validar_asignacion_rol` (migración 74)
+- [x] Coordinado el frontend para que el picker (`SeleccionarRol.tsx`) sea alcanzable en ese caso: `calcularOpcionesRolUI`/`ROL_UI_META` ahora incluyen `SUPER_ADMIN` como opción elegible; `useRolUI`/`useOpcionesRol`/`PrivateLayout` ya no cortan antes de mirar el resto de los roles cuando es Super Admin — un Super Admin sin otros roles sigue exactamente igual que antes (atajo directo a Administración)
+- [x] Asigné Líder de Red (Red Svalmar) a `astlimbark@gmail.com` directamente en la base (persona + red_cargo + usuario_rol), a pedido del owner, para probar el picker multi-rol en vivo sin depender del correo OTP (que no estaba llegando)
+- [x] `tsc -b --noEmit` limpio, commit hecho, PR #12 mergeado a `master`, local `master` actualizado (fast-forward)
+- [ ] **Falta probar en vivo**: el owner tiene que loguearse con `astlimbark@gmail.com` y confirmar que aparece el picker multi-rol (Super Admin / Líder de Red). Nota técnica: como Super Admin ve TODAS las iglesias, `iglesiaActivaId` por defecto puede no ser la iglesia de la Red Svalmar (Centro de Vida 4 Anillo) — si el picker no aparece de entrada, cambiar de iglesia activa al selector de esa iglesia primero (mismo comportamiento que cualquier otro rol, no es un bug nuevo)
+
+## OTP sin llegar (pendiente sin resolver)
+
+- [ ] Los códigos OTP para designar Líder de Red en la Red Svalmar (correo `mattfrs1345@gmail.com`) nunca llegaron a la bandeja de entrada. Revisé `usuario_otp` (códigos se generaban bien, respetando el cooldown de 120s) y los secrets de Brevo en Supabase (presentes, sin cambios) — no pude confirmar la causa raíz (no tuve acceso a logs de Edge Functions). Sospecha más probable: reputación de dominio nuevo / spam, ya mencionado en sesiones anteriores. **No resuelto**, quedó pendiente porque el owner pidió probar el picker multi-rol directamente en la base en su lugar
+
 ## Pendiente para la próxima sesión
 
 - [ ] **Confirmar con Matías** qué contestó sobre "Supervisor de Red" (estaba verificando al cerrar esta sesión) — si dice que lo hizo, pedirle la rama/PR exacto antes de construir nada nuevo
