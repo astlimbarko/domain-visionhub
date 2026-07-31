@@ -30,10 +30,22 @@
 - [x] Abrí el PR #12 (`gestion-administrativa-3-roles` → `master`) con todo lo de hoy
 - [x] Incidente resuelto: al hacer `supabase config push`, el `config.toml` del repo estaba desactualizado respecto a producción y por un momento reabrió el registro público y cambió la URL/remitente de correo — detectado y revertido en el momento, sin ventana real abierta
 
+## Aclaración de jerarquía de roles (owner)
+
+Supervisor de la Visión en Acción > Supervisor de Red (en Acción) > Líder de Red. "Supervisor de Red" (o "Supervisor de Red de la Visión en Acción") sigue sin existir en ningún lado — confirmado ahora también en el enum `rol_sistema_enum` y en la tabla `cargo` completa (antes solo había revisado ramas de GitHub). Matías estaba verificando con el owner al cerrar la sesión.
+
+## Mensaje de Matías sobre su PR #11 — verificado y corregido
+
+- [x] **Encontré y corregí un problema serio**: las migraciones 57 (`notificaciones`) y 58 (`solicitudes_estructura`) de Matías nunca se habían aplicado a la base real, aunque el frontend que las necesita ya estaba mergeado y activo — `fn_asignar_cargo_red`/`fn_asignar_cargo_cdp` no existían, rompiendo asignar Líder/Sublíder/Encargados de Red o CdP en producción (y mi propio "Gestión de Redes", que depende de esa misma función). Ya apliqué ambas, verificadas
+- [x] Confirmé 48, 49, 55, 56 ya estaban aplicadas de antes (no eran urgentes)
+- [x] Limpié los 2 eventos de prueba que Matías no pudo borrar por permisos ("Reunión de prueba de red" x2, Red Vida Nueva)
+- [x] Confirmé el punto 7 de Matías (selección de rol multi-rol): coincide con lo que ya había verificado, funciona, no depende de ninguna migración
+- [ ] **Avisar a Matías**: dice `GOOGLE_AUTH_HABILITADO=false` pero el código que subió tiene `= true` — no rompe nada grave, pero confirmar cuál es el estado que realmente quiere
+
 ## Pendiente para la próxima sesión
 
-- [ ] **Confirmar con Matías** si el "Supervisor de Red" que dice haber hecho existe en alguna rama sin subir a GitHub — no está en ningún lado del remoto, hay que pedirle que lo suba para revisarlo
-- [ ] **Diseño de la pantalla multi-rol** (`SeleccionarRol.tsx`, ya funciona, hecha por Matías el 2026-07-30): el owner pasó un mockup (`login_multi_rol.jpeg`) con un estilo bien distinto al actual (lista de filas con detalle por rol, no grilla de tarjetas) — evaluar si se rediseña
+- [ ] **Confirmar con Matías** qué contestó sobre "Supervisor de Red" (estaba verificando al cerrar esta sesión) — si dice que lo hizo, pedirle la rama/PR exacto antes de construir nada nuevo
+- [ ] **Diseño de la pantalla multi-rol** (`SeleccionarRol.tsx`, ya funciona, hecha por Matías el 2026-07-30, confirmado por él mismo): el owner pasó un mockup (`login_multi_rol.jpeg`) con un estilo bien distinto al actual (lista de filas con detalle por rol, no grilla de tarjetas) — evaluar si se rediseña
 - [ ] Estética de los paneles de Pastor y del nuevo Departamentos/Gestión de Redes (hoy funcionales, sin pasada de diseño)
 - [ ] Invitar por correo para Líder de Afirmación: hoy solo "buscar existente" es básico ahí en cuanto a UI pulida (la función ya está completa y probada)
 - [ ] Revisar si conviene revocar el token de Management API de Supabase usado hoy (`sbp_dda6aaf9...`)
