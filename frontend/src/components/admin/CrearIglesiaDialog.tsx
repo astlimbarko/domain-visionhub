@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CampoOtp } from '@/components/shared/CampoOtp';
 import { useAuthStore } from '@/store/auth.store';
 
 interface Props {
@@ -50,20 +51,7 @@ export function CrearIglesiaDialog({ open, onOpenChange, creando, onCrear }: Pro
             <Label htmlFor="ciudad">Ciudad</Label>
             <Input id="ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder="Ej. Santa Cruz de la Sierra" />
           </div>
-          {esSuperAdmin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pin_crear_iglesia">Tu PIN de Super Admin</Label>
-              <Input
-                id="pin_crear_iglesia"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6 dígitos"
-              />
-            </div>
-          )}
+          {esSuperAdmin && <CampoOtp value={pin} onChange={setPin} />}
         </div>
         <DialogFooter>
           <Button type="button" onClick={handleCrear} disabled={creando || !sufijo.trim() || !ciudad.trim() || !pinValido}>

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CampoOtp } from '@/components/shared/CampoOtp';
 import { useAuthStore } from '@/store/auth.store';
 import type { RolSistema } from '@/types/auth.types';
 import type { IglesiaAdmin } from '@/types/admin.types';
@@ -101,20 +102,7 @@ export function InvitarUsuarioDialog({ open, onOpenChange, iglesias, invitando, 
               </Select>
             </div>
           )}
-          {esSuperAdmin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pin_invitar">Tu PIN de Super Admin</Label>
-              <Input
-                id="pin_invitar"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6 dígitos"
-              />
-            </div>
-          )}
+          {esSuperAdmin && <CampoOtp value={pin} onChange={setPin} />}
         </div>
         <DialogFooter>
           <Button type="button" onClick={handleInvitar} disabled={invitando || !puedeEnviar}>

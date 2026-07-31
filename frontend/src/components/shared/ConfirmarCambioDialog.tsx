@@ -8,9 +8,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CampoOtp } from '@/components/shared/CampoOtp';
 import { useAuthStore } from '@/store/auth.store';
 
 interface Props {
@@ -25,7 +25,8 @@ interface Props {
 }
 
 /** Todo cambio de fusion o de configuracion pide un motivo escrito; si quien
- * lo hace es Super Admin, ademas pide su PIN de 6 digitos. */
+ * lo hace es Super Admin, ademas pide un codigo de confirmacion por correo
+ * (OTP, 15-gestion-administrativa Panel 1 -- reemplaza al PIN estatico). */
 export function ConfirmarCambioDialog({
   open,
   onOpenChange,
@@ -68,20 +69,7 @@ export function ConfirmarCambioDialog({
               />
             </div>
           )}
-          {esSuperAdmin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pin_cambio">Tu PIN de Super Admin</Label>
-              <Input
-                id="pin_cambio"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6 dígitos"
-              />
-            </div>
-          )}
+          {esSuperAdmin && <CampoOtp value={pin} onChange={setPin} />}
         </div>
         <DialogFooter>
           <Button type="button" onClick={handleConfirmar} disabled={procesando || !puedeConfirmar}>
