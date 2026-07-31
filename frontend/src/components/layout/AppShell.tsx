@@ -27,6 +27,7 @@ import { useRolUI } from '@/hooks/useRolUI';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { NAV_ITEMS_AFIRMACION, obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
 
@@ -176,6 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <span className="text-[15px] font-bold text-sidebar-foreground">{nombreMarca}</span>
         </div>
+        <NotificacionesBell />
       </header>
 
       {/* Drawer mobile */}
@@ -240,6 +242,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
             )}
           </div>
+          <div className="flex items-center gap-1">
+          <NotificacionesBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
@@ -258,6 +262,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <DropdownMenuItem onSelect={handleLogout} className="gap-2 text-destructive focus:text-destructive"><LogOut className="h-4 w-4" /> Salir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </header>
         <main className="flex-1 p-5 sm:p-8">{children}</main>
       </div>

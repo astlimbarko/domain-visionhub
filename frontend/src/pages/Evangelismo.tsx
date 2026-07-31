@@ -55,6 +55,9 @@ export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const rolUI = useRolUI();
+  // El sublíder ve Evangelismo en modo solo lectura -- no puede registrar
+  // evangelizados ni tocar la meta propia (decisión del owner, 2026-07-31).
+  const esSublider = rolUI === 'SUBLIDER_CDP';
   const { data: roles } = useMisRoles(iglesiaActivaId);
 
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
@@ -204,12 +207,14 @@ export function Evangelismo() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
-          <Plus className="h-4 w-4" />
-          Nuevo evangelizado
-        </Button>
-      </div>
+      {!esSublider && (
+        <div className="flex justify-end">
+          <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
+            <Plus className="h-4 w-4" />
+            Nuevo evangelizado
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
         {misCasas.length > 1 && (
@@ -294,9 +299,10 @@ export function Evangelismo() {
                   </div>
                 </div>
 
-                {/* KPI: Meta propia de Casa de Paz -- siempre editable por el lider, sea o no la que
+                {/* KPI: Meta propia de Casa de Paz -- editable por el líder, sea o no la que
                     esté rigiendo el % de arriba (esa se lee aparte, sin depender de fn_tasa_evangelismo,
-                    porque esa RPC oculta la propia mientras haya una asignada vigente). */}
+                    porque esa RPC oculta la propia mientras haya una asignada vigente). El sublíder
+                    solo la ve, no la edita. */}
                 <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 10%, transparent)` }}>
                     <Flag className="h-5 w-5" style={{ color: VERDE }} />
@@ -314,17 +320,20 @@ export function Evangelismo() {
                         placeholder="Sin definir"
                         value={metaLocal}
                         onChange={(e) => setMetaLocal(e.target.value)}
+                        disabled={esSublider}
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 gap-1.5 rounded-xl"
-                        onClick={guardarMeta}
-                        disabled={actualizarMeta.isPending}
-                      >
-                        {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
-                        Guardar
-                      </Button>
+                      {!esSublider && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 gap-1.5 rounded-xl"
+                          onClick={guardarMeta}
+                          disabled={actualizarMeta.isPending}
+                        >
+                          {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
+                          Guardar
+                        </Button>
+                      )}
                     </div>
                     {tasa?.origen === 'ASIGNADA' && (
                       <p className="text-[11px] text-muted-foreground">

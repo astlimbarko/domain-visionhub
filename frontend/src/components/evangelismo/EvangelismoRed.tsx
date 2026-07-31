@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AMBAR, AZUL, KpiMosaico, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
+import { AMBAR, AZUL, KpiMosaico, MARINO, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { useAuthStore } from '@/store/auth.store';
 import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
@@ -131,7 +131,7 @@ export function EvangelismoRed({ redId }: Props) {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={VERDE} titulo="Metas por Casa de Paz" descripcion="Asigná o revisá la meta vigente de cada una" />
+        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas por Casa de Paz" descripcion="Asigná o revisá la meta vigente de cada una" />
         <div className="p-5">
           {cargandoMetas ? (
             <div className="flex flex-col gap-2">
@@ -144,8 +144,8 @@ export function EvangelismoRed({ redId }: Props) {
               {metasCdp.map((c) => (
                 <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)` }}>
-                      <Home className="h-4 w-4" style={{ color: VERDE }} />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 14%, transparent)` }}>
+                      <Home className="h-4 w-4" style={{ color: MORADO }} />
                     </span>
                     <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
                   </div>
@@ -172,7 +172,7 @@ export function EvangelismoRed({ redId }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={AMBAR} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader icon={CalendarRange} color={TEAL} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
           <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
@@ -185,7 +185,7 @@ export function EvangelismoRed({ redId }: Props) {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={AMBAR}
+            color={MARINO}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Por Casa de Paz'}
             descripcion={diaSeleccionado ? `${evangelizadosDelDiaSeleccionado.length} evangelizado(s)` : 'Elegí un día del calendario'}
             accion={
@@ -205,7 +205,7 @@ export function EvangelismoRed({ redId }: Props) {
                 {porCdpDelDiaSeleccionado.map((g) => (
                   <div key={g.etiqueta} className="flex flex-col gap-2">
                     <p className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
-                      <Home className="h-3.5 w-3.5" style={{ color: MORADO }} /> {g.etiqueta}
+                      <Home className="h-3.5 w-3.5" style={{ color: MARINO }} /> {g.etiqueta}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{g.personas.length}</span>
                     </p>
                     {g.personas.map((e) => (
