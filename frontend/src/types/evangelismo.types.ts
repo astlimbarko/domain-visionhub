@@ -34,6 +34,49 @@ export interface Evangelizado {
   tipo_evangelismo_color: string | null;
 }
 
+/** Evangelizado agregado de toda la Red (fn_evangelismo_red) -- mismo shape
+ * que Evangelizado, más a qué CdP pertenece, para agrupar el calendario y la
+ * lista por Casa de Paz. */
+export interface EvangelizadoRed {
+  id: string;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  domicilio: string | null;
+  tipo_evangelismo_nombre: string | null;
+  tipo_evangelismo_color: string | null;
+}
+
+/** Tasa agregada de toda la Red (fn_tasa_evangelismo_red). */
+export interface TasaEvangelismoRed {
+  evangelizados: number;
+  meta_total: number;
+  cdp_con_meta: number;
+  cdp_total: number;
+  tasa: number | null;
+}
+
+/** Meta efectiva actual de una CdP de la Red (fn_metas_cdp_red), para la
+ * lista de "Metas por Casa de Paz" que arma el Líder de Red. */
+export interface MetaCdpRed {
+  casa_de_paz_id: string;
+  etiqueta: string;
+  meta: number | null;
+  origen: 'ASIGNADA' | 'PROPIA' | null;
+}
+
+export interface NuevaMetaAsignada {
+  iglesiaId: string;
+  casaDePazId: string;
+  asignadorId: string;
+  meta: number;
+  fechaInicio: string;
+  fechaFin: string;
+  observaciones?: string;
+}
+
 export interface NuevoEvangelizado {
   casa_de_paz_id: string;
   iglesia_id: string;

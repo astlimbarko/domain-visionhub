@@ -33,6 +33,8 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import {
   useActualizarMetaPropia,
@@ -45,12 +47,15 @@ import {
 import { NuevoEvangelizadoDialog } from '@/components/evangelismo/NuevoEvangelizadoDialog';
 import { EvangelismoTrendChart } from '@/components/evangelismo/EvangelismoTrendChart';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
+import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 
 export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const rolUI = useRolUI();
+  const { data: roles } = useMisRoles(iglesiaActivaId);
 
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
@@ -165,6 +170,23 @@ export function Evangelismo() {
     } catch {
       toast.error('No se pudo guardar la meta propia');
     }
+  }
+
+  // Mismo motivo que en Calendario.tsx: un Líder de Red puro no tiene CdP
+  // propia (misCasas vacío), así que sin esta rama caía siempre en el
+  // placeholder de abajo pese a tener "Evangelismo" en su menú.
+  if (rolUI === 'LIDER_RED') {
+    if (!roles) return <Skeleton className="h-96 w-full rounded-2xl" />;
+    const redId = roles.redes_lider?.[0]?.id;
+    if (!redId) {
+      return (
+        <ProximamentePlaceholder
+          titulo="Evangelismo"
+          descripcion="Todavía no tenés una Red asignada como líder, así que no hay evangelismo que mostrar."
+        />
+      );
+    }
+    return <EvangelismoRed redId={redId} />;
   }
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;

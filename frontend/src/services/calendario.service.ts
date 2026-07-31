@@ -67,6 +67,28 @@ export async function obtenerProximos(casaDePazId: string): Promise<Proximo[]> {
   return data ?? [];
 }
 
+export async function obtenerEventosRed(
+  redId: string,
+  desde: string,
+  hasta: string,
+  tipoEventoId?: string
+): Promise<Evento[]> {
+  const { data, error } = await supabase.rpc('fn_eventos_red', {
+    p_red_id: redId,
+    p_desde: desde,
+    p_hasta: hasta,
+    p_tipo_evento_id: tipoEventoId ?? null,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerProximosRed(redId: string): Promise<Proximo[]> {
+  const { data, error } = await supabase.rpc('fn_proximos_red', { p_red_id: redId });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function crearEvento(evento: NuevoEvento) {
   const { error } = await supabase.from('evento').insert(evento);
   if (error) throw error;

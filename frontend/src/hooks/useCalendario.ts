@@ -4,8 +4,10 @@ import {
   eliminarEvento,
   obtenerCumpleanos,
   obtenerEventosMes,
+  obtenerEventosRed,
   obtenerMisCasasDePaz,
   obtenerProximos,
+  obtenerProximosRed,
   obtenerTiposEvento,
 } from '@/services/calendario.service';
 import type { NuevoEvento } from '@/types/calendario.types';
@@ -67,6 +69,35 @@ export function useCrearEvento(casaDePazId: string | undefined) {
   });
 }
 
+export function useEventosRed(redId: string | undefined, desde: string, hasta: string, tipoEventoId?: string) {
+  return useQuery({
+    queryKey: ['calendario', 'eventos-red', redId, desde, hasta, tipoEventoId],
+    queryFn: () => obtenerEventosRed(redId as string, desde, hasta, tipoEventoId),
+    enabled: !!redId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProximosRed(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['calendario', 'proximos-red', redId],
+    queryFn: () => obtenerProximosRed(redId as string),
+    enabled: !!redId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCrearEventoRed(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (evento: NuevoEvento) => crearEvento(evento),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos-red', redId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos-red', redId] });
+    },
+  });
+}
+
 export function useEliminarEvento(casaDePazId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -74,6 +105,17 @@ export function useEliminarEvento(casaDePazId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos', casaDePazId] });
+    },
+  });
+}
+
+export function useEliminarEventoRed(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventoId: string) => eliminarEvento(eventoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos-red', redId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos-red', redId] });
     },
   });
 }
