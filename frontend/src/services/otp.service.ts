@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
-export async function solicitarOtp(): Promise<void> {
-  const { error } = await supabase.functions.invoke('solicitar-otp', { body: {} });
+export async function solicitarOtp(): Promise<{ expiraEn: string }> {
+  const { data, error } = await supabase.functions.invoke('solicitar-otp', { body: {} });
   if (error) {
     const contexto = (error as { context?: Response }).context;
     if (contexto) {
@@ -10,4 +10,5 @@ export async function solicitarOtp(): Promise<void> {
     }
     throw error;
   }
+  return data;
 }

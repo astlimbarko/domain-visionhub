@@ -29,18 +29,30 @@ export async function crearIglesia(
   iglesiaPadreId: string | null,
   tipo: 'HIJA' | 'SATELITE',
   pastorUsuarioId: string | null,
+  pastorCorreoNuevo: string | null,
   pin?: string
-): Promise<{ id: string }> {
-  const { data, error } = await supabase.rpc('fn_crear_iglesia', {
-    p_sufijo: sufijo,
-    p_ciudad: ciudad,
-    p_iglesia_padre_id: iglesiaPadreId,
-    p_tipo: tipo,
-    p_pastor_usuario_id: pastorUsuarioId,
-    p_pin: pin ?? null,
+): Promise<{ id: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('crear-iglesia', {
+    body: {
+      sufijo,
+      ciudad,
+      iglesiaPadreId,
+      tipo,
+      pastorUsuarioId,
+      pastorCorreoNuevo,
+      pin,
+      redirectTo: `${window.location.origin}/completar-cuenta`,
+    },
   });
-  if (error) throw error;
-  return { id: data as string };
+  if (error) {
+    const contexto = (error as { context?: Response }).context;
+    if (contexto) {
+      const cuerpo = await contexto.json().catch(() => null);
+      throw new Error(cuerpo?.error || error.message);
+    }
+    throw error;
+  }
+  return data;
 }
 
 export async function actualizarIglesia(

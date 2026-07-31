@@ -49,11 +49,12 @@ export default {
       return Response.json({ error: "No se pudo identificar al usuario" }, { status: 401 });
     }
 
-    const { data: codigo, error: errorGenerar } = await ctx.supabase.rpc("fn_generar_otp");
+    const { data: filas, error: errorGenerar } = await ctx.supabase.rpc("fn_generar_otp");
     if (errorGenerar) {
       const esRateLimit = errorGenerar.message?.includes("OTP_MUY_SEGUIDO");
       return Response.json({ error: errorGenerar.message }, { status: esRateLimit ? 429 : 500 });
     }
+    const { codigo, expira_en: expiraEn } = (filas as { codigo: string; expira_en: string }[])[0];
 
     const transporte = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
@@ -70,12 +71,12 @@ export default {
         from: REMITENTE,
         to: userData.user.email,
         subject: "Su código de confirmación",
-        html: armarHtml(codigo as string),
+        html: armarHtml(codigo),
       });
     } catch (_e) {
       return Response.json({ error: "No se pudo enviar el correo" }, { status: 500 });
     }
 
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, expiraEn });
   }),
 };

@@ -346,23 +346,21 @@ export function Administracion() {
         onOpenChange={setMostrarCrearIglesia}
         iglesias={iglesias}
         creando={crearIglesia.isPending}
-        invitandoPastor={invitarUsuario.isPending}
-        onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin) => {
+        onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin) => {
           try {
-            const resultado = await crearIglesia.mutateAsync({ sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin });
-            toast.success(pastorUsuarioId ? 'Iglesia creada y Pastor asignado' : 'Iglesia creada');
+            const resultado = await crearIglesia.mutateAsync({
+              sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin,
+            });
+            if (resultado.error) {
+              toast.warning(resultado.error);
+            } else if (pastorUsuarioId || pastorCorreoNuevo) {
+              toast.success('Iglesia creada y Pastor asignado');
+            } else {
+              toast.success('Iglesia creada');
+            }
             return resultado;
           } catch (e) {
             manejarError(e, 'No se pudo crear la iglesia');
-            throw e;
-          }
-        }}
-        onInvitarPastor={async (correo, iglesiaId, pin) => {
-          try {
-            await invitarUsuario.mutateAsync({ correo, rol: 'PASTOR', iglesiaId, pin });
-            toast.success(`Pastor invitado a ${correo}`);
-          } catch (e) {
-            manejarError(e, 'No se pudo invitar al Pastor');
             throw e;
           }
         }}

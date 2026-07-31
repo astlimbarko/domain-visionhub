@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -32,39 +31,35 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   iglesias: IglesiaAdmin[];
   creando: boolean;
-  invitandoPastor: boolean;
   onCrear: (
     sufijo: string,
     ciudad: string,
-    iglesiaPadreId: string | null,
+    iglesiaPadreId: string,
     tipo: TipoIglesia,
     pastorUsuarioId: string | null,
+    pastorCorreoNuevo: string | null,
     pin?: string
-  ) => Promise<{ id: string }>;
-  onInvitarPastor: (correo: string, iglesiaId: string, pin?: string) => Promise<void>;
+  ) => Promise<{ id: string; error?: string }>;
 }
 
 /**
- * Crear iglesia -- flujo integrado (15-gestion-administrativa, Panel 4
- * adelantado): además del alta independiente de siempre, permite crearla
- * como hija/satélite de una iglesia madre existente, y asignarle el Pastor
- * en el mismo paso. Si el Pastor se busca entre cuentas existentes, es una
- * sola llamada con un solo código; si se invita por correo (cuenta nueva),
- * el código ya se gastó creando la iglesia -- se pide un segundo código
- * para ese paso, encadenado dentro del mismo diálogo ("paso 2 de 2").
+ * Crear iglesia -- flujo integrado (15-gestion-administrativa, Panel 4).
+ * Toda iglesia nueva es hija o satélite de una iglesia madre existente (no
+ * existe "independiente" -- las 2 raíces actuales son una excepción
+ * histórica). El Pastor se puede asignar en el mismo paso, con un solo
+ * código de confirmación total: si ya tiene cuenta, o si se invita por
+ * correo (cuenta nueva), la Edge Function `crear-iglesia` hace las 3
+ * escrituras en una sola llamada verificando el código una única vez.
  */
 export function CrearIglesiaDialog({
   open,
   onOpenChange,
   iglesias,
   creando,
-  invitandoPastor,
   onCrear,
-  onInvitarPastor,
 }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
 
-  const [dependeDeOtra, setDependeDeOtra] = useState(false);
   const [iglesiaPadreId, setIglesiaPadreId] = useState('');
   const [tipo, setTipo] = useState<TipoIglesia>('HIJA');
   const [sufijo, setSufijo] = useState('');
@@ -76,12 +71,7 @@ export function CrearIglesiaDialog({
   const [pastorElegido, setPastorElegido] = useState<CuentaBusqueda | null>(null);
   const [correoPastor, setCorreoPastor] = useState('');
 
-  // Paso 2: la iglesia ya se creó, falta invitar al Pastor por correo.
-  const [iglesiaCreada, setIglesiaCreada] = useState<{ id: string; nombre: string } | null>(null);
-  const [pin2, setPin2] = useState('');
-
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
-  const pin2Valido = !esSuperAdmin || /^[0-9]{6}$/.test(pin2);
 
   // Alta de doble vía (REQ-C-1): busca entre TODAS las cuentas existentes.
   const { data: resultadosBusqueda = [] } = useBuscarCuentas(modoPastor === 'buscar' ? busquedaPastor : '');
@@ -89,13 +79,23 @@ export function CrearIglesiaDialog({
   const puedeCrear =
     sufijo.trim() &&
     ciudad.trim() &&
-    (!dependeDeOtra || !!iglesiaPadreId) &&
+    iglesiaPadreId &&
     (modoPastor !== 'buscar' || !!pastorElegido) &&
     (modoPastor !== 'invitar' || correoPastor.trim().includes('@')) &&
     pinValido;
 
+  // Si hay algo cargado, un clic afuera (o Escape) no debe tirar todo --
+  // sobre todo el código OTP ya pedido (bug reportado 2026-07-31).
+  const hayContenido =
+    sufijo.trim() !== '' ||
+    ciudad.trim() !== '' ||
+    iglesiaPadreId !== '' ||
+    pin.trim() !== '' ||
+    busquedaPastor.trim() !== '' ||
+    !!pastorElegido ||
+    correoPastor.trim() !== '';
+
   function limpiarTodo() {
-    setDependeDeOtra(false);
     setIglesiaPadreId('');
     setTipo('HIJA');
     setSufijo('');
@@ -105,8 +105,6 @@ export function CrearIglesiaDialog({
     setBusquedaPastor('');
     setPastorElegido(null);
     setCorreoPastor('');
-    setIglesiaCreada(null);
-    setPin2('');
   }
 
   function handleCerrar(abierto: boolean) {
@@ -117,129 +115,61 @@ export function CrearIglesiaDialog({
   async function handleCrear() {
     if (!puedeCrear) return;
     try {
-      const resultado = await onCrear(
+      await onCrear(
         sufijo.trim(),
         ciudad.trim(),
-        dependeDeOtra ? iglesiaPadreId : null,
+        iglesiaPadreId,
         tipo,
         modoPastor === 'buscar' && pastorElegido ? pastorElegido.usuario_id : null,
+        modoPastor === 'invitar' ? correoPastor.trim().toLowerCase() : null,
         esSuperAdmin ? pin : undefined
       );
-      if (modoPastor === 'invitar') {
-        // La iglesia ya existe -- queda pendiente invitar al Pastor con un
-        // segundo código (el primero ya se usó para crear la iglesia).
-        setIglesiaCreada({ id: resultado.id, nombre: `Centro de Vida ${sufijo.trim()}` });
-      } else {
-        handleCerrar(false);
-      }
+      handleCerrar(false);
     } catch {
       // El error ya se mostró al usuario (toast) en el llamador; el
       // diálogo simplemente queda abierto para reintentar.
     }
   }
 
-  async function handleInvitarPastor() {
-    if (!iglesiaCreada || !correoPastor.trim().includes('@') || !pin2Valido) return;
-    try {
-      await onInvitarPastor(correoPastor.trim().toLowerCase(), iglesiaCreada.id, esSuperAdmin ? pin2 : undefined);
-      handleCerrar(false);
-    } catch {
-      // Idem: el toast ya se mostró; se queda en el paso 2 para reintentar.
-    }
-  }
-
-  if (iglesiaCreada) {
-    return (
-      <Dialog open={open} onOpenChange={handleCerrar}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Invitar al Pastor</DialogTitle>
-            <DialogDescription>
-              {iglesiaCreada.nombre} ya se creó. Paso 2 de 2: invitación del Pastor por correo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="correo_pastor_confirmado">Correo del Pastor</Label>
-              <Input id="correo_pastor_confirmado" type="email" value={correoPastor} disabled />
-            </div>
-            {esSuperAdmin && <CampoOtp value={pin2} onChange={setPin2} />}
-          </div>
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button type="button" variant="ghost" onClick={() => handleCerrar(false)}>
-              Omitir por ahora
-            </Button>
-            <Button type="button" onClick={handleInvitarPastor} disabled={invitandoPastor || !pin2Valido}>
-              {invitandoPastor ? 'Invitando...' : 'Invitar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={handleCerrar}>
-      <DialogContent className="max-w-sm">
+      <DialogContent
+        className="max-w-sm"
+        onInteractOutside={(e) => { if (hayContenido) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (hayContenido) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>Nueva Iglesia</DialogTitle>
         </DialogHeader>
-        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
-          <div className="flex gap-1 rounded-xl bg-muted p-1">
-            <button
-              type="button"
-              onClick={() => setDependeDeOtra(false)}
-              className={cn(
-                'flex-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors',
-                !dependeDeOtra ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-              )}
-            >
-              Independiente
-            </button>
-            <button
-              type="button"
-              onClick={() => setDependeDeOtra(true)}
-              className={cn(
-                'flex-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors',
-                dependeDeOtra ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-              )}
-            >
-              Hija / satélite
-            </button>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>Iglesia madre</Label>
+            <Select value={iglesiaPadreId} onValueChange={setIglesiaPadreId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Elegí la iglesia madre" />
+              </SelectTrigger>
+              <SelectContent>
+                {iglesias.map((i) => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
-          {dependeDeOtra && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label>Iglesia madre</Label>
-                <Select value={iglesiaPadreId} onValueChange={setIglesiaPadreId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elegí la iglesia madre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iglesias.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>
-                        {i.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Tipo</Label>
-                <Select value={tipo} onValueChange={(v) => setTipo(v as TipoIglesia)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HIJA">Iglesia hija</SelectItem>
-                    <SelectItem value="SATELITE">Iglesia satélite</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Hoy se comportan igual; la diferencia es conceptual.</p>
-              </div>
-            </>
-          )}
+          <div className="flex flex-col gap-1.5">
+            <Label>Tipo</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as TipoIglesia)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="HIJA">Iglesia hija</SelectItem>
+                <SelectItem value="SATELITE">Iglesia satélite</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Hoy se comportan igual; la diferencia es conceptual.</p>
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="sufijo">Nombre</Label>
@@ -307,11 +237,6 @@ export function CrearIglesiaDialog({
 
             {modoPastor === 'invitar' && (
               <Input type="email" value={correoPastor} onChange={(e) => setCorreoPastor(e.target.value)} placeholder="pastor@correo.com" />
-            )}
-            {modoPastor === 'invitar' && (
-              <p className="text-xs text-muted-foreground">
-                Como es una cuenta nueva, después de crear la iglesia se pide un segundo código para invitarlo.
-              </p>
             )}
           </div>
 

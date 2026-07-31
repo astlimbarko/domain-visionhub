@@ -13,30 +13,44 @@ interface Props {
 
 const COOLDOWN_MS = 30_000;
 
+function formatearMmSs(segundos: number): string {
+  const m = Math.floor(segundos / 60);
+  const s = segundos % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 /**
  * Campo de código de confirmación (OTP) por correo -- reemplaza el PIN
  * estático de Super Admin (15-gestion-administrativa, Panel 1). "Enviar
  * código" dispara fn_generar_otp vía la Edge Function `solicitar-otp` y
  * entra en cooldown de 30s; el código llega por correo y se escribe acá.
+ *
+ * Bug reportado 2026-07-31: el texto de vencimiento era estático ("válido
+ * por 10 minutos"), fácil de confundir con el cooldown de 30s del botón --
+ * ahora la Edge Function devuelve el vencimiento real (expiraEn) y acá se
+ * muestra una cuenta regresiva real basada en ese dato del servidor.
  */
 export function CampoOtp({ value, onChange }: Props) {
   const solicitar = useSolicitarOtp();
   const [expiraCooldownEn, setExpiraCooldownEn] = useState<number | null>(null);
+  const [expiraCodigoEn, setExpiraCodigoEn] = useState<number | null>(null);
   const [, forzarRender] = useState(0);
 
   useEffect(() => {
-    if (!expiraCooldownEn) return;
+    if (!expiraCooldownEn && !expiraCodigoEn) return;
     const t = setInterval(() => forzarRender((n) => n + 1), 1000);
     return () => clearInterval(t);
-  }, [expiraCooldownEn]);
+  }, [expiraCooldownEn, expiraCodigoEn]);
 
   const restante = expiraCooldownEn ? Math.max(0, Math.ceil((expiraCooldownEn - Date.now()) / 1000)) : 0;
+  const restanteCodigo = expiraCodigoEn ? Math.max(0, Math.floor((expiraCodigoEn - Date.now()) / 1000)) : 0;
 
   function manejarSolicitar() {
     solicitar.mutate(undefined, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         toast.success('Código enviado a tu correo');
         setExpiraCooldownEn(Date.now() + COOLDOWN_MS);
+        setExpiraCodigoEn(data?.expiraEn ? new Date(data.expiraEn).getTime() : null);
       },
       onError: (e) => toast.error(e.message || 'No se pudo enviar el código'),
     });
@@ -65,7 +79,15 @@ export function CampoOtp({ value, onChange }: Props) {
           {restante > 0 ? `Reenviar (${restante}s)` : 'Enviar código'}
         </Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">Te lo enviamos por correo. Válido por 10 minutos.</p>
+      {expiraCodigoEn ? (
+        restanteCodigo > 0 ? (
+          <p className="text-[11px] text-muted-foreground">Válido por {formatearMmSs(restanteCodigo)} más.</p>
+        ) : (
+          <p className="text-[11px] text-destructive">El código venció. Pedí uno nuevo.</p>
+        )
+      ) : (
+        <p className="text-[11px] text-muted-foreground">Te lo enviamos por correo. Válido por 10 minutos.</p>
+      )}
     </div>
   );
 }

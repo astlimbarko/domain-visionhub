@@ -51,6 +51,7 @@ export function useCrearIglesia() {
       iglesiaPadreId,
       tipo,
       pastorUsuarioId,
+      pastorCorreoNuevo,
       pin,
     }: {
       sufijo: string;
@@ -58,8 +59,9 @@ export function useCrearIglesia() {
       iglesiaPadreId: string | null;
       tipo: 'HIJA' | 'SATELITE';
       pastorUsuarioId: string | null;
+      pastorCorreoNuevo: string | null;
       pin?: string;
-    }) => crearIglesia(sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin),
+    }) => crearIglesia(sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'iglesias'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] });
