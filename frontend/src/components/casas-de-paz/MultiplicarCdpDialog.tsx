@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Home, KeyRound, MessageSquareText, Split, UserRound } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { AMBAR, AZUL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { useMiembrosCdp } from '@/hooks/useReporte';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
@@ -101,14 +104,15 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Multiplicar Casa de Paz</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="sr-only">Multiplicar Casa de Paz</DialogTitle>
+          <SeccionIconHeader icon={Split} color={AZUL} titulo="Multiplicar Casa de Paz" />
+          <DialogDescription className="pt-1">
             La Casa de Paz elegida se queda con quien no se mueve. Los que marqués pasan a una Casa de Paz nueva, en la misma red.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto">
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-1.5">
-            <Label>Casa de Paz que se multiplica</Label>
+            <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Casa de Paz que se multiplica</Label>
             <Select value={origenId} onValueChange={elegirOrigen}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Elegí la Casa de Paz" />
@@ -125,15 +129,24 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
 
           {origenId && (
             <div className="flex flex-col gap-1.5">
-              <Label>Se van a la nueva (elegí una o más)</Label>
-              <div className="flex flex-col gap-1 rounded-lg border border-border p-2">
+              <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Se van a la nueva (elegí una o más)</Label>
+              <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-muted/20 p-2">
                 {cargandoMiembros && <p className="px-1.5 py-1 text-sm text-muted-foreground">Cargando...</p>}
                 {!cargandoMiembros && miembros.length === 0 && (
                   <p className="px-1.5 py-1 text-sm text-muted-foreground">Esta Casa de Paz no tiene miembros todavía.</p>
                 )}
                 {miembros.map((m) => (
-                  <label key={m.persona_id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm">
+                  <label
+                    key={m.persona_id}
+                    className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-background/80"
+                  >
                     <Checkbox checked={personaIds.has(m.persona_id)} onCheckedChange={(v) => toggleMiembro(m.persona_id, v === true)} />
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 14%, transparent)` }}
+                    >
+                      <UserRound className="h-3.5 w-3.5" style={{ color: AZUL }} />
+                    </span>
                     {m.nombre_completo}
                   </label>
                 ))}
@@ -143,7 +156,9 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
 
           {origenId && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nombre_cdp_nueva">Nombre de la nueva (opcional)</Label>
+              <Label htmlFor="nombre_cdp_nueva" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <Home className="h-3.5 w-3.5" /> Nombre de la nueva (opcional)
+              </Label>
               <Input
                 id="nombre_cdp_nueva"
                 value={nombreNueva}
@@ -155,7 +170,7 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
 
           {personaIds.size > 0 && (
             <div className="flex flex-col gap-1.5">
-              <Label>Líder de la nueva (opcional)</Label>
+              <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Líder de la nueva (opcional)</Label>
               <Select value={liderNuevoId} onValueChange={setLiderNuevoId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sin líder por ahora" />
@@ -173,8 +188,10 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="motivo_multiplicar_cdp">Motivo (obligatorio)</Label>
+          <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3.5">
+            <Label htmlFor="motivo_multiplicar_cdp" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <MessageSquareText className="h-3.5 w-3.5" /> Motivo (obligatorio)
+            </Label>
             <Textarea
               id="motivo_multiplicar_cdp"
               value={motivo}
@@ -184,8 +201,10 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
           </div>
 
           {esSuperAdmin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pin_multiplicar_cdp">Tu PIN de Super Admin</Label>
+            <div className="flex flex-col gap-1.5 rounded-xl border p-3" style={{ borderColor: `color-mix(in oklab, ${AMBAR} 30%, transparent)`, backgroundColor: `color-mix(in oklab, ${AMBAR} 6%, transparent)` }}>
+              <Label htmlFor="pin_multiplicar_cdp" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase" style={{ color: AMBAR }}>
+                <KeyRound className="h-3.5 w-3.5" /> Tu PIN de Super Admin
+              </Label>
               <Input
                 id="pin_multiplicar_cdp"
                 type="password"
@@ -199,7 +218,8 @@ export function MultiplicarCdpDialog({ open, onOpenChange, cdps, procesando, onM
           )}
         </div>
         <DialogFooter>
-          <Button type="button" onClick={handleMultiplicar} disabled={procesando || !puedeMultiplicar}>
+          <Button type="button" onClick={handleMultiplicar} disabled={procesando || !puedeMultiplicar} className="gap-1.5">
+            <Split className="h-4 w-4" />
             {procesando ? 'Multiplicando...' : 'Multiplicar'}
           </Button>
         </DialogFooter>

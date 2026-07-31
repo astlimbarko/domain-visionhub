@@ -36,8 +36,13 @@ export interface Proximo {
   dias_faltantes: number;
 }
 
+/** `casa_de_paz_id` xor `red_id` -- mismo par mutuamente excluyente que la
+ * constraint `chk_evento_ambito` en la tabla `evento` (13_calendario.sql). Un
+ * evento "de la Red" (creado por su Líder) no cuelga de ninguna CdP puntual;
+ * ya se ve en todas las suyas vía el OR de `fn_eventos_cdp`. */
 export interface NuevoEvento {
-  casa_de_paz_id: string;
+  casa_de_paz_id?: string;
+  red_id?: string;
   tipo_evento_id: string;
   titulo: string;
   descripcion?: string;

@@ -20,6 +20,7 @@ import {
   UserPlus,
   Link2,
   LayoutGrid,
+  Footprints,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
@@ -55,10 +56,19 @@ const RUTAS_LIDER_CDP: string[] = [
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Gestión de Sublíder"
 ];
 
-// Mismo alcance de navegación que el líder real: la restricción del
-// sublíder es de acciones (no puede designar/eliminar sublíderes ni
-// modificar la CdP), no de qué módulos ve. Se aplica en CasasDePaz.tsx.
-const RUTAS_SUBLIDER_CDP: string[] = [...RUTAS_LIDER_CDP];
+// A diferencia del líder real, el sublíder tiene un alcance de navegación
+// más chico -- sin Dashboard ni Historial de Reportes (decisión del owner,
+// 2026-07-31). Además de ver menos módulos, dentro de los que sí ve la
+// restricción es de acciones (no puede designar/eliminar sublíderes ni
+// modificar la CdP, tampoco editar nada de Evangelismo) -- eso se aplica en
+// CasasDePaz.tsx y Evangelismo.tsx, no acá.
+const RUTAS_SUBLIDER_CDP: string[] = [
+  ROUTES.REPORTES,
+  ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
+  ROUTES.CALENDARIO,
+  ROUTES.EVANGELISMO,
+  ROUTES.HISTORIAL_ASISTENCIA,
+];
 
 // El Líder de Red supervisa, no carga reportes: en vez de "Reportes" (el
 // formulario de carga del líder de CdP) + los dos "Historial" sueltos, ve un
@@ -71,6 +81,7 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.CONTROL_REPORTES,
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
+  ROUTES.VISITAS,
 ];
 
 const RUTAS_SUPERVISOR: string[] = [
@@ -131,6 +142,7 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
   { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: '#ff2d55' },
+  { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
   { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#af52de' },

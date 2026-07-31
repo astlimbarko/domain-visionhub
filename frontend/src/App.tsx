@@ -31,6 +31,7 @@ const HistorialReportes = lazy(() => import('@/pages/HistorialReportes').then((m
 const HistorialAsistencia = lazy(() => import('@/pages/HistorialAsistencia').then((m) => ({ default: m.HistorialAsistencia })));
 const Calendario = lazy(() => import('@/pages/Calendario').then((m) => ({ default: m.Calendario })));
 const Evangelismo = lazy(() => import('@/pages/Evangelismo').then((m) => ({ default: m.Evangelismo })));
+const Visitas = lazy(() => import('@/pages/Visitas').then((m) => ({ default: m.Visitas })));
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
 const Departamentos = lazy(() => import('@/pages/Departamentos').then((m) => ({ default: m.Departamentos })));
@@ -155,6 +156,11 @@ function App() {
             <Route path={ROUTES.EVANGELISMO} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.EVANGELISMO)}><Evangelismo /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.VISITAS} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.VISITAS)}><Visitas /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.FINANZAS} element={

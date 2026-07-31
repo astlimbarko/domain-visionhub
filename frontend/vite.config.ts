@@ -13,7 +13,8 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173,
+    port: 5174,
+    strictPort: true,
     watch: {
       // Config explicita en vez de depender solo de la env var
       // CHOKIDAR_USEPOLLING (docker-compose.yml): en Docker Desktop sobre

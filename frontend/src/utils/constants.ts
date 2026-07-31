@@ -14,6 +14,7 @@ export const ROUTES = {
   HISTORIAL_ASISTENCIA: '/historial-asistencia',
   CALENDARIO: '/calendario',
   EVANGELISMO: '/evangelismo',
+  VISITAS: '/visitas',
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',
   DEPARTAMENTOS: '/departamentos',
@@ -40,8 +41,8 @@ export function rutaRegistroPublico(slug: string) {
 }
 
 /**
- * Login con Google: la UI ya está lista, pero requiere credenciales OAuth
- * (Google Cloud Console + Supabase Dashboard) que todavía no están cargadas.
- * Cambiar a true recién cuando esas credenciales estén configuradas.
+ * Login con Google: requiere credenciales OAuth cargadas en Google Cloud
+ * Console + Supabase Dashboard (Auth → Providers → Google) y la URL de
+ * callback del dominio en la whitelist de Redirect URLs.
  */
-export const GOOGLE_AUTH_HABILITADO = false;
+export const GOOGLE_AUTH_HABILITADO = true;

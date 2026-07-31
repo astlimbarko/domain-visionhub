@@ -1,52 +1,39 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Globe2, Plus, Trash2 } from 'lucide-react';
+import { CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Globe2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
+import { MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisRoles } from '@/hooks/useDashboard';
 import {
-  useCrearEvento,
-  useCumpleanosMes,
-  useEliminarEvento,
-  useEventosMes,
-  useMisCasasDePaz,
-  useProximos,
+  useCrearEventoRed,
+  useEliminarEventoRed,
+  useEventosRed,
+  useProximosRed,
   useTiposEvento,
 } from '@/hooks/useCalendario';
 import { CalendarioGrid } from '@/components/calendario/CalendarioGrid';
-import { CalendarioRed } from '@/components/calendario/CalendarioRed';
 import { EventoFormDialog } from '@/components/calendario/EventoFormDialog';
-import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 import { iconoTipoEvento } from '@/utils/tipo-evento-icono';
 
-// Requisito 5.1/5.2: la Mega Fiesta solo la puede crear el Líder de Red o un rol superior.
-// Se cuelga de una red (no de una Casa de Paz) y esta página siempre trabaja en contexto de CdP,
-// así que a un líder/sublíder de CdP ni se le ofrece como opción al crear un evento.
-const ROLES_PUEDEN_MEGA_FIESTA = new Set(['LIDER_RED', 'SUPERVISOR', 'PASTOR', 'SUPER_ADMIN']);
+interface Props {
+  redId: string;
+}
 
-export function Calendario() {
-  const personaId = useAuthStore((s) => s.personaId);
+/**
+ * Calendario a nivel Red: mismo layout que Calendario.tsx (CdP) pero sin
+ * selector de CdP ni cumpleaños (la Red no tiene miembros propios). Todo
+ * evento que el Líder de Red crea acá queda "de la Red" (red_id) y ya
+ * aparece automáticamente en el calendario de cada una de sus CdP -- ver
+ * `fn_eventos_cdp` (13_calendario.sql) y `pol_evento_insert` (16_rls.sql),
+ * que ya soportaban esto antes de que hubiera una pantalla para usarlo.
+ */
+export function CalendarioRed({ redId }: Props) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const rolUI = useRolUI();
-  const { data: roles } = useMisRoles(iglesiaActivaId);
-
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -60,11 +47,10 @@ export function Calendario() {
   const hasta = aISO(new Date(anio, mes + 1, 0));
 
   const { data: tipos = [] } = useTiposEvento(iglesiaActivaId);
-  const { data: eventos = [], isLoading: cargandoEventos, isFetching: actualizandoEventos } = useEventosMes(cdpActiva, desde, hasta, filtroTipoId);
-  const { data: cumpleanos = [] } = useCumpleanosMes(cdpActiva, desde, hasta);
-  const { data: proximos = [] } = useProximos(cdpActiva);
-  const crearEvento = useCrearEvento(cdpActiva);
-  const eliminarEvento = useEliminarEvento(cdpActiva);
+  const { data: eventos = [], isLoading: cargandoEventos, isFetching: actualizandoEventos } = useEventosRed(redId, desde, hasta, filtroTipoId);
+  const { data: proximos = [] } = useProximosRed(redId);
+  const crearEvento = useCrearEventoRed(redId);
+  const eliminarEvento = useEliminarEventoRed(redId);
 
   function manejarEliminarEvento() {
     if (!eventoAEliminar) return;
@@ -86,14 +72,9 @@ export function Calendario() {
     });
   }
 
-  // Requisito 1.1: catálogo sembrado con 8 tipos, incluyendo Cumpleaños — pero
-  // ese es generado (Requisito 4.2), nunca creable como Evento, así que no se
-  // ofrece en el formulario aunque exista como fila en tipo_evento.
-  const tiposCreables = tipos.filter((t) => {
-    if (t.codigo === 'CUMPLEANOS') return false;
-    if (t.codigo === 'MEGA_FIESTA') return rolUI !== null && ROLES_PUEDEN_MEGA_FIESTA.has(rolUI);
-    return true;
-  });
+  // A diferencia del calendario de CdP, acá no hay que filtrar CUMPLEANOS/MEGA_FIESTA
+  // por rol: cualquier tipo creable sirve para un evento "de toda la Red".
+  const tiposCreables = tipos.filter((t) => t.codigo !== 'CUMPLEANOS');
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -115,66 +96,17 @@ export function Calendario() {
     });
   }, [eventos, diaSeleccionado]);
 
-  const cumpleanosDelDiaSeleccionado = useMemo(() => {
-    if (!diaSeleccionado) return [];
-    return cumpleanos.filter((c) => c.fecha_cumpleanos === diaSeleccionado);
-  }, [cumpleanos, diaSeleccionado]);
-
-  // Un Líder de Red puro no es Líder/Sublíder de ninguna CdP propia (misCasas
-  // vacío), así que antes de esa rama caía siempre en el placeholder de abajo
-  // pese a tener "Calendario" en su menú. Acá entra a su propio calendario de
-  // Red -- eventos que fija se ven en todas las CdP de su Red (fn_eventos_cdp
-  // ya los mezclaba; ver CalendarioRed).
-  if (rolUI === 'LIDER_RED') {
-    if (!roles) return <Skeleton className="h-96 w-full rounded-2xl" />;
-    const redId = roles.redes_lider?.[0]?.id;
-    if (!redId) {
-      return (
-        <ProximamentePlaceholder
-          titulo="Calendario"
-          descripcion="Todavía no tenés una Red asignada como líder, así que no hay un calendario que mostrar."
-        />
-      );
-    }
-    return <CalendarioRed redId={redId} />;
-  }
-
-  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
-
-  if (!misCasas || misCasas.length === 0) {
-    return (
-      <ProximamentePlaceholder
-        titulo="Calendario"
-        descripcion="Todavía no tenés una Casa de Paz asignada como líder o sublíder, así que no hay un calendario que mostrar."
-      />
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-end">
         <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
           <Plus className="h-4 w-4" />
-          Nuevo evento
+          Nuevo evento de Red
         </Button>
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-2 sm:pl-4">
         <div className="flex flex-wrap items-center gap-2">
-          {misCasas.length > 1 && (
-            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
-                <SelectValue placeholder="Casa de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                {misCasas.map((c) => (
-                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                    {c.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -187,7 +119,6 @@ export function Calendario() {
           </Button>
         </div>
 
-        {/* Requisito 3.4: filtrar por tipo de evento. Los chips también sirven de leyenda de colores. */}
         {tipos.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -230,7 +161,7 @@ export function Calendario() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarDays} color={MARINO} titulo="Calendario" descripcion={`Eventos de ${nombreMes(anio, mes)}`} />
+          <TarjetaHeader icon={CalendarDays} color={MARINO} titulo="Calendario de la Red" descripcion={`Eventos de ${nombreMes(anio, mes)} visibles en todas tus Casas de Paz`} />
           <div className="p-4">
             {cargandoEventos ? (
               <Skeleton className="h-96 w-full rounded-2xl" />
@@ -239,7 +170,7 @@ export function Calendario() {
                 anio={anio}
                 mes={mes}
                 eventos={eventos}
-                cumpleanos={cumpleanos}
+                cumpleanos={[]}
                 diaSeleccionado={diaSeleccionado}
                 onSeleccionarDia={setDiaSeleccionado}
               />
@@ -252,18 +183,12 @@ export function Calendario() {
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader
                 icon={CalendarDays}
-                color={AZUL}
+                color={MORADO}
                 titulo={fechaLegible(diaSeleccionado)}
-                descripcion={
-                  eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length > 0
-                    ? `${eventosDelDiaSeleccionado.length + cumpleanosDelDiaSeleccionado.length} para hoy`
-                    : 'Sin eventos ni cumpleaños'
-                }
+                descripcion={eventosDelDiaSeleccionado.length > 0 ? `${eventosDelDiaSeleccionado.length} para hoy` : 'Sin eventos'}
               />
               <div className="flex flex-col gap-2.5 p-4">
-                {eventosDelDiaSeleccionado.length === 0 && cumpleanosDelDiaSeleccionado.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Sin eventos ni cumpleaños.</p>
-                )}
+                {eventosDelDiaSeleccionado.length === 0 && <p className="text-sm text-muted-foreground">Sin eventos.</p>}
                 {eventosDelDiaSeleccionado.map((e) => {
                   const Icono = iconoTipoEvento(e.tipo_codigo);
                   return (
@@ -277,12 +202,10 @@ export function Calendario() {
                       <div className="min-w-0 flex-1 pt-0.5">
                         <p className="flex flex-wrap items-center gap-1.5 font-medium">
                           {e.titulo}
-                          {e.ambito === 'RED' && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              <Globe2 className="h-2.5 w-2.5" />
-                              De la Red
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            <Globe2 className="h-2.5 w-2.5" />
+                            De la Red
+                          </span>
                         </p>
                         <p className="text-xs font-medium" style={{ color: e.color }}>
                           {e.tipo_nombre}
@@ -304,71 +227,51 @@ export function Calendario() {
                     </div>
                   );
                 })}
-                {cumpleanosDelDiaSeleccionado.map((c) => (
-                  <div key={c.persona_id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 15%, transparent)` }}>
-                      <Cake className="h-5 w-5" style={{ color: MORADO }} />
-                    </div>
-                    <span className="font-medium">
-                      {c.nombre} <span className="font-normal text-muted-foreground">cumple {c.edad_cumple} años</span>
-                    </span>
-                  </div>
-                ))}
               </div>
             </section>
           )}
 
           <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <TarjetaHeader icon={CalendarClock} color={VERDE} titulo="Próximos" descripcion="Eventos y cumpleaños de los próximos días" />
+            <TarjetaHeader icon={CalendarClock} color={VERDE} titulo="Próximos" descripcion="Eventos de Red de los próximos días" />
             <div className="flex flex-col gap-1.5 p-4">
               {proximos.length === 0 && <p className="text-sm text-muted-foreground">Nada próximo.</p>}
-              {proximos.map((p, i) => {
-                const esCumple = p.clase === 'CUMPLEANOS';
-                const Icono = esCumple ? Cake : CalendarClock;
-                const color = esCumple ? MORADO : VERDE;
-                return (
-                  <div key={i} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1 text-sm transition-colors hover:bg-muted/50">
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: `color-mix(in oklab, ${color} 15%, transparent)` }}
-                      >
-                        <Icono className="h-4 w-4" style={{ color }} />
-                      </span>
-                      <span className="truncate font-medium">{p.titulo}</span>
+              {proximos.map((p, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 rounded-xl px-1.5 py-1 text-sm transition-colors hover:bg-muted/50">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 15%, transparent)` }}>
+                      <CalendarClock className="h-4 w-4" style={{ color: VERDE }} />
                     </span>
-                    <span className="shrink-0 rounded-lg bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
-                      {p.dias_faltantes === 0 ? 'hoy' : `en ${p.dias_faltantes}d`}
-                    </span>
-                  </div>
-                );
-              })}
+                    <span className="truncate font-medium">{p.titulo}</span>
+                  </span>
+                  <span className="shrink-0 rounded-lg bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
+                    {p.dias_faltantes === 0 ? 'hoy' : `en ${p.dias_faltantes}d`}
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         </div>
       </div>
 
-      {cdpActiva && (
-        <EventoFormDialog
-          open={dialogoAbierto}
-          onOpenChange={setDialogoAbierto}
-          tipos={tiposCreables}
-          fechaInicial={diaSeleccionado ?? aISO(hoy)}
-          onCrear={(valores) =>
-            crearEvento.mutateAsync({
-              casa_de_paz_id: cdpActiva,
-              iglesia_id: iglesiaActivaId as string,
-              tipo_evento_id: valores.tipo_evento_id,
-              titulo: valores.titulo,
-              descripcion: valores.descripcion || undefined,
-              fecha_inicio: valores.fecha_inicio,
-              fecha_fin: valores.fecha_fin || undefined,
-              hora_inicio: valores.hora_inicio || undefined,
-              hora_fin: valores.hora_fin || undefined,
-            })
-          }
-        />
-      )}
+      <EventoFormDialog
+        open={dialogoAbierto}
+        onOpenChange={setDialogoAbierto}
+        tipos={tiposCreables}
+        fechaInicial={diaSeleccionado ?? aISO(hoy)}
+        onCrear={(valores) =>
+          crearEvento.mutateAsync({
+            red_id: redId,
+            iglesia_id: iglesiaActivaId as string,
+            tipo_evento_id: valores.tipo_evento_id,
+            titulo: valores.titulo,
+            descripcion: valores.descripcion || undefined,
+            fecha_inicio: valores.fecha_inicio,
+            fecha_fin: valores.fecha_fin || undefined,
+            hora_inicio: valores.hora_inicio || undefined,
+            hora_fin: valores.hora_fin || undefined,
+          })
+        }
+      />
 
       <ConfirmarQuitarDialog
         open={!!eventoAEliminar}

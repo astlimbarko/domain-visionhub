@@ -1,13 +1,17 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarMetaPropia,
+  asignarMetaEvangelismo,
   crearEvangelizado,
+  obtenerEvangelismoRed,
   obtenerEvangelizados,
   obtenerMetaPropia,
+  obtenerMetasCdpRed,
   obtenerTasaEvangelismo,
+  obtenerTasaEvangelismoRed,
   obtenerTiposEvangelismo,
 } from '@/services/evangelismo.service';
-import type { NuevoEvangelizado } from '@/types/evangelismo.types';
+import type { NuevaMetaAsignada, NuevoEvangelizado } from '@/types/evangelismo.types';
 
 export function useTiposEvangelismo(iglesiaId: string | undefined) {
   return useQuery({
@@ -64,6 +68,43 @@ export function useActualizarMetaPropia(casaDePazId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'tasa', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'meta-propia', casaDePazId] });
+    },
+  });
+}
+
+export function useEvangelismoRed(redId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['evangelismo', 'red-lista', redId, desde, hasta],
+    queryFn: () => obtenerEvangelismoRed(redId as string, desde, hasta),
+    enabled: !!redId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useTasaEvangelismoRed(redId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['evangelismo', 'red-tasa', redId, desde, hasta],
+    queryFn: () => obtenerTasaEvangelismoRed(redId as string, desde, hasta),
+    enabled: !!redId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMetasCdpRed(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'red-metas', redId],
+    queryFn: () => obtenerMetasCdpRed(redId as string),
+    enabled: !!redId,
+  });
+}
+
+export function useAsignarMetaEvangelismo(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: NuevaMetaAsignada) => asignarMetaEvangelismo(datos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-metas', redId] });
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-tasa', redId] });
     },
   });
 }

@@ -7,6 +7,7 @@ export async function listarMultiplicacionesCdp(iglesiaId: string): Promise<Mult
   return data ?? [];
 }
 
+// `null` significa "quedó pendiente de autorización del Líder de Red" (ver 58_solicitudes_estructura.sql).
 export async function multiplicarCdp(params: {
   origenId: string;
   nombreNueva?: string;
@@ -14,7 +15,7 @@ export async function multiplicarCdp(params: {
   liderNuevoId?: string;
   motivo: string;
   pin?: string;
-}): Promise<string> {
+}): Promise<string | null> {
   const { data, error } = await supabase.rpc('fn_multiplicar_cdp', {
     p_origen_id: params.origenId,
     p_nombre_nueva: params.nombreNueva ?? null,
@@ -24,7 +25,7 @@ export async function multiplicarCdp(params: {
     p_pin: params.pin ?? null,
   });
   if (error) throw error;
-  return data as string;
+  return data as string | null;
 }
 
 export async function listarMultiplicacionesRed(iglesiaId: string): Promise<MultiplicacionRed[]> {
@@ -33,6 +34,7 @@ export async function listarMultiplicacionesRed(iglesiaId: string): Promise<Mult
   return data ?? [];
 }
 
+// `null` significa "quedó pendiente de autorización del Líder de Red" (ver 58_solicitudes_estructura.sql).
 export async function multiplicarRed(params: {
   origenId: string;
   nombreNueva: string;
@@ -40,7 +42,7 @@ export async function multiplicarRed(params: {
   liderNuevoId?: string;
   motivo: string;
   pin?: string;
-}): Promise<string> {
+}): Promise<string | null> {
   const { data, error } = await supabase.rpc('fn_multiplicar_red', {
     p_origen_id: params.origenId,
     p_nombre_nueva: params.nombreNueva,
@@ -50,5 +52,5 @@ export async function multiplicarRed(params: {
     p_pin: params.pin ?? null,
   });
   if (error) throw error;
-  return data as string;
+  return data as string | null;
 }

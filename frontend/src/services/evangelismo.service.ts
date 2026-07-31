@@ -1,6 +1,16 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
-import type { Evangelizado, MetaPropia, NuevoEvangelizado, TasaEvangelismo, TipoEvangelismo } from '@/types/evangelismo.types';
+import type {
+  Evangelizado,
+  EvangelizadoRed,
+  MetaCdpRed,
+  MetaPropia,
+  NuevaMetaAsignada,
+  NuevoEvangelizado,
+  TasaEvangelismo,
+  TasaEvangelismoRed,
+  TipoEvangelismo,
+} from '@/types/evangelismo.types';
 
 export async function obtenerTiposEvangelismo(iglesiaId: string): Promise<TipoEvangelismo[]> {
   const { data, error } = await supabase
@@ -115,4 +125,44 @@ export async function obtenerMetaPropia(casaDePazId: string): Promise<MetaPropia
   const { data, error } = await supabase.from('casa_de_paz').select('meta_evangelismo').eq('id', casaDePazId).single();
   if (error) throw error;
   return data;
+}
+
+export async function obtenerEvangelismoRed(redId: string, desde: string, hasta: string): Promise<EvangelizadoRed[]> {
+  const { data, error } = await supabase.rpc('fn_evangelismo_red', { p_red_id: redId, p_desde: desde, p_hasta: hasta });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerTasaEvangelismoRed(redId: string, desde: string, hasta: string): Promise<TasaEvangelismoRed> {
+  const { data, error } = await supabase.rpc('fn_tasa_evangelismo_red', { p_red_id: redId, p_desde: desde, p_hasta: hasta });
+  if (error) throw error;
+  return (data?.[0] as TasaEvangelismoRed) ?? { evangelizados: 0, meta_total: 0, cdp_con_meta: 0, cdp_total: 0, tasa: null };
+}
+
+export async function obtenerMetasCdpRed(redId: string): Promise<MetaCdpRed[]> {
+  const { data, error } = await supabase.rpc('fn_metas_cdp_red', { p_red_id: redId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Asigna una meta de evangelismo a una CdP de la Red -- insert directo a
+ * `meta_evangelismo_asignada` (mismo patrón que `guardarDomicilioCdp`): la
+ * política RLS `pol_meta_asignada_insert` (16_rls.sql) ya exige
+ * `fn_es_rol_superior_de_cdp`, que cubre Líder/Sublíder de la Red dueña de
+ * esa CdP, así que no hace falta una RPC de escritura aparte. La constraint
+ * `excl_meta_asignada_solapada` (12_evangelismo.sql) rechaza rangos de fecha
+ * que se solapen con una meta ya asignada vigente para la misma CdP.
+ */
+export async function asignarMetaEvangelismo(datos: NuevaMetaAsignada) {
+  const { error } = await supabase.from('meta_evangelismo_asignada').insert({
+    iglesia_id: datos.iglesiaId,
+    casa_de_paz_id: datos.casaDePazId,
+    asignador_id: datos.asignadorId,
+    meta: datos.meta,
+    fecha_inicio: datos.fechaInicio,
+    fecha_fin: datos.fechaFin,
+    observaciones: datos.observaciones || null,
+  });
+  if (error) throw error;
 }

@@ -222,22 +222,31 @@ export function GestionEstructuraVista() {
       .catch(() => toast.error('No se pudo enviar el enlace'));
   }
 
+  // Mensaje para cuando la acción del Supervisor queda pendiente de la
+  // autorización del Líder de Red en vez de aplicarse al instante (ver
+  // 58_solicitudes_estructura.sql -- el RPC devuelve `null` en ese caso).
+  const MSG_SOLICITUD_ENVIADA = 'Solicitud enviada: el Líder de Red debe autorizarla antes de aplicarse';
+
   function fusionarVariosCdp(origenIds: string[], destinoId: string, motivo: string, pin?: string) {
     (async () => {
+      let algunaPendiente = false;
       for (const origenId of origenIds) {
-        await fusionarCdp.mutateAsync({ origenId, destinoId, motivo, pin });
+        const resultado = await fusionarCdp.mutateAsync({ origenId, destinoId, motivo, pin });
+        if (resultado === null) algunaPendiente = true;
       }
-      toast.success('Fusión realizada');
+      toast.success(algunaPendiente ? MSG_SOLICITUD_ENVIADA : 'Fusión realizada');
       setMostrarFusionarCdp(false);
     })().catch((e) => manejarError(e, 'No se pudo fusionar'));
   }
 
   function fusionarVariasRedes(origenIds: string[], destinoId: string, motivo: string, pin?: string) {
     (async () => {
+      let algunaPendiente = false;
       for (const origenId of origenIds) {
-        await fusionarRed.mutateAsync({ origenId, destinoId, motivo, pin });
+        const resultado = await fusionarRed.mutateAsync({ origenId, destinoId, motivo, pin });
+        if (resultado === null) algunaPendiente = true;
       }
-      toast.success('Fusión realizada');
+      toast.success(algunaPendiente ? MSG_SOLICITUD_ENVIADA : 'Fusión realizada');
       setMostrarFusionarRed(false);
     })().catch((e) => manejarError(e, 'No se pudo fusionar'));
   }
@@ -251,8 +260,8 @@ export function GestionEstructuraVista() {
     pin?: string;
   }) {
     multiplicarCdp.mutate(params, {
-      onSuccess: () => {
-        toast.success('Casa de Paz multiplicada');
+      onSuccess: (resultado) => {
+        toast.success(resultado === null ? MSG_SOLICITUD_ENVIADA : 'Casa de Paz multiplicada');
         setMostrarMultiplicarCdp(false);
       },
       onError: (e) => manejarError(e, 'No se pudo multiplicar'),
@@ -268,8 +277,8 @@ export function GestionEstructuraVista() {
     pin?: string;
   }) {
     multiplicarRed.mutate(params, {
-      onSuccess: () => {
-        toast.success('Red multiplicada');
+      onSuccess: (resultado) => {
+        toast.success(resultado === null ? MSG_SOLICITUD_ENVIADA : 'Red multiplicada');
         setMostrarMultiplicarRed(false);
       },
       onError: (e) => manejarError(e, 'No se pudo multiplicar'),
@@ -281,13 +290,13 @@ export function GestionEstructuraVista() {
     const cargo = cargos.find((c) => c.codigo === dialogoRed.codigo);
     if (!cargo) return;
     try {
-      await asignarCargoRed.mutateAsync({
+      const { pendiente } = await asignarCargoRed.mutateAsync({
         redId: dialogoRed.redId,
         personaId: persona.id,
         codigo: dialogoRed.codigo,
         cargoId: cargo.id,
       });
-      toast.success(`${persona.nombre_completo} asignado`);
+      toast.success(pendiente ? MSG_SOLICITUD_ENVIADA : `${persona.nombre_completo} asignado`);
     } catch (e) {
       manejarError(e, 'No se pudo asignar el cargo');
     }
@@ -298,13 +307,13 @@ export function GestionEstructuraVista() {
     const cargo = cargos.find((c) => c.codigo === dialogoCdp.codigo);
     if (!cargo) return;
     try {
-      await asignarCargoCdp.mutateAsync({
+      const { pendiente } = await asignarCargoCdp.mutateAsync({
         cdpId: dialogoCdp.cdpId,
         personaId: persona.id,
         codigo: dialogoCdp.codigo,
         cargoId: cargo.id,
       });
-      toast.success(`${persona.nombre_completo} asignado`);
+      toast.success(pendiente ? MSG_SOLICITUD_ENVIADA : `${persona.nombre_completo} asignado`);
     } catch (e) {
       manejarError(e, 'No se pudo asignar el cargo');
     }
