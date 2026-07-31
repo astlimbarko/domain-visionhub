@@ -200,10 +200,12 @@ export function determinarRolUI(
 
 /**
  * Metadata para mostrar un RolUI como opción elegible (pantalla "Seleccionar rol"
- * y el menú "Cambiar rol"). SUPER_ADMIN queda deliberadamente afuera: nunca es
- * una opción elegible, conserva su atajo directo a Administración.
+ * y el menú "Cambiar rol"). Un Super Admin puede además tener roles operativos
+ * (decisión del owner, 2026-07-31: ninguna cuenta está limitada a un solo rol) --
+ * cuando eso pasa, SUPER_ADMIN aparece como una opción más del picker.
  */
 export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIcon; color: string }>> = {
+  SUPER_ADMIN: { label: 'Super Admin', icon: ShieldCheck, color: '#0a4174' },
   PASTOR: { label: 'Pastor', icon: HeartHandshake, color: 'var(--brand-navy)' },
   SUPERVISOR: { label: 'Supervisor', icon: Settings, color: '#0071e3' },
   LIDER_RED: { label: 'Líder de Red', icon: Users, color: '#5856d6' },
@@ -218,11 +220,13 @@ export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIco
  * todos sus sombreros posibles, no solo el de mayor jerarquía.
  */
 export function calcularOpcionesRolUI(
+  esSuperAdmin: boolean,
   esPastor: boolean,
   esOperativo: boolean,
   roles: MisRolesDashboard | undefined,
 ): RolUI[] {
   const opciones: RolUI[] = [];
+  if (esSuperAdmin) opciones.push('SUPER_ADMIN');
   if (esPastor) opciones.push('PASTOR');
   if (esOperativo) opciones.push('SUPERVISOR');
   if (roles?.redes_lider?.length) opciones.push('LIDER_RED');

@@ -20,6 +20,7 @@ export interface OpcionRol {
 
 /** `undefined` mientras se cargan los roles; `[]`/`[x]`/`[x,y,...]` una vez resueltos. */
 export function useOpcionesRol(): OpcionRol[] | undefined {
+  const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const iglesias = useAuthStore((s) => s.iglesias);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const iglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId);
@@ -27,9 +28,16 @@ export function useOpcionesRol(): OpcionRol[] | undefined {
   const esOperativo = iglesiaActiva?.es_operativo ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId ?? undefined);
 
+  // Super Admin sin ninguna iglesia activa (nada que desambiguar): su único
+  // sombrero posible es el propio, sin depender de useMisRoles.
+  if (esSuperAdmin && !iglesiaActivaId) {
+    const meta = ROL_UI_META.SUPER_ADMIN;
+    return meta ? [{ rolUI: 'SUPER_ADMIN', ...meta }] : [];
+  }
+
   if (isLoading || !roles) return undefined;
 
-  return calcularOpcionesRolUI(esPastor, esOperativo, roles)
+  return calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles)
     .map((rolUI) => {
       const meta = ROL_UI_META[rolUI];
       return meta ? { rolUI, ...meta } : null;

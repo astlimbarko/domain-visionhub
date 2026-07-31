@@ -12,16 +12,14 @@ export function SeleccionarRol() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const setRolActivo = useAuthStore((s) => s.setRolActivo);
   const logout = useAuthStore((s) => s.logout);
   const opciones = useOpcionesRol();
 
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
-  // SuperAdmin nunca elige rol -- si llegó acá por URL directa, a su atajo.
-  if (esSuperAdmin) return <Navigate to={ROUTES.ADMINISTRACION} replace />;
-  // Blindaje contra acceso directo por URL: sin ambigüedad no hay nada que elegir.
+  // Blindaje contra acceso directo por URL: sin ambigüedad no hay nada que elegir
+  // (esto ya cubre al Super Admin sin otros roles: Dashboard lo manda a Administración).
   if (opciones && opciones.length <= 1) return <Navigate to={ROUTES.DASHBOARD} replace />;
 
   function elegir(rolUI: RolUI) {
