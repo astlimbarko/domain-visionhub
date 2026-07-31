@@ -9,14 +9,32 @@ export async function obtenerDashboardSuperAdmin(): Promise<DashboardSuperAdmin>
 }
 
 export async function obtenerIglesiasTodas(): Promise<IglesiaAdmin[]> {
-  const { data, error } = await supabase.from('iglesia').select('id, nombre, sufijo, ciudad, correo, activo').order('nombre');
+  const { data, error } = await supabase
+    .from('iglesia')
+    .select('id, nombre, sufijo, ciudad, correo, activo, tipo, iglesia_padre_id')
+    .order('nombre');
   if (error) throw error;
   return data ?? [];
 }
 
-export async function crearIglesia(sufijo: string, ciudad: string, pin?: string): Promise<void> {
-  const { error } = await supabase.rpc('fn_crear_iglesia', { p_sufijo: sufijo, p_ciudad: ciudad, p_pin: pin ?? null });
+export async function crearIglesia(
+  sufijo: string,
+  ciudad: string,
+  iglesiaPadreId: string | null,
+  tipo: 'HIJA' | 'SATELITE',
+  pastorUsuarioId: string | null,
+  pin?: string
+): Promise<{ id: string }> {
+  const { data, error } = await supabase.rpc('fn_crear_iglesia', {
+    p_sufijo: sufijo,
+    p_ciudad: ciudad,
+    p_iglesia_padre_id: iglesiaPadreId,
+    p_tipo: tipo,
+    p_pastor_usuario_id: pastorUsuarioId,
+    p_pin: pin ?? null,
+  });
   if (error) throw error;
+  return { id: data as string };
 }
 
 export async function actualizarIglesia(

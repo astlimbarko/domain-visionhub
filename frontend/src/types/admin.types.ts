@@ -18,6 +18,8 @@ export interface IglesiaAdmin {
   ciudad: string;
   correo: string | null;
   activo: boolean;
+  tipo: 'HIJA' | 'SATELITE';
+  iglesia_padre_id: string | null;
 }
 
 export interface ResultadoInvitacion {

@@ -32,8 +32,25 @@ export function useUsuarios(iglesiaId: string | undefined) {
 export function useCrearIglesia() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sufijo, ciudad, pin }: { sufijo: string; ciudad: string; pin?: string }) => crearIglesia(sufijo, ciudad, pin),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'iglesias'] }),
+    mutationFn: ({
+      sufijo,
+      ciudad,
+      iglesiaPadreId,
+      tipo,
+      pastorUsuarioId,
+      pin,
+    }: {
+      sufijo: string;
+      ciudad: string;
+      iglesiaPadreId: string | null;
+      tipo: 'HIJA' | 'SATELITE';
+      pastorUsuarioId: string | null;
+      pin?: string;
+    }) => crearIglesia(sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'iglesias'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] });
+    },
   });
 }
 

@@ -257,7 +257,11 @@ export function Administracion() {
               <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{i.nombre}</p>
-                  <p className="truncate text-sm text-muted-foreground">{i.ciudad}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {i.ciudad}
+                    {i.iglesia_padre_id &&
+                      ` · ${i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'} de ${iglesias.find((p) => p.id === i.iglesia_padre_id)?.nombre ?? '—'}`}
+                  </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {!i.activo && <Badge variant="outline">Inactiva</Badge>}
@@ -340,19 +344,29 @@ export function Administracion() {
       <CrearIglesiaDialog
         open={mostrarCrearIglesia}
         onOpenChange={setMostrarCrearIglesia}
+        iglesias={iglesias}
+        usuariosExistentes={usuarios}
         creando={crearIglesia.isPending}
-        onCrear={(sufijo, ciudad, pin) =>
-          crearIglesia.mutate(
-            { sufijo, ciudad, pin },
-            {
-              onSuccess: () => {
-                toast.success('Iglesia creada');
-                setMostrarCrearIglesia(false);
-              },
-              onError: (e) => manejarError(e, 'No se pudo crear la iglesia'),
-            }
-          )
-        }
+        invitandoPastor={invitarUsuario.isPending}
+        onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin) => {
+          try {
+            const resultado = await crearIglesia.mutateAsync({ sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin });
+            toast.success(pastorUsuarioId ? 'Iglesia creada y Pastor asignado' : 'Iglesia creada');
+            return resultado;
+          } catch (e) {
+            manejarError(e, 'No se pudo crear la iglesia');
+            throw e;
+          }
+        }}
+        onInvitarPastor={async (correo, iglesiaId, pin) => {
+          try {
+            await invitarUsuario.mutateAsync({ correo, rol: 'PASTOR', iglesiaId, pin });
+            toast.success(`Pastor invitado a ${correo}`);
+          } catch (e) {
+            manejarError(e, 'No se pudo invitar al Pastor');
+            throw e;
+          }
+        }}
       />
 
       <EditarIglesiaDialog
