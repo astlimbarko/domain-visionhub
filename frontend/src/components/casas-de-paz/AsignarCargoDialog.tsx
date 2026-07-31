@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { CampoOtp } from '@/components/shared/CampoOtp';
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -28,6 +30,13 @@ interface Props {
   invitable?: boolean;
   invitando?: boolean;
   onInvitar?: (correo: string) => void;
+  /** OTP opcional (2026-08-01, Gestión de Redes): cuando se pasa
+   * `onPinChange`, elegir persona o invitar por correo queda detrás de un
+   * paso de confirmación con código, en vez de aplicarse al instante --
+   * mismo componente, sin afectar a quien no lo necesita (Departamentos,
+   * Casas de Paz). */
+  pin?: string;
+  onPinChange?: (valor: string) => void;
 }
 
 export function AsignarCargoDialog({
@@ -44,12 +53,32 @@ export function AsignarCargoDialog({
   invitable = false,
   invitando = false,
   onInvitar,
+  pin,
+  onPinChange,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
+  const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
+
+  const requiereOtp = onPinChange !== undefined;
+  const pinValido = !requiereOtp || /^[0-9]{6}$/.test(pin ?? '');
+
+  function manejarSeleccionPersona(persona: PersonaBusqueda) {
+    if (requiereOtp) {
+      setPersonaElegida(persona);
+    } else {
+      onAsignar(persona);
+    }
+  }
+
+  function confirmarAsignacion() {
+    if (!personaElegida || !pinValido) return;
+    onAsignar(personaElegida);
+    setPersonaElegida(null);
+  }
 
   function enviarInvitacion() {
-    if (!onInvitar || !correoInvitar.trim()) return;
+    if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
     onInvitar(correoInvitar.trim().toLowerCase());
     setCorreoInvitar('');
   }
@@ -88,7 +117,7 @@ export function AsignarCargoDialog({
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
-                onClick={() => setModo('buscar')}
+                onClick={() => { setModo('buscar'); setPersonaElegida(null); }}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 ${
                   modo === 'buscar' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                 }`}
@@ -98,7 +127,7 @@ export function AsignarCargoDialog({
               </button>
               <button
                 type="button"
-                onClick={() => setModo('invitar')}
+                onClick={() => { setModo('invitar'); setPersonaElegida(null); }}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 ${
                   modo === 'invitar' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                 }`}
@@ -110,11 +139,20 @@ export function AsignarCargoDialog({
           )}
 
           {modo === 'buscar' && (
-            <BuscadorPersona
-              iglesiaId={iglesiaId}
-              excluirIds={vigentes.map((v) => v.persona_id)}
-              onSeleccionar={onAsignar}
-            />
+            personaElegida ? (
+              <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                <span className="truncate">{personaElegida.nombre_completo}</span>
+                <button type="button" onClick={() => setPersonaElegida(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <BuscadorPersona
+                iglesiaId={iglesiaId}
+                excluirIds={vigentes.map((v) => v.persona_id)}
+                onSeleccionar={manejarSeleccionPersona}
+              />
+            )
           )}
 
           {modo === 'invitar' && invitable && (
@@ -123,19 +161,17 @@ export function AsignarCargoDialog({
                 Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
                 primera vez va a tener que completar el formulario de membresía antes de ver su panel.
               </p>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  value={correoInvitar}
-                  onChange={(e) => setCorreoInvitar(e.target.value)}
-                />
-                <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim()}>
-                  {invitando && <Spinner className="h-3.5 w-3.5" />}
-                  {invitando ? 'Enviando...' : 'Invitar'}
-                </Button>
-              </div>
+              <Input
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={correoInvitar}
+                onChange={(e) => setCorreoInvitar(e.target.value)}
+              />
             </div>
+          )}
+
+          {requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
+            <CampoOtp value={pin ?? ''} onChange={onPinChange} />
           )}
 
           {asignando && (
@@ -145,6 +181,21 @@ export function AsignarCargoDialog({
             </p>
           )}
         </div>
+
+        {(modo === 'invitar' ? invitable : !!personaElegida) && (
+          <DialogFooter>
+            {modo === 'buscar' ? (
+              <Button type="button" onClick={confirmarAsignacion} disabled={asignando || !personaElegida || !pinValido}>
+                {asignando ? 'Asignando...' : 'Confirmar'}
+              </Button>
+            ) : (
+              <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                {invitando && <Spinner className="h-3.5 w-3.5" />}
+                {invitando ? 'Enviando...' : 'Invitar'}
+              </Button>
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   completarMembresia,
   invitarLider,
+  obtenerInvitacionesDepartamento,
   obtenerInvitacionesLider,
   obtenerMiInvitacionPendiente,
   reenviarInvitacionLider,
@@ -24,13 +25,28 @@ export function useInvitarLider() {
       rol,
       redId,
       casaDePazId,
+      departamentoId,
+      pin,
     }: {
       correo: string;
-      rol: RolInvitable;
+      rol: RolInvitable | null;
       redId: string | null;
       casaDePazId: string | null;
-    }) => invitarLider(correo, rol, redId, casaDePazId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] }),
+      departamentoId?: string | null;
+      pin?: string;
+    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });
+    },
+  });
+}
+
+export function useInvitacionesDepartamento(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'invitaciones-departamento', iglesiaId],
+    queryFn: () => obtenerInvitacionesDepartamento(iglesiaId as string),
+    enabled: !!iglesiaId,
   });
 }
 

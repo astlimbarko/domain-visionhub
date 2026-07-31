@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   Home,
-  Sparkles,
   ClipboardList,
   ClipboardCheck,
   History,
@@ -19,7 +18,9 @@ import {
   ShieldCheck,
   UserPlus,
   Link2,
+  LayoutGrid,
   Footprints,
+  Network,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
@@ -87,7 +88,6 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
-  ROUTES.MINISTERIOS,
   ROUTES.REPORTES,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
@@ -95,6 +95,8 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.EVANGELISMO,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
+  ROUTES.DEPARTAMENTOS,
+  ROUTES.GESTION_REDES,
 ];
 
 // Pastor = solo supervisión y consulta (Dashboard + Reportes globales).
@@ -134,7 +136,6 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Perfil de Casa de Paz', SUBLIDER_CDP: 'Perfil de Casa de Paz' } },
   { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
-  { icon: Sparkles, label: 'Ministerios', path: ROUTES.MINISTERIOS, color: '#30b0c7' },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
@@ -143,6 +144,8 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
+  { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#af52de' },
+  { icon: Network, label: 'Gestión de Redes', path: ROUTES.GESTION_REDES, color: '#5e5ce6' },
   { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 
@@ -197,10 +200,12 @@ export function determinarRolUI(
 
 /**
  * Metadata para mostrar un RolUI como opción elegible (pantalla "Seleccionar rol"
- * y el menú "Cambiar rol"). SUPER_ADMIN queda deliberadamente afuera: nunca es
- * una opción elegible, conserva su atajo directo a Administración.
+ * y el menú "Cambiar rol"). Un Super Admin puede además tener roles operativos
+ * (decisión del owner, 2026-07-31: ninguna cuenta está limitada a un solo rol) --
+ * cuando eso pasa, SUPER_ADMIN aparece como una opción más del picker.
  */
 export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIcon; color: string }>> = {
+  SUPER_ADMIN: { label: 'Super Admin', icon: ShieldCheck, color: '#0a4174' },
   PASTOR: { label: 'Pastor', icon: HeartHandshake, color: 'var(--brand-navy)' },
   SUPERVISOR: { label: 'Supervisor', icon: Settings, color: '#0071e3' },
   LIDER_RED: { label: 'Líder de Red', icon: Users, color: '#5856d6' },
@@ -215,11 +220,13 @@ export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIco
  * todos sus sombreros posibles, no solo el de mayor jerarquía.
  */
 export function calcularOpcionesRolUI(
+  esSuperAdmin: boolean,
   esPastor: boolean,
   esOperativo: boolean,
   roles: MisRolesDashboard | undefined,
 ): RolUI[] {
   const opciones: RolUI[] = [];
+  if (esSuperAdmin) opciones.push('SUPER_ADMIN');
   if (esPastor) opciones.push('PASTOR');
   if (esOperativo) opciones.push('SUPERVISOR');
   if (roles?.redes_lider?.length) opciones.push('LIDER_RED');

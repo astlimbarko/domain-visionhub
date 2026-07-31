@@ -22,6 +22,8 @@ const CHUNK_POR_RUTA: Partial<Record<string, () => Promise<unknown>>> = {
   [ROUTES.EVANGELISMO]: () => import('@/pages/Evangelismo'),
   [ROUTES.FINANZAS]: () => import('@/pages/Finanzas'),
   [ROUTES.PANEL_SUPERVISOR]: () => import('@/pages/PanelSupervisor'),
+  [ROUTES.DEPARTAMENTOS]: () => import('@/pages/Departamentos'),
+  [ROUTES.GESTION_REDES]: () => import('@/pages/GestionRedes'),
   [ROUTES.ADMINISTRACION]: () => import('@/pages/Administracion'),
 };
 

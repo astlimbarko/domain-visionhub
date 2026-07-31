@@ -19,11 +19,11 @@ export function useRolUI(): RolUI | null {
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
 
   // Si todavía no tenemos los roles del backend, no podemos determinar
-  // el rol UI (excepto para SuperAdmin que no necesita iglesia).
-  if (esSuperAdmin) return 'SUPER_ADMIN';
-  if (!roles) return null;
+  // el rol UI -- excepto para Super Admin, que resuelve a su atajo mientras
+  // tanto (si además tiene otros roles, la línea de abajo lo desambigua).
+  if (!roles) return esSuperAdmin ? 'SUPER_ADMIN' : null;
 
-  const opciones = calcularOpcionesRolUI(esPastor, esOperativo, roles);
+  const opciones = calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles);
 
   // Caso unívoco (el más común): mismo comportamiento de siempre.
   if (opciones.length <= 1) return determinarRolUI(esSuperAdmin, esPastor, esOperativo, roles);

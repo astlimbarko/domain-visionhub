@@ -23,8 +23,10 @@ export default {
       rol?: string;
       redId?: string | null;
       casaDePazId?: string | null;
+      departamentoId?: string | null;
       invitacionId?: string;
       redirectTo?: string;
+      pin?: string;
     };
     try {
       body = await req.json();
@@ -53,30 +55,43 @@ export default {
     }
 
     const correo = body.correo?.trim().toLowerCase();
-    const rol = body.rol;
+    const rol = body.rol ?? null;
     const redId = body.redId ?? null;
     const casaDePazId = body.casaDePazId ?? null;
+    const departamentoId = body.departamentoId ?? null;
 
     if (!correo || !correo.includes("@")) {
       return Response.json({ error: "Correo invalido" }, { status: 400 });
     }
-    if (!rol || !ROLES_VALIDOS.includes(rol)) {
-      return Response.json({ error: "Rol invalido" }, { status: 400 });
-    }
-    if (rol === "LIDER_RED" && !redId) {
-      return Response.json({ error: "Falta la red" }, { status: 400 });
-    }
-    if (rol !== "LIDER_RED" && !casaDePazId) {
-      return Response.json({ error: "Falta la casa de paz" }, { status: 400 });
+    if (!departamentoId) {
+      if (!rol || !ROLES_VALIDOS.includes(rol)) {
+        return Response.json({ error: "Rol invalido" }, { status: 400 });
+      }
+      if (rol === "LIDER_RED" && !redId) {
+        return Response.json({ error: "Falta la red" }, { status: 400 });
+      }
+      if (rol !== "LIDER_RED" && !casaDePazId) {
+        return Response.json({ error: "Falta la casa de paz" }, { status: 400 });
+      }
     }
 
     const { data: puedeInvitar, error: errorPermiso } = await ctx.supabase.rpc("fn_puede_invitar_lider", {
       p_rol: rol,
       p_red_id: redId,
       p_casa_de_paz_id: casaDePazId,
+      p_departamento_id: departamentoId,
     });
     if (errorPermiso || !puedeInvitar) {
       return Response.json({ error: "No tenes permiso para invitar aqui" }, { status: 403 });
+    }
+
+    // Designar Lider de Red es delicado (pedido del owner, 2026-08-01):
+    // siempre exige codigo de confirmacion, sin importar quien invite.
+    if (rol === "LIDER_RED") {
+      const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_verificar_otp", { p_codigo: body.pin ?? null });
+      if (errorOtp || !otpOk) {
+        return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
+      }
     }
 
     const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
@@ -102,6 +117,7 @@ export default {
       p_rol: rol,
       p_red_id: redId,
       p_casa_de_paz_id: casaDePazId,
+      p_departamento_id: departamentoId,
     });
     if (errorInvitar) {
       return Response.json({ error: errorInvitar.message }, { status: 500 });

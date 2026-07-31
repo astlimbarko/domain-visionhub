@@ -15,6 +15,19 @@ export default defineConfig({
     host: true,
     port: 5174,
     strictPort: true,
+    watch: {
+      // Config explicita en vez de depender solo de la env var
+      // CHOKIDAR_USEPOLLING (docker-compose.yml): en Docker Desktop sobre
+      // Windows, el bind mount (./frontend:/app) no siempre propaga los
+      // eventos nativos de fs.watch al contenedor -- el proceso de Vite se
+      // queda "ciego" a los cambios hasta que se reinicia a mano. Con
+      // polling explicito, Vite revisa el mtime de los archivos por
+      // intervalo en vez de esperar un evento del SO: funciona igual en
+      // Docker, WSL2 o nativo, sin depender de que la env var se propague
+      // bien en cada arranque del contenedor.
+      usePolling: true,
+      interval: 300,
+    },
   },
   build: {
     rolldownOptions: {

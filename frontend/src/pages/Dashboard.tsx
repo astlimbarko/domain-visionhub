@@ -57,6 +57,15 @@ export function Dashboard() {
     });
   }
 
+  // Super Admin no tiene panel operativo en ninguna iglesia (rol tecnico,
+  // 40_acotar_super_admin.sql) -- entra directo a su pantalla real en vez de
+  // pasar por el Dashboard generico y ver "sin panel asignado" primero
+  // (15-gestion-administrativa, Panel 2). rolUI resuelve a SUPER_ADMIN sin
+  // esperar el fetch de roles, asi que este chequeo va antes del loading gate.
+  if (rolUI === 'SUPER_ADMIN') {
+    return <Navigate to={ROUTES.ADMINISTRACION} replace />;
+  }
+
   if (isLoading || !roles) {
     return (
       <div className="flex flex-col gap-6">

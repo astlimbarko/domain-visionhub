@@ -1,10 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Building2, LayoutGrid, Settings2, Wallet } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Settings2, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -14,15 +10,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AMBAR, AZUL, MARINO, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
+import { AZUL, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useCambiarMonedaDefecto,
   useMonedasActivas,
   usePanelConfiguracion,
-  useRenombrarIglesia,
   useSetConfiguracion,
-  useToggleDepartamento,
 } from '@/hooks/usePanelSupervisor';
 import { ConfiguracionRow } from '@/components/panel-supervisor/ConfiguracionRow';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
@@ -40,6 +34,13 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
   REGISTRO: 'Registro público por URL',
 };
 
+/**
+ * Panel del Supervisor -- solo configuración general (moneda, toggles de
+ * funcionalidad). Nombre de la iglesia y Departamentos (2026-08-01, pedido
+ * del owner) se sacaron de acá: renombrar la iglesia no está disponible para
+ * el Supervisor por ahora, y la gestión de Departamentos vive en su propio
+ * menú dedicado ("Departamentos").
+ */
 export function PanelSupervisor() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
@@ -47,12 +48,7 @@ export function PanelSupervisor() {
   const { data: panel, isLoading } = usePanelConfiguracion(iglesiaActivaId);
   const { data: monedas } = useMonedasActivas(iglesiaActivaId);
   const setConfig = useSetConfiguracion(iglesiaActivaId);
-  const toggleDepto = useToggleDepartamento(iglesiaActivaId);
   const cambiarMoneda = useCambiarMonedaDefecto(iglesiaActivaId);
-  const renombrar = useRenombrarIglesia(iglesiaActivaId);
-
-  const [prefijoIglesia, setPrefijoIglesia] = useState('');
-  const [sufijoIglesia, setSufijoIglesia] = useState('');
 
   // Como Super Admin, cada cambio pide el PIN antes de aplicarse -- se
   // pausa la funcion async hasta que el dialogo se confirme o se cancele.
@@ -72,36 +68,6 @@ export function PanelSupervisor() {
   async function handleGuardar(codigo: string, valor: string) {
     const pin = await pedirPin();
     await setConfig.mutateAsync({ codigo, valor, pin });
-  }
-
-  async function handleToggleDepto(departamentoId: string, activo: boolean) {
-    try {
-      const pin = await pedirPin();
-      await toggleDepto.mutateAsync({ departamentoId, activo, pin });
-    } catch {
-      toast.error('No se pudo actualizar el departamento');
-    }
-  }
-
-  useEffect(() => {
-    if (panel) {
-      setPrefijoIglesia(panel.iglesia.prefijo);
-      setSufijoIglesia(panel.iglesia.sufijo);
-    }
-  }, [panel]);
-
-  const nombreSinCambios =
-    prefijoIglesia.trim() === panel?.iglesia.prefijo && sufijoIglesia.trim() === panel?.iglesia.sufijo;
-
-  async function handleRenombrar() {
-    if (!prefijoIglesia.trim() || !sufijoIglesia.trim() || nombreSinCambios) return;
-    try {
-      const pin = await pedirPin();
-      await renombrar.mutateAsync({ prefijo: prefijoIglesia.trim(), sufijo: sufijoIglesia.trim(), pin });
-      toast.success('Nombre de la iglesia actualizado.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'No se pudo renombrar la iglesia');
-    }
   }
 
   async function handleCambiarMoneda(monedaId: string) {
@@ -132,33 +98,6 @@ export function PanelSupervisor() {
       <p className="text-sm text-muted-foreground">{panel.advertencia}</p>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader
-          icon={Building2}
-          color={MARINO}
-          titulo="Nombre de la iglesia"
-          descripcion={`Se muestra como "${prefijoIglesia || '…'} ${sufijoIglesia || '…'}".`}
-        />
-        <div className="flex flex-col gap-2 p-5 sm:flex-row sm:items-end">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Prefijo</Label>
-            <Input value={prefijoIglesia} onChange={(e) => setPrefijoIglesia(e.target.value)} />
-          </div>
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Sufijo</Label>
-            <Input value={sufijoIglesia} onChange={(e) => setSufijoIglesia(e.target.value)} />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={renombrar.isPending || !prefijoIglesia.trim() || !sufijoIglesia.trim() || nombreSinCambios}
-            onClick={handleRenombrar}
-          >
-            {renombrar.isPending ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Wallet} color={TEAL} titulo="Moneda por defecto" descripcion="Solo afecta a los ingresos nuevos." />
         <div className="p-5">
           <Select
@@ -176,26 +115,6 @@ export function PanelSupervisor() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader
-          icon={LayoutGrid}
-          color={AMBAR}
-          titulo="Departamentos"
-          descripcion="Desactivar oculta el departamento de los dashboards; conserva el histórico."
-        />
-        <div className="flex flex-col gap-3 p-5">
-          {panel.departamentos.map((d) => (
-            <div key={d.id} className="flex items-center justify-between">
-              <Label className="text-sm text-foreground">{d.nombre}</Label>
-              <Switch
-                checked={d.activo}
-                onCheckedChange={(checked) => handleToggleDepto(d.id, checked)}
-              />
-            </div>
-          ))}
         </div>
       </section>
 

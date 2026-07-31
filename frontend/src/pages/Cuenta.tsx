@@ -3,13 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Lock, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Circle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, MORADO } from '@/components/dashboard/DashboardUI';
-import { establecerContrasena, establecerPin, obtenerCorreoActual, tengoPin } from '@/services/auth.service';
+import { AZUL } from '@/components/dashboard/DashboardUI';
+import { establecerContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
 const REQUISITOS_CONTRASENA = [
@@ -33,31 +33,20 @@ const esquemaContrasena = z
   })
   .refine((v) => v.contrasena === v.confirmar, { message: 'No coinciden', path: ['confirmar'] });
 type FormContrasena = z.infer<typeof esquemaContrasena>;
-const esquemaPin = z.object({ pin: z.string().regex(/^[0-9]{6}$/, '6 dígitos'), confirmarPin: z.string() }).refine((v) => v.pin === v.confirmarPin, { message: 'No coinciden', path: ['confirmarPin'] });
-type FormPin = z.infer<typeof esquemaPin>;
 
 export function Cuenta() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
-  const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const [correo, setCorreo] = useState<string | null>(null);
-  const [tienePin, setTienePin] = useState<boolean | null>(null);
   const [enviandoContrasena, setEnviandoContrasena] = useState(false);
-  const [enviandoPin, setEnviandoPin] = useState(false);
   const formContrasena = useForm<FormContrasena>({ resolver: zodResolver(esquemaContrasena) });
-  const formPin = useForm<FormPin>({ resolver: zodResolver(esquemaPin) });
   const nuevaContrasena = formContrasena.watch('contrasena') ?? '';
 
-  useEffect(() => { obtenerCorreoActual().then(setCorreo); if (esSuperAdmin) tengoPin().then(setTienePin); }, [esSuperAdmin]);
+  useEffect(() => { obtenerCorreoActual().then(setCorreo); }, []);
 
   async function onSubmitContrasena(datos: FormContrasena) {
     setEnviandoContrasena(true);
     try { await establecerContrasena(datos.contrasena); toast.success('Contraseña actualizada'); formContrasena.reset(); }
     catch { toast.error('Error'); } finally { setEnviandoContrasena(false); }
-  }
-  async function onSubmitPin(datos: FormPin) {
-    setEnviandoPin(true);
-    try { await establecerPin(datos.pin); toast.success(tienePin ? 'PIN actualizado' : 'PIN configurado'); setTienePin(true); formPin.reset(); }
-    catch { toast.error('Error'); } finally { setEnviandoPin(false); }
   }
 
   const inputCls = "h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus-visible:bg-background";
@@ -101,17 +90,6 @@ export function Cuenta() {
           <Button type="submit" disabled={enviandoContrasena} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoContrasena ? 'Guardando...' : 'Guardar'}</Button>
         </form>
       </section>
-
-      {esSuperAdmin && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={ShieldCheck} color={MORADO} titulo="PIN de Super Admin" descripcion="Se pide en cada cambio de configuración sensible" />
-          <form onSubmit={formPin.handleSubmit(onSubmitPin)} className="flex flex-col gap-3 p-5">
-            <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{tienePin ? 'PIN nuevo' : 'PIN'} (6 dígitos)</Label><Input type="password" inputMode="numeric" maxLength={6} className={inputCls} {...formPin.register('pin')} onChange={(e) => formPin.setValue('pin', e.target.value.replace(/\D/g, '').slice(0, 6))} />{formPin.formState.errors.pin && <p className="text-[11px] text-destructive">{formPin.formState.errors.pin.message}</p>}</div>
-            <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><Input type="password" inputMode="numeric" maxLength={6} className={inputCls} {...formPin.register('confirmarPin')} onChange={(e) => formPin.setValue('confirmarPin', e.target.value.replace(/\D/g, '').slice(0, 6))} />{formPin.formState.errors.confirmarPin && <p className="text-[11px] text-destructive">{formPin.formState.errors.confirmarPin.message}</p>}</div>
-            <Button type="submit" disabled={enviandoPin} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoPin ? 'Guardando...' : tienePin ? 'Cambiar' : 'Configurar'}</Button>
-          </form>
-        </section>
-      )}
     </div>
   );
 }
