@@ -15,7 +15,8 @@ export async function invitarLider(
   rol: RolInvitable | null,
   redId: string | null,
   casaDePazId: string | null,
-  departamentoId: string | null = null
+  departamentoId: string | null = null,
+  pin?: string
 ): Promise<{ id: string; correo: string }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
@@ -25,6 +26,7 @@ export async function invitarLider(
       redId,
       casaDePazId,
       departamentoId,
+      pin,
       redirectTo: `${window.location.origin}/completar-cuenta`,
     },
   });

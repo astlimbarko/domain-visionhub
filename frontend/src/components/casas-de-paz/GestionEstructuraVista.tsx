@@ -19,13 +19,11 @@ import {
   useCargos,
   useCdps,
   useCrearCdp,
-  useCrearRed,
   useEliminarCdp,
   useQuitarCargoCdp,
   useQuitarCargoRed,
   useRedes,
   useToggleActivoCdp,
-  useToggleActivoRed,
 } from '@/hooks/useCasasDePaz';
 import {
   useDeshacerFusionCdp,
@@ -43,7 +41,6 @@ import {
 } from '@/hooks/useMultiplicacion';
 import { useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
-import { CrearRedDialog } from '@/components/casas-de-paz/CrearRedDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { FusionarRedDialog } from '@/components/casas-de-paz/FusionarRedDialog';
@@ -84,7 +81,6 @@ export function GestionEstructuraVista() {
   const esSublider = useRolUI() === 'SUBLIDER_CDP';
 
   const [redSeleccionadaId, setRedSeleccionadaId] = useState<string>();
-  const [mostrarCrearRed, setMostrarCrearRed] = useState(false);
   const [mostrarCrearCdp, setMostrarCrearCdp] = useState(false);
   const [mostrarFusionarCdp, setMostrarFusionarCdp] = useState(false);
   const [mostrarFusionarRed, setMostrarFusionarRed] = useState(false);
@@ -105,8 +101,6 @@ export function GestionEstructuraVista() {
   const { data: multiplicacionesCdp = [] } = useMultiplicacionesCdp(iglesiaActivaId);
   const { data: multiplicacionesRed = [] } = useMultiplicacionesRed(iglesiaActivaId);
 
-  const crearRed = useCrearRed(iglesiaActivaId);
-  const toggleActivoRed = useToggleActivoRed();
   const crearCdp = useCrearCdp(iglesiaActivaId);
   const toggleActivoCdp = useToggleActivoCdp();
   const eliminarCdp = useEliminarCdp();
@@ -169,17 +163,6 @@ export function GestionEstructuraVista() {
     } else {
       toast.error(generico);
     }
-  }
-
-  function manejarInvitarRed(correo: string) {
-    if (!dialogoRed) return;
-    invitarLider.mutate(
-      { correo, rol: 'LIDER_RED', redId: dialogoRed.redId, casaDePazId: null },
-      {
-        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
-        onError: (e) => manejarError(e, 'No se pudo invitar'),
-      }
-    );
   }
 
   function manejarInvitarCdp(correo: string) {
@@ -326,13 +309,7 @@ export function GestionEstructuraVista() {
           icon={Network}
           color={MARINO}
           titulo="Redes"
-          descripcion="Estructura de Redes de la iglesia"
-          accion={
-            <Button size="sm" className="gap-1.5" onClick={() => setMostrarCrearRed(true)}>
-              <Plus className="h-4 w-4" />
-              Red
-            </Button>
-          }
+          descripcion="Estructura de Redes de la iglesia. Crear/desactivar Redes y designar Líder vive en Gestión de Redes."
         />
         <div className="flex flex-col gap-3 p-5">
           {cargandoRedes && <Skeleton className="h-32 w-full" />}
@@ -358,13 +335,6 @@ export function GestionEstructuraVista() {
                 )}
               </button>
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialogoRed({ redId: red.id, codigo: 'LIDER_RED', titulo: `Líder de ${red.nombre}`, exclusivo: true })}
-                >
-                  Líder
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -400,18 +370,6 @@ export function GestionEstructuraVista() {
                 >
                   Enc. Ministerio
                 </Button>
-                <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-                  Activa
-                  <Switch
-                    checked={red.activo}
-                    onCheckedChange={(activo) =>
-                      toggleActivoRed.mutate(
-                        { redId: red.id, activo },
-                        { onError: (e) => manejarError(e, 'No se pudo cambiar el estado de la red') }
-                      )
-                    }
-                  />
-                </label>
               </div>
             </div>
           ))}
@@ -714,21 +672,6 @@ export function GestionEstructuraVista() {
         </div>
       </section>
 
-      <CrearRedDialog
-        open={mostrarCrearRed}
-        onOpenChange={setMostrarCrearRed}
-        creando={crearRed.isPending}
-        onCrear={(nombre) =>
-          crearRed.mutate(nombre, {
-            onSuccess: () => {
-              toast.success('Red creada');
-              setMostrarCrearRed(false);
-            },
-            onError: (e) => manejarError(e, 'No se pudo crear la red'),
-          })
-        }
-      />
-
       <CrearCdpDialog
         open={mostrarCrearCdp}
         onOpenChange={setMostrarCrearCdp}
@@ -762,9 +705,6 @@ export function GestionEstructuraVista() {
           asignando={asignarCargoRed.isPending}
           onAsignar={manejarAsignarRed}
           onQuitar={(id) => quitarCargoRed.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
-          invitable={dialogoRed.codigo === 'LIDER_RED'}
-          invitando={invitarLider.isPending}
-          onInvitar={manejarInvitarRed}
         />
       )}
 

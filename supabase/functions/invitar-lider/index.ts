@@ -26,6 +26,7 @@ export default {
       departamentoId?: string | null;
       invitacionId?: string;
       redirectTo?: string;
+      pin?: string;
     };
     try {
       body = await req.json();
@@ -82,6 +83,15 @@ export default {
     });
     if (errorPermiso || !puedeInvitar) {
       return Response.json({ error: "No tenes permiso para invitar aqui" }, { status: 403 });
+    }
+
+    // Designar Lider de Red es delicado (pedido del owner, 2026-08-01):
+    // siempre exige codigo de confirmacion, sin importar quien invite.
+    if (rol === "LIDER_RED") {
+      const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_verificar_otp", { p_codigo: body.pin ?? null });
+      if (errorOtp || !otpOk) {
+        return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
+      }
     }
 
     const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {

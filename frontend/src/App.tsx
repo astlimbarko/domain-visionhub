@@ -35,6 +35,7 @@ const Visitas = lazy(() => import('@/pages/Visitas').then((m) => ({ default: m.V
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
 const Departamentos = lazy(() => import('@/pages/Departamentos').then((m) => ({ default: m.Departamentos })));
+const GestionRedes = lazy(() => import('@/pages/GestionRedes').then((m) => ({ default: m.GestionRedes })));
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
 const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
@@ -176,6 +177,11 @@ function App() {
             <Route path={ROUTES.DEPARTAMENTOS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.DEPARTAMENTOS)}><Departamentos /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.GESTION_REDES} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.GESTION_REDES)}><GestionRedes /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.ADMINISTRACION} element={

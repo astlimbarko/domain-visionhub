@@ -26,13 +26,15 @@ export function useInvitarLider() {
       redId,
       casaDePazId,
       departamentoId,
+      pin,
     }: {
       correo: string;
       rol: RolInvitable | null;
       redId: string | null;
       casaDePazId: string | null;
       departamentoId?: string | null;
-    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null),
+      pin?: string;
+    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });

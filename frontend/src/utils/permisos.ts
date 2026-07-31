@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   Home,
-  Sparkles,
   ClipboardList,
   ClipboardCheck,
   History,
@@ -21,6 +20,7 @@ import {
   Link2,
   LayoutGrid,
   Footprints,
+  Network,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
@@ -88,7 +88,6 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
-  ROUTES.MINISTERIOS,
   ROUTES.REPORTES,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
@@ -97,6 +96,7 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
+  ROUTES.GESTION_REDES,
 ];
 
 // Pastor = solo supervisión y consulta (Dashboard + Reportes globales).
@@ -136,7 +136,6 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Perfil de Casa de Paz', SUBLIDER_CDP: 'Perfil de Casa de Paz' } },
   { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
-  { icon: Sparkles, label: 'Ministerios', path: ROUTES.MINISTERIOS, color: '#30b0c7' },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
@@ -146,6 +145,7 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
   { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#af52de' },
+  { icon: Network, label: 'Gestión de Redes', path: ROUTES.GESTION_REDES, color: '#5e5ce6' },
   { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 

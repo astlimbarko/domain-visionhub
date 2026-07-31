@@ -18,6 +18,7 @@ export const ROUTES = {
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',
   DEPARTAMENTOS: '/departamentos',
+  GESTION_REDES: '/gestion-redes',
   CUENTA: '/cuenta',
   ADMINISTRACION: '/administracion',
   // Paneles minimos de 15-gestion-administrativa (Panel 3/4, 2026-07-31):
