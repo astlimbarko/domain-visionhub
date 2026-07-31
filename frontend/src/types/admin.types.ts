@@ -22,6 +22,15 @@ export interface IglesiaAdmin {
   iglesia_padre_id: string | null;
 }
 
+/** Resultado de fn_buscar_cuentas -- gente que ya tiene alguna cuenta en el
+ * sistema (cualquier rol), para la Opción 1 del alta de doble vía. Más
+ * liviano que UsuarioListado a propósito: solo lo necesario para elegir a
+ * quién asignarle un cargo nuevo. */
+export interface CuentaBusqueda {
+  usuario_id: string;
+  correo: string;
+}
+
 export interface ResultadoInvitacion {
   id: string;
   correo: string;

@@ -21,7 +21,8 @@ import { CampoOtp } from '@/components/shared/CampoOtp';
 import { SelectorCiudad } from '@/components/admin/SelectorCiudad';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
-import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
+import { useBuscarCuentas } from '@/hooks/useAdmin';
+import type { CuentaBusqueda, IglesiaAdmin } from '@/types/admin.types';
 
 type TipoIglesia = 'HIJA' | 'SATELITE';
 type ModoPastor = 'ninguno' | 'buscar' | 'invitar';
@@ -30,7 +31,6 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   iglesias: IglesiaAdmin[];
-  usuariosExistentes: UsuarioListado[];
   creando: boolean;
   invitandoPastor: boolean;
   onCrear: (
@@ -57,7 +57,6 @@ export function CrearIglesiaDialog({
   open,
   onOpenChange,
   iglesias,
-  usuariosExistentes,
   creando,
   invitandoPastor,
   onCrear,
@@ -74,7 +73,7 @@ export function CrearIglesiaDialog({
 
   const [modoPastor, setModoPastor] = useState<ModoPastor>('ninguno');
   const [busquedaPastor, setBusquedaPastor] = useState('');
-  const [pastorElegido, setPastorElegido] = useState<UsuarioListado | null>(null);
+  const [pastorElegido, setPastorElegido] = useState<CuentaBusqueda | null>(null);
   const [correoPastor, setCorreoPastor] = useState('');
 
   // Paso 2: la iglesia ya se creó, falta invitar al Pastor por correo.
@@ -84,10 +83,8 @@ export function CrearIglesiaDialog({
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
   const pin2Valido = !esSuperAdmin || /^[0-9]{6}$/.test(pin2);
 
-  const resultadosBusqueda =
-    modoPastor === 'buscar' && busquedaPastor.trim().length >= 2
-      ? usuariosExistentes.filter((u) => u.correo.toLowerCase().includes(busquedaPastor.trim().toLowerCase())).slice(0, 6)
-      : [];
+  // Alta de doble vía (REQ-C-1): busca entre TODAS las cuentas existentes.
+  const { data: resultadosBusqueda = [] } = useBuscarCuentas(modoPastor === 'buscar' ? busquedaPastor : '');
 
   const puedeCrear =
     sufijo.trim() &&
@@ -294,7 +291,7 @@ export function CrearIglesiaDialog({
                       ) : (
                         resultadosBusqueda.map((u) => (
                           <button
-                            key={u.usuario_rol_id}
+                            key={u.usuario_id}
                             type="button"
                             onClick={() => setPastorElegido(u)}
                             className="rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"

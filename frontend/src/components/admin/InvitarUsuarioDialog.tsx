@@ -19,8 +19,9 @@ import {
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
+import { useBuscarCuentas } from '@/hooks/useAdmin';
 import type { RolSistema } from '@/types/auth.types';
-import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
+import type { CuentaBusqueda, IglesiaAdmin } from '@/types/admin.types';
 
 // El Super Admin es un rol tecnico: solo puede crear otros Super Admin y el
 // Pastor/Supervisor de cada iglesia. Lideres de Red/CdP se asignan desde
@@ -36,9 +37,6 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   iglesias: IglesiaAdmin[];
-  /** Alta de doble vía (15-gestion-administrativa, REQ-C-1/C-2): quien ya
-   * tiene cuenta en el sistema no necesita una invitación nueva. */
-  usuariosExistentes: UsuarioListado[];
   invitando: boolean;
   asignando: boolean;
   onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
@@ -49,7 +47,6 @@ export function InvitarUsuarioDialog({
   open,
   onOpenChange,
   iglesias,
-  usuariosExistentes,
   invitando,
   asignando,
   onInvitar,
@@ -59,7 +56,7 @@ export function InvitarUsuarioDialog({
   const [modo, setModo] = useState<'invitar' | 'buscar'>('invitar');
   const [correo, setCorreo] = useState('');
   const [busqueda, setBusqueda] = useState('');
-  const [usuarioElegido, setUsuarioElegido] = useState<UsuarioListado | null>(null);
+  const [usuarioElegido, setUsuarioElegido] = useState<CuentaBusqueda | null>(null);
   const [rol, setRol] = useState<RolSistema | ''>('');
   const [iglesiaId, setIglesiaId] = useState('');
   const [pin, setPin] = useState('');
@@ -68,10 +65,9 @@ export function InvitarUsuarioDialog({
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
   const procesando = invitando || asignando;
 
-  const resultadosBusqueda =
-    modo === 'buscar' && busqueda.trim().length >= 2
-      ? usuariosExistentes.filter((u) => u.correo.toLowerCase().includes(busqueda.trim().toLowerCase())).slice(0, 6)
-      : [];
+  // Alta de doble vía (REQ-C-1/C-2): busca entre TODAS las cuentas
+  // existentes (cualquier rol) -- no solo cargos administrativos.
+  const { data: resultadosBusqueda = [] } = useBuscarCuentas(modo === 'buscar' ? busqueda : '');
 
   const puedeEnviar =
     modo === 'invitar'
@@ -164,16 +160,12 @@ export function InvitarUsuarioDialog({
                       ) : (
                         resultadosBusqueda.map((u) => (
                           <button
-                            key={u.usuario_rol_id}
+                            key={u.usuario_id}
                             type="button"
                             onClick={() => setUsuarioElegido(u)}
-                            className="flex flex-col items-start rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            className="rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
                           >
-                            <span className="truncate font-medium">{u.correo}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {u.rol}
-                              {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
-                            </span>
+                            {u.correo}
                           </button>
                         ))
                       )}

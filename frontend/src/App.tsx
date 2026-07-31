@@ -34,6 +34,7 @@ const Evangelismo = lazy(() => import('@/pages/Evangelismo').then((m) => ({ defa
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
+const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
@@ -91,6 +92,16 @@ function App() {
               cuando hay ambigüedad de rol, así que esta ruta no puede depender de
               PrivateLayout para su propio guard (se autoprotege con isAuthenticated). */}
           <Route path={ROUTES.SELECCIONAR_ROL} element={<SeleccionarRol />} />
+
+          {/* Paneles minimos de gestion (15-gestion-administrativa, Panel 3/4,
+              2026-07-31): sin sidebar/AppShell a proposito -- solo funcionalidad
+              de crear, se autoprotegen con isAuthenticated igual que
+              SeleccionarRol. Estetica pendiente para una sesion posterior. */}
+          <Route path={ROUTES.PASTOR_GESTION} element={
+            <Suspense fallback={<CargandoPagina />}>
+              <PastorGestion />
+            </Suspense>
+          } />
 
           <Route element={<PrivateLayout />}>
             {/* Dashboard: accesible para todos los roles */}

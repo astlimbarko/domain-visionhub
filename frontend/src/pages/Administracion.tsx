@@ -345,7 +345,6 @@ export function Administracion() {
         open={mostrarCrearIglesia}
         onOpenChange={setMostrarCrearIglesia}
         iglesias={iglesias}
-        usuariosExistentes={usuarios}
         creando={crearIglesia.isPending}
         invitandoPastor={invitarUsuario.isPending}
         onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pin) => {
@@ -406,7 +405,6 @@ export function Administracion() {
         open={mostrarInvitar}
         onOpenChange={setMostrarInvitar}
         iglesias={iglesias}
-        usuariosExistentes={usuarios}
         invitando={invitarUsuario.isPending}
         asignando={asignarUsuarioExistente.isPending}
         onInvitar={(correo, rol, iglesiaId, pin) =>

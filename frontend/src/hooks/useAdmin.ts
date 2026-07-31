@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarIglesia,
   actualizarUsuarioRol,
+  buscarCuentas,
   crearIglesia,
   crearUsuarioRol,
   eliminarIglesia,
@@ -26,6 +27,18 @@ export function useUsuarios(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'usuarios', iglesiaId ?? 'todas'],
     queryFn: () => obtenerUsuarios(iglesiaId),
+  });
+}
+
+/** Opción 1 del alta de doble vía (REQ-C-1): busca entre TODAS las cuentas
+ * que ya existen (cualquier rol), no solo las administrativas -- a
+ * diferencia de useUsuarios, que sólo lista cargos de Super Admin/Pastor/
+ * Supervisor. */
+export function useBuscarCuentas(busqueda: string) {
+  return useQuery({
+    queryKey: ['admin', 'buscar-cuentas', busqueda],
+    queryFn: () => buscarCuentas(busqueda.trim()),
+    enabled: busqueda.trim().length >= 2,
   });
 }
 

@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import type { RolSistema } from '@/types/auth.types';
-import type { DashboardSuperAdmin, IglesiaAdmin, ResultadoInvitacion, UsuarioListado } from '@/types/admin.types';
+import type { CuentaBusqueda, DashboardSuperAdmin, IglesiaAdmin, ResultadoInvitacion, UsuarioListado } from '@/types/admin.types';
+
+export async function buscarCuentas(busqueda: string): Promise<CuentaBusqueda[]> {
+  const { data, error } = await supabase.rpc('fn_buscar_cuentas', { p_busqueda: busqueda });
+  if (error) throw error;
+  return data ?? [];
+}
 
 export async function obtenerDashboardSuperAdmin(): Promise<DashboardSuperAdmin> {
   const { data, error } = await supabase.rpc('fn_dashboard_super_admin');
