@@ -84,14 +84,18 @@ cualquiera del equipo) retoma con `claude --continue`, el archivo del día
 ya refleja el estado real — nunca debe quedar desactualizado esperando que
 alguien se acuerde de escribirlo después.
 
-### Comportamiento actual (2026-07-30)
+### Comportamiento actual (actualizado 2026-08-01)
 
-Por ahora **solo se documenta lo que hace Gonzalo** (el owner, confirmado
-en esta sesión) — es la única identidad conocida hoy. Todo lo de arriba
-sobre Matías/Daniel queda como **la regla a seguir cuando ellos empiecen a
-usar Claude Code**, no como algo ya aplicado. No crear archivos vacíos
-`matias.md`/`daniel.md` de antemano — se crean el primer día real que esa
-persona trabaje, después de preguntarle su nombre si hiciera falta.
+**Matías ya está trabajando activamente en el proyecto con Claude Code**
+(confirmado por el owner) — la regla de arriba ya le aplica a él también
+desde ahora, no es algo a futuro. Si en una sesión no es obvio que quien
+escribe es Matías, preguntarle el nombre antes de escribir en la bitácora,
+igual que con cualquiera. **Daniel se incorpora al equipo recién alrededor
+del 2026-08-08** (una semana después de esta nota) — hasta esa fecha no
+va a haber entradas suyas, es esperado; la regla le empieza a aplicar
+desde su primer día real trabajando en el proyecto, no antes. No crear
+archivos vacíos `matias.md`/`daniel.md` de antemano — se crean el primer
+día real que esa persona trabaje.
 
 ---
 
