@@ -8,8 +8,13 @@ import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearRedSupervisorDialog } from '@/components/casas-de-paz/CrearRedSupervisorDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
-import { useCargoVigenteRed, useQuitarCargoRed, useRedes } from '@/hooks/useCasasDePaz';
-import { useAsignarLiderRedSupervisor, useCrearRedSupervisor, useDesactivarRedSupervisor } from '@/hooks/useGestionRedes';
+import { useCargoVigenteRed, useRedes } from '@/hooks/useCasasDePaz';
+import {
+  useAsignarLiderRedSupervisor,
+  useCrearRedSupervisor,
+  useDesactivarRedSupervisor,
+  useQuitarLiderRedSupervisor,
+} from '@/hooks/useGestionRedes';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
 import { useAuthStore } from '@/store/auth.store';
 import type { RedResumen } from '@/types/casas-de-paz.types';
@@ -47,7 +52,7 @@ export function GestionRedes() {
   const invitarLider = useInvitarLider();
 
   const { data: vigentesLider = [], isLoading: cargandoVigentesLider } = useCargoVigenteRed(redLiderDialogo?.id, 'LIDER_RED');
-  const quitarCargoRed = useQuitarCargoRed();
+  const quitarLiderRed = useQuitarLiderRedSupervisor();
 
   async function handleAsignarLider(persona: { id: string; nombre_completo: string }) {
     if (!redLiderDialogo) return;
@@ -165,7 +170,13 @@ export function GestionRedes() {
           cargandoVigentes={cargandoVigentesLider}
           asignando={asignarLider.isPending}
           onAsignar={handleAsignarLider}
-          onQuitar={(id) => quitarCargoRed.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
+          onQuitar={(id, pin) =>
+            quitarLiderRed.mutate(
+              { id, pin },
+              { onSuccess: () => setPinLider(''), onError: (e) => manejarError(e, 'No se pudo quitar el cargo') }
+            )
+          }
+          quitando={quitarLiderRed.isPending}
           invitable
           invitando={invitarLider.isPending}
           onInvitar={handleInvitarLider}

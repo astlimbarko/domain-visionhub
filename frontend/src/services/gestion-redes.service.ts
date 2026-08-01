@@ -50,3 +50,17 @@ export async function asignarLiderRedSupervisor(redId: string, personaId: string
   if (error) throw error;
   return data as string;
 }
+
+/**
+ * Quitar Líder de Red, con OTP (75_otp_baja_cargo_departamento_red.sql,
+ * 2026-08-01): dedicada a este panel -- NO usa quitarCargoRed
+ * (casas-de-paz.service.ts), que sigue siendo la autogestión sin PIN del
+ * propio Líder de Red en GestionEstructuraVista.tsx/GestionRedVista.tsx.
+ */
+export async function quitarLiderRedSupervisor(cargoAsignacionId: string, pin?: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_quitar_lider_red_supervisor', {
+    p_cargo_id: cargoAsignacionId,
+    p_pin: pin ?? null,
+  });
+  if (error) throw error;
+}

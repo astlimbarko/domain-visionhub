@@ -73,7 +73,12 @@ export default {
         subject: "Su código de confirmación",
         html: armarHtml(codigo),
       });
-    } catch (_e) {
+    } catch (e) {
+      // Antes esto se descartaba en silencio -- si Brevo rechaza o
+      // throttlea el envio, no quedaba ningun rastro para diagnosticar
+      // (incidente 2026-07-31, correos que nunca llegaron sin causa
+      // confirmada). console.error va a los logs de la Edge Function.
+      console.error("solicitar-otp: fallo el envio por Brevo SMTP", e);
       return Response.json({ error: "No se pudo enviar el correo" }, { status: 500 });
     }
 

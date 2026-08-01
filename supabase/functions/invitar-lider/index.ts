@@ -85,9 +85,11 @@ export default {
       return Response.json({ error: "No tenes permiso para invitar aqui" }, { status: 403 });
     }
 
-    // Designar Lider de Red es delicado (pedido del owner, 2026-08-01):
-    // siempre exige codigo de confirmacion, sin importar quien invite.
-    if (rol === "LIDER_RED") {
+    // Designar Lider de Red o Lider de Departamento es delicado (pedido del
+    // owner, 2026-08-01): siempre exige codigo de confirmacion, sin importar
+    // quien invite. LIDER_CDP/SUBLIDER_CDP quedan afuera a proposito (area
+    // de Matias, mismo hallazgo pendiente de que el lo aplique ahi).
+    if (rol === "LIDER_RED" || departamentoId) {
       const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_verificar_otp", { p_codigo: body.pin ?? null });
       if (errorOtp || !otpOk) {
         return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
