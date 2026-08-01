@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { obtenerUrlBase } from '@/utils/app-url';
 
 async function extraerError(error: unknown): Promise<Error> {
   const contexto = (error as { context?: Response }).context;
@@ -29,7 +30,7 @@ export async function crearRedSupervisor(
       liderPersonaId,
       liderCorreoNuevo,
       pin,
-      redirectTo: `${window.location.origin}/completar-cuenta`,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });
   if (error) throw await extraerError(error);

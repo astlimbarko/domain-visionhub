@@ -36,6 +36,7 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { TEAL, AZUL, MORADO, AMBAR } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
+import { obtenerUrlBase } from '@/utils/app-url';
 import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -182,7 +183,7 @@ export function GestionRedVista() {
     reenviarInvitacionLider.mutate(id, { onSuccess: () => toast.success('Invitación reenviada'), onError: (e) => manejarError(e, 'No se pudo reenviar') });
   }
   function manejarRestablecer(correo: string) {
-    solicitarRecuperacionContrasena(correo, `${window.location.origin}${ROUTES.COMPLETAR_CUENTA}`)
+    solicitarRecuperacionContrasena(correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`)
       .then(() => toast.success(`Enlace enviado a ${correo}`))
       .catch(() => toast.error('No se pudo enviar el enlace'));
   }

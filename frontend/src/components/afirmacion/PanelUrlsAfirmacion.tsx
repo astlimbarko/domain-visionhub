@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { rutaRegistroPublico } from '@/utils/constants';
+import { obtenerUrlBase } from '@/utils/app-url';
 import { useSetEstadoUrlsAfirmacion, useUrlsAfirmacion } from '@/hooks/useAfirmacion';
 import type { CasaPazUrlAfirmacion, EstadoUrl } from '@/types/afirmacion.types';
 
@@ -95,7 +96,7 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
   }
 
   function copiarUrl(slug: string) {
-    const url = `${window.location.origin}${rutaRegistroPublico(slug)}`;
+    const url = `${obtenerUrlBase()}${rutaRegistroPublico(slug)}`;
     navigator.clipboard.writeText(url).then(
       () => toast.success('Enlace copiado.'),
       () => toast.error('No se pudo copiar el enlace.'),

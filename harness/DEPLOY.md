@@ -70,6 +70,7 @@ en realidad es un sitio estático.
 
 ## 4. Checklist para desplegar en un hosting compartido nuevo
 
+- [ ] Confirmar que existe `frontend/.env.production` con `VITE_APP_URL=https://app.somoscdv.com` (gitignoreado como el resto de los `.env*`, hay que crearlo a mano en la máquina donde se compila -- ver `.env.example`). **Sin este archivo, los enlaces de invitación/recuperación de contraseña pueden mandar a la persona a `www.somoscdv.com` en vez de `app.somoscdv.com`** (bug real, 2026-08-01: ver `visionhub-mensaje-matias-otp-cargo` / bitácora del mismo día). Con `VITE_APP_URL` seteada, todos esos enlaces usan siempre ese dominio fijo, sin importar desde cuál de los dos estaba la persona que hizo la acción.
 - [ ] Generar el build (local o con el Node del hosting, solo para este paso): `cd frontend && npm install && npm run build`
 - [ ] Subir **únicamente** el contenido de `frontend/dist/` a la carpeta pública del hosting (ej. `public_html/`)
 - [ ] Confirmar que `.htaccess` quedó incluido (ya se copia solo desde `frontend/public/.htaccess` en cada build, resuelve las rutas de React Router)

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { obtenerUrlBase } from '@/utils/app-url';
 import type { RolSistema } from '@/types/auth.types';
 import type { CuentaBusqueda, DashboardSuperAdmin, IglesiaAdmin, ResultadoInvitacion, UsuarioListado } from '@/types/admin.types';
 
@@ -41,7 +42,7 @@ export async function crearIglesia(
       pastorUsuarioId,
       pastorCorreoNuevo,
       pin,
-      redirectTo: `${window.location.origin}/completar-cuenta`,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });
   if (error) {
@@ -94,7 +95,7 @@ export async function invitarUsuario(
       rol,
       iglesiaId,
       pin,
-      redirectTo: `${window.location.origin}/completar-cuenta`,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });
   if (error) {
