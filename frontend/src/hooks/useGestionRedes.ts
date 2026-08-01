@@ -3,6 +3,7 @@ import {
   asignarLiderRedSupervisor,
   crearRedSupervisor,
   desactivarRedSupervisor,
+  quitarLiderRedSupervisor,
 } from '@/services/gestion-redes.service';
 
 function useInvalidarRedes() {
@@ -41,6 +42,14 @@ export function useAsignarLiderRedSupervisor() {
   return useMutation({
     mutationFn: ({ redId, personaId, pin }: { redId: string; personaId: string; pin?: string }) =>
       asignarLiderRedSupervisor(redId, personaId, pin),
+    onSuccess: invalidar,
+  });
+}
+
+export function useQuitarLiderRedSupervisor() {
+  const invalidar = useInvalidarRedes();
+  return useMutation({
+    mutationFn: ({ id, pin }: { id: string; pin?: string }) => quitarLiderRedSupervisor(id, pin),
     onSuccess: invalidar,
   });
 }

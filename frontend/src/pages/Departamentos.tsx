@@ -25,9 +25,21 @@ interface Props {
   invitacionPendiente?: { id: string; correo: string };
 }
 
+function manejarErrorCargo(e: unknown, generico: string) {
+  const mensaje = e instanceof Error ? e.message : '';
+  if (mensaje.includes('PIN_INCORRECTO')) {
+    toast.error('El código de confirmación es incorrecto, expiró, o no fue solicitado');
+  } else if (mensaje) {
+    toast.error(mensaje);
+  } else {
+    toast.error(generico);
+  }
+}
+
 function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacionPendiente }: Props) {
   const meta = DEPARTAMENTO_META[departamento.codigo] ?? { verbo: departamento.nombre, color: '#8e8e93' };
   const [mostrarDialogo, setMostrarDialogo] = useState(false);
+  const [pin, setPin] = useState('');
 
   const { data: cargos = [] } = useCargos();
   const cargoLiderDepartamento = cargos.find((c) => c.codigo === 'LIDER_DEPARTAMENTO');
@@ -40,19 +52,33 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
   async function handleAsignar(persona: { id: string; nombre_completo: string }) {
     if (!cargoLiderDepartamento) return;
     try {
-      await asignarCargo.mutateAsync({ departamentoId: departamento.id, personaId: persona.id, cargoId: cargoLiderDepartamento.id });
+      await asignarCargo.mutateAsync({ departamentoId: departamento.id, personaId: persona.id, cargoId: cargoLiderDepartamento.id, pin });
       toast.success(`${persona.nombre_completo} asignado`);
-    } catch {
-      toast.error('No se pudo asignar el líder');
+      setPin('');
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo asignar el líder');
     }
   }
 
   function handleInvitar(correo: string) {
     invitarLider.mutate(
-      { correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id },
+      { correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id, pin },
       {
-        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
-        onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo invitar'),
+        onSuccess: () => {
+          toast.success(`Invitación enviada a ${correo}`);
+          setPin('');
+        },
+        onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
+      }
+    );
+  }
+
+  function handleQuitar(id: string, pinQuitar?: string) {
+    quitarCargo.mutate(
+      { id, pin: pinQuitar ?? '' },
+      {
+        onSuccess: () => setPin(''),
+        onError: (e) => manejarErrorCargo(e, 'No se pudo quitar el cargo'),
       }
     );
   }
@@ -126,7 +152,10 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
       {mostrarDialogo && (
         <AsignarCargoDialog
           open={mostrarDialogo}
-          onOpenChange={setMostrarDialogo}
+          onOpenChange={(abierto) => {
+            setMostrarDialogo(abierto);
+            if (!abierto) setPin('');
+          }}
           titulo={`Líder de ${departamento.nombre}`}
           exclusivo
           iglesiaId={iglesiaActivaId}
@@ -134,10 +163,13 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
           cargandoVigentes={cargandoVigentes}
           asignando={asignarCargo.isPending}
           onAsignar={handleAsignar}
-          onQuitar={(id) => quitarCargo.mutate(id, { onError: () => toast.error('No se pudo quitar el cargo') })}
+          onQuitar={handleQuitar}
+          quitando={quitarCargo.isPending}
           invitable
           invitando={invitarLider.isPending}
           onInvitar={handleInvitar}
+          pin={pin}
+          onPinChange={setPin}
         />
       )}
     </div>

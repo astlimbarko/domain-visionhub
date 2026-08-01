@@ -26,15 +26,18 @@ interface Props {
   cargandoVigentes: boolean;
   asignando: boolean;
   onAsignar: (persona: PersonaBusqueda) => void;
-  onQuitar: (cargoAsignacionId: string) => void;
+  /** Segundo argumento (`pin`) solo se completa cuando `onPinChange` está
+   * presente -- ver nota de `pin`/`onPinChange` más abajo. */
+  onQuitar: (cargoAsignacionId: string, pin?: string) => void;
+  quitando?: boolean;
   invitable?: boolean;
   invitando?: boolean;
   onInvitar?: (correo: string) => void;
-  /** OTP opcional (2026-08-01, Gestión de Redes): cuando se pasa
-   * `onPinChange`, elegir persona o invitar por correo queda detrás de un
-   * paso de confirmación con código, en vez de aplicarse al instante --
-   * mismo componente, sin afectar a quien no lo necesita (Departamentos,
-   * Casas de Paz). */
+  /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
+   * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
+   * correo, o quitar a alguien quedan detrás de un paso de confirmación con
+   * código, en vez de aplicarse al instante -- mismo componente, sin afectar
+   * a quien no lo necesita (Casas de Paz, autogestión de Líder de Red). */
   pin?: string;
   onPinChange?: (valor: string) => void;
 }
@@ -50,6 +53,7 @@ export function AsignarCargoDialog({
   asignando,
   onAsignar,
   onQuitar,
+  quitando = false,
   invitable = false,
   invitando = false,
   onInvitar,
@@ -59,6 +63,7 @@ export function AsignarCargoDialog({
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
+  const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
 
   const requiereOtp = onPinChange !== undefined;
   const pinValido = !requiereOtp || /^[0-9]{6}$/.test(pin ?? '');
@@ -83,6 +88,20 @@ export function AsignarCargoDialog({
     setCorreoInvitar('');
   }
 
+  function manejarClicQuitar(v: CargoVigente) {
+    if (requiereOtp) {
+      setAQuitar(v);
+    } else {
+      onQuitar(v.id);
+    }
+  }
+
+  function confirmarBaja() {
+    if (!aQuitar || !pinValido) return;
+    onQuitar(aQuitar.id, pin);
+    setAQuitar(null);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -103,7 +122,14 @@ export function AsignarCargoDialog({
               {vigentes.map((v) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
                   {v.nombre_completo}
-                  <Button type="button" variant="ghost" size="icon" onClick={() => onQuitar(v.id)} aria-label="Quitar">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => manejarClicQuitar(v)}
+                    disabled={quitando}
+                    aria-label="Quitar"
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -113,7 +139,22 @@ export function AsignarCargoDialog({
             <p className="text-sm text-muted-foreground">Sin nadie asignado todavía.</p>
           )}
 
-          {invitable && (
+          {aQuitar && (
+            <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm text-foreground">
+                ¿Dar de baja a <span className="font-medium">{aQuitar.nombre_completo}</span>?
+              </p>
+              {requiereOtp && onPinChange && <CampoOtp value={pin ?? ''} onChange={onPinChange} />}
+              {quitando && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Spinner className="h-3.5 w-3.5" />
+                  Dando de baja...
+                </p>
+              )}
+            </div>
+          )}
+
+          {!aQuitar && invitable && (
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
@@ -138,7 +179,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {modo === 'buscar' && (
+          {!aQuitar && modo === 'buscar' && (
             personaElegida ? (
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                 <span className="truncate">{personaElegida.nombre_completo}</span>
@@ -155,7 +196,7 @@ export function AsignarCargoDialog({
             )
           )}
 
-          {modo === 'invitar' && invitable && (
+          {!aQuitar && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
                 Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
@@ -170,11 +211,11 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
+          {!aQuitar && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
             <CampoOtp value={pin ?? ''} onChange={onPinChange} />
           )}
 
-          {asignando && (
+          {!aQuitar && asignando && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Spinner className="h-3.5 w-3.5" />
               Asignando...
@@ -182,19 +223,30 @@ export function AsignarCargoDialog({
           )}
         </div>
 
-        {(modo === 'invitar' ? invitable : !!personaElegida) && (
+        {aQuitar ? (
           <DialogFooter>
-            {modo === 'buscar' ? (
-              <Button type="button" onClick={confirmarAsignacion} disabled={asignando || !personaElegida || !pinValido}>
-                {asignando ? 'Asignando...' : 'Confirmar'}
-              </Button>
-            ) : (
-              <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim() || !pinValido}>
-                {invitando && <Spinner className="h-3.5 w-3.5" />}
-                {invitando ? 'Enviando...' : 'Invitar'}
-              </Button>
-            )}
+            <Button type="button" variant="ghost" onClick={() => setAQuitar(null)} disabled={quitando}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmarBaja} disabled={quitando || !pinValido}>
+              {quitando ? 'Dando de baja...' : 'Confirmar baja'}
+            </Button>
           </DialogFooter>
+        ) : (
+          (modo === 'invitar' ? invitable : !!personaElegida) && (
+            <DialogFooter>
+              {modo === 'buscar' ? (
+                <Button type="button" onClick={confirmarAsignacion} disabled={asignando || !personaElegida || !pinValido}>
+                  {asignando ? 'Asignando...' : 'Confirmar'}
+                </Button>
+              ) : (
+                <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                  {invitando && <Spinner className="h-3.5 w-3.5" />}
+                  {invitando ? 'Enviando...' : 'Invitar'}
+                </Button>
+              )}
+            </DialogFooter>
+          )
         )}
       </DialogContent>
     </Dialog>

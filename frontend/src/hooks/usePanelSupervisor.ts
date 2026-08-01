@@ -69,8 +69,17 @@ export function useCargoVigenteDepartamento(departamentoId: string | undefined) 
 export function useAsignarCargoDepartamento(iglesiaId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ departamentoId, personaId, cargoId }: { departamentoId: string; personaId: string; cargoId: string }) =>
-      asignarCargoDepartamento(iglesiaId as string, departamentoId, personaId, cargoId),
+    mutationFn: ({
+      departamentoId,
+      personaId,
+      cargoId,
+      pin,
+    }: {
+      departamentoId: string;
+      personaId: string;
+      cargoId: string;
+      pin: string;
+    }) => asignarCargoDepartamento(iglesiaId as string, departamentoId, personaId, cargoId, pin),
     onSuccess: (_data, { departamentoId }) =>
       queryClient.invalidateQueries({ queryKey: ['panel-supervisor-cargo-depto', departamentoId] }),
   });
@@ -79,7 +88,7 @@ export function useAsignarCargoDepartamento(iglesiaId: string | undefined) {
 export function useQuitarCargoDepartamento(departamentoId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: quitarCargoDepartamento,
+    mutationFn: ({ id, pin }: { id: string; pin: string }) => quitarCargoDepartamento(id, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['panel-supervisor-cargo-depto', departamentoId] }),
   });
 }

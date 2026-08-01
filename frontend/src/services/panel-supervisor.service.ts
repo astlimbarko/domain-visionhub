@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { aISO } from '@/utils/calendario-fechas';
 import type { MonedaActiva, PanelConfiguracion } from '@/types/panel-supervisor.types';
 import type { CargoVigente } from '@/types/casas-de-paz.types';
 
@@ -68,12 +67,12 @@ export async function renombrarIglesia(iglesiaId: string, prefijo: string, sufij
 }
 
 /**
- * Líder de Departamento (hoy solo existe "Departamento de Afirmación") --
- * básico: solo asignar a alguien que ya tiene una Persona en el sistema
- * (invitar por correo queda para después, ver 2026-08-01). Escritura directa
- * a la tabla vía RLS, mismo patrón que red_cargo/casa_de_paz_cargo (nunca
- * hubo pantalla para esto -- se documentó como "se asigna por DB" en
- * 47_departamento_cargo.sql).
+ * Líder de Departamento (hoy solo existe "Departamento de Afirmación").
+ * Asignar y quitar exigen código OTP (75_otp_baja_cargo_departamento_red.sql,
+ * 2026-08-01): un cargo real quedó dado de baja sin querer, con un solo
+ * click y sin ninguna confirmación, cuando esto todavía era una escritura
+ * directa a la tabla vía RLS -- ahora las dos acciones pasan por funciones
+ * que exigen el PIN, y la tabla ya no acepta insert/update directo.
  */
 export async function obtenerCargoVigenteDepartamento(departamentoId: string): Promise<CargoVigente[]> {
   const { data, error } = await supabase
@@ -94,23 +93,24 @@ export async function obtenerCargoVigenteDepartamento(departamentoId: string): P
   });
 }
 
-export async function asignarCargoDepartamento(iglesiaId: string, departamentoId: string, personaId: string, cargoId: string) {
-  const vigentes = await obtenerCargoVigenteDepartamento(departamentoId);
-  for (const v of vigentes) {
-    const { error } = await supabase.from('departamento_cargo').update({ fecha_fin: aISO(new Date()) }).eq('id', v.id);
-    if (error) throw error;
-  }
-  const { error } = await supabase.from('departamento_cargo').insert({
-    iglesia_id: iglesiaId,
-    departamento_id: departamentoId,
-    persona_id: personaId,
-    cargo_id: cargoId,
-    fecha_inicio: aISO(new Date()),
+export async function asignarCargoDepartamento(
+  iglesiaId: string,
+  departamentoId: string,
+  personaId: string,
+  cargoId: string,
+  pin: string
+) {
+  const { error } = await supabase.rpc('fn_asignar_cargo_departamento', {
+    p_iglesia_id: iglesiaId,
+    p_departamento_id: departamentoId,
+    p_persona_id: personaId,
+    p_cargo_id: cargoId,
+    p_pin: pin,
   });
   if (error) throw error;
 }
 
-export async function quitarCargoDepartamento(cargoAsignacionId: string) {
-  const { error } = await supabase.from('departamento_cargo').update({ fecha_fin: aISO(new Date()) }).eq('id', cargoAsignacionId);
+export async function quitarCargoDepartamento(cargoAsignacionId: string, pin: string) {
+  const { error } = await supabase.rpc('fn_quitar_cargo_departamento', { p_cargo_id: cargoAsignacionId, p_pin: pin });
   if (error) throw error;
 }
