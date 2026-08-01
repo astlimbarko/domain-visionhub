@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { obtenerUrlBase } from '@/utils/app-url';
 import type { InvitacionDepartamento, InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
 
 async function extraerError(error: unknown): Promise<Error> {
@@ -27,7 +28,7 @@ export async function invitarLider(
       casaDePazId,
       departamentoId,
       pin,
-      redirectTo: `${window.location.origin}/completar-cuenta`,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });
   if (error) throw await extraerError(error);
@@ -45,7 +46,7 @@ export async function reenviarInvitacionLider(invitacionId: string): Promise<voi
     body: {
       accion: 'reenviar',
       invitacionId,
-      redirectTo: `${window.location.origin}/completar-cuenta`,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });
   if (error) throw await extraerError(error);

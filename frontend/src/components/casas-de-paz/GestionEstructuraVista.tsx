@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MARINO, MORADO, AMBAR, TEAL } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
+import { obtenerUrlBase } from '@/utils/app-url';
 import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -200,7 +201,7 @@ export function GestionEstructuraVista() {
   }
 
   function manejarRestablecerContrasena(correo: string) {
-    solicitarRecuperacionContrasena(correo, `${window.location.origin}${ROUTES.COMPLETAR_CUENTA}`)
+    solicitarRecuperacionContrasena(correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`)
       .then(() => toast.success(`Enlace de restablecimiento enviado a ${correo}`))
       .catch(() => toast.error('No se pudo enviar el enlace'));
   }

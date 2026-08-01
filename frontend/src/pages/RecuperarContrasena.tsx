@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
+import { obtenerUrlBase } from '@/utils/app-url';
 import { ROUTES } from '@/utils/constants';
 
 const esquema = z.object({ correo: z.string().email() });
@@ -21,7 +22,7 @@ export function RecuperarContrasena() {
 
   async function onSubmit(datos: FormValues) {
     setEnviando(true);
-    try { await solicitarRecuperacionContrasena(datos.correo, `${window.location.origin}${ROUTES.COMPLETAR_CUENTA}`); setEnviado(true); }
+    try { await solicitarRecuperacionContrasena(datos.correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`); setEnviado(true); }
     catch { toast.error('No se pudo enviar el enlace.'); } finally { setEnviando(false); }
   }
 
