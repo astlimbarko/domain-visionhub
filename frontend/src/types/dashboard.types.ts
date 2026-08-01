@@ -1,8 +1,15 @@
 export interface MisRolesDashboard {
   es_operativo: boolean;
-  redes_lider: { id: string; nombre: string }[] | null;
-  cdp_lider: { id: string; etiqueta: string }[] | null;
-  cdp_sublider: { id: string; etiqueta: string }[] | null;
+  redes_lider: { id: string; nombre: string; color: string }[] | null;
+  cdp_lider: CargoCdpDashboard[] | null;
+  cdp_sublider: CargoCdpDashboard[] | null;
+}
+
+export interface CargoCdpDashboard {
+  id: string;
+  etiqueta: string;
+  anfitrion_nombre: string | null;
+  direccion: string | null;
 }
 
 export type Vista =
