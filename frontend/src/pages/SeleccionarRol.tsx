@@ -1,12 +1,13 @@
-import { LogOut } from 'lucide-react';
+import { LogOut, ShieldCheck } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
+import { useOpcionesRolContextuales, type OpcionRolContextual } from '@/hooks/useOpcionesRolContextuales';
 import { cerrarSesion } from '@/services/auth.service';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
 import { ROUTES } from '@/utils/constants';
-import type { RolUI } from '@/utils/permisos';
 
 export function SeleccionarRol() {
   const navigate = useNavigate();
@@ -15,16 +16,21 @@ export function SeleccionarRol() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const setRolActivo = useAuthStore((s) => s.setRolActivo);
   const logout = useAuthStore((s) => s.logout);
+
+  // Fuente de verdad de "hay ambigüedad real": por TIPO de rol, la misma que
+  // usa PrivateLayout -- no se toca. Las opciones contextuales (abajo) son
+  // solo para mostrar cada asignación por separado dentro de esos tipos.
   const opciones = useOpcionesRol();
+  const opcionesContextuales = useOpcionesRolContextuales();
 
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
   // Blindaje contra acceso directo por URL: sin ambigüedad no hay nada que elegir
   // (esto ya cubre al Super Admin sin otros roles: Dashboard lo manda a Administración).
   if (opciones && opciones.length <= 1) return <Navigate to={ROUTES.DASHBOARD} replace />;
 
-  function elegir(rolUI: RolUI) {
-    setRolActivo(rolUI);
-    navigate(ROUTES.DASHBOARD, { replace: true });
+  function elegir(opcion: OpcionRolContextual) {
+    setRolActivo(opcion.rolUI);
+    navigate(ROUTES.DASHBOARD, { replace: true, state: opcion.vista ? { vista: opcion.vista } : undefined });
   }
 
   async function handleSalir() {
@@ -33,46 +39,61 @@ export function SeleccionarRol() {
     queryClient.clear();
   }
 
+  const primerNombre = nombreCompleto?.split(' ')[0];
+  const cantidad = opcionesContextuales?.length ?? 0;
+
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-8 bg-muted p-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
-          <img src="/logo.png" alt="VisionHub" className="h-8 w-8 object-contain brightness-0 invert" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            {nombreCompleto ? `Hola, ${nombreCompleto.split(' ')[0]}` : 'Elegí tu rol'}
+    <div className="flex min-h-svh items-start justify-center bg-muted p-4 py-10 sm:items-center sm:p-6">
+      <div className="w-full max-w-lg rounded-3xl bg-card p-6 shadow-xl shadow-black/[0.06] sm:p-9">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-navy)] shadow-lg shadow-black/10">
+            <img src="/logo.png" alt="Centro de Vida" className="h-8 w-8 object-contain brightness-0 invert" />
+          </div>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-foreground">
+            {primerNombre ? `Bienvenido, ${primerNombre} 👋` : 'Bienvenido 👋'}
           </h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">Tenés más de un rol asignado. Elegí con cuál querés ingresar.</p>
+          {opcionesContextuales !== undefined && (
+            <p className="text-[15px] text-muted-foreground">
+              Tienes <span className="font-bold text-[#0071e3]">{cantidad}</span>{' '}
+              {cantidad === 1 ? 'rol asignado' : 'roles asignados'}
+              <br />
+              Selecciona con cuál deseas ingresar
+            </p>
+          )}
+        </div>
+
+        <div className="mt-7">
+          {opcionesContextuales === undefined ? (
+            <div className="flex flex-col gap-0.5 overflow-hidden rounded-2xl">
+              <Skeleton className="h-[92px] w-full rounded-none" />
+              <Skeleton className="h-[92px] w-full rounded-none" />
+            </div>
+          ) : (
+            <GrupoOpcionesRol opciones={opcionesContextuales} onSeleccionar={elegir} />
+          )}
+        </div>
+
+        <div className="mt-7 flex flex-col items-center gap-4">
+          <div className="flex w-full items-center gap-3 text-muted-foreground/40">
+            <span className="h-px flex-1 bg-border" />
+            <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <p className="text-center text-[12.5px] leading-relaxed text-muted-foreground">
+            Puedes cambiar de rol en cualquier momento
+            <br />
+            desde el menú de tu perfil.
+          </p>
+          <button
+            type="button"
+            onClick={handleSalir}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Cerrar sesión
+          </button>
         </div>
       </div>
-
-      <div className="grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-        {opciones === undefined
-          ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
-          : opciones.map(({ rolUI, label, icon: Icon, color }) => (
-              <button
-                key={rolUI}
-                type="button"
-                onClick={() => elegir(rolUI)}
-                className="flex flex-col items-start gap-4 rounded-2xl p-6 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
-                style={{ background: `linear-gradient(135deg, ${color} 0%, color-mix(in oklab, ${color} 75%, #000) 100%)` }}
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                  <Icon className="h-6 w-6 text-white" strokeWidth={2.2} />
-                </span>
-                <span className="text-[15px] font-bold tracking-tight">{label}</span>
-              </button>
-            ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSalir}
-        className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <LogOut className="h-3.5 w-3.5" /> Salir
-      </button>
     </div>
   );
 }
