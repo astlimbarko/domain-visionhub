@@ -15,6 +15,7 @@ import { useMisRoles } from '@/hooks/useDashboard';
 import type { RolUI } from '@/utils/permisos';
 import type { Vista, CargoCdpDashboard } from '@/types/dashboard.types';
 import { COLOR_RED_NEUTRO, FILA_ROL_VISUAL } from '@/utils/seleccionar-rol-visual';
+import { ROUTES } from '@/utils/constants';
 
 export interface LineaSecundaria {
   icon?: LucideIcon;
@@ -33,6 +34,8 @@ export interface OpcionRolContextual {
   colorRed?: string;
   /** Contexto específico a abrir (mismo mecanismo de `location.state.vista` que ya usa Dashboard.tsx). Sin vista = atajo genérico (ej. Super Admin). */
   vista?: Vista;
+  /** Ruta directa fuera del Dashboard genérico (ej. Afirmación, su propia sección). Si está, `vista` se ignora. */
+  ruta?: string;
 }
 
 function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean): OpcionRolContextual {
@@ -61,6 +64,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   const iglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId);
   const esPastor = iglesiaActiva?.es_pastor ?? false;
   const esOperativo = iglesiaActiva?.es_operativo ?? false;
+  const esLiderAfirmacion = iglesiaActiva?.es_lider_afirmacion ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId ?? undefined);
 
   // Mismo caso límite que useOpcionesRol: Super Admin sin iglesia activa no
@@ -115,6 +119,15 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
 
   for (const cdp of roles.cdp_lider ?? []) opciones.push(construirOpcionCdp(cdp, false));
   for (const cdp of roles.cdp_sublider ?? []) opciones.push(construirOpcionCdp(cdp, true));
+
+  if (esLiderAfirmacion) {
+    const v = FILA_ROL_VISUAL.LIDER_DEPARTAMENTO;
+    opciones.push({
+      key: 'LIDER_DEPARTAMENTO-AFIRMACION', rolUI: 'LIDER_DEPARTAMENTO', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
+      lineas: [],
+      ruta: ROUTES.AFIRMACION,
+    });
+  }
 
   return opciones;
 }

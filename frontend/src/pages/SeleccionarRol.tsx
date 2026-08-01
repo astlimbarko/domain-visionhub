@@ -30,6 +30,10 @@ export function SeleccionarRol() {
 
   function elegir(opcion: OpcionRolContextual) {
     setRolActivo(opcion.rolUI);
+    if (opcion.ruta) {
+      navigate(opcion.ruta, { replace: true });
+      return;
+    }
     navigate(ROUTES.DASHBOARD, { replace: true, state: opcion.vista ? { vista: opcion.vista } : undefined });
   }
 

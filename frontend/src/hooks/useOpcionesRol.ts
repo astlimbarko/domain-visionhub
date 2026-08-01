@@ -26,6 +26,7 @@ export function useOpcionesRol(): OpcionRol[] | undefined {
   const iglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId);
   const esPastor = iglesiaActiva?.es_pastor ?? false;
   const esOperativo = iglesiaActiva?.es_operativo ?? false;
+  const esLiderAfirmacion = iglesiaActiva?.es_lider_afirmacion ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId ?? undefined);
 
   // Super Admin sin ninguna iglesia activa (nada que desambiguar): su único
@@ -37,7 +38,7 @@ export function useOpcionesRol(): OpcionRol[] | undefined {
 
   if (isLoading || !roles) return undefined;
 
-  return calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles)
+  return calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles, esLiderAfirmacion)
     .map((rolUI) => {
       const meta = ROL_UI_META[rolUI];
       return meta ? { rolUI, ...meta } : null;
