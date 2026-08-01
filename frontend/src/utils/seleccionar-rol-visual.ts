@@ -8,11 +8,10 @@
  * tocar la fuente de verdad de permisos/roles.
  */
 import type { LucideIcon } from 'lucide-react';
-import { HeartHandshake, Home, Settings, Share2, ShieldCheck } from 'lucide-react';
+import { HeartHandshake, Home, Settings, Share2, ShieldCheck, UserPlus } from 'lucide-react';
 import type { RolUI } from '@/utils/permisos';
 
-/** Los tipos de fila que puede mostrar esta pantalla hoy (Afirmación queda para otra rama). */
-export type FilaRolKind = Extract<RolUI, 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP'>;
+export type FilaRolKind = Extract<RolUI, 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'LIDER_DEPARTAMENTO'>;
 
 export interface FilaRolVisual {
   titulo: string;
@@ -30,6 +29,9 @@ export const FILA_ROL_VISUAL: Record<FilaRolKind, FilaRolVisual> = {
   LIDER_RED: { titulo: 'Líder de Red', icon: Share2, bgIcono: '#e1f5ee', colorIcono: '#1f9d63' },
   LIDER_CDP: { titulo: 'Líder de Casa de Paz', icon: Home, bgIcono: '#e3f0fd', colorIcono: '#2563eb' },
   SUBLIDER_CDP: { titulo: 'Sublíder de Casa de Paz', icon: Home, bgIcono: '#e3f6fb', colorIcono: '#0891b2' },
+  // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL, utils/departamentos.ts) --
+  // título específico en vez del genérico "Líder de Departamento" de ROL_UI_META.
+  LIDER_DEPARTAMENTO: { titulo: 'Líder del Departamento de Afirmación', icon: UserPlus, bgIcono: '#e9e4fb', colorIcono: '#7c3aed' },
 };
 
 /** Color neutro de respaldo para el punto de Red cuando no tiene color configurado (default '#FFFFFF' en BD). */

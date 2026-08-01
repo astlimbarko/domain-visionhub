@@ -32,7 +32,7 @@ import type { LucideIcon } from 'lucide-react';
 // Líder de Afirmación puro, sin cargo de Casas de Paz). No debe heredar
 // nav ni rutas de ningún otro rol -- ver NAV_ITEM_AFIRMACION para cómo se
 // agrega su propio acceso, ortogonal a este tipo.
-export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'SIN_ROL';
+export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'LIDER_DEPARTAMENTO' | 'SIN_ROL';
 
 export interface NavItem {
   icon: LucideIcon;
@@ -114,6 +114,18 @@ const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
 ];
 
+// Líder de Departamento (hoy solo Afirmación es funcional) -- capacidad que
+// antes era ortogonal al RolUI (NAV_ITEMS_AFIRMACION, useEsLiderAfirmacion)
+// y bypaseaba el picker multi-rol por completo. 2026-08-01: pasa a ser un
+// RolUI mas para que aparezca como opcion en "Seleccionar rol" cuando la
+// persona ademas tiene otro rol -- antes eso era irrealizable (quien tenia
+// Lider de CdP + Lider de Afirmacion nunca llegaba a ver la segunda).
+const RUTAS_LIDER_DEPARTAMENTO: string[] = [
+  ROUTES.AFIRMACION,
+  ROUTES.AFIRMACION_FORMULARIO,
+  ROUTES.AFIRMACION_URLS,
+];
+
 const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   LIDER_CDP: RUTAS_LIDER_CDP,
   SUBLIDER_CDP: RUTAS_SUBLIDER_CDP,
@@ -121,6 +133,7 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   SUPERVISOR: RUTAS_SUPERVISOR,
   PASTOR: RUTAS_PASTOR,
   SUPER_ADMIN: RUTAS_SUPER_ADMIN,
+  LIDER_DEPARTAMENTO: RUTAS_LIDER_DEPARTAMENTO,
   // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
   // una capacidad ortogonal (Afirmación) o /cuenta.
   SIN_ROL: [],
@@ -188,6 +201,7 @@ export function determinarRolUI(
   esPastor: boolean,
   esOperativo: boolean,
   roles: MisRolesDashboard | undefined,
+  esLiderAfirmacion = false,
 ): RolUI | null {
   if (esSuperAdmin) return 'SUPER_ADMIN';
   if (esPastor) return 'PASTOR';
@@ -195,6 +209,7 @@ export function determinarRolUI(
   if (roles?.redes_lider?.length) return 'LIDER_RED';
   if (roles?.cdp_lider?.length) return 'LIDER_CDP';
   if (roles?.cdp_sublider?.length) return 'SUBLIDER_CDP';
+  if (esLiderAfirmacion) return 'LIDER_DEPARTAMENTO';
   return null;
 }
 
@@ -211,6 +226,9 @@ export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIco
   LIDER_RED: { label: 'Líder de Red', icon: Users, color: '#5856d6' },
   LIDER_CDP: { label: 'Líder de Casa de Paz', icon: Home, color: '#0aa5c0' },
   SUBLIDER_CDP: { label: 'Sublíder de Casa de Paz', icon: Home, color: '#30b0c7' },
+  // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL) -- el label
+  // genérico alcanza porque es la única variante real que puede aparecer.
+  LIDER_DEPARTAMENTO: { label: 'Líder de Departamento', icon: UserPlus, color: '#0071e3' },
 };
 
 /**
@@ -224,6 +242,7 @@ export function calcularOpcionesRolUI(
   esPastor: boolean,
   esOperativo: boolean,
   roles: MisRolesDashboard | undefined,
+  esLiderAfirmacion = false,
 ): RolUI[] {
   const opciones: RolUI[] = [];
   if (esSuperAdmin) opciones.push('SUPER_ADMIN');
@@ -232,6 +251,7 @@ export function calcularOpcionesRolUI(
   if (roles?.redes_lider?.length) opciones.push('LIDER_RED');
   if (roles?.cdp_lider?.length) opciones.push('LIDER_CDP');
   if (roles?.cdp_sublider?.length) opciones.push('SUBLIDER_CDP');
+  if (esLiderAfirmacion) opciones.push('LIDER_DEPARTAMENTO');
   return opciones;
 }
 

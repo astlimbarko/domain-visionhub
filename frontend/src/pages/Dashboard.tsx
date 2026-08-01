@@ -14,7 +14,6 @@ import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
 import { vistaPorDefectoParaRol } from '@/utils/permisos';
-import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { ROUTES } from '@/utils/constants';
 import { DashboardPastor } from '@/components/dashboard/DashboardPastor';
 import { DashboardSupervisor } from '@/components/dashboard/DashboardSupervisor';
@@ -26,7 +25,6 @@ export function Dashboard() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId);
   const rolUI = useRolUI();
-  const esLiderAfirmacion = useEsLiderAfirmacion();
   const [pila, setPila] = useState<Vista[]>([]);
   const location = useLocation();
   const vistaForzada = (location.state as { vista?: Vista } | null)?.vista;
@@ -66,6 +64,12 @@ export function Dashboard() {
     return <Navigate to={ROUTES.ADMINISTRACION} replace />;
   }
 
+  // Líder de Departamento (hoy solo Afirmación es funcional): su panel es
+  // Afirmación, no este Dashboard genérico -- mismo patrón que Super Admin.
+  if (rolUI === 'LIDER_DEPARTAMENTO') {
+    return <Navigate to={ROUTES.AFIRMACION} replace />;
+  }
+
   if (isLoading || !roles) {
     return (
       <div className="flex flex-col gap-6">
@@ -78,12 +82,6 @@ export function Dashboard() {
         <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
-  }
-
-  // Líder de Afirmación puro (sin ningún cargo de Casas de Paz): su panel
-  // es Afirmación, no este Dashboard genérico -- redirigir directo.
-  if (rolUI === null && esLiderAfirmacion) {
-    return <Navigate to={ROUTES.AFIRMACION} replace />;
   }
 
   const vista = pila[pila.length - 1];

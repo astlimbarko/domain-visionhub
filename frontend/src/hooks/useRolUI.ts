@@ -16,6 +16,7 @@ export function useRolUI(): RolUI | null {
   const iglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId);
   const esPastor = iglesiaActiva?.es_pastor ?? false;
   const esOperativo = iglesiaActiva?.es_operativo ?? false;
+  const esLiderAfirmacion = iglesiaActiva?.es_lider_afirmacion ?? false;
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
 
   // Si todavía no tenemos los roles del backend, no podemos determinar
@@ -23,10 +24,10 @@ export function useRolUI(): RolUI | null {
   // tanto (si además tiene otros roles, la línea de abajo lo desambigua).
   if (!roles) return esSuperAdmin ? 'SUPER_ADMIN' : null;
 
-  const opciones = calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles);
+  const opciones = calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles, esLiderAfirmacion);
 
   // Caso unívoco (el más común): mismo comportamiento de siempre.
-  if (opciones.length <= 1) return determinarRolUI(esSuperAdmin, esPastor, esOperativo, roles);
+  if (opciones.length <= 1) return determinarRolUI(esSuperAdmin, esPastor, esOperativo, roles, esLiderAfirmacion);
 
   // Ambiguo: solo es válido el rol que el usuario eligió en /seleccionar-rol.
   // Si no eligió (o el elegido ya no aplica), PrivateLayout se encarga de
