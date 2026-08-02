@@ -26,7 +26,8 @@ import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
-import { NAV_ITEMS_AFIRMACION, obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
+import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
@@ -146,9 +147,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
   const esLiderAfirmacion = useEsLiderAfirmacion();
+  const esLiderJovenes = useEsLiderJovenes();
+  const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
   const navItems = [
     ...(rolUI ? obtenerNavItems(rolUI) : []),
     ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+    ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
+    ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
   ];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --

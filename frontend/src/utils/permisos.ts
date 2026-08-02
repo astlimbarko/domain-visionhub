@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Footprints,
   Network,
+  Heart,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -179,6 +180,12 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
   { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
 ];
+
+// Roles globales de solo lectura (2026-08-02): un item de nav cada uno,
+// visibles segun useEsLiderJovenes()/useEsEncargadoMatrimonios() -- mismo
+// patron ortogonal que Afirmación, no dependen de RUTAS_POR_ROL.
+export const NAV_ITEM_JOVENES: NavItem = { icon: Users, label: 'Jóvenes', path: ROUTES.JOVENES, color: '#ff9500' };
+export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios', path: ROUTES.MATRIMONIOS, color: '#ff375f' };
 
 // ─── Funciones públicas ──────────────────────────────────────────────────────
 

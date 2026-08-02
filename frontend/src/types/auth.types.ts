@@ -15,6 +15,9 @@ export interface IglesiaAccesible {
   es_pastor: boolean;
   /** Capacidad ortogonal al rol: asignacion vigente en departamento_cargo (LIDER_DEPARTAMENTO, AFIRMACION). */
   es_lider_afirmacion: boolean;
+  /** Capacidades ortogonales al rol: cargo Tipo B de nivel IGLESIA (persona_cargo), acceso global de solo lectura. */
+  es_lider_jovenes: boolean;
+  es_encargado_matrimonios: boolean;
 }
 
 export interface SesionUsuario {

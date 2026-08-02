@@ -34,6 +34,10 @@ export const ROUTES = {
   AFIRMACION: '/afirmacion',
   AFIRMACION_FORMULARIO: '/afirmacion-formulario',
   AFIRMACION_URLS: '/afirmacion-urls',
+  // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
+  // patron que Afirmación, un item de nav propio cada uno.
+  JOVENES: '/jovenes',
+  MATRIMONIOS: '/matrimonios',
   REGISTRO_PUBLICO: '/registro/:slug',
 } as const;
 

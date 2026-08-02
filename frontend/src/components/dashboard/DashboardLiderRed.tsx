@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
+import { useAuthStore } from '@/store/auth.store';
 import { useDashboardLiderRed, useIngresosRedPeriodo } from '@/hooks/useDashboard';
 import { PERIODOS_DASHBOARD, rangoPeriodoActual, type PeriodoDashboard } from '@/utils/periodo-dashboard';
 
@@ -47,6 +48,7 @@ interface Props {
 }
 
 export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
+  const nombreLider = useAuthStore((s) => s.nombreCompleto);
   const { data, isLoading } = useDashboardLiderRed(redId);
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
@@ -74,6 +76,19 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
   for (const i of ingresos) ingresosPorMoneda.set(i.moneda_simbolo, (ingresosPorMoneda.get(i.moneda_simbolo) ?? 0) + Number(i.total));
   const ingresosEntradas = Array.from(ingresosPorMoneda.entries());
 
+  // Agrupado por Casa de Paz para que se lea como una contabilidad total de
+  // la Red (cada CdP con su propio subtotal), no una lista plana mezclando
+  // ofrenda/diezmo de todas juntas -- pedido del owner, 2026-08-02.
+  const ingresosPorCdp = new Map<string, { nombre: string; lineas: typeof ingresos; subtotales: Map<string, number> }>();
+  for (const i of ingresos) {
+    const clave = i.casa_de_paz_nombre ?? 'Sin Casa de Paz';
+    const grupo = ingresosPorCdp.get(clave) ?? { nombre: clave, lineas: [], subtotales: new Map<string, number>() };
+    grupo.lineas.push(i);
+    grupo.subtotales.set(i.moneda_simbolo, (grupo.subtotales.get(i.moneda_simbolo) ?? 0) + Number(i.total));
+    ingresosPorCdp.set(clave, grupo);
+  }
+  const gruposIngresosCdp = Array.from(ingresosPorCdp.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const casas = [...(casas_de_paz ?? [])].sort((a, b) => (b.ultima_asistencia ?? -1) - (a.ultima_asistencia ?? -1));
   const sinReporte = cdp_sin_reporte_semana ?? [];
 
@@ -84,7 +99,7 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <DashboardHero icon={Network} eyebrow="Red" title={red.nombre} />
+      <DashboardHero icon={Network} eyebrow="Red" title={red.nombre} subtitle={nombreLider ? `Líder: ${nombreLider}` : undefined} />
 
       {/* ── Barra de período ──────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -176,34 +191,51 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
         </div>
       </section>
 
-      {/* ── Ingresos por Casa de Paz ─────────────────────────────────────────────── */}
+      {/* ── Contabilidad total de la Red: cada CdP con su subtotal + el total general ── */}
       {hayIngresos && (
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={Wallet} color={MORADO} titulo="Ingresos por Casa de Paz" descripcion={`Ofrendas y diezmos de ${etiquetaPeriodo}`} />
-          <div className="grid gap-2.5 p-5 sm:grid-cols-2">
-            {ingresos.map((i, idx) => {
-              const esOfrenda = i.tipo_codigo === 'OFRENDA';
-              const tono = esOfrenda ? VERDE : AMBAR;
-              const IconoTipo = esOfrenda ? Gift : Coins;
-              const etiquetaTipo = esOfrenda ? 'Ofrenda' : i.tipo_codigo === 'DIEZMO' ? 'Diezmo' : i.tipo_codigo;
-              return (
-                <div key={idx} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
-                    style={{ backgroundColor: tono, boxShadow: `0 6px 14px -5px color-mix(in oklab, ${tono} 60%, transparent)` }}
-                  >
-                    <IconoTipo className="h-5 w-5" strokeWidth={2.2} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground">{etiquetaTipo}</p>
-                    {i.casa_de_paz_nombre && <p className="truncate text-[11px] text-muted-foreground">{i.casa_de_paz_nombre}</p>}
+          <TarjetaHeader icon={Wallet} color={MORADO} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
+          <div className="flex flex-col gap-4 p-5">
+            {/* Total general de la Red -- la cifra que responde "cuánto entró en total". */}
+            <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 10%, transparent)` }}>
+              <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: MORADO }}>Total de la Red</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {ingresosEntradas.map(([simbolo, total]) => (
+                  <span key={simbolo} className="text-lg font-bold tabular-nums" style={{ color: MORADO }}>{simbolo} {total.toFixed(2)}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Desglose por Casa de Paz -- cada una con su propio subtotal. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {gruposIngresosCdp.map((grupo) => (
+                <div key={grupo.nombre} className="flex flex-col gap-2 rounded-xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-foreground">{grupo.nombre}</p>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-x-2 text-[13px] font-bold tabular-nums text-foreground">
+                      {Array.from(grupo.subtotales.entries()).map(([simbolo, total]) => (
+                        <span key={simbolo}>{simbolo} {total.toFixed(2)}</span>
+                      ))}
+                    </div>
                   </div>
-                  <span className="shrink-0 text-[15px] font-bold tabular-nums" style={{ color: tono }}>
-                    {i.moneda_simbolo} {Number(i.total).toFixed(2)}
-                  </span>
+                  <div className="flex flex-col gap-1.5">
+                    {grupo.lineas.map((i, idx) => {
+                      const esOfrenda = i.tipo_codigo === 'OFRENDA';
+                      const tono = esOfrenda ? VERDE : AMBAR;
+                      const IconoTipo = esOfrenda ? Gift : Coins;
+                      const etiquetaTipo = esOfrenda ? 'Ofrenda' : i.tipo_codigo === 'DIEZMO' ? 'Diezmo' : i.tipo_codigo;
+                      return (
+                        <div key={idx} className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                          <IconoTipo className="h-3.5 w-3.5 shrink-0" style={{ color: tono }} />
+                          <span className="flex-1">{etiquetaTipo}</span>
+                          <span className="font-medium tabular-nums" style={{ color: tono }}>{i.moneda_simbolo} {Number(i.total).toFixed(2)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </section>
       )}
