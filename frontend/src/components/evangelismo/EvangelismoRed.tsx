@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, Pencil, Target, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, Pencil, Target, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, KpiMosaico, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, KpiMosaico, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
-import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAuthStore } from '@/store/auth.store';
 import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
@@ -15,12 +15,8 @@ import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
-// Un solo color ancla (el amarillo institucional de Evangelismo, ya usado en
-// el nav y en Reportes) en vez de mezclar 6 colores distintos sin relación
-// semántica entre sí -- pedido del owner, 2026-08-02 ("los colores internos
-// no son agradables"). VERDE queda reservado a lo que realmente es un logro
-// (Casas de Paz que ya tienen meta); AZUL a los datos neutros.
-const AMARILLO = DEPARTAMENTO_META.EVANGELISMO.color;
+/** Sentinel para distinguir "asignar a todas" de una CdP real en el mismo diálogo. */
+const ID_TODAS = '__TODAS__';
 
 interface Props {
   redId: string;
@@ -35,7 +31,8 @@ interface Props {
  * "Meta Global de la Red" NO es un valor aparte que se tipea a mano -- el
  * owner aclaró (2026-08-02) que es la suma de las metas ya asignadas a cada
  * CdP (fn_tasa_evangelismo_red.meta_total). No hay un segundo número que
- * mantener sincronizado; se define asignando/cambiando las metas de abajo.
+ * mantener sincronizado; se define asignando/cambiando las metas de abajo,
+ * ya sea una por una o de a todas juntas con "Asignar a todas".
  */
 export function EvangelismoRed({ redId }: Props) {
   const personaId = useAuthStore((s) => s.personaId);
@@ -46,6 +43,7 @@ export function EvangelismoRed({ redId }: Props) {
   const [mes, setMes] = useState(hoy.getMonth());
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [cdpParaMeta, setCdpParaMeta] = useState<MetaCdpRed | null>(null);
+  const [bulkAsignando, setBulkAsignando] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
@@ -84,10 +82,47 @@ export function EvangelismoRed({ redId }: Props) {
     return Array.from(grupos.values()).sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
   }, [evangelizadosDelDiaSeleccionado]);
 
+  // Cuántos evangelizó cada CdP este mes -- para el % cumplido de su meta
+  // (pedido del owner, 2026-08-02: "la card debe mostrar porcentaje
+  // cumplidos de esas metas en porcentaje").
+  const evangelizadosPorCdp = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const e of evangelizados) mapa.set(e.casa_de_paz_id, (mapa.get(e.casa_de_paz_id) ?? 0) + 1);
+    return mapa;
+  }, [evangelizados]);
+
   const porcentaje = tasa?.meta_total ? Math.min(tasa.tasa ?? 0, 100) : 0;
 
   async function handleAsignar(params: { meta: number; fechaInicio: string; fechaFin: string }) {
     if (!cdpParaMeta || !iglesiaActivaId || !personaId) return;
+
+    if (cdpParaMeta.casa_de_paz_id === ID_TODAS) {
+      setBulkAsignando(true);
+      try {
+        const resultados = await Promise.allSettled(
+          metasCdp.map((c) =>
+            asignarMeta.mutateAsync({
+              iglesiaId: iglesiaActivaId,
+              casaDePazId: c.casa_de_paz_id,
+              asignadorId: personaId,
+              meta: params.meta,
+              fechaInicio: params.fechaInicio,
+              fechaFin: params.fechaFin,
+            })
+          )
+        );
+        const fallidas = resultados.filter((r) => r.status === 'rejected').length;
+        if (fallidas > 0) {
+          toast.error(`Se asignó a ${resultados.length - fallidas} de ${resultados.length} Casas de Paz (${fallidas} ya tenían una meta que se solapa en esas fechas)`);
+        } else {
+          toast.success(`Meta de ${params.meta} asignada a las ${resultados.length} Casas de Paz`);
+        }
+      } finally {
+        setBulkAsignando(false);
+      }
+      return;
+    }
+
     await asignarMeta.mutateAsync({
       iglesiaId: iglesiaActivaId,
       casaDePazId: cdpParaMeta.casa_de_paz_id,
@@ -132,7 +167,7 @@ export function EvangelismoRed({ redId }: Props) {
                 icon={Target}
                 color={AZUL}
               />
-              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={AMARILLO} sub="Suma de las metas vigentes por CdP">
+              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={MORADO} sub="Suma de las metas vigentes por CdP">
                 {tasa?.meta_total ?? 0}
               </KpiMosaico>
               <KpiMosaico label="Casas de Paz con meta" icon={Users} color={VERDE} sub={`de ${tasa?.cdp_total ?? 0} en total`}>
@@ -144,7 +179,26 @@ export function EvangelismoRed({ redId }: Props) {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={AMARILLO} titulo="Metas por Casa de Paz" descripcion="Cada meta que asignás acá se suma a la Meta Global de arriba" />
+        <TarjetaHeader
+          icon={Flag}
+          color={MORADO}
+          titulo="Metas por Casa de Paz"
+          descripcion="Cada meta que asignás acá se suma a la Meta Global de arriba"
+          accion={
+            metasCdp.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                style={{ borderColor: `color-mix(in oklab, ${MORADO} 40%, transparent)`, color: MORADO }}
+                onClick={() => setCdpParaMeta({ casa_de_paz_id: ID_TODAS, etiqueta: `Todas las Casas de Paz (${metasCdp.length})`, meta: null, origen: null })}
+              >
+                <UsersRound className="h-3.5 w-3.5" />
+                Asignar a todas
+              </Button>
+            )
+          }
+        />
         <div className="p-5">
           {cargandoMetas ? (
             <div className="flex flex-col gap-2">
@@ -154,30 +208,40 @@ export function EvangelismoRed({ redId }: Props) {
             <p className="text-sm text-muted-foreground">Todavía no hay Casas de Paz activas en tu Red.</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {metasCdp.map((c) => (
-                <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${AMARILLO} 16%, transparent)` }}>
-                      <Home className="h-4 w-4" style={{ color: AMARILLO }} />
-                    </span>
-                    <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 sm:justify-end">
-                    {c.meta != null ? (
-                      <span className="flex items-center gap-1.5 text-sm">
-                        <span className="font-bold text-foreground">{c.meta}</span>
-                        <span className="text-xs text-muted-foreground">{c.origen === 'ASIGNADA' ? '(asignada)' : '(propia)'}</span>
+              {metasCdp.map((c) => {
+                const cantidad = evangelizadosPorCdp.get(c.casa_de_paz_id) ?? 0;
+                const pctCumplido = c.meta ? Math.round((cantidad / c.meta) * 100) : null;
+                return (
+                  <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 14%, transparent)` }}>
+                        <Home className="h-4 w-4" style={{ color: MORADO }} />
                       </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Sin meta</span>
-                    )}
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCdpParaMeta(c)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                      {c.origen === 'ASIGNADA' ? 'Cambiar' : 'Asignar'}
-                    </Button>
+                      <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 sm:justify-end">
+                      {c.meta != null ? (
+                        <span className="flex items-center gap-1.5 text-sm">
+                          <span className="font-bold text-foreground">{cantidad}/{c.meta}</span>
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                          >
+                            {pctCumplido}% cumplido
+                          </span>
+                          <span className="text-xs text-muted-foreground">{c.origen === 'ASIGNADA' ? '(asignada)' : '(propia)'}</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Sin meta</span>
+                      )}
+                      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCdpParaMeta(c)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        {c.origen === 'ASIGNADA' ? 'Cambiar' : 'Asignar'}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -185,7 +249,7 @@ export function EvangelismoRed({ redId }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={AMARILLO} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader icon={CalendarRange} color={TEAL} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
           <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
@@ -236,7 +300,7 @@ export function EvangelismoRed({ redId }: Props) {
         open={!!cdpParaMeta}
         onOpenChange={(open) => !open && setCdpParaMeta(null)}
         cdp={cdpParaMeta}
-        asignando={asignarMeta.isPending}
+        asignando={cdpParaMeta?.casa_de_paz_id === ID_TODAS ? bulkAsignando : asignarMeta.isPending}
         onAsignar={handleAsignar}
       />
     </div>

@@ -24,14 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, MORADO } from '@/components/dashboard/DashboardUI';
-import { DEPARTAMENTO_META } from '@/utils/departamentos';
-
-// Amarillo institucional de Evangelismo (mismo que el nav y EvangelismoRed.tsx)
-// en vez de AMBAR genérico -- pedido del owner, 2026-08-02 ("los colores
-// internos no son agradables"): un solo acento de marca en vez de un ámbar
-// que no tenía relación con la identidad del módulo.
-const AMARILLO = DEPARTAMENTO_META.EVANGELISMO.color;
+import { AZUL, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -328,7 +321,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={AMARILLO}
+            color={MORADO}
             titulo="Evangelizados del mes"
             descripcion={`${evangelizados.length} en ${nombreMes(anio, mes)}`}
           />
@@ -359,7 +352,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={CalendarRange}
-            color={AMARILLO}
+            color={TEAL}
             titulo="Calendario de evangelismo"
             descripcion="Días en los que se registró al menos un evangelizado"
           />
@@ -381,7 +374,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={AMARILLO}
+            color={AZUL}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Resumen del mes'}
             descripcion={
               diaSeleccionado
@@ -406,8 +399,8 @@ export function Evangelismo() {
               ) : (
                 evangelizadosDelDiaSeleccionado.map((e) => (
                   <div key={e.id} className="flex items-start gap-2 text-sm">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${AMARILLO} 15%, transparent)` }}>
-                      <HeartHandshake className="h-3.5 w-3.5" style={{ color: AMARILLO }} />
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 15%, transparent)` }}>
+                      <HeartHandshake className="h-3.5 w-3.5" style={{ color: AZUL }} />
                     </div>
                     <div className="min-w-0">
                       <PersonaNombreLink personaId={e.persona_id} className="font-medium">{e.nombre_completo}</PersonaNombreLink>
