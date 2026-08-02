@@ -104,6 +104,8 @@ export interface ReporteRedFila {
   casa_de_paz_id: string;
   fecha_reunion: string;
   total_asistentes: number;
+  /** Cuándo se cargó el reporte (no la fecha de la reunión) -- para distinguir a tiempo/con retraso. */
+  fecha_creacion: string;
 }
 
 export interface ReunionAsistencia {

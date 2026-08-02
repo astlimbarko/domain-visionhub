@@ -4,37 +4,40 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AMBAR, AZUL, KpiMosaico, MARINO, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, KpiMosaico, VERDE } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAuthStore } from '@/store/auth.store';
-import {
-  useTasaEvangelismoRed,
-  useEvangelismoRed,
-  useMetasCdpRed,
-  useAsignarMetaEvangelismo,
-  useMetaGlobalRed,
-  useAsignarMetaGlobalRed,
-} from '@/hooks/useEvangelismo';
+import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
-import { AsignarMetaGlobalDialog } from '@/components/evangelismo/AsignarMetaGlobalDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
+// Un solo color ancla (el amarillo institucional de Evangelismo, ya usado en
+// el nav y en Reportes) en vez de mezclar 6 colores distintos sin relación
+// semántica entre sí -- pedido del owner, 2026-08-02 ("los colores internos
+// no son agradables"). VERDE queda reservado a lo que realmente es un logro
+// (Casas de Paz que ya tienen meta); AZUL a los datos neutros.
+const AMARILLO = DEPARTAMENTO_META.EVANGELISMO.color;
+
 interface Props {
   redId: string;
-  redNombre: string;
 }
 
 /**
  * Evangelismo a nivel Red: mismo espíritu que Evangelismo.tsx (CdP) pero con
  * datos agregados de todas las CdP de la Red -- cuántas evangelizó cada una,
- * qué día, y una sección nueva para que el Líder de Red les asigne meta
- * (meta_evangelismo_asignada ya soportaba esto -- 12_evangelismo.sql -- pero
- * nada en el front la usaba).
+ * qué día, y una sección para que el Líder de Red les asigne meta
+ * (meta_evangelismo_asignada ya soportaba esto -- 12_evangelismo.sql).
+ *
+ * "Meta Global de la Red" NO es un valor aparte que se tipea a mano -- el
+ * owner aclaró (2026-08-02) que es la suma de las metas ya asignadas a cada
+ * CdP (fn_tasa_evangelismo_red.meta_total). No hay un segundo número que
+ * mantener sincronizado; se define asignando/cambiando las metas de abajo.
  */
-export function EvangelismoRed({ redId, redNombre }: Props) {
+export function EvangelismoRed({ redId }: Props) {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
 
@@ -43,7 +46,6 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
   const [mes, setMes] = useState(hoy.getMonth());
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [cdpParaMeta, setCdpParaMeta] = useState<MetaCdpRed | null>(null);
-  const [mostrarMetaGlobal, setMostrarMetaGlobal] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
@@ -52,8 +54,6 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
   const { data: evangelizados = [], isLoading: cargandoLista, isFetching: actualizandoLista } = useEvangelismoRed(redId, desde, hasta);
   const { data: metasCdp = [], isLoading: cargandoMetas } = useMetasCdpRed(redId);
   const asignarMeta = useAsignarMetaEvangelismo(redId);
-  const { data: metaGlobal } = useMetaGlobalRed(redId);
-  const asignarMetaGlobal = useAsignarMetaGlobalRed(redId);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -98,18 +98,6 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
     });
   }
 
-  async function handleAsignarMetaGlobal(params: { meta: number; fechaInicio: string; fechaFin: string }) {
-    if (!iglesiaActivaId || !personaId) return;
-    await asignarMetaGlobal.mutateAsync({
-      iglesiaId: iglesiaActivaId,
-      redId,
-      asignadorId: personaId,
-      meta: params.meta,
-      fechaInicio: params.fechaInicio,
-      fechaFin: params.fechaFin,
-    });
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
@@ -144,7 +132,7 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
                 icon={Target}
                 color={AZUL}
               />
-              <KpiMosaico label="Meta total de la Red" icon={Flag} color={AMBAR} sub="Suma de las metas vigentes por CdP">
+              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={AMARILLO} sub="Suma de las metas vigentes por CdP">
                 {tasa?.meta_total ?? 0}
               </KpiMosaico>
               <KpiMosaico label="Casas de Paz con meta" icon={Users} color={VERDE} sub={`de ${tasa?.cdp_total ?? 0} en total`}>
@@ -152,29 +140,11 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
               </KpiMosaico>
             </div>
           )}
-
-          {/* Meta Global: un único objetivo de toda la red que fija el propio
-              Líder de Red, distinto de "Meta total" (que es la suma de las
-              metas por CdP de arriba). */}
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-            <Flag className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <p className="text-[13px] text-muted-foreground">
-              Meta Global de la Red:{' '}
-              <span className="font-semibold text-foreground">{metaGlobal ? metaGlobal.meta : 'sin definir'}</span>
-              {metaGlobal && (
-                <span className="text-[11px]"> ({fechaLegible(metaGlobal.fecha_inicio)} – {fechaLegible(metaGlobal.fecha_fin)})</span>
-              )}
-            </p>
-            <Button variant="outline" size="sm" className="ml-auto gap-1.5" onClick={() => setMostrarMetaGlobal(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              {metaGlobal ? 'Cambiar' : 'Definir'}
-            </Button>
-          </div>
         </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas por Casa de Paz" descripcion="Asigná o revisá la meta vigente de cada una" />
+        <TarjetaHeader icon={Flag} color={AMARILLO} titulo="Metas por Casa de Paz" descripcion="Cada meta que asignás acá se suma a la Meta Global de arriba" />
         <div className="p-5">
           {cargandoMetas ? (
             <div className="flex flex-col gap-2">
@@ -187,8 +157,8 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
               {metasCdp.map((c) => (
                 <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 14%, transparent)` }}>
-                      <Home className="h-4 w-4" style={{ color: MORADO }} />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${AMARILLO} 16%, transparent)` }}>
+                      <Home className="h-4 w-4" style={{ color: AMARILLO }} />
                     </span>
                     <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
                   </div>
@@ -215,7 +185,7 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={TEAL} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader icon={CalendarRange} color={AMARILLO} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
           <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
@@ -228,7 +198,7 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={MARINO}
+            color={AZUL}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Por Casa de Paz'}
             descripcion={diaSeleccionado ? `${evangelizadosDelDiaSeleccionado.length} evangelizado(s)` : 'Elegí un día del calendario'}
             accion={
@@ -248,7 +218,7 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
                 {porCdpDelDiaSeleccionado.map((g) => (
                   <div key={g.etiqueta} className="flex flex-col gap-2">
                     <p className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
-                      <Home className="h-3.5 w-3.5" style={{ color: MARINO }} /> {g.etiqueta}
+                      <Home className="h-3.5 w-3.5" style={{ color: AZUL }} /> {g.etiqueta}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{g.personas.length}</span>
                     </p>
                     {g.personas.map((e) => (
@@ -268,15 +238,6 @@ export function EvangelismoRed({ redId, redNombre }: Props) {
         cdp={cdpParaMeta}
         asignando={asignarMeta.isPending}
         onAsignar={handleAsignar}
-      />
-
-      <AsignarMetaGlobalDialog
-        open={mostrarMetaGlobal}
-        onOpenChange={setMostrarMetaGlobal}
-        redNombre={redNombre}
-        metaActual={metaGlobal ?? null}
-        asignando={asignarMetaGlobal.isPending}
-        onAsignar={handleAsignarMetaGlobal}
       />
     </div>
   );

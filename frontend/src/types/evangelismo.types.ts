@@ -77,26 +77,6 @@ export interface NuevaMetaAsignada {
   observaciones?: string;
 }
 
-/** Meta Global vigente de la Red (fn_meta_global_red) -- objetivo único de
- * toda la red, distinto de las metas por CdP individual. */
-export interface MetaGlobalRed {
-  id: string;
-  meta: number;
-  fecha_inicio: string;
-  fecha_fin: string;
-  observaciones: string | null;
-}
-
-export interface NuevaMetaGlobalRed {
-  iglesiaId: string;
-  redId: string;
-  asignadorId: string;
-  meta: number;
-  fechaInicio: string;
-  fechaFin: string;
-  observaciones?: string;
-}
-
 export interface NuevoEvangelizado {
   casa_de_paz_id: string;
   iglesia_id: string;

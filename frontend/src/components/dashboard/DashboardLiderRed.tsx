@@ -76,10 +76,16 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
   for (const i of ingresos) ingresosPorMoneda.set(i.moneda_simbolo, (ingresosPorMoneda.get(i.moneda_simbolo) ?? 0) + Number(i.total));
   const ingresosEntradas = Array.from(ingresosPorMoneda.entries());
 
+  const casas = [...(casas_de_paz ?? [])].sort((a, b) => (b.ultima_asistencia ?? -1) - (a.ultima_asistencia ?? -1));
+  const sinReporte = cdp_sin_reporte_semana ?? [];
+
   // Agrupado por Casa de Paz para que se lea como una contabilidad total de
   // la Red (cada CdP con su propio subtotal), no una lista plana mezclando
-  // ofrenda/diezmo de todas juntas -- pedido del owner, 2026-08-02.
+  // ofrenda/diezmo de todas juntas -- pedido del owner, 2026-08-02. Arranca
+  // de `casas` (TODAS las CdP que existen en la Red), no solo de `ingresos`:
+  // antes una CdP sin movimientos en el período no aparecía en ningún lado.
   const ingresosPorCdp = new Map<string, { nombre: string; lineas: typeof ingresos; subtotales: Map<string, number> }>();
+  for (const c of casas) ingresosPorCdp.set(c.etiqueta, { nombre: c.etiqueta, lineas: [], subtotales: new Map<string, number>() });
   for (const i of ingresos) {
     const clave = i.casa_de_paz_nombre ?? 'Sin Casa de Paz';
     const grupo = ingresosPorCdp.get(clave) ?? { nombre: clave, lineas: [], subtotales: new Map<string, number>() };
@@ -89,13 +95,9 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
   }
   const gruposIngresosCdp = Array.from(ingresosPorCdp.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  const casas = [...(casas_de_paz ?? [])].sort((a, b) => (b.ultima_asistencia ?? -1) - (a.ultima_asistencia ?? -1));
-  const sinReporte = cdp_sin_reporte_semana ?? [];
-
   // Indicadores derivados de los datos reales de la Red.
   const asistenciaTotal = casas.reduce((s, c) => s + (c.ultima_asistencia ?? 0), 0);
   const reportadas = Math.max(0, kpi.cdp_activas - sinReporte.length);
-  const hayIngresos = ingresos.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -191,22 +193,27 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
         </div>
       </section>
 
-      {/* ── Contabilidad total de la Red: cada CdP con su subtotal + el total general ── */}
-      {hayIngresos && (
+      {/* ── Contabilidad total de la Red: TODAS las CdP que existen, cada una con
+          su subtotal (o "sin ingresos" si no hubo movimiento) + el total general ── */}
+      {casas.length > 0 && (
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader icon={Wallet} color={MORADO} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
           <div className="flex flex-col gap-4 p-5">
             {/* Total general de la Red -- la cifra que responde "cuánto entró en total". */}
             <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 10%, transparent)` }}>
               <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: MORADO }}>Total de la Red</span>
-              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {ingresosEntradas.map(([simbolo, total]) => (
-                  <span key={simbolo} className="text-lg font-bold tabular-nums" style={{ color: MORADO }}>{simbolo} {total.toFixed(2)}</span>
-                ))}
-              </div>
+              {ingresosEntradas.length === 0 ? (
+                <span className="text-sm text-muted-foreground">Sin ingresos registrados en {etiquetaPeriodo}</span>
+              ) : (
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {ingresosEntradas.map(([simbolo, total]) => (
+                    <span key={simbolo} className="text-lg font-bold tabular-nums" style={{ color: MORADO }}>{simbolo} {total.toFixed(2)}</span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Desglose por Casa de Paz -- cada una con su propio subtotal. */}
+            {/* Desglose por Casa de Paz -- cada una con su propio subtotal, incluso las que no tuvieron movimiento. */}
             <div className="grid gap-3 sm:grid-cols-2">
               {gruposIngresosCdp.map((grupo) => (
                 <div key={grupo.nombre} className="flex flex-col gap-2 rounded-xl border border-border p-4">
@@ -219,19 +226,23 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    {grupo.lineas.map((i, idx) => {
-                      const esOfrenda = i.tipo_codigo === 'OFRENDA';
-                      const tono = esOfrenda ? VERDE : AMBAR;
-                      const IconoTipo = esOfrenda ? Gift : Coins;
-                      const etiquetaTipo = esOfrenda ? 'Ofrenda' : i.tipo_codigo === 'DIEZMO' ? 'Diezmo' : i.tipo_codigo;
-                      return (
-                        <div key={idx} className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                          <IconoTipo className="h-3.5 w-3.5 shrink-0" style={{ color: tono }} />
-                          <span className="flex-1">{etiquetaTipo}</span>
-                          <span className="font-medium tabular-nums" style={{ color: tono }}>{i.moneda_simbolo} {Number(i.total).toFixed(2)}</span>
-                        </div>
-                      );
-                    })}
+                    {grupo.lineas.length === 0 ? (
+                      <p className="text-[13px] text-muted-foreground">Sin ingresos en {etiquetaPeriodo}.</p>
+                    ) : (
+                      grupo.lineas.map((i, idx) => {
+                        const esOfrenda = i.tipo_codigo === 'OFRENDA';
+                        const tono = esOfrenda ? VERDE : AMBAR;
+                        const IconoTipo = esOfrenda ? Gift : Coins;
+                        const etiquetaTipo = esOfrenda ? 'Ofrenda' : i.tipo_codigo === 'DIEZMO' ? 'Diezmo' : i.tipo_codigo;
+                        return (
+                          <div key={idx} className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                            <IconoTipo className="h-3.5 w-3.5 shrink-0" style={{ color: tono }} />
+                            <span className="flex-1">{etiquetaTipo}</span>
+                            <span className="font-medium tabular-nums" style={{ color: tono }}>{i.moneda_simbolo} {Number(i.total).toFixed(2)}</span>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               ))}
