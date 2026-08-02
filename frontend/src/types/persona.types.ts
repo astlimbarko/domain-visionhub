@@ -34,6 +34,48 @@ export const GRADO_INSTRUCCION_LABELS: Record<GradoInstruccion, string> = {
   DOCTORADO: 'Doctorado',
 };
 
+/**
+ * Version simple (owner, 2026-08-02): solo el nivel mas alto de discipulado
+ * completado. El modulo completo (7 cursos con inscripcion/fecha de
+ * completado, retiros con prerrequisitos) es el Modulo 4 documentado en
+ * harness/99-modulos-futuros.md, todavia no construido.
+ */
+export type DiscipuladoNivel =
+  | 'FUNDAMENTOS_VIDA_REINO'
+  | 'CARACTER_CRISTO_1'
+  | 'CARACTER_CRISTO_2'
+  | 'FAMILIA_FELIZ'
+  | 'PODER_IDENTIDAD_HIJO'
+  | 'LIDERES_CASAS_DE_PAZ'
+  | 'MENTORES_DEL_REINO';
+
+export const DISCIPULADO_NIVEL_LABELS: Record<DiscipuladoNivel, string> = {
+  FUNDAMENTOS_VIDA_REINO: '1. Fundamentos de Vida del Reino',
+  CARACTER_CRISTO_1: '2. Carácter de Cristo 1',
+  CARACTER_CRISTO_2: '3. Carácter de Cristo 2',
+  FAMILIA_FELIZ: '4. Familia Feliz',
+  PODER_IDENTIDAD_HIJO: '5. Poder de Identidades como Hijo',
+  LIDERES_CASAS_DE_PAZ: '6. Líderes de Casas de Paz',
+  MENTORES_DEL_REINO: '7. Mentores del Reino',
+};
+
+export type MilagroCategoria =
+  | 'SANIDAD_FISICA'
+  | 'SANIDAD_EMOCIONAL'
+  | 'PROVISION'
+  | 'LIBERACION'
+  | 'RESTAURACION_FAMILIAR'
+  | 'OTRO';
+
+export const MILAGRO_CATEGORIA_LABELS: Record<MilagroCategoria, string> = {
+  SANIDAD_FISICA: 'Sanidad física',
+  SANIDAD_EMOCIONAL: 'Sanidad emocional',
+  PROVISION: 'Provisión',
+  LIBERACION: 'Liberación',
+  RESTAURACION_FAMILIAR: 'Restauración familiar',
+  OTRO: 'Otro',
+};
+
 export interface PersonaResultadoBusqueda {
   id: string;
   nombre_completo: string;
@@ -109,6 +151,10 @@ export interface DatosCensales {
   estado_civil: EstadoCivil | null;
   grado_instruccion: GradoInstruccion | null;
   ocupacion: string | null;
+  /** Version simple del Modulo 3 (Afirmacion) -- ver DiscipuladoNivel. */
+  fecha_bautizo: string | null;
+  fecha_retiro: string | null;
+  discipulado_nivel: DiscipuladoNivel | null;
 }
 
 export interface DireccionFicha {
@@ -170,6 +216,28 @@ export interface CargoFicha {
   cargo_nombre: string;
 }
 
+/** Ministerios donde la persona participa o lidera -- puede liderar varios a la vez. */
+export interface MinisterioDePersona {
+  ministerio_id: string;
+  nombre: string;
+  es_lider: boolean;
+}
+
+/** Dato de origen, solo lectura: cuándo y cómo fue evangelizada esta persona (si entró por ese camino). */
+export interface EvangelismoDeOrigen {
+  fecha: string;
+  tipo_evangelismo_nombre: string | null;
+  evangelizado_por_nombre: string | null;
+  casa_de_paz_etiqueta: string | null;
+}
+
+export interface MilagroFicha {
+  id: string;
+  categoria: MilagroCategoria;
+  detalle: string;
+  fecha: string;
+}
+
 export interface PersonaFicha {
   persona: {
     id: string;
@@ -198,6 +266,9 @@ export interface PersonaFicha {
   estado_actual: { sigla: string; nombre: string; fecha_inicio: string } | null;
   casa_de_paz: { id: string; etiqueta: string; red_id: string | null; red_nombre: string | null } | null;
   cargos: CargoFicha[];
+  ministerios: MinisterioDePersona[];
+  evangelismo: EvangelismoDeOrigen | null;
+  milagros: MilagroFicha[];
 }
 
 export interface TipoRelacion {

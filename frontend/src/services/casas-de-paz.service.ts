@@ -60,7 +60,7 @@ export async function toggleActivoRed(redId: string, activo: boolean) {
 export async function crearCdp(iglesiaId: string, redId: string, datos: DatosNuevaCdp): Promise<{ id: string }> {
   const { data: cdp, error: errorCdp } = await supabase
     .from('casa_de_paz')
-    .insert({ iglesia_id: iglesiaId })
+    .insert({ iglesia_id: iglesiaId, modalidad: datos.modalidad })
     .select('id')
     .single();
   if (errorCdp) throw errorCdp;

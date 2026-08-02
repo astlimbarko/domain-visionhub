@@ -4,8 +4,10 @@ import type {
   Evangelizado,
   EvangelizadoRed,
   MetaCdpRed,
+  MetaGlobalRed,
   MetaPropia,
   NuevaMetaAsignada,
+  NuevaMetaGlobalRed,
   NuevoEvangelizado,
   TasaEvangelismo,
   TasaEvangelismoRed,
@@ -158,6 +160,31 @@ export async function asignarMetaEvangelismo(datos: NuevaMetaAsignada) {
   const { error } = await supabase.from('meta_evangelismo_asignada').insert({
     iglesia_id: datos.iglesiaId,
     casa_de_paz_id: datos.casaDePazId,
+    asignador_id: datos.asignadorId,
+    meta: datos.meta,
+    fecha_inicio: datos.fechaInicio,
+    fecha_fin: datos.fechaFin,
+    observaciones: datos.observaciones || null,
+  });
+  if (error) throw error;
+}
+
+/** Meta Global vigente de la Red -- null si no hay ninguna vigente hoy. */
+export async function obtenerMetaGlobalRed(redId: string): Promise<MetaGlobalRed | null> {
+  const { data, error } = await supabase.rpc('fn_meta_global_red', { p_red_id: redId });
+  if (error) throw error;
+  return (data?.[0] as MetaGlobalRed) ?? null;
+}
+
+/**
+ * Asigna la Meta Global de la Red -- mismo patrón que asignarMetaEvangelismo
+ * (insert directo, RLS ya valida vía pol_meta_asignada_insert), pero con
+ * red_id en vez de casa_de_paz_id (81_meta_global_red.sql).
+ */
+export async function asignarMetaGlobalRed(datos: NuevaMetaGlobalRed) {
+  const { error } = await supabase.from('meta_evangelismo_asignada').insert({
+    iglesia_id: datos.iglesiaId,
+    red_id: datos.redId,
     asignador_id: datos.asignadorId,
     meta: datos.meta,
     fecha_inicio: datos.fechaInicio,

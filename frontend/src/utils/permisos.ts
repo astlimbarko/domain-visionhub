@@ -23,6 +23,7 @@ import {
   Network,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
 import type { LucideIcon } from 'lucide-react';
 
@@ -153,7 +154,11 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
-  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: '#ff2d55' },
+  // Amarillo institucional de Evangelismo (DEPARTAMENTO_META, frontend-style
+  // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
+  // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación
+  // con ningún otro color del sistema.
+  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },

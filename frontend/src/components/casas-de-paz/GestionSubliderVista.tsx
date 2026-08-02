@@ -17,6 +17,7 @@ import {
   Trash2,
   UserRound,
   Users,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,8 @@ import { DomicilioAnfitrionDialog } from './DomicilioAnfitrionDialog';
 import { EditarReunionCdpDialog, DIAS_SEMANA } from './EditarReunionCdpDialog';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { HeroDato, TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
+import { urlEmbedMapa } from '@/utils/google-maps';
+import { useEmbedMapaResuelto } from '@/hooks/useMaps';
 import type { DomicilioCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Colores de avatar que rotan por posición, para dar variedad como en el diseño. */
@@ -108,6 +111,15 @@ export function GestionSubliderVista() {
   const { data: sublideres = [], isLoading: cargandoSublideres } = useCargoVigenteCdp(cdpActiva, 'SUBLIDER_CDP');
   const { data: anfitrion = [], isLoading: cargandoAnfitrion } = useCargoVigenteCdp(cdpActiva, 'ANFITRION');
   const { data: domicilio } = useDomicilioCdp(cdpActiva);
+  // El link de Maps manda: si existe, la vista previa nunca debe basarse en
+  // el texto de calle/zona (pueden no coincidir). Ver utils/google-maps.ts.
+  // Si el link es corto (maps.app.goo.gl) no trae coordenadas visibles --
+  // useEmbedMapaResuelto lo sigue del lado del servidor para conseguirlas.
+  const direccionDomicilio = domicilio ? lineaDireccion(domicilio) : null;
+  const embedMapaDirecto = urlEmbedMapa(domicilio?.url_gps, direccionDomicilio);
+  const { embed: embedMapaResuelto, isLoading: resolviendoMapa, isError: fallaResolverMapa } = useEmbedMapaResuelto(
+    embedMapaDirecto ? null : domicilio?.url_gps
+  );
 
   const asignarCargoCdp = useAsignarCargoCdp(iglesiaActivaId);
   const quitarCargoCdp = useQuitarCargoCdp();
@@ -205,7 +217,8 @@ export function GestionSubliderVista() {
   }
 
   const anfitrionActual = anfitrion[0];
-  const direccion = domicilio ? lineaDireccion(domicilio) : null;
+  const direccion = direccionDomicilio;
+  const embedMapa = embedMapaDirecto ?? embedMapaResuelto;
 
   return (
     <div className="flex flex-col gap-6">
@@ -245,6 +258,11 @@ export function GestionSubliderVista() {
                   {perfil?.red_nombre && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
                       <Network className="h-3.5 w-3.5" /> Red: {perfil.red_nombre}
+                    </span>
+                  )}
+                  {perfil?.modalidad === 'VIRTUAL' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
+                      <Video className="h-3.5 w-3.5" /> Virtual
                     </span>
                   )}
                 </div>
@@ -336,7 +354,7 @@ export function GestionSubliderVista() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                className="mt-auto w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
                 onClick={() => setMostrarAnfitrion(true)}
               >
                 <UserRound className="h-3.5 w-3.5" />
@@ -379,16 +397,25 @@ export function GestionSubliderVista() {
             <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
               <Link2 className="h-4 w-4 text-[var(--acc)]" /> Ubicación en Google Maps
             </p>
-            {direccion && (
+            {embedMapa ? (
               <div className="overflow-hidden rounded-lg border border-border">
                 <iframe
                   title="Mapa de la Casa de Paz"
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(direccion)}&output=embed`}
+                  src={embedMapa}
                   className="h-36 w-full"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
+            ) : resolviendoMapa ? (
+              <Skeleton className="h-36 w-full rounded-lg" />
+            ) : (
+              domicilio?.url_gps &&
+              fallaResolverMapa && (
+                <p className="text-[12px] text-muted-foreground">
+                  No se pudo previsualizar este enlace acá, pero apunta al lugar correcto -- abrilo con el botón de abajo.
+                </p>
+              )
             )}
             {domicilio?.url_gps ? (
               <>

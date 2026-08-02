@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { ROUTES } from '@/utils/constants';
 import { rolesPermitidosPara } from '@/utils/permisos';
 import { RegistroPublico } from '@/pages/RegistroPublico';
@@ -82,6 +84,9 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const personaFichaId = useFichaPersonaStore((s) => s.personaId);
+  const cerrarFichaPersona = useFichaPersonaStore((s) => s.cerrar);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -198,6 +203,7 @@ function App() {
         </Routes>
       </BrowserRouter>
       <Toaster richColors position="top-center" />
+      <FichaPersonaSheet personaId={personaFichaId} onOpenChange={(open) => !open && cerrarFichaPersona()} />
     </QueryClientProvider>
   );
 }

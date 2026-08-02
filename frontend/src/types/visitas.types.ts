@@ -1,4 +1,4 @@
-export type MotivoVisita = 'SEGUIMIENTO' | 'APERTURA_NUEVA_CDP';
+export type MotivoVisita = 'SEGUIMIENTO' | 'APERTURA_NUEVA_CDP' | 'IMPARTICION';
 
 /** Códigos fijos de `chk_visita_cdp_aspectos` (56_visitas_red.sql) -- mismo
  * set que el formulario de referencia (img/3.jpeg). */
@@ -16,6 +16,7 @@ export type AspectoVisita =
 export const MOTIVOS_VISITA: { value: MotivoVisita; label: string }[] = [
   { value: 'SEGUIMIENTO', label: 'Seguimiento' },
   { value: 'APERTURA_NUEVA_CDP', label: 'Apertura de nueva Casa de Paz' },
+  { value: 'IMPARTICION', label: 'Impartición' },
 ];
 
 export const ASPECTOS_VISITA: { value: AspectoVisita; label: string }[] = [
@@ -35,11 +36,15 @@ export interface VisitaRed {
   id: string;
   casa_de_paz_id: string;
   casa_de_paz_etiqueta: string;
+  lider_cdp_id: string | null;
   lider_cdp_nombre: string | null;
   motivo: MotivoVisita;
   aspectos: AspectoVisita[];
   aspecto_otro_detalle: string | null;
   observaciones: string | null;
+  /** Evaluación del líder de la CdP -- null si no se marcó nada (checkbox no tocado). */
+  tiene_adn_casa: boolean | null;
+  ensenanza_correcta: boolean | null;
   fecha_visita: string;
   hora_registro: string;
 }
@@ -53,5 +58,7 @@ export interface NuevaVisita {
   aspectos: AspectoVisita[];
   aspectoOtroDetalle?: string;
   observaciones?: string;
+  tieneAdnCasa?: boolean | null;
+  ensenanzaCorrecta?: boolean | null;
   fechaVisita: string;
 }

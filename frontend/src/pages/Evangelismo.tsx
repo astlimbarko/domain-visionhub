@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import {
-  ArrowDown,
-  ArrowUp,
-  Award,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
   Flag,
   Flame,
   MapPin,
-  Minus,
   Plus,
-  Sparkles,
   Target,
   Trophy,
   HeartHandshake,
@@ -30,8 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
-import { DonutRing } from '@/components/dashboard/DonutRing';
+import { AZUL, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
+import { KpiCard } from '@/components/dashboard/KpiCard';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -45,6 +39,7 @@ import {
   useTiposEvangelismo,
 } from '@/hooks/useEvangelismo';
 import { NuevoEvangelizadoDialog } from '@/components/evangelismo/NuevoEvangelizadoDialog';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { EvangelismoTrendChart } from '@/components/evangelismo/EvangelismoTrendChart';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
@@ -153,11 +148,6 @@ export function Evangelismo() {
     return tiposEvangelismo.map((t) => ({ nombre: t.nombre, color: t.color, cantidad: conteos.get(t.nombre) ?? 0 }));
   }, [evangelizados, tiposEvangelismo]);
 
-  const tipoMasFrecuente = porTipoEvangelismo.reduce<(typeof porTipoEvangelismo)[number] | undefined>(
-    (mejor, t) => (t.cantidad > 0 && (!mejor || t.cantidad > mejor.cantidad) ? t : mejor),
-    undefined
-  );
-
   // Variación vs. mes anterior: si el mes anterior tuvo 0, un % no dice nada,
   // así que ese caso se muestra como "nuevo" en vez de un porcentaje engañoso.
   const evangelizadosActual = tasa?.evangelizados ?? 0;
@@ -180,8 +170,8 @@ export function Evangelismo() {
   // placeholder de abajo pese a tener "Evangelismo" en su menú.
   if (rolUI === 'LIDER_RED') {
     if (!roles) return <Skeleton className="h-96 w-full rounded-2xl" />;
-    const redId = roles.redes_lider?.[0]?.id;
-    if (!redId) {
+    const redActiva = roles.redes_lider?.[0];
+    if (!redActiva) {
       return (
         <ProximamentePlaceholder
           titulo="Evangelismo"
@@ -189,7 +179,7 @@ export function Evangelismo() {
         />
       );
     }
-    return <EvangelismoRed redId={redId} />;
+    return <EvangelismoRed redId={redActiva.id} redNombre={redActiva.nombre} />;
   }
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
@@ -257,157 +247,54 @@ export function Evangelismo() {
             {cargandoTasa ? (
               <Skeleton className="h-24 w-full rounded-xl" />
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {/* KPI: evangelizados del mes vs. meta */}
-                <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white shadow-lg shadow-blue-500/20">
-                  <DonutRing porcentaje={tasa?.meta != null ? porcentaje : null} size={80} strokeWidth={8} color="white" trackColor="rgba(255,255,255,0.3)">
-                    <span className="text-base font-bold text-white">{tasa?.meta != null ? `${tasa.tasa}%` : '—'}</span>
-                  </DonutRing>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Evangelizados</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tracking-tight">{tasa?.evangelizados ?? 0}</span>
-                      <span className="text-sm font-bold text-white/90">
-                        {tasa?.meta != null ? `de ${tasa.meta}` : 'sin meta definida'}
-                      </span>
-                    </div>
-                    {tasa?.meta != null && (
-                      <p className="text-[11px] text-white/80">
-                        {tasa.tasa}% de la meta{tasa.tasa && tasa.tasa > 100 ? ' — ¡meta superada!' : ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <>
+                {/* Un solo número que mirar: cuántos evangelizados hay este mes, contra la
+                    meta que esté rigiendo (asignada si hay, si no la propia), y cómo viene
+                    vs. el mes pasado. Antes eran 5 cards grandes de igual peso visual --
+                    nadie sabía cuál mirar primero. */}
+                <KpiCard
+                  icon={Target}
+                  color={AZUL}
+                  titulo="Evangelizados este mes"
+                  valor={evangelizadosActual}
+                  porcentaje={tasa?.meta != null ? porcentaje : null}
+                  variacionPct={variacionPct}
+                  subtitulo={
+                    tasa?.meta != null
+                      ? `${tasa.tasa}% de la meta de ${tasa.meta} · ${evangelizadosAnterior} el mes pasado`
+                      : `Sin meta definida · ${evangelizadosAnterior} el mes pasado`
+                  }
+                />
 
-                {/* KPI: meta asignada por un rol superior (Líder de Red, Supervisor...) -- solo lectura,
-                    vive aparte de la meta propia porque en la BD son mutuamente excluyentes: si hay una
-                    asignada vigente, es la que cuenta para el % de arriba y la propia queda "en pausa". */}
-                <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 text-white shadow-lg shadow-indigo-500/20">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                    <Award className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Meta asignada</p>
-                    {tasa?.origen === 'ASIGNADA' ? (
-                      <>
-                        <span className="text-3xl font-bold tracking-tight">{tasa.meta}</span>
-                        <p className="text-[11px] text-white/80">Fijada por un rol superior, no editable acá</p>
-                      </>
-                    ) : (
-                      <span className="text-sm text-white/80">Sin meta asignada por ahora</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* KPI: Meta propia de Casa de Paz -- editable por el líder, sea o no la que
-                    esté rigiendo el % de arriba (esa se lee aparte, sin depender de fn_tasa_evangelismo,
-                    porque esa RPC oculta la propia mientras haya una asignada vigente). El sublíder
-                    solo la ve, no la edita. */}
-                <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 10%, transparent)` }}>
-                    <Flag className="h-5 w-5" style={{ color: VERDE }} />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                      Meta propia de Casa de Paz
-                    </p>
-                    <div className="flex items-end gap-2">
-                      <Input
-                        id="meta_propia"
-                        type="number"
-                        min={1}
-                        className="h-9 w-24 rounded-xl text-sm"
-                        placeholder="Sin definir"
-                        value={metaLocal}
-                        onChange={(e) => setMetaLocal(e.target.value)}
-                        disabled={esSublider}
-                      />
-                      {!esSublider && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 gap-1.5 rounded-xl"
-                          onClick={guardarMeta}
-                          disabled={actualizarMeta.isPending}
-                        >
-                          {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
-                          Guardar
-                        </Button>
-                      )}
-                    </div>
-                    {tasa?.origen === 'ASIGNADA' && (
-                      <p className="text-[11px] text-muted-foreground">
-                        No mueve el % de arriba mientras haya una meta asignada vigente
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* KPI: variación vs. mes anterior */}
-                <div
-                  className={cn(
-                    'flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg',
-                    variacionAbsoluta > 0
-                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/20'
-                      : variacionAbsoluta < 0
-                        ? 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/20'
-                        : 'bg-gradient-to-br from-slate-500 to-slate-600 shadow-slate-500/20'
+                {/* Meta: asignada manda (mutuamente excluyente con la propia en la BD); si no
+                    hay una vigente, se edita la propia acá mismo en una fila chica en vez de
+                    una card grande aparte. */}
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                  <Flag className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p className="text-[13px] text-muted-foreground">Meta propia de Casa de Paz:</p>
+                  <Input
+                    id="meta_propia"
+                    type="number"
+                    min={1}
+                    className="h-8 w-20 rounded-lg text-sm"
+                    placeholder="Sin definir"
+                    value={metaLocal}
+                    onChange={(e) => setMetaLocal(e.target.value)}
+                    disabled={esSublider}
+                  />
+                  {!esSublider && (
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg" onClick={guardarMeta} disabled={actualizarMeta.isPending}>
+                      {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
+                      Guardar
+                    </Button>
                   )}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                    {variacionAbsoluta > 0 ? (
-                      <ArrowUp className="h-5 w-5 text-white" />
-                    ) : variacionAbsoluta < 0 ? (
-                      <ArrowDown className="h-5 w-5 text-white" />
-                    ) : (
-                      <Minus className="h-5 w-5 text-white" />
-                    )}
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Vs. mes anterior</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tracking-tight">
-                        {variacionAbsoluta > 0 ? '+' : ''}
-                        {variacionAbsoluta}
-                      </span>
-                      {variacionPct !== null && (
-                        <span className="text-xs text-white/80">
-                          ({variacionPct > 0 ? '+' : ''}
-                          {variacionPct}%)
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-white/80">
-                      {evangelizadosAnterior === 0 && evangelizadosActual > 0
-                        ? 'El mes pasado no hubo evangelizados'
-                        : `${evangelizadosAnterior} el mes pasado`}
-                    </p>
-                  </div>
+                  {tasa?.origen === 'ASIGNADA' && (
+                    <span className="text-[11px] text-muted-foreground">
+                      (hay una meta de {tasa.meta} asignada por un rol superior — es la que manda arriba)
+                    </span>
+                  )}
                 </div>
-
-                {/* KPI: tipo de evangelismo con más evangelizados este mes */}
-                <div
-                  className="flex items-center gap-4 rounded-2xl p-4 text-white shadow-lg"
-                  style={{ backgroundColor: tipoMasFrecuente?.color ?? '#6B7280' }}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                    <Sparkles className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="truncate text-[11px] font-semibold tracking-wider text-white/80 uppercase">Tipo más frecuente</p>
-                    {tipoMasFrecuente ? (
-                      <>
-                        <span className="text-3xl font-bold tracking-tight">{tipoMasFrecuente.nombre}</span>
-                        <p className="text-[11px] text-white/80">
-                          {tipoMasFrecuente.cantidad} de {evangelizadosActual} este mes
-                        </p>
-                      </>
-                    ) : (
-                      <span className="text-sm text-white/80">Sin clasificar todavía</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              </>
             )}
 
             {/* Metricas extra: desglose de evangelizados por tipo de evangelismo (1+1, Elite, Semilla...).
@@ -450,7 +337,7 @@ export function Evangelismo() {
               <div className="flex max-h-48 flex-col gap-1 overflow-y-auto pr-1">
                 {evangelizados.map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-2 rounded-xl px-1 py-1.5 text-sm hover:bg-muted/50">
-                    <span className="min-w-0 truncate font-medium">{e.nombre_completo}</span>
+                    <PersonaNombreLink personaId={e.persona_id} className="min-w-0 truncate font-medium">{e.nombre_completo}</PersonaNombreLink>
                     <span className="shrink-0 text-xs text-muted-foreground">{fechaLegible(e.fecha)}</span>
                   </div>
                 ))}
@@ -516,7 +403,7 @@ export function Evangelismo() {
                       <HeartHandshake className="h-3.5 w-3.5" style={{ color: AMBAR }} />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium">{e.nombre_completo}</p>
+                      <PersonaNombreLink personaId={e.persona_id} className="font-medium">{e.nombre_completo}</PersonaNombreLink>
                       {e.domicilio && (
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3 shrink-0" />

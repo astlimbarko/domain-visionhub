@@ -340,6 +340,7 @@ export function GestionRedVista() {
                     <p className="flex items-center gap-2 truncate font-semibold text-foreground">
                       <span className="truncate">{cdp.etiqueta}</span>
                       {!cdp.activo && <Badge variant="outline" className="rounded-full border-muted-foreground/40 text-[10px] text-muted-foreground">Inactiva</Badge>}
+                      {cdp.modalidad === 'VIRTUAL' && <Badge variant="outline" className="rounded-full border-primary/40 text-[10px] text-primary">Virtual</Badge>}
                     </p>
                     <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
                       <Users className="h-3.5 w-3.5 shrink-0" />

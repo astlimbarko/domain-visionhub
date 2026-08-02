@@ -25,6 +25,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { SelectorTipoEvangelismo } from './SelectorTipoEvangelismo';
 
+/** Codigo estable de 44_tipo_evangelismo.sql / seed_01_catalogos_globales.sql -- no depender del nombre, que puede editarse. */
+const CODIGO_SEMILLA = 'SEMILLA';
+
 const esquema = z.object({
   tipo_evangelismo_id: z.string().min(1, 'Elegí con qué tipo de evangelismo se lo ganó'),
   primer_nombre: z.string().trim().min(1),
@@ -51,10 +54,18 @@ interface Props {
  * El formulario queda abierto después de registrar a alguien -- solo se
  * limpia -- para poder cargar a varias personas de una misma salida sin
  * tener que reabrir el diálogo cada vez. "Cerrar" es una acción aparte.
+ *
+ * Semilla es distinto (owner, 2026-08-02): no se registran nombres, solo
+ * cuántas personas se evangelizaron. En vez de tocar el esquema (persona_id
+ * sigue siendo NOT NULL en evangelismo, 12_evangelismo.sql), se llama a
+ * onCrear una vez por unidad con datos de relleno -- el backend no cambia y
+ * las métricas que cuentan filas de `evangelismo` siguen funcionando igual.
  */
 export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaInicial, onCrear }: Props) {
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaId);
   const [registrados, setRegistrados] = useState(0);
+  const [cantidadSemilla, setCantidadSemilla] = useState('1');
+  const [guardandoSemilla, setGuardandoSemilla] = useState(false);
   const {
     register,
     handleSubmit,
@@ -69,6 +80,8 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
 
   const sexoActual = watch('sexo');
   const tipoActual = watch('tipo_evangelismo_id');
+  const fechaActual = watch('fecha');
+  const esSemilla = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_SEMILLA;
 
   async function onSubmit(valores: FormValues) {
     try {
@@ -83,8 +96,33 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
     }
   }
 
+  async function handleRegistrarSemilla() {
+    const cantidad = Number(cantidadSemilla);
+    if (!tipoActual || !fechaActual || !Number.isFinite(cantidad) || cantidad < 1) return;
+    setGuardandoSemilla(true);
+    try {
+      for (let i = 0; i < cantidad; i++) {
+        await onCrear({
+          tipo_evangelismo_id: tipoActual,
+          fecha: fechaActual,
+          primer_nombre: 'Semilla',
+          primer_apellido: '(sin datos)',
+          sexo: 'M',
+        });
+      }
+      toast.success(`${cantidad} evangelizado${cantidad === 1 ? '' : 's'} registrado${cantidad === 1 ? '' : 's'}`);
+      setRegistrados((n) => n + cantidad);
+      setCantidadSemilla('1');
+    } catch {
+      toast.error('No se pudo registrar');
+    } finally {
+      setGuardandoSemilla(false);
+    }
+  }
+
   function manejarCerrar() {
     setRegistrados(0);
+    setCantidadSemilla('1');
     onOpenChange(false);
   }
 
@@ -102,7 +140,8 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
             )}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Tipo de evangelismo *</Label>
             <SelectorTipoEvangelismo
@@ -113,59 +152,99 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
             {errors.tipo_evangelismo_id && <p className="text-sm text-destructive">{errors.tipo_evangelismo_id.message}</p>}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="primer_nombre">Nombre *</Label>
-              <Input id="primer_nombre" {...register('primer_nombre')} />
-              {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
+          {esSemilla ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Semilla no pide nombre -- solo cuenta cuántas personas se evangelizaron.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="semilla_cantidad">Cantidad *</Label>
+                  <Input
+                    id="semilla_cantidad"
+                    type="number"
+                    min={1}
+                    value={cantidadSemilla}
+                    onChange={(e) => setCantidadSemilla(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="semilla_fecha">Fecha *</Label>
+                  <Input id="semilla_fecha" type="date" {...register('fecha')} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={manejarCerrar}>
+                  Cerrar
+                </Button>
+                <Button
+                  type="button"
+                  className="gap-1.5"
+                  onClick={handleRegistrarSemilla}
+                  disabled={guardandoSemilla || !cantidadSemilla || Number(cantidadSemilla) < 1}
+                >
+                  {guardandoSemilla && <Spinner className="h-3.5 w-3.5" />}
+                  {guardandoSemilla ? 'Guardando...' : 'Registrar'}
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="primer_apellido">Apellido *</Label>
-              <Input id="primer_apellido" {...register('primer_apellido')} />
-              {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
-            </div>
-          </div>
+          ) : (
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="primer_nombre">Nombre *</Label>
+                  <Input id="primer_nombre" {...register('primer_nombre')} />
+                  {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="primer_apellido">Apellido *</Label>
+                  <Input id="primer_apellido" {...register('primer_apellido')} />
+                  {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
+                </div>
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Sexo *</Label>
-            <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">Masculino</SelectItem>
-                <SelectItem value="F">Femenino</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
-          </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Sexo *</Label>
+                <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Femenino</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <Input id="fecha" type="date" {...register('fecha')} />
-          </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="fecha">Fecha *</Label>
+                <Input id="fecha" type="date" {...register('fecha')} />
+              </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="domicilio">Domicilio</Label>
-              <Input id="domicilio" {...register('domicilio')} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="telefono">Teléfono</Label>
-              <Input id="telefono" type="tel" placeholder="Opcional" {...register('telefono')} />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="domicilio">Domicilio</Label>
+                  <Input id="domicilio" {...register('domicilio')} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Input id="telefono" type="tel" placeholder="Opcional" {...register('telefono')} />
+                </div>
+              </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={manejarCerrar}>
-              Cerrar
-            </Button>
-            <Button type="submit" className="gap-1.5" disabled={isSubmitting}>
-              {isSubmitting && <Spinner className="h-3.5 w-3.5" />}
-              {isSubmitting ? 'Guardando...' : 'Registrar'}
-            </Button>
-          </DialogFooter>
-        </form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={manejarCerrar}>
+                  Cerrar
+                </Button>
+                <Button type="submit" className="gap-1.5" disabled={isSubmitting}>
+                  {isSubmitting && <Spinner className="h-3.5 w-3.5" />}
+                  {isSubmitting ? 'Guardando...' : 'Registrar'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

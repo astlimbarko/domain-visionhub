@@ -22,6 +22,8 @@ export async function crearVisita(datos: NuevaVisita) {
     aspectos: datos.aspectos,
     aspecto_otro_detalle: datos.aspectoOtroDetalle || null,
     observaciones: datos.observaciones || null,
+    tiene_adn_casa: datos.tieneAdnCasa ?? null,
+    ensenanza_correcta: datos.ensenanzaCorrecta ?? null,
     fecha_visita: datos.fechaVisita,
   });
   if (error) throw error;

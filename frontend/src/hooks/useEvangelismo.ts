@@ -2,16 +2,18 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   actualizarMetaPropia,
   asignarMetaEvangelismo,
+  asignarMetaGlobalRed,
   crearEvangelizado,
   obtenerEvangelismoRed,
   obtenerEvangelizados,
+  obtenerMetaGlobalRed,
   obtenerMetaPropia,
   obtenerMetasCdpRed,
   obtenerTasaEvangelismo,
   obtenerTasaEvangelismoRed,
   obtenerTiposEvangelismo,
 } from '@/services/evangelismo.service';
-import type { NuevaMetaAsignada, NuevoEvangelizado } from '@/types/evangelismo.types';
+import type { NuevaMetaAsignada, NuevaMetaGlobalRed, NuevoEvangelizado } from '@/types/evangelismo.types';
 
 export function useTiposEvangelismo(iglesiaId: string | undefined) {
   return useQuery({
@@ -106,5 +108,21 @@ export function useAsignarMetaEvangelismo(redId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-metas', redId] });
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-tasa', redId] });
     },
+  });
+}
+
+export function useMetaGlobalRed(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'meta-global-red', redId],
+    queryFn: () => obtenerMetaGlobalRed(redId as string),
+    enabled: !!redId,
+  });
+}
+
+export function useAsignarMetaGlobalRed(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: NuevaMetaGlobalRed) => asignarMetaGlobalRed(datos),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['evangelismo', 'meta-global-red', redId] }),
   });
 }

@@ -1,0 +1,44 @@
+# Matías — 2026-08-02
+
+- [x] Encontré por qué el local fallaba al levantar en 5174: `frontend/Dockerfile` tenía `EXPOSE 5173` (desalineado con `vite.config.ts`) y `supabase/config.toml` solo permitía redirects de auth a `localhost:5173`
+- [x] Corregí `EXPOSE 5173` → `5174` en `frontend/Dockerfile`
+- [x] Corregí `additional_redirect_urls` en `supabase/config.toml` para permitir `localhost:5174` en vez de `5173`
+- [ ] Falta: si usan `supabase start` localmente, reiniciar el proyecto de Supabase para que tome el `config.toml` nuevo
+- [x] Auditoría completa contra la lista de correcciones pedidas (6 bloques): identifiqué qué ya estaba hecho, qué parcial y qué faltaba, con referencias a archivo:línea
+- [x] Bloque 1 (Perfiles y formularios base), en rama `feat/perfil-base-formularios`:
+  - [x] Migración `77_perfil_formacion_ministerio_milagros.sql`: campos simples de bautizo/retiro/discipulado en `persona_detalle` (versión liviana, no el Módulo 3/4 completo que ya está documentado en `harness/99-modulos-futuros.md`), tabla nueva `persona_milagro` (registro repetible con categoría+detalle+fecha), `fn_persona_ficha` extendida con `ministerios`/`evangelismo`/`milagros`, y `fn_visitas_red` ahora devuelve `lider_cdp_id`
+  - [x] Vínculos de perfil dinámicos: nuevo store global (`ficha-persona.store.ts`) + `PersonaNombreLink`, cableado en Evangelismo, EvangelismoRed, Ministerios (detalle) y Visitas
+  - [x] Nuevas cards en la ficha de persona: Evangelismo (solo lectura), Ministerios (solo lectura, soporta líder de varios), Milagros (agregar/quitar)
+  - [x] `tsc -b` y `oxlint` sin errores
+  - [x] Migración 77 aplicada contra Supabase real (proyecto "Centro de Vida", mkgdeunylrmuogrfmdnq) vía `supabase db query --linked`, verificada: columnas nuevas en `persona_detalle`, tabla `persona_milagro` y `fn_visitas_red` con `lider_cdp_id`
+  - [ ] Falta: no probé en el navegador con una cuenta real (no tengo credenciales) — solo verificado por tipos/lint y hot-reload sin errores
+  - [ ] Falta: vínculos de perfil en Casas de Paz (líder/sublíder/anfitrión) quedaron pendientes — esas listas no traen el id de la persona todavía, hay que tocar `fn_listar_cdp` primero
+- [x] Correcciones en Casas de Paz y Evangelismo (misma rama `feat/perfil-base-formularios`):
+  - [x] "Tu Casa de Paz" en el dashboard del Líder/Sublíder de CdP: era casi siempre genérico porque `fn_dashboard_lider_cdp` leía la columna manual `casa_de_paz.nombre` (casi nunca cargada) en vez de `fn_etiqueta_cdp` (que ya arma "Casa de Paz de {líder}"). Migración `78_dashboard_cdp_nombre_dinamico.sql`, aplicada en Supabase real y verificada.
+  - [x] Mapa de ubicación de la CdP: el iframe embebido siempre buscaba por el texto de calle/zona, ignorando el link de Google Maps pegado (`url_gps`) incluso cuando existía. `utils/google-maps.ts` (`urlEmbedMapa`) hace que el link mande siempre que traiga coordenadas (`@lat,lng` o `!3d!4d`).
+  - [x] A pedido del owner, se corrigió también el caso de los links cortos (`maps.app.goo.gl`, lo que genera el botón "Compartir" de la app de Maps) que no traen coordenadas visibles: nueva Edge Function `resolver-ubicacion-maps` (desplegada) que sigue la redirección del lado del servidor -- el navegador no puede por CORS -- y devuelve las coordenadas ya resueltas. Nuevo hook `useEmbedMapaResuelto` la llama solo para links cortos y cachea el resultado.
+  - [x] El owner probó con un link real y no funcionaba: un pin suelto sin nombre de lugar (compartir "esta ubicación" en vez de un negocio) resuelve a `/maps/search/-17.35,+-63.25` en vez de `/place/.../@lat,lng` -- un formato que no tenía contemplado. Agregado ese patrón en `google-maps.ts` y en la Edge Function (redeployada), verificado con el link real que pasó el owner.
+  - [x] Rediseño de "Tasa de evangelismo" (Evangelismo.tsx): eran 5 cards grandes de igual peso (evangelizados/meta, meta asignada, meta propia, vs. mes anterior, tipo más frecuente) — se consolidó en un solo `KpiCard` (donut + número + variación) más una fila chica para editar la meta propia. Se sacó la card de "tipo más frecuente" por redundante con los chips "Por tipo" que ya estaban debajo.
+  - [x] Semilla ahora es un contador: al elegir el tipo "Semilla" en "Nuevo evangelizado", el formulario deja de pedir nombre/apellido/domicilio/teléfono y pide solo cantidad + fecha. Por dentro sigue llamando a la misma función de creación una vez por unidad (con datos de relleno) para no tocar el esquema ni las métricas existentes.
+  - [x] `tsc -b` y `oxlint` sin errores
+  - [ ] Falta: probar en navegador con cuenta real (mismo motivo que el bloque anterior — sin credenciales)
+- [x] Bloque 2 (Módulo de Evangelismo) completo, misma rama:
+  - [x] Resaltar Evangelismo en amarillo: el ítem de navegación usaba `#ff2d55` (rosa), sin relación con el amarillo institucional que ya existe para el departamento Evangelismo (`DEPARTAMENTO_META.EVANGELISMO`, `#F5C518`, frontend-style SKILL.md). Ahora reusa esa misma constante en `utils/permisos.ts` en vez de un hex suelto nuevo.
+  - [x] Color distinto por departamento — ya estaba hecho (`DEPARTAMENTO_META`).
+  - [x] Semilla como contador — hecho en la corrección anterior de esta misma sesión.
+  - [x] Fecha de evangelización en el perfil (solo lectura) — hecho en el Bloque 1 (card "Evangelismo" en la ficha de persona).
+  - [x] `tsc -b` y `oxlint` sin errores (cambio de solo una constante, sin tocar la base)
+- [x] Bloque 3 (Vista Líder de Casa de Paz), misma rama:
+  - [x] Título dinámico "Tu casa de paz" — ya cubierto entre Bloque 1 (GestionSubliderVista ya lo hacía) y la corrección de `fn_dashboard_lider_cdp` de esta sesión.
+  - [ ] Checkbox "asiste a esa CDP" en la toma de asistencia — el owner pidió obviarlo por ahora. Quedó registrado que hoy las 3 listas de asistencia (nuevos/regulares/niños) salen solo de `casa_de_paz_membresia` de esa CDP específica, así que si se retoma más adelante hay que definir primero qué caso resuelve (¿confirmar membresías desactualizadas? ¿marcar visitas de otra CDP? ¿decidir si una visita nueva pasa a ser miembro?).
+  - [x] CDP Virtual: migración `79_cdp_virtual.sql` — enum `modalidad_cdp_enum` (`PRESENCIAL`/`VIRTUAL`), columna en `casa_de_paz` (default `PRESENCIAL`), `fn_mi_cdp_perfil` y `fn_listar_cdp` la exponen. Selector en "Nueva Casa de Paz", badge "Virtual" en el perfil propio y en las listas del Líder de Red/Supervisor. Aplicada en Supabase real y verificada.
+  - [x] De paso, aproveché el DROP+CREATE de `fn_listar_cdp` (ya tocaba por lo de arriba) para sumar `lider_id`/`anfitrion_id` -- cierra el pendiente del Bloque 1 de "vínculos de perfil en Casas de Paz". Todavía falta cablear el `PersonaNombreLink` en esas pantallas (los ids ya están disponibles, es solo UI).
+  - [x] `tsc -b` y `oxlint` sin errores
+- [x] Dos ajustes visuales chicos (misma rama, sin migración):
+  - [x] Botón "Cambiar anfitrión" no estaba nivelado con "Editar dirección"/"Editar enlace" en el Perfil de CdP -- le faltaba `mt-auto` para empujarlo al fondo de su columna igual que los otros dos.
+  - [x] Header "Evangelismo" en Reportes (toma de reporte semanal) usaba `MORADO` -- cambiado al amarillo institucional (`DEPARTAMENTO_META.EVANGELISMO.color`), misma constante que ya usa el ítem de navegación.
+- [x] Bloque 4 (Vista Líder de Red), misma rama:
+  - [x] Paginación en historial de visitas (`Visitas.tsx`): mismo patrón cliente "Mostrar más" de `ControlReportesVista.tsx`, lotes de 10.
+  - [x] Migración `80_visita_evaluacion_lider.sql`: motivo "Impartición" agregado al enum, más dos campos de evaluación del líder (`tiene_adn_casa`, `ensenanza_correcta`) en el formulario de visita -- separados de la lista de "aspectos que requieren atención" porque son una confirmación positiva/negativa, no un problema a marcar. `fn_visitas_red` actualizada. Aplicada y verificada.
+  - [x] Migración `81_meta_global_red.sql`: "Meta Global" de la Red -- un solo objetivo para toda la red, distinto de las metas por CdP que ya existían. Se extendió `meta_evangelismo_asignada` con `red_id` (mismo patrón de ámbito que `evento`, ya anotado como pendiente del Módulo 2 en `99-modulos-futuros.md`), con su propia exclusión de solapamiento y política RLS bifurcada. Nuevo diálogo `AsignarMetaGlobalDialog` y fila editable en `EvangelismoRed.tsx`, separada de "Meta total" (que sigue siendo la suma de las metas por CdP). Aplicada y verificada.
+  - [x] `tsc -b` y `oxlint` sin errores

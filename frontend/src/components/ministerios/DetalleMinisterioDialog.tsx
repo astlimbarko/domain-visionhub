@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import type { ParticipanteMinisterio } from '@/types/ministerios.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -55,7 +56,7 @@ export function DetalleMinisterioDialog({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate">
                       {p.es_lider && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-500 text-amber-500" />}
-                      <span className="truncate">{p.nombre_completo}</span>
+                      <PersonaNombreLink personaId={p.persona_id} className="truncate">{p.nombre_completo}</PersonaNombreLink>
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{p.red_nombre}</p>
                   </div>

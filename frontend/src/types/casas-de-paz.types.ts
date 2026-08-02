@@ -9,13 +9,18 @@ export interface RedResumen {
   incompleta: boolean;
 }
 
+export type ModalidadCdp = 'PRESENCIAL' | 'VIRTUAL';
+
 export interface CdpResumen {
   id: string;
   etiqueta: string;
   activo: boolean;
+  modalidad: ModalidadCdp;
   red_id: string | null;
   red_nombre: string | null;
+  lider_id: string | null;
   lider_nombre: string | null;
+  anfitrion_id: string | null;
   anfitrion_nombre: string | null;
   sublideres_count: number;
   miembros_count: number;
@@ -69,6 +74,7 @@ export interface DatosNuevaCdp {
   liderId: string;
   sublideresIds: string[];
   anfitrionId?: string;
+  modalidad: ModalidadCdp;
   diaReunion: number | null;
   horaReunion: string | null;
   domicilio?: DatosDomicilioCdp;
@@ -78,6 +84,7 @@ export interface DatosNuevaCdp {
 export interface CdpPerfil {
   nombre: string;
   activo: boolean;
+  modalidad: ModalidadCdp;
   fecha_creacion: string;
   /** 0=domingo … 6=sábado (getDay()), o null si no se definió. */
   dia_reunion: number | null;

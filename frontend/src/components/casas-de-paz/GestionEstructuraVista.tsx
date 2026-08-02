@@ -405,6 +405,7 @@ export function GestionEstructuraVista() {
                   <p className="flex items-center gap-1.5 truncate font-medium">
                     <Home className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{cdp.etiqueta}</span>
+                    {cdp.modalidad === 'VIRTUAL' && <Badge variant="outline" className="rounded-full border-primary/40 text-[10px] text-primary">Virtual</Badge>}
                   </p>
                   <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                     <Users className="h-3.5 w-3.5 shrink-0" />
