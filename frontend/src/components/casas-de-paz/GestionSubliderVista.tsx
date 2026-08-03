@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -32,6 +32,7 @@ import {
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import {
   useAsignarCargoCdp,
@@ -95,7 +96,19 @@ export function GestionSubliderVista() {
   const rolUI = useRolUI();
   const esLider = rolUI === 'LIDER_CDP';
 
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  const { data: roles } = useMisRoles(iglesiaActivaId);
+  const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  // Si la persona es Líder de una CdP Y Sublíder de otra a la vez, esta vista
+  // debe acotarse a la que corresponde al "sombrero" activo (esLider) -- sin
+  // este filtro, el selector mezclaba ambas CdP bajo un único flag global de
+  // permisos y mostraba botones de edición para una CdP donde la persona solo
+  // es sublíder (bug encontrado en QA, 2026-08-02; el backend ya rechazaba la
+  // escritura vía RLS per-CdP, pero la UI mentía).
+  const misCasas = useMemo(() => {
+    if (!misCasasCrudo) return misCasasCrudo;
+    const idsPropios = new Set((esLider ? roles?.cdp_lider : roles?.cdp_sublider)?.map((c) => c.id) ?? []);
+    return misCasasCrudo.filter((c) => idsPropios.has(c.casa_de_paz_id));
+  }, [misCasasCrudo, esLider, roles]);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
   const nombreCdpActiva = misCasas?.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;

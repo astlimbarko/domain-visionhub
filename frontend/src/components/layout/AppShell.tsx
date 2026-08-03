@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const opcionesRol = useOpcionesRol();
 
-  const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
+  const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
   const textoUsuario = nombreCompleto ? titulo ? `${nombreCompleto} — ${titulo}` : nombreCompleto : (correo ?? '');
 
@@ -181,8 +181,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sombreros: Sombrero[] = [];
   if (roles?.es_operativo && iglesiaActivaId) sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
   for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
-  for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
-  for (const c of roles?.cdp_sublider ?? []) sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
+  // Si ya hay acceso a nivel Red (Líder de Red o Supervisor de la Red en
+  // Acción), no se muestra además un atajo a una CdP que ya pertenece a esa
+  // misma Red -- es redundante, esa CdP ya se ve desde el dashboard de la
+  // Red (pedido del owner, 2026-08-02). Solo se oculta cuando se solapa; una
+  // CdP de una Red distinta a la que lidera/supervisa sigue apareciendo.
+  const redesConAcceso = new Set((roles?.redes_lider ?? []).map((r) => r.id));
+  for (const c of roles?.cdp_lider ?? []) {
+    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
+    sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
+  }
+  for (const c of roles?.cdp_sublider ?? []) {
+    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
+    sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
+  }
 
   async function handleLogout() {
     await cerrarSesion();

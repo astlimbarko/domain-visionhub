@@ -47,11 +47,15 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted p-6">
-      <div className="w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-muted p-6">
+      {/* Fondo con un toque de color, bien sutil -- pedido del owner, 2026-08-03 ("solo un poco"). */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-[0.12] blur-3xl" style={{ background: 'var(--chart-1)' }} aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full opacity-[0.10] blur-3xl" style={{ background: 'var(--chart-4)' }} aria-hidden="true" />
+
+      <div className="relative z-10 w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="mb-8 flex flex-col items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
-            <img src="/logo.png" alt="VisionHub" className="h-8 w-8 object-contain brightness-0 invert" />
+            <img src="/logo.png" alt="Centro de Vida" className="h-8 w-8 object-contain brightness-0 invert" />
           </div>
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-tight text-foreground">{t('app.nombre')}</h1>

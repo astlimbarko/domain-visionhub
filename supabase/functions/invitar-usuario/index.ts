@@ -62,8 +62,16 @@ export default {
 
     if (error) {
       if (error.status === 409 || error.code === "email_exists") {
+        // Mismo hallazgo que invitar-lider (2026-08-02): si la cuenta existe
+        // pero nunca se le vinculo una Persona, "asignaselo desde su ficha"
+        // es un callejon sin salida -- no hay ficha que buscar.
+        const { data: tienePersona } = await ctx.supabase.rpc("fn_correo_tiene_persona", { p_correo: correo });
         return Response.json(
-          { error: "Ya existe una cuenta con ese correo. Esa persona ya puede iniciar sesion; si le falta un cargo, asignaselo desde su ficha." },
+          {
+            error: tienePersona
+              ? "Ya existe una cuenta con ese correo. Esa persona ya puede iniciar sesion; si le falta un cargo, asignaselo desde su ficha."
+              : "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
+          },
           { status: 409 }
         );
       }

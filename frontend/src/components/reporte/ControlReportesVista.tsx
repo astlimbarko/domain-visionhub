@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Search, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,10 +13,12 @@ import {
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
 import { useReportesRedRango } from '@/hooks/useReporte';
 import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
+import type { CdpResumen } from '@/types/casas-de-paz.types';
 
 const LOTE = 12;
 const ROJO = 'var(--destructive)';
@@ -30,7 +31,7 @@ const ROJO = 'var(--destructive)';
 // configuracion_definicion en vez de este número fijo.
 const DIAS_PLAZO_REPORTE = 2;
 
-const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 type EstadoCelda = 'VERDE' | 'NARANJA' | 'ROJO' | 'PENDIENTE';
 
@@ -48,7 +49,9 @@ function coloresPorEstado(estado: EstadoCelda) {
   }
 }
 
-/** Semanas (lunes a domingo) que tocan el mes dado -- típicamente 4 o 5, según cómo caigan los bordes del mes. */
+/** Semanas (lunes a domingo) que tocan el mes dado -- se usa solo para acotar
+ * el rango de fechas a pedirle al backend y como respaldo de las CdP que
+ * todavía no fijaron `dia_reunion` en su Perfil. */
 function semanasDelMes(anio: number, mes: number): { inicio: string; fin: string }[] {
   const primerDia = aISO(new Date(anio, mes, 1));
   const ultimoDia = aISO(new Date(anio, mes + 1, 0));
@@ -63,9 +66,25 @@ function semanasDelMes(anio: number, mes: number): { inicio: string; fin: string
   return semanas;
 }
 
-function etiquetaSemana(inicioISO: string): string {
-  const d = new Date(`${inicioISO}T00:00:00`);
-  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+/**
+ * Fechas exactas del mes en las que le toca reportar a una Casa de Paz --
+ * pedido del owner, 2026-08-02: no todas las CdP se reúnen el mismo día, así
+ * que las columnas de la grilla no pueden ser una sola semana calendario
+ * compartida (confundía, mostraba p.ej. "27 jul" aunque esa CdP se reúna los
+ * viernes). Se usa el `dia_reunion` que cada CdP ya fija en su Perfil
+ * (48_reunion_cdp.sql, 0=domingo…6=sábado). Si todavía no lo fijó, se cae a
+ * los lunes de cada semana que toque el mes (mejor esfuerzo, antes era lo
+ * único que había).
+ */
+function fechasReunionDelMes(anio: number, mes: number, diaReunion: number | null): string[] {
+  if (diaReunion == null) return semanasDelMes(anio, mes).map((s) => s.inicio);
+  const fechas: string[] = [];
+  const ultimoDiaMes = new Date(anio, mes + 1, 0).getDate();
+  for (let dia = 1; dia <= ultimoDiaMes; dia++) {
+    const f = new Date(anio, mes, dia);
+    if (f.getDay() === diaReunion) fechas.push(aISO(f));
+  }
+  return fechas;
 }
 
 /** DATE 'YYYY-MM-DD' → 'DD/MM' sin corrimiento de zona horaria. */
@@ -74,12 +93,12 @@ function fechaCorta(iso: string): string {
   return `${d}/${m}`;
 }
 
-/** Días de calendario entre la fecha de la reunión y cuándo se cargó el reporte (puede dar 0 si se cargó el mismo día). */
-function diasDeDemora(fechaReunionISO: string, fechaCreacionTS: string): number {
-  const reunion = new Date(`${fechaReunionISO}T00:00:00`);
-  const creacion = new Date(fechaCreacionTS);
-  const creacionSoloFecha = new Date(creacion.getFullYear(), creacion.getMonth(), creacion.getDate());
-  return Math.round((creacionSoloFecha.getTime() - reunion.getTime()) / 86400000);
+/** Días de calendario entre una fecha de referencia y otro momento (puede dar 0 si es el mismo día). */
+function diasDeDemora(fechaReferenciaISO: string, otroMomento: string): number {
+  const referencia = new Date(`${fechaReferenciaISO}T00:00:00`);
+  const otro = new Date(otroMomento);
+  const otroSoloFecha = new Date(otro.getFullYear(), otro.getMonth(), otro.getDate());
+  return Math.round((otroSoloFecha.getTime() - referencia.getTime()) / 86400000);
 }
 
 type FiltroEstado = 'TODAS' | 'VERDE' | 'NARANJA' | 'ROJO';
@@ -89,13 +108,13 @@ interface Props {
 }
 
 /**
- * Control de Reportes del Líder de Red (solo lectura). Vista mensual (antes
- * era una ventana rolling de 8 semanas): dentro de cada mes se entrega un
- * reporte por semana, y cada casilla Casa de Paz × semana tiene uno de 3
+ * Control de Reportes del Líder de Red (solo lectura). Vista mensual: dentro
+ * de cada mes se entrega un reporte por semana, en el día que cada Casa de
+ * Paz haya fijado como su día de reunión (Perfil de CdP) -- las columnas ya
+ * no son una semana calendario compartida por todas, sino la fecha exacta
+ * que le toca reportar a esa CdP puntual. Cada casilla tiene uno de 3
  * estados -- verde (a tiempo), naranja (con retraso) o rojo (no presentó,
- * solo si la semana ya terminó). Las semanas todavía en curso o futuras
- * dentro del mes se ven en gris neutro, no rojo, para no marcar como
- * "incumplida" una semana que todavía no terminó.
+ * solo si ya pasó el plazo de gracia desde esa fecha).
  */
 export function ControlReportesVista({ redId }: Props) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
@@ -105,7 +124,7 @@ export function ControlReportesVista({ redId }: Props) {
   const hoyDate = new Date();
   const [anio, setAnio] = useState(hoyDate.getFullYear());
   const [mes, setMes] = useState(hoyDate.getMonth());
-  const hoy = aISO(hoyDate);
+  const ahoraISO = hoyDate.toISOString();
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -119,6 +138,9 @@ export function ControlReportesVista({ redId }: Props) {
     setMes(f.getMonth());
   }
 
+  // Rango a pedirle al backend: las semanas calendario que tocan el mes son
+  // un superconjunto seguro de cualquier fecha de reunión real, sea cual sea
+  // el día que cada CdP haya fijado.
   const semanas = useMemo(() => semanasDelMes(anio, mes), [anio, mes]);
   const desde = semanas[0]?.inicio ?? aISO(new Date(anio, mes, 1));
   const hasta = semanas[semanas.length - 1]?.fin ?? aISO(new Date(anio, mes + 1, 0));
@@ -139,12 +161,12 @@ export function ControlReportesVista({ redId }: Props) {
     return mapa;
   }, [reportes]);
 
-  function estadoCelda(cdpId: string, semana: { inicio: string; fin: string }): EstadoCelda {
-    const celda = porCdpSemana.get(`${cdpId}:${semana.inicio}`);
+  function estadoCeldaFecha(cdpId: string, fechaEsperadaISO: string): EstadoCelda {
+    const celda = porCdpSemana.get(`${cdpId}:${inicioSemanaISO(fechaEsperadaISO)}`);
     if (celda) {
       return diasDeDemora(celda.fecha, celda.fechaCreacion) <= DIAS_PLAZO_REPORTE ? 'VERDE' : 'NARANJA';
     }
-    return semana.fin < hoy ? 'ROJO' : 'PENDIENTE';
+    return diasDeDemora(fechaEsperadaISO, ahoraISO) > DIAS_PLAZO_REPORTE ? 'ROJO' : 'PENDIENTE';
   }
 
   const [texto, setTexto] = useState('');
@@ -158,13 +180,12 @@ export function ControlReportesVista({ redId }: Props) {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [cdps]);
 
-  // Estado del mes para cada CdP: el peor de sus semanas ya vencidas (rojo >
-  // naranja > verde), para que el filtro y el punto de la fila reflejen todo
-  // el mes, no solo la semana actual como antes.
-  function estadoDelMes(cdpId: string): EstadoCelda {
+  // Estado del mes para cada CdP: el peor de sus fechas de reunión ya
+  // vencidas (rojo > naranja > verde), calculadas según su propio día fijo.
+  function estadoDelMes(cdp: CdpResumen): EstadoCelda {
     let peor: EstadoCelda = 'VERDE';
-    for (const s of semanas) {
-      const e = estadoCelda(cdpId, s);
+    for (const f of fechasReunionDelMes(anio, mes, cdp.dia_reunion)) {
+      const e = estadoCeldaFecha(cdp.id, f);
       if (e === 'ROJO') return 'ROJO';
       if (e === 'NARANJA') peor = 'NARANJA';
     }
@@ -176,24 +197,33 @@ export function ControlReportesVista({ redId }: Props) {
     return cdps.filter((c) => {
       if (q && !c.etiqueta.toLowerCase().includes(q) && !(c.lider_nombre ?? '').toLowerCase().includes(q)) return false;
       if (lider !== 'TODOS' && c.lider_nombre !== lider) return false;
-      if (estado !== 'TODAS' && estadoDelMes(c.id) !== estado) return false;
+      if (estado !== 'TODAS' && estadoDelMes(c) !== estado) return false;
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cdps, texto, lider, estado, porCdpSemana, semanas]);
+  }, [cdps, texto, lider, estado, porCdpSemana, anio, mes]);
   const cdpsVisibles = cdpsFiltradas.slice(0, visibles);
 
-  // Resumen del mes: cuenta cada casilla ya vencida (ignora las PENDIENTE,
-  // que todavía no tienen resultado) en vez de solo la semana actual.
+  // Cantidad de columnas de la grilla: la CdP con más fechas de reunión ese
+  // mes (4 o 5, según cómo caiga su día fijo) manda -- se calcula sobre
+  // todas las CdP activas, no solo las filtradas, para que la grilla no
+  // cambie de ancho al tipear en el buscador.
+  const maxColumnas = useMemo(
+    () => Math.max(1, ...cdps.map((c) => fechasReunionDelMes(anio, mes, c.dia_reunion).length)),
+    [cdps, anio, mes]
+  );
+
+  // Resumen del mes: cuenta cada fecha de reunión ya vencida de cada CdP
+  // (ignora las PENDIENTE, que todavía no tienen resultado).
   const total = cdps.length;
   let verdes = 0, naranjas = 0, rojos = 0, asistenciaMes = 0;
   for (const c of cdps) {
-    for (const s of semanas) {
-      const e = estadoCelda(c.id, s);
+    for (const f of fechasReunionDelMes(anio, mes, c.dia_reunion)) {
+      const e = estadoCeldaFecha(c.id, f);
       if (e === 'VERDE') verdes++;
       else if (e === 'NARANJA') naranjas++;
       else if (e === 'ROJO') rojos++;
-      const celda = porCdpSemana.get(`${c.id}:${s.inicio}`);
+      const celda = porCdpSemana.get(`${c.id}:${inicioSemanaISO(f)}`);
       if (celda) asistenciaMes += celda.total;
     }
   }
@@ -203,7 +233,7 @@ export function ControlReportesVista({ redId }: Props) {
   const colorHero = rojos > 0 ? ROJO : naranjas > 0 ? AMBAR : VERDE;
 
   const cargando = cargandoCdps || cargandoReportes;
-  const grid = { gridTemplateColumns: `minmax(150px, 1.4fr) repeat(${semanas.length}, minmax(46px, 1fr))` };
+  const grid = { gridTemplateColumns: `minmax(150px, 1.4fr) repeat(${maxColumnas}, minmax(52px, 1fr))` };
 
   return (
     <div className="flex flex-col gap-6">
@@ -281,53 +311,75 @@ export function ControlReportesVista({ redId }: Props) {
             <p className="py-8 text-center text-sm text-muted-foreground">Ninguna Casa de Paz coincide con los filtros.</p>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[520px]">
-                {/* Encabezado de semanas (una sola vez) */}
+              <div className="min-w-[560px]">
+                {/* Encabezado: ordinal de semana, no una fecha compartida -- cada CdP
+                    reporta en su propio día (ver fecha chiquita arriba del número en
+                    cada casilla), así que una sola fecha por columna sería incorrecta
+                    para la mayoría de las filas. */}
                 <div className="grid items-end gap-1.5 pb-2" style={grid}>
                   <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Casa de Paz</span>
-                  {semanas.map((s) => {
-                    const esSemanaActual = s.inicio <= hoy && hoy <= s.fin;
-                    return (
-                      <div key={s.inicio} className="text-center">
-                        <span className={cn('block text-[11px]', esSemanaActual ? 'font-bold text-foreground' : 'text-muted-foreground')}>{etiquetaSemana(s.inicio)}</span>
-                        {esSemanaActual && <span className="block text-[9px] font-medium text-primary">esta sem.</span>}
-                      </div>
-                    );
-                  })}
+                  {Array.from({ length: maxColumnas }, (_, i) => (
+                    <span key={i} className="text-center text-[11px] text-muted-foreground">Semana {i + 1}</span>
+                  ))}
                 </div>
 
                 {/* Filas */}
                 <div className="flex flex-col gap-1.5">
                   {cdpsVisibles.map((c) => {
-                    const estadoMes = estadoDelMes(c.id);
+                    const fechas = fechasReunionDelMes(anio, mes, c.dia_reunion);
+                    const estadoMes = estadoDelMes(c);
                     const puntoMes = coloresPorEstado(estadoMes);
                     return (
                       <div key={c.id} className="grid items-center gap-1.5 rounded-xl border border-border/60 bg-card/60 py-1.5 pr-2 pl-3" style={grid}>
                         <div className="min-w-0 flex items-center gap-2">
                           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: puntoMes.fg }} title={`Estado del mes: ${estadoMes.toLowerCase()}`} />
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-foreground">{c.etiqueta}</p>
-                            {c.lider_nombre && <p className="truncate text-[11px] text-muted-foreground">{c.lider_nombre}</p>}
+                            <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
+                              <span className="truncate">{c.etiqueta}</span>
+                              {c.dia_reunion != null ? (
+                                <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase">
+                                  {DIAS_CORTOS[c.dia_reunion]}
+                                </span>
+                              ) : (
+                                <span
+                                  className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                                  style={{ backgroundColor: `color-mix(in oklab, ${AMBAR} 16%, transparent)`, color: AMBAR }}
+                                  title="Fijá el día de reunión en el Perfil de esta Casa de Paz para ver sus fechas reales"
+                                >
+                                  Sin día fijo
+                                </span>
+                              )}
+                            </p>
+                            {c.lider_nombre && c.lider_id && (
+                              <p className="truncate text-[11px] text-muted-foreground">
+                                <PersonaNombreLink personaId={c.lider_id}>{c.lider_nombre}</PersonaNombreLink>
+                              </p>
+                            )}
                           </div>
                         </div>
-                        {semanas.map((s) => {
-                          const celda = porCdpSemana.get(`${c.id}:${s.inicio}`);
-                          const est = estadoCelda(c.id, s);
+                        {Array.from({ length: maxColumnas }, (_, i) => {
+                          const fechaEsperada = fechas[i];
+                          if (!fechaEsperada) {
+                            return <div key={i} className="flex h-11 items-center justify-center text-xs text-muted-foreground/30">—</div>;
+                          }
+                          const celda = porCdpSemana.get(`${c.id}:${inicioSemanaISO(fechaEsperada)}`);
+                          const est = estadoCeldaFecha(c.id, fechaEsperada);
                           const { bg, fg } = coloresPorEstado(est);
                           const tituloCelda =
                             est === 'PENDIENTE'
-                              ? `Todavía no venció (semana del ${etiquetaSemana(s.inicio)})`
+                              ? `Todavía no vence (reunión del ${fechaCorta(fechaEsperada)})`
                               : celda
                                 ? `${celda.total} asistentes · reunión ${fechaCorta(celda.fecha)}${est === 'NARANJA' ? ' · presentado con retraso' : ' · a tiempo'}`
-                                : `No presentó (semana del ${etiquetaSemana(s.inicio)})`;
+                                : `No presentó (reunión del ${fechaCorta(fechaEsperada)})`;
                           return (
                             <div
-                              key={s.inicio}
-                              className="flex h-9 items-center justify-center rounded-lg text-sm font-bold tabular-nums"
+                              key={i}
+                              className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-sm font-bold tabular-nums"
                               style={{ backgroundColor: bg, color: fg }}
                               title={tituloCelda}
                             >
-                              {celda ? celda.total : est === 'ROJO' ? '✕' : '·'}
+                              <span className="text-[9px] leading-none font-medium opacity-75">{fechaCorta(fechaEsperada)}</span>
+                              <span className="leading-none">{celda ? celda.total : est === 'ROJO' ? '✕' : '·'}</span>
                             </div>
                           );
                         })}

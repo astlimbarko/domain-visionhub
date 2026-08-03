@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, KpiMosaico, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
+import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { useAuthStore } from '@/store/auth.store';
 import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
@@ -17,6 +18,12 @@ import type { MetaCdpRed } from '@/types/evangelismo.types';
 
 /** Sentinel para distinguir "asignar a todas" de una CdP real en el mismo diálogo. */
 const ID_TODAS = '__TODAS__';
+
+// Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
+// módulo -- ver `evangelismo-colores.ts`. Un color por sección para que se
+// distingan a simple vista, no un solo tono repetido en toda la pantalla.
+const { AZUL, VERDE, MORADO, CELESTE } = EVANGELISMO_COLOR;
+const AMARILLO = EVANGELISMO_COLOR.AMARILLO;
 
 interface Props {
   redId: string;
@@ -93,6 +100,10 @@ export function EvangelismoRed({ redId }: Props) {
 
   const porcentaje = tasa?.meta_total ? Math.min(tasa.tasa ?? 0, 100) : 0;
 
+  // El toast y el "¿se cierra el diálogo?" se deciden acá, no en
+  // AsignarMetaRedDialog -- así "asignar a todas" puede avisar cuántas
+  // fallaron sin un segundo toast genérico contradictorio encima. Tirar el
+  // error es lo que le dice al diálogo que se quede abierto.
   async function handleAsignar(params: { meta: number; fechaInicio: string; fechaFin: string }) {
     if (!cdpParaMeta || !iglesiaActivaId || !personaId) return;
 
@@ -112,6 +123,10 @@ export function EvangelismoRed({ redId }: Props) {
           )
         );
         const fallidas = resultados.filter((r) => r.status === 'rejected').length;
+        if (fallidas === resultados.length) {
+          toast.error('No se pudo asignar la meta a ninguna Casa de Paz (todas ya tenían una meta que se solapa en esas fechas)');
+          throw new Error('BULK_FALLO_TOTAL');
+        }
         if (fallidas > 0) {
           toast.error(`Se asignó a ${resultados.length - fallidas} de ${resultados.length} Casas de Paz (${fallidas} ya tenían una meta que se solapa en esas fechas)`);
         } else {
@@ -123,14 +138,26 @@ export function EvangelismoRed({ redId }: Props) {
       return;
     }
 
-    await asignarMeta.mutateAsync({
-      iglesiaId: iglesiaActivaId,
-      casaDePazId: cdpParaMeta.casa_de_paz_id,
-      asignadorId: personaId,
-      meta: params.meta,
-      fechaInicio: params.fechaInicio,
-      fechaFin: params.fechaFin,
-    });
+    try {
+      await asignarMeta.mutateAsync({
+        iglesiaId: iglesiaActivaId,
+        casaDePazId: cdpParaMeta.casa_de_paz_id,
+        asignadorId: personaId,
+        meta: params.meta,
+        fechaInicio: params.fechaInicio,
+        fechaFin: params.fechaFin,
+      });
+      toast.success(`Meta asignada a ${cdpParaMeta.etiqueta}`);
+    } catch (e) {
+      const error = e as { message?: string } | null;
+      const mensaje = typeof error?.message === 'string' ? error.message : '';
+      if (mensaje.includes('excl_meta_asignada_solapada') || mensaje.includes('exclusion')) {
+        toast.error('Ya hay una meta asignada para esa Casa de Paz en un rango que se solapa');
+      } else {
+        toast.error('No se pudo asignar la meta');
+      }
+      throw e;
+    }
   }
 
   return (
@@ -151,7 +178,7 @@ export function EvangelismoRed({ redId }: Props) {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Target} color={AZUL} titulo="Tasa de evangelismo de la Red" descripcion={`Todas las Casas de Paz, ${nombreMes(anio, mes)}`} />
+        <TarjetaHeader icon={Target} color={AMARILLO} titulo="Tasa de evangelismo de la Red" descripcion={`Todas las Casas de Paz, ${nombreMes(anio, mes)}`} />
         <div className="p-6">
           {cargandoTasa ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -165,9 +192,9 @@ export function EvangelismoRed({ redId }: Props) {
                 subtitulo={tasa?.meta_total ? `${tasa.tasa}% de la meta (${tasa.meta_total})` : 'Sin meta definida'}
                 porcentaje={tasa?.meta_total ? porcentaje : null}
                 icon={Target}
-                color={AZUL}
+                color={AMARILLO}
               />
-              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={MORADO} sub="Suma de las metas vigentes por CdP">
+              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={AZUL} sub="Suma de las metas vigentes por CdP">
                 {tasa?.meta_total ?? 0}
               </KpiMosaico>
               <KpiMosaico label="Casas de Paz con meta" icon={Users} color={VERDE} sub={`de ${tasa?.cdp_total ?? 0} en total`}>
@@ -249,7 +276,7 @@ export function EvangelismoRed({ redId }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={TEAL} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader icon={CalendarRange} color={CELESTE} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
           <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />

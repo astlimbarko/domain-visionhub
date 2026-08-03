@@ -7,6 +7,7 @@ import {
   Flag,
   Flame,
   MapPin,
+  Network,
   Plus,
   Target,
   Trophy,
@@ -23,9 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
+import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
 import { KpiCard } from '@/components/dashboard/KpiCard';
+import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -46,6 +47,11 @@ import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 
+// Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
+// módulo -- ver `evangelismo-colores.ts`. Un color por sección para que se
+// distingan a simple vista, no un solo tono repetido en toda la pantalla.
+const { AZUL, VERDE, NARANJA, AMARILLO, CELESTE } = EVANGELISMO_COLOR;
+
 export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
@@ -55,7 +61,17 @@ export function Evangelismo() {
   const esSublider = rolUI === 'SUBLIDER_CDP';
   const { data: roles } = useMisRoles(iglesiaActivaId);
 
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  // Mismo filtro que GestionSubliderVista.tsx: si la persona es Líder de una
+  // CdP y Sublíder de otra a la vez, esta vista se acota a la que corresponde
+  // al "sombrero" activo -- sin esto, el selector mezclaba ambas CdP y
+  // "esSublider" (flag global) quedaba mal aplicado a la CdP ajena.
+  const misCasas = useMemo(() => {
+    if (!misCasasCrudo) return misCasasCrudo;
+    if (rolUI !== 'LIDER_CDP' && rolUI !== 'SUBLIDER_CDP') return misCasasCrudo;
+    const idsPropios = new Set((rolUI === 'LIDER_CDP' ? roles?.cdp_lider : roles?.cdp_sublider)?.map((c) => c.id) ?? []);
+    return misCasasCrudo.filter((c) => idsPropios.has(c.casa_de_paz_id));
+  }, [misCasasCrudo, rolUI, roles]);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
 
@@ -155,6 +171,13 @@ export function Evangelismo() {
   const variacionAbsoluta = evangelizadosActual - evangelizadosAnterior;
   const variacionPct = evangelizadosAnterior > 0 ? Math.round((variacionAbsoluta / evangelizadosAnterior) * 100) : null;
 
+  // Mientras la meta de la Red esté vigente y todavía no se haya alcanzado,
+  // la meta propia queda bloqueada (pedido del owner, 2026-08-03) -- el
+  // backend ya lo hace cumplir (trg_bloquear_meta_propia_bajo_asignada,
+  // migración 93), esto solo refleja la misma regla en la UI.
+  const metaAsignadaCumplida = tasa?.origen === 'ASIGNADA' && tasa.meta != null && evangelizadosActual >= tasa.meta;
+  const metaAsignadaBloqueando = tasa?.origen === 'ASIGNADA' && !metaAsignadaCumplida;
+
   async function guardarMeta() {
     const valor = metaLocal.trim() === '' ? null : Number(metaLocal);
     try {
@@ -194,17 +217,69 @@ export function Evangelismo() {
   }
 
   const porcentaje = tasa?.tasa != null ? Math.min(tasa.tasa, 100) : 0;
+  const cdpNombreActiva = misCasas.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
 
   return (
     <div className="flex flex-col gap-6">
-      {!esSublider && (
-        <div className="flex justify-end">
-          <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
-            <Plus className="h-4 w-4" />
-            Nuevo evangelizado
-          </Button>
+      {/* Mismo encabezado "Hero" que Perfil de Casa de Paz (GestionSubliderVista.tsx)
+          -- pedido del owner, 2026-08-02: las páginas de la vista de Sublíder/Líder
+          de CdP deben verse como parte de la misma sección, no como pantallas sueltas. */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
+        style={{ background: GRADIENTE_HERO }}
+      >
+        <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
+        <div className="relative flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
+                <HeartHandshake className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-medium text-white/60">Evangelismo</span>
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{cdpNombreActiva ?? 'Casa de Paz'}</h1>
+              </div>
+            </div>
+            {!esSublider && (
+              <Button
+                onClick={() => setDialogoAbierto(true)}
+                className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo evangelizado
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-3">
+            <HeroDato icon={CalendarRange} label="Mes" valor={nombreMes(anio, mes)} />
+            <HeroDato icon={Target} label="Evangelizados" valor={String(evangelizadosActual)} />
+            <HeroDato
+              icon={Flag}
+              label="Meta"
+              valor={
+                tasa?.meta != null ? (
+                  <span className="flex items-center gap-2">
+                    {tasa.meta}
+                    {/* Antes esto solo se distinguía en una nota chica más abajo -- el
+                        owner reportó que a simple vista no se notaba que la meta no era
+                        propia (2026-08-03). Este badge la hace visible de un vistazo. */}
+                    {tasa.origen === 'ASIGNADA' && (
+                      <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90 uppercase backdrop-blur-sm">
+                        Red
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  'Sin definir'
+                )
+              }
+              dot={tasa?.meta != null ? 'var(--chart-4)' : undefined}
+              valorClase={tasa?.meta != null ? 'text-[var(--chart-4)]' : 'text-white/70'}
+            />
+          </div>
         </div>
-      )}
+      </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
         {misCasas.length > 1 && (
@@ -239,7 +314,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={Target}
-            color={AZUL}
+            color={AMARILLO}
             titulo="Tasa de evangelismo"
             descripcion={tasa?.origen ? `Meta ${tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
           />
@@ -254,7 +329,7 @@ export function Evangelismo() {
                     nadie sabía cuál mirar primero. */}
                 <KpiCard
                   icon={Target}
-                  color={AZUL}
+                  color={AMARILLO}
                   titulo="Evangelizados este mes"
                   valor={evangelizadosActual}
                   porcentaje={tasa?.meta != null ? porcentaje : null}
@@ -266,33 +341,97 @@ export function Evangelismo() {
                   }
                 />
 
-                {/* Meta: asignada manda (mutuamente excluyente con la propia en la BD); si no
-                    hay una vigente, se edita la propia acá mismo en una fila chica en vez de
-                    una card grande aparte. */}
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-                  <Flag className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <p className="text-[13px] text-muted-foreground">Meta propia de Casa de Paz:</p>
-                  <Input
-                    id="meta_propia"
-                    type="number"
-                    min={1}
-                    className="h-8 w-20 rounded-lg text-sm"
-                    placeholder="Sin definir"
-                    value={metaLocal}
-                    onChange={(e) => setMetaLocal(e.target.value)}
-                    disabled={esSublider}
-                  />
-                  {!esSublider && (
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg" onClick={guardarMeta} disabled={actualizarMeta.isPending}>
-                      {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
-                      Guardar
-                    </Button>
-                  )}
-                  {tasa?.origen === 'ASIGNADA' && (
-                    <span className="text-[11px] text-muted-foreground">
-                      (hay una meta de {tasa.meta} asignada por un rol superior — es la que manda arriba)
-                    </span>
-                  )}
+                {/* Dos cards separadas en vez de una sola fila con una nota chica --
+                    el owner reportó que así no se distinguía bien cuál meta manda
+                    (2026-08-03). "Vigente" marca cuál de las dos rige el % de arriba;
+                    son mutuamente excluyentes en la BD (fn_meta_efectiva), nunca las
+                    dos a la vez. */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div
+                    className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
+                    style={
+                      tasa?.origen === 'PROPIA'
+                        ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                        <Flag className="h-3.5 w-3.5 shrink-0" /> Meta propia
+                      </span>
+                      {tasa?.origen === 'PROPIA' && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
+                          Vigente
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="meta_propia"
+                        type="number"
+                        min={1}
+                        className="h-8 w-20 rounded-lg text-sm"
+                        placeholder="Sin definir"
+                        value={metaLocal}
+                        onChange={(e) => setMetaLocal(e.target.value)}
+                        disabled={esSublider || metaAsignadaBloqueando}
+                      />
+                      {!esSublider && (
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg" onClick={guardarMeta} disabled={actualizarMeta.isPending || metaAsignadaBloqueando}>
+                          {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
+                          Guardar
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {metaAsignadaBloqueando
+                        ? 'Bloqueada hasta cumplir la meta de la Red (mirá la card de al lado).'
+                        : 'La que vos definiste para tu Casa de Paz.'}
+                    </p>
+                  </div>
+
+                  <div
+                    className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
+                    style={
+                      tasa?.origen === 'ASIGNADA'
+                        ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                        <Network className="h-3.5 w-3.5 shrink-0" /> Meta de la Red
+                      </span>
+                      {tasa?.origen === 'ASIGNADA' && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
+                          Vigente
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold tracking-tight text-foreground">
+                      {tasa?.origen === 'ASIGNADA' ? tasa.meta : '—'}
+                    </p>
+                    {tasa?.origen === 'ASIGNADA' && tasa.meta != null ? (
+                      <>
+                        {/* Barra + "faltan N": el nuevo candado de la meta propia depende
+                            de esto, así que la card tiene que explicar por sí sola qué
+                            falta para destrabarla, no solo mostrar el número (2026-08-03). */}
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full transition-[width]"
+                            style={{ width: `${Math.min(100, Math.round((evangelizadosActual / tasa.meta) * 100))}%`, background: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}
+                          />
+                        </div>
+                        <p className="text-[11px] font-medium" style={{ color: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}>
+                          {metaAsignadaCumplida
+                            ? '¡Meta cumplida! Ya podés editar tu meta propia.'
+                            : `${evangelizadosActual} de ${tasa.meta} -- faltan ${tasa.meta - evangelizadosActual} para poder editar la propia.`}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">Tu líder de red no asignó una meta para este período.</p>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -321,7 +460,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={MORADO}
+            color={VERDE}
             titulo="Evangelizados del mes"
             descripcion={`${evangelizados.length} en ${nombreMes(anio, mes)}`}
           />
@@ -352,7 +491,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={CalendarRange}
-            color={TEAL}
+            color={CELESTE}
             titulo="Calendario de evangelismo"
             descripcion="Días en los que se registró al menos un evangelizado"
           />
@@ -442,8 +581,8 @@ export function Evangelismo() {
                   </div>
                 </button>
                 <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 12%, transparent)` }}>
-                    <Flame className="h-4 w-4" style={{ color: MORADO }} />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${NARANJA} 12%, transparent)` }}>
+                    <Flame className="h-4 w-4" style={{ color: NARANJA }} />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Racha este mes</p>

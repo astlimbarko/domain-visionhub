@@ -85,17 +85,20 @@ function BloqueFinanciero({ resumen }: { resumen: FinanzasResumen }) {
     <div className="grid grid-cols-3 gap-2.5">
       <StatFinanciero label="Ofrenda" valores={resumen.ofrenda} color={VERDE} icon={Gift} />
       <StatFinanciero label="Diezmo" valores={resumen.diezmo} color={AMBAR} icon={Coins} />
-      <StatFinanciero label="Total" valores={resumen.total} color={MORADO} icon={Wallet} />
+      <StatFinanciero label="Total" valores={resumen.total} color={TEAL} icon={Wallet} />
     </div>
   );
 }
 
 interface Props {
   redId: string;
+  /** Supervisor de la Red en Acción -- mismo dashboard que el Líder de Red
+   * (apoyo, no un rol acotado), solo cambia el rótulo del subtítulo. */
+  esSublider?: boolean;
   onSeleccionarCdp?: (cdpId: string) => void;
 }
 
-export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
+export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp }: Props) {
   const nombreLider = useAuthStore((s) => s.nombreCompleto);
   const { data, isLoading } = useDashboardLiderRed(redId);
 
@@ -158,7 +161,12 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <DashboardHero icon={Network} eyebrow="Red" title={red.nombre} subtitle={nombreLider ? `Líder: ${nombreLider}` : undefined} />
+      <DashboardHero
+        icon={Network}
+        eyebrow="Red"
+        title={red.nombre}
+        subtitle={nombreLider ? `${esSublider ? 'Supervisor de la Red en Acción' : 'Líder'}: ${nombreLider}` : undefined}
+      />
 
       {/* ── Barra de período ──────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -251,7 +259,7 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
                     className={cn('h-7 w-fit gap-1.5 self-start rounded-lg px-2 text-[12px]', cdpFinanzas === c.etiqueta && 'bg-muted text-foreground')}
                     onClick={() => setCdpFinanzas((prev) => (prev === c.etiqueta ? null : c.etiqueta))}
                   >
-                    <Wallet className="h-3.5 w-3.5" style={{ color: MORADO }} />
+                    <Wallet className="h-3.5 w-3.5" style={{ color: VERDE }} />
                     Ver finanzas
                   </Button>
                 </div>
@@ -272,7 +280,7 @@ export function DashboardLiderRed({ redId, onSeleccionarCdp }: Props) {
       {/* ── Contabilidad total de la Red: [Ofrenda][Diezmo][Total] global ──────── */}
       {casas.length > 0 && (
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={Wallet} color={MORADO} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
+          <TarjetaHeader icon={Wallet} color={VERDE} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
           <div className="p-5">
             <BloqueFinanciero resumen={finanzasGlobal} />
           </div>

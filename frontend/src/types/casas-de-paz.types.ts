@@ -24,6 +24,7 @@ export interface CdpResumen {
   anfitrion_nombre: string | null;
   sublideres_count: number;
   miembros_count: number;
+  dia_reunion: number | null;
 }
 
 export interface PersonaBusqueda {

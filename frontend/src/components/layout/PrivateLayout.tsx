@@ -4,7 +4,7 @@ import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { ROUTES } from '@/utils/constants';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
-import { Skeleton } from '@/components/ui/skeleton';
+import { AppLoadingScreen } from '@/components/ui/logo-spinner';
 
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -24,12 +24,7 @@ export function PrivateLayout() {
   // sigue de largo con su atajo a /administracion -- solo si además tiene
   // otro rol (opciones.length > 1) se lo manda a elegir, igual que a cualquiera.
   if (opciones === undefined) {
-    return (
-      <div className="flex flex-col gap-4 p-6">
-        <Skeleton className="h-8 w-48 rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   const rolActivoValido = opciones.some((o) => o.rolUI === rolActivo);

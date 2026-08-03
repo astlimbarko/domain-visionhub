@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ContenidoCargando } from '@/components/ui/logo-spinner';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { ROUTES } from '@/utils/constants';
@@ -48,12 +48,7 @@ const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.J
 const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
 
 function CargandoPagina() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-10 w-48 rounded-xl" />
-      <Skeleton className="h-64 w-full rounded-2xl" />
-    </div>
-  );
+  return <ContenidoCargando />;
 }
 
 // Afirmación no se protege por RolUI (RequiereRol) sino por una capacidad

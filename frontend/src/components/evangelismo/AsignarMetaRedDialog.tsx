@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Flag } from 'lucide-react';
 import {
   Dialog,
@@ -14,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
-import { VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL } from '@/components/dashboard/DashboardUI';
 import { aISO } from '@/utils/calendario-fechas';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
@@ -50,20 +49,18 @@ export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsi
   const metaNumero = Number(meta);
   const puedeGuardar = meta.trim() !== '' && metaNumero > 0 && !!fechaInicio && !!fechaFin && fechaFin >= fechaInicio;
 
+  // El toast y el manejo de error son responsabilidad de onAsignar (el
+  // llamador): así el caso "asignar a todas" puede avisar cuántas
+  // fallaron sin que este diálogo también dispare su propio toast genérico
+  // encima -- antes se veían dos mensajes contradictorios cuando fallaba
+  // una parte. Si onAsignar tira, el diálogo se queda abierto a propósito.
   async function handleGuardar() {
     if (!puedeGuardar) return;
     try {
       await onAsignar({ meta: metaNumero, fechaInicio, fechaFin });
-      toast.success(`Meta asignada a ${cdp?.etiqueta}`);
       onOpenChange(false);
-    } catch (e) {
-      const error = e as { message?: string } | null;
-      const mensaje = typeof error?.message === 'string' ? error.message : '';
-      if (mensaje.includes('excl_meta_asignada_solapada') || mensaje.includes('exclusion')) {
-        toast.error('Ya hay una meta asignada para esa Casa de Paz en un rango que se solapa');
-      } else {
-        toast.error('No se pudo asignar la meta');
-      }
+    } catch {
+      // No-op: quien llama ya mostró el toast de error correspondiente.
     }
   }
 
@@ -72,7 +69,7 @@ export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsi
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="sr-only">Asignar meta de evangelismo</DialogTitle>
-          <SeccionIconHeader icon={Flag} color={VERDE} titulo="Asignar meta de evangelismo" descripcion={cdp?.etiqueta} />
+          <SeccionIconHeader icon={Flag} color={AZUL} titulo="Asignar meta de evangelismo" descripcion={cdp?.etiqueta} />
           <DialogDescription className="pt-1">
             Mientras esté vigente, esta meta manda sobre la propia que haya fijado la Casa de Paz.
           </DialogDescription>

@@ -63,6 +63,7 @@ import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Cuántas Casas de Paz se muestran antes de "Mostrar más" (escala a redes grandes). */
@@ -345,7 +346,12 @@ export function GestionRedVista() {
                     <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
                       <Users className="h-3.5 w-3.5 shrink-0" />
                       {cdp.miembros_count} miembros · {cdp.sublideres_count} sublíder(es)
-                      {cdp.anfitrion_nombre && ` · Anfitrión: ${cdp.anfitrion_nombre}`}
+                      {cdp.anfitrion_nombre && cdp.anfitrion_id && (
+                        <>
+                          {' · Anfitrión: '}
+                          <PersonaNombreLink personaId={cdp.anfitrion_id}>{cdp.anfitrion_nombre}</PersonaNombreLink>
+                        </>
+                      )}
                     </p>
                   </div>
                   <DropdownMenu>

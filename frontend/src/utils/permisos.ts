@@ -60,14 +60,17 @@ const RUTAS_LIDER_CDP: string[] = [
 
 // A diferencia del líder real, el sublíder tiene un alcance de navegación
 // más chico -- sin Dashboard ni Historial de Reportes (decisión del owner,
-// 2026-07-31). Además de ver menos módulos, dentro de los que sí ve la
-// restricción es de acciones (no puede designar/eliminar sublíderes ni
-// modificar la CdP, tampoco editar nada de Evangelismo) -- eso se aplica en
-// CasasDePaz.tsx y Evangelismo.tsx, no acá.
+// 2026-07-31). Acotado de nuevo 2026-08-02 (pedido explícito del owner): solo
+// [Perfil de Casa de Paz][Reportes][Historial de Asistencia][Evangelismo],
+// sin Calendario. Además de ver menos módulos, dentro de los que sí ve la
+// restricción es de acciones -- no puede modificar nada, solo subir
+// reportes (eso ya notifica al Líder de CdP vigente, trg_notificar_reporte_
+// sublider en 57_notificaciones.sql) -- no puede designar/eliminar
+// sublíderes ni modificar la CdP, tampoco editar nada de Evangelismo -- eso
+// se aplica en CasasDePaz.tsx y Evangelismo.tsx, no acá.
 const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.REPORTES,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
-  ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.HISTORIAL_ASISTENCIA,
 ];
