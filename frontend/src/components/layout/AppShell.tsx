@@ -97,7 +97,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
 
         if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
           return (
-            <div key={label} className="flex flex-col gap-0.5">
+            <div key={path} className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold text-foreground">
                 {iconoChip}{label}
               </div>
@@ -116,7 +116,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
         }
 
         return (
-          <Link key={label} to={path} onClick={onNavigate}
+          <Link key={path} to={path} onClick={onNavigate}
             onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
             className={cn('flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}>
             {iconoChip}<span className="truncate">{label}</span>
