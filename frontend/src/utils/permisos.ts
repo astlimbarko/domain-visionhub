@@ -21,8 +21,10 @@ import {
   LayoutGrid,
   Footprints,
   Network,
+  Heart,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
 import type { LucideIcon } from 'lucide-react';
 
@@ -58,14 +60,17 @@ const RUTAS_LIDER_CDP: string[] = [
 
 // A diferencia del líder real, el sublíder tiene un alcance de navegación
 // más chico -- sin Dashboard ni Historial de Reportes (decisión del owner,
-// 2026-07-31). Además de ver menos módulos, dentro de los que sí ve la
-// restricción es de acciones (no puede designar/eliminar sublíderes ni
-// modificar la CdP, tampoco editar nada de Evangelismo) -- eso se aplica en
-// CasasDePaz.tsx y Evangelismo.tsx, no acá.
+// 2026-07-31). Acotado de nuevo 2026-08-02 (pedido explícito del owner): solo
+// [Perfil de Casa de Paz][Reportes][Historial de Asistencia][Evangelismo],
+// sin Calendario. Además de ver menos módulos, dentro de los que sí ve la
+// restricción es de acciones -- no puede modificar nada, solo subir
+// reportes (eso ya notifica al Líder de CdP vigente, trg_notificar_reporte_
+// sublider en 57_notificaciones.sql) -- no puede designar/eliminar
+// sublíderes ni modificar la CdP, tampoco editar nada de Evangelismo -- eso
+// se aplica en CasasDePaz.tsx y Evangelismo.tsx, no acá.
 const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.REPORTES,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
-  ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.HISTORIAL_ASISTENCIA,
 ];
@@ -153,7 +158,11 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
-  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: '#ff2d55' },
+  // Amarillo institucional de Evangelismo (DEPARTAMENTO_META, frontend-style
+  // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
+  // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación
+  // con ningún otro color del sistema.
+  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -174,6 +183,12 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
   { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
 ];
+
+// Roles globales de solo lectura (2026-08-02): un item de nav cada uno,
+// visibles segun useEsLiderJovenes()/useEsEncargadoMatrimonios() -- mismo
+// patron ortogonal que Afirmación, no dependen de RUTAS_POR_ROL.
+export const NAV_ITEM_JOVENES: NavItem = { icon: Users, label: 'Jóvenes', path: ROUTES.JOVENES, color: '#ff9500' };
+export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios', path: ROUTES.MATRIMONIOS, color: '#ff375f' };
 
 // ─── Funciones públicas ──────────────────────────────────────────────────────
 

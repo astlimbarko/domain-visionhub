@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
   Trash2,
   UserRound,
   Users,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ import {
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import {
   useAsignarCargoCdp,
@@ -46,6 +48,8 @@ import { DomicilioAnfitrionDialog } from './DomicilioAnfitrionDialog';
 import { EditarReunionCdpDialog, DIAS_SEMANA } from './EditarReunionCdpDialog';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { HeroDato, TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
+import { urlEmbedMapa } from '@/utils/google-maps';
+import { useEmbedMapaResuelto } from '@/hooks/useMaps';
 import type { DomicilioCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Colores de avatar que rotan por posición, para dar variedad como en el diseño. */
@@ -92,7 +96,19 @@ export function GestionSubliderVista() {
   const rolUI = useRolUI();
   const esLider = rolUI === 'LIDER_CDP';
 
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  const { data: roles } = useMisRoles(iglesiaActivaId);
+  const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
+  // Si la persona es Líder de una CdP Y Sublíder de otra a la vez, esta vista
+  // debe acotarse a la que corresponde al "sombrero" activo (esLider) -- sin
+  // este filtro, el selector mezclaba ambas CdP bajo un único flag global de
+  // permisos y mostraba botones de edición para una CdP donde la persona solo
+  // es sublíder (bug encontrado en QA, 2026-08-02; el backend ya rechazaba la
+  // escritura vía RLS per-CdP, pero la UI mentía).
+  const misCasas = useMemo(() => {
+    if (!misCasasCrudo) return misCasasCrudo;
+    const idsPropios = new Set((esLider ? roles?.cdp_lider : roles?.cdp_sublider)?.map((c) => c.id) ?? []);
+    return misCasasCrudo.filter((c) => idsPropios.has(c.casa_de_paz_id));
+  }, [misCasasCrudo, esLider, roles]);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
   const nombreCdpActiva = misCasas?.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
@@ -108,6 +124,15 @@ export function GestionSubliderVista() {
   const { data: sublideres = [], isLoading: cargandoSublideres } = useCargoVigenteCdp(cdpActiva, 'SUBLIDER_CDP');
   const { data: anfitrion = [], isLoading: cargandoAnfitrion } = useCargoVigenteCdp(cdpActiva, 'ANFITRION');
   const { data: domicilio } = useDomicilioCdp(cdpActiva);
+  // El link de Maps manda: si existe, la vista previa nunca debe basarse en
+  // el texto de calle/zona (pueden no coincidir). Ver utils/google-maps.ts.
+  // Si el link es corto (maps.app.goo.gl) no trae coordenadas visibles --
+  // useEmbedMapaResuelto lo sigue del lado del servidor para conseguirlas.
+  const direccionDomicilio = domicilio ? lineaDireccion(domicilio) : null;
+  const embedMapaDirecto = urlEmbedMapa(domicilio?.url_gps, direccionDomicilio);
+  const { embed: embedMapaResuelto, isLoading: resolviendoMapa, isError: fallaResolverMapa } = useEmbedMapaResuelto(
+    embedMapaDirecto ? null : domicilio?.url_gps
+  );
 
   const asignarCargoCdp = useAsignarCargoCdp(iglesiaActivaId);
   const quitarCargoCdp = useQuitarCargoCdp();
@@ -205,7 +230,8 @@ export function GestionSubliderVista() {
   }
 
   const anfitrionActual = anfitrion[0];
-  const direccion = domicilio ? lineaDireccion(domicilio) : null;
+  const direccion = direccionDomicilio;
+  const embedMapa = embedMapaDirecto ?? embedMapaResuelto;
 
   return (
     <div className="flex flex-col gap-6">
@@ -245,6 +271,11 @@ export function GestionSubliderVista() {
                   {perfil?.red_nombre && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
                       <Network className="h-3.5 w-3.5" /> Red: {perfil.red_nombre}
+                    </span>
+                  )}
+                  {perfil?.modalidad === 'VIRTUAL' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
+                      <Video className="h-3.5 w-3.5" /> Virtual
                     </span>
                   )}
                 </div>
@@ -336,7 +367,7 @@ export function GestionSubliderVista() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
+                className="mt-auto w-fit gap-1.5 border-[var(--acc)]/40 text-[var(--acc)] hover:bg-[var(--acc)]/10 hover:text-[var(--acc)]"
                 onClick={() => setMostrarAnfitrion(true)}
               >
                 <UserRound className="h-3.5 w-3.5" />
@@ -379,16 +410,25 @@ export function GestionSubliderVista() {
             <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
               <Link2 className="h-4 w-4 text-[var(--acc)]" /> Ubicación en Google Maps
             </p>
-            {direccion && (
+            {embedMapa ? (
               <div className="overflow-hidden rounded-lg border border-border">
                 <iframe
                   title="Mapa de la Casa de Paz"
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(direccion)}&output=embed`}
+                  src={embedMapa}
                   className="h-36 w-full"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
+            ) : resolviendoMapa ? (
+              <Skeleton className="h-36 w-full rounded-lg" />
+            ) : (
+              domicilio?.url_gps &&
+              fallaResolverMapa && (
+                <p className="text-[12px] text-muted-foreground">
+                  No se pudo previsualizar este enlace acá, pero apunta al lugar correcto -- abrilo con el botón de abajo.
+                </p>
+              )
             )}
             {domicilio?.url_gps ? (
               <>

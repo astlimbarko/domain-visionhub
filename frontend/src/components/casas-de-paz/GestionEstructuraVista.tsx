@@ -49,6 +49,7 @@ import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDi
 import { MultiplicarRedDialog } from '@/components/casas-de-paz/MultiplicarRedDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
 
@@ -405,12 +406,18 @@ export function GestionEstructuraVista() {
                   <p className="flex items-center gap-1.5 truncate font-medium">
                     <Home className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{cdp.etiqueta}</span>
+                    {cdp.modalidad === 'VIRTUAL' && <Badge variant="outline" className="rounded-full border-primary/40 text-[10px] text-primary">Virtual</Badge>}
                   </p>
                   <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                     <Users className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">
                       {cdp.miembros_count} miembros · {cdp.sublideres_count} sublíder(es)
-                      {cdp.anfitrion_nombre && ` · Anfitrión: ${cdp.anfitrion_nombre}`}
+                      {cdp.anfitrion_nombre && cdp.anfitrion_id && (
+                        <>
+                          {' · Anfitrión: '}
+                          <PersonaNombreLink personaId={cdp.anfitrion_id}>{cdp.anfitrion_nombre}</PersonaNombreLink>
+                        </>
+                      )}
                     </span>
                   </p>
                 </div>

@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import type {
   DatosCensales,
   DatosIdentidad,
+  MilagroCategoria,
   MotivoLlegada,
   NuevaPersona,
   PersonaDeRed,
@@ -259,5 +260,27 @@ export async function quitarReferenciaFamiliar(referenciaId: string) {
     .from('referencia_familiar')
     .update({ fecha_eliminacion: new Date().toISOString() })
     .eq('id', referenciaId);
+  if (error) throw error;
+}
+
+// ---- Milagros ----
+
+export async function agregarMilagro(
+  personaId: string,
+  categoria: MilagroCategoria,
+  detalle: string,
+  fecha: string,
+) {
+  const { error } = await supabase
+    .from('persona_milagro')
+    .insert({ persona_id: personaId, categoria, detalle, fecha });
+  if (error) throw error;
+}
+
+export async function quitarMilagro(milagroId: string) {
+  const { error } = await supabase
+    .from('persona_milagro')
+    .update({ fecha_eliminacion: new Date().toISOString() })
+    .eq('id', milagroId);
   if (error) throw error;
 }

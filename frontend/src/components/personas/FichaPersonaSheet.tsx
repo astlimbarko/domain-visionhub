@@ -12,6 +12,9 @@ import { FichaDirecciones } from './FichaDirecciones';
 import { FichaTelefonos } from './FichaTelefonos';
 import { FichaLlegada } from './FichaLlegada';
 import { FichaFamilia } from './FichaFamilia';
+import { FichaEvangelismo } from './FichaEvangelismo';
+import { FichaMinisterios } from './FichaMinisterios';
+import { FichaMilagros } from './FichaMilagros';
 
 interface Props {
   personaId: string | undefined;
@@ -70,6 +73,17 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   {ficha.persona.oculto ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   {ficha.persona.oculto ? 'Quitar de ocultas' : 'Ocultar de búsquedas normales'}
                 </Button>
+              )}
+
+              {ficha.evangelismo && (
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Evangelismo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaEvangelismo evangelismo={ficha.evangelismo} />
+                  </CardContent>
+                </Card>
               )}
 
               {ficha.cargos.length > 0 && (
@@ -144,6 +158,24 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                 </CardHeader>
                 <CardContent>
                   <FichaFamilia personaId={ficha.persona.id} iglesiaId={ficha.persona.iglesia_id} ficha={ficha} puedeEditar={puedeEditar} />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Ministerios</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FichaMinisterios ministerios={ficha.ministerios ?? []} />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Milagros</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FichaMilagros personaId={ficha.persona.id} milagros={ficha.milagros ?? []} puedeEditar={puedeEditar} />
                 </CardContent>
               </Card>
             </div>

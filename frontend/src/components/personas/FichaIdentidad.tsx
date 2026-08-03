@@ -7,8 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useActualizarIdentidad, useGuardarDetalle } from '@/hooks/usePersonas';
 import {
+  DISCIPULADO_NIVEL_LABELS,
   ESTADO_CIVIL_LABELS,
   GRADO_INSTRUCCION_LABELS,
+  type DiscipuladoNivel,
   type EstadoCivil,
   type GradoInstruccion,
   type PersonaFicha,
@@ -39,6 +41,9 @@ export function FichaIdentidad({ personaId, ficha, puedeEditar }: Props) {
         estado_civil: (form.estadoCivil || null) as EstadoCivil | null,
         grado_instruccion: (form.gradoInstruccion || null) as GradoInstruccion | null,
         ocupacion: form.ocupacion.trim() || null,
+        fecha_bautizo: form.fechaBautizo || null,
+        fecha_retiro: form.fechaRetiro || null,
+        discipulado_nivel: (form.discipuladoNivel || null) as DiscipuladoNivel | null,
       });
       await actualizarIdentidad.mutateAsync({
         primer_nombre: form.primerNombre.trim(),
@@ -141,6 +146,42 @@ export function FichaIdentidad({ personaId, ficha, puedeEditar }: Props) {
             </SelectContent>
           </Select>
         </Campo>
+        <Campo label="Fecha de bautizo">
+          <Input
+            type="date"
+            value={form.fechaBautizo}
+            max={new Date().toISOString().slice(0, 10)}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, fechaBautizo: e.target.value }))}
+          />
+        </Campo>
+        <Campo label="Fecha de retiro">
+          <Input
+            type="date"
+            value={form.fechaRetiro}
+            max={new Date().toISOString().slice(0, 10)}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, fechaRetiro: e.target.value }))}
+          />
+        </Campo>
+        <Campo label="Nivel de discipulado completado">
+          <Select
+            value={form.discipuladoNivel}
+            onValueChange={(v) => setForm((f) => ({ ...f, discipuladoNivel: v as DiscipuladoNivel }))}
+            disabled={!puedeEditar}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sin especificar" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(DISCIPULADO_NIVEL_LABELS).map(([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Campo>
       </div>
 
       {form.estadoCivil === 'CASADO' && (
@@ -208,5 +249,8 @@ function construirForm(ficha: PersonaFicha) {
     ocupacion: ficha.detalle?.ocupacion ?? '',
     estadoCivil: (ficha.detalle?.estado_civil ?? '') as EstadoCivil | '',
     gradoInstruccion: (ficha.detalle?.grado_instruccion ?? '') as GradoInstruccion | '',
+    fechaBautizo: ficha.detalle?.fecha_bautizo ?? '',
+    fechaRetiro: ficha.detalle?.fecha_retiro ?? '',
+    discipuladoNivel: (ficha.detalle?.discipulado_nivel ?? '') as DiscipuladoNivel | '',
   };
 }

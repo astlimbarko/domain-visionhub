@@ -27,11 +27,14 @@ export function DashboardHero({
   icon: Icon,
   eyebrow,
   title,
+  subtitle,
   actions,
 }: {
   icon: LucideIcon;
   eyebrow: string;
   title: string;
+  /** Línea chica opcional bajo el título (ej. nombre de quien lidera). No afecta a los dashboards que no la pasan. */
+  subtitle?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
@@ -48,6 +51,7 @@ export function DashboardHero({
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-[11px] font-semibold tracking-[0.18em] text-white/55 uppercase">{eyebrow}</span>
             <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+            {subtitle && <p className="truncate text-[13px] text-white/70">{subtitle}</p>}
           </div>
         </div>
         {actions}

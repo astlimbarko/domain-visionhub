@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ContenidoCargando } from '@/components/ui/logo-spinner';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { ROUTES } from '@/utils/constants';
 import { rolesPermitidosPara } from '@/utils/permisos';
 import { RegistroPublico } from '@/pages/RegistroPublico';
@@ -18,6 +20,7 @@ import { PrivateLayout } from '@/components/layout/PrivateLayout';
 import { RequiereRol } from '@/components/layout/RequiereRol';
 import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
+import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
 
 // Módulos menos visitados que Dashboard/Cuenta: se cargan bajo demanda para
 // que el bundle inicial no incluya código de páginas que la mayoría de
@@ -41,14 +44,11 @@ const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ 
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
+const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.Jovenes })));
+const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
 
 function CargandoPagina() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-10 w-48 rounded-xl" />
-      <Skeleton className="h-64 w-full rounded-2xl" />
-    </div>
-  );
+  return <ContenidoCargando />;
 }
 
 // Afirmación no se protege por RolUI (RequiereRol) sino por una capacidad
@@ -61,6 +61,26 @@ function RutaAfirmacion({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={<CargandoPagina />}>
       <RequiereCapacidad permitido={esLiderAfirmacion}>{children}</RequiereCapacidad>
+    </Suspense>
+  );
+}
+
+// Mismo patron que RutaAfirmacion: capacidad ortogonal (persona_cargo Tipo B
+// de nivel IGLESIA), acceso global de solo lectura sin depender de RolUI.
+function RutaJovenes({ children }: { children: ReactNode }) {
+  const esLiderJovenes = useEsLiderJovenes();
+  return (
+    <Suspense fallback={<CargandoPagina />}>
+      <RequiereCapacidad permitido={esLiderJovenes}>{children}</RequiereCapacidad>
+    </Suspense>
+  );
+}
+
+function RutaMatrimonios({ children }: { children: ReactNode }) {
+  const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
+  return (
+    <Suspense fallback={<CargandoPagina />}>
+      <RequiereCapacidad permitido={esEncargadoMatrimonios}>{children}</RequiereCapacidad>
     </Suspense>
   );
 }
@@ -82,6 +102,9 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const personaFichaId = useFichaPersonaStore((s) => s.personaId);
+  const cerrarFichaPersona = useFichaPersonaStore((s) => s.cerrar);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -192,12 +215,15 @@ function App() {
             <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_FORMULARIO} element={<RutaAfirmacion><AfirmacionFormulario /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_URLS} element={<RutaAfirmacion><AfirmacionUrls /></RutaAfirmacion>} />
+            <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
+            <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
           </Route>
 
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
       </BrowserRouter>
       <Toaster richColors position="top-center" />
+      <FichaPersonaSheet personaId={personaFichaId} onOpenChange={(open) => !open && cerrarFichaPersona()} />
     </QueryClientProvider>
   );
 }

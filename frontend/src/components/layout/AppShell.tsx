@@ -26,7 +26,8 @@ import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
-import { NAV_ITEMS_AFIRMACION, obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
+import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES } from '@/utils/constants';
@@ -139,16 +140,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const opcionesRol = useOpcionesRol();
 
-  const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
+  const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
   const textoUsuario = nombreCompleto ? titulo ? `${nombreCompleto} — ${titulo}` : nombreCompleto : (correo ?? '');
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
   const esLiderAfirmacion = useEsLiderAfirmacion();
+  const esLiderJovenes = useEsLiderJovenes();
+  const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
   const navItems = [
     ...(rolUI ? obtenerNavItems(rolUI) : []),
     ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+    ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
+    ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
   ];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
@@ -176,8 +181,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sombreros: Sombrero[] = [];
   if (roles?.es_operativo && iglesiaActivaId) sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
   for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
-  for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
-  for (const c of roles?.cdp_sublider ?? []) sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
+  // Si ya hay acceso a nivel Red (Líder de Red o Supervisor de la Red en
+  // Acción), no se muestra además un atajo a una CdP que ya pertenece a esa
+  // misma Red -- es redundante, esa CdP ya se ve desde el dashboard de la
+  // Red (pedido del owner, 2026-08-02). Solo se oculta cuando se solapa; una
+  // CdP de una Red distinta a la que lidera/supervisa sigue apareciendo.
+  const redesConAcceso = new Set((roles?.redes_lider ?? []).map((r) => r.id));
+  for (const c of roles?.cdp_lider ?? []) {
+    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
+    sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
+  }
+  for (const c of roles?.cdp_sublider ?? []) {
+    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
+    sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
+  }
 
   async function handleLogout() {
     await cerrarSesion();

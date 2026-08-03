@@ -109,8 +109,14 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
 
   for (const red of roles.redes_lider ?? []) {
     const v = FILA_ROL_VISUAL.LIDER_RED;
+    // El Supervisor de la Red en Acción es el mismo RolUI/nav/dashboard que
+    // el Líder de Red (paridad completa, pedido del owner 2026-08-02) -- solo
+    // cambia el título de esta fila puntual, viene de `es_sublider` (cargo
+    // SUBLIDER_RED en vez de LIDER_RED, fn_mis_roles_dashboard).
     opciones.push({
-      key: `LIDER_RED-${red.id}`, rolUI: 'LIDER_RED', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
+      key: `LIDER_RED-${red.id}`, rolUI: 'LIDER_RED',
+      titulo: red.es_sublider ? 'Supervisor de la Red en Acción' : v.titulo,
+      icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       lineas: [{ texto: red.nombre }],
       colorRed: red.color && red.color.toUpperCase() !== '#FFFFFF' ? red.color : COLOR_RED_NEUTRO,
       vista: { tipo: 'red', redId: red.id },

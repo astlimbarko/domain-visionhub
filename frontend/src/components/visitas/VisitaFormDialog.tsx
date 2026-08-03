@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ClipboardList, Home, ListChecks, MessageSquareText, Target, UserRound } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Home, ListChecks, MessageSquareText, Target, UserRound } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,8 @@ export function VisitaFormDialog({ open, onOpenChange, redId, redNombre, iglesia
   const [motivo, setMotivo] = useState<MotivoVisita | ''>('');
   const [aspectos, setAspectos] = useState<Set<AspectoVisita>>(new Set());
   const [otroDetalle, setOtroDetalle] = useState('');
+  const [tieneAdnCasa, setTieneAdnCasa] = useState(false);
+  const [ensenanzaCorrecta, setEnsenanzaCorrecta] = useState(false);
   const [observaciones, setObservaciones] = useState('');
 
   const { data: liderCdp = [] } = useCargoVigenteCdp(casaDePazId || undefined, 'LIDER_CDP');
@@ -61,6 +63,8 @@ export function VisitaFormDialog({ open, onOpenChange, redId, redNombre, iglesia
     setMotivo('');
     setAspectos(new Set());
     setOtroDetalle('');
+    setTieneAdnCasa(false);
+    setEnsenanzaCorrecta(false);
     setObservaciones('');
   }, [open]);
 
@@ -86,6 +90,8 @@ export function VisitaFormDialog({ open, onOpenChange, redId, redNombre, iglesia
         motivo,
         aspectos: Array.from(aspectos),
         aspectoOtroDetalle: aspectos.has('OTRO') ? otroDetalle.trim() : undefined,
+        tieneAdnCasa,
+        ensenanzaCorrecta,
         observaciones: observaciones.trim() || undefined,
         fechaVisita,
       });
@@ -189,7 +195,20 @@ export function VisitaFormDialog({ open, onOpenChange, redId, redNombre, iglesia
             )}
           </div>
 
-          {/* 4. Observaciones */}
+          {/* 4. Evaluación del líder de CdP */}
+          <div className="flex flex-col gap-2 border-t border-border/60 pt-4">
+            <SeccionIconHeader icon={ClipboardCheck} color={VERDE} titulo="4. Evaluación del líder" size="sm" />
+            <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted/50">
+              <Checkbox checked={tieneAdnCasa} onCheckedChange={(v) => setTieneAdnCasa(v === true)} />
+              Tiene el ADN de la casa
+            </label>
+            <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted/50">
+              <Checkbox checked={ensenanzaCorrecta} onCheckedChange={(v) => setEnsenanzaCorrecta(v === true)} />
+              Su manera de enseñar es la correcta
+            </label>
+          </div>
+
+          {/* 5. Observaciones */}
           <div className="flex flex-col gap-1.5 border-t border-border/60 pt-4">
             <Label htmlFor="visita_observaciones" className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               <MessageSquareText className="h-3.5 w-3.5" /> Observaciones

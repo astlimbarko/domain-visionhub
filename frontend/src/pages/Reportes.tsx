@@ -24,7 +24,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { DashboardHero, AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
+import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import {
   Select,
   SelectContent,
@@ -639,7 +640,7 @@ export function Reportes() {
           <section className={CARD_SECCION}>
             <TarjetaHeader
               icon={HeartHandshake}
-              color={MORADO}
+              color={DEPARTAMENTO_META.EVANGELISMO.color}
               titulo="Evangelismo"
               descripcion="¿Salieron a evangelizar en esta reunión?"
             />

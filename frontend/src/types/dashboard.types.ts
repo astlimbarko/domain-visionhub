@@ -1,6 +1,6 @@
 export interface MisRolesDashboard {
   es_operativo: boolean;
-  redes_lider: { id: string; nombre: string; color: string }[] | null;
+  redes_lider: { id: string; nombre: string; color: string; es_sublider: boolean }[] | null;
   cdp_lider: CargoCdpDashboard[] | null;
   cdp_sublider: CargoCdpDashboard[] | null;
 }
@@ -8,6 +8,7 @@ export interface MisRolesDashboard {
 export interface CargoCdpDashboard {
   id: string;
   etiqueta: string;
+  red_id: string | null;
   anfitrion_nombre: string | null;
   direccion: string | null;
 }

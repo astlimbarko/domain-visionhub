@@ -142,7 +142,7 @@ export async function obtenerReportesRedRango(
   if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
-    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes')
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, fecha_creacion')
     .in('casa_de_paz_id', casaDePazIds)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta)

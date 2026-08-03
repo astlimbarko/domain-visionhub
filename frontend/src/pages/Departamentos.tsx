@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { LayoutGrid, Mail, RefreshCw, User } from 'lucide-react';
+import { Heart, LayoutGrid, Mail, RefreshCw, User, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +16,10 @@ import {
 import { useInvitacionesDepartamento, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { useAuthStore } from '@/store/auth.store';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
+import { useAsignarCargoGlobal, useCargoVigenteGlobal, useQuitarCargoGlobal } from '@/hooks/useRolesGlobalesDatos';
+import type { CodigoRolGlobal } from '@/services/roles-globales.service';
 import type { DepartamentoItem } from '@/types/panel-supervisor.types';
+import type { LucideIcon } from 'lucide-react';
 
 interface Props {
   departamento: DepartamentoItem;
@@ -176,6 +179,89 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
   );
 }
 
+interface RolGlobalCardProps {
+  codigo: CodigoRolGlobal;
+  nombre: string;
+  icon: LucideIcon;
+  color: string;
+  iglesiaActivaId: string | undefined;
+}
+
+/**
+ * Roles globales de solo lectura (2026-08-02): a diferencia de los
+ * departamentos, no están atados a `departamento_cargo` sino a
+ * `persona_cargo` directo (cargo Tipo B de nivel IGLESIA) -- sin OTP, mismo
+ * criterio que casa_de_paz_cargo (son roles de solo lectura, no
+ * estructurales). Pueden asignarse a varias personas a la vez.
+ */
+function RolGlobalCard({ codigo, nombre, icon: Icon, color, iglesiaActivaId }: RolGlobalCardProps) {
+  const [mostrarDialogo, setMostrarDialogo] = useState(false);
+  const { data: vigentes = [], isLoading: cargandoVigentes } = useCargoVigenteGlobal(iglesiaActivaId, codigo);
+  const asignarCargo = useAsignarCargoGlobal(iglesiaActivaId, codigo);
+  const quitarCargo = useQuitarCargoGlobal(iglesiaActivaId, codigo);
+
+  function handleAsignar(persona: { id: string; nombre_completo: string }) {
+    asignarCargo.mutate(persona.id, {
+      onSuccess: () => toast.success(`${persona.nombre_completo} asignado`),
+      onError: (e) => manejarErrorCargo(e, 'No se pudo asignar'),
+    });
+  }
+
+  function handleQuitar(id: string) {
+    quitarCargo.mutate(id, {
+      onError: (e) => manejarErrorCargo(e, 'No se pudo quitar el cargo'),
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ backgroundColor: color }}>
+          <Icon className="h-4.5 w-4.5" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{nombre}</p>
+          <p className="truncate text-[11px] text-muted-foreground">Acceso global de solo lectura</p>
+        </div>
+      </div>
+
+      {cargandoVigentes ? (
+        <Skeleton className="h-9 w-full rounded-xl" />
+      ) : vigentes.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {vigentes.map((v) => (
+            <Badge key={v.id} variant="secondary" className="gap-1 rounded-full">
+              {v.nombre_completo}
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Sin nadie asignado todavía.</p>
+      )}
+
+      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setMostrarDialogo(true)}>
+        Asignar
+      </Button>
+
+      {mostrarDialogo && (
+        <AsignarCargoDialog
+          open={mostrarDialogo}
+          onOpenChange={setMostrarDialogo}
+          titulo={nombre}
+          exclusivo={false}
+          iglesiaId={iglesiaActivaId}
+          vigentes={vigentes}
+          cargandoVigentes={cargandoVigentes}
+          asignando={asignarCargo.isPending}
+          onAsignar={handleAsignar}
+          onQuitar={handleQuitar}
+          quitando={quitarCargo.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
 /** Menú dedicado del Supervisor de la Visión en Acción para gestionar a los
  * 4 líderes de departamento (2026-08-01, pedido explícito). Hoy solo
  * Afirmación tiene la asignación funcional -- los otros 3 ya existen en la
@@ -215,6 +301,12 @@ export function Departamentos() {
             />
           );
         })}
+      </div>
+
+      <SeccionIconHeader icon={Users} color="#ff9500" titulo="Roles Globales" descripcion="Acceso de solo lectura a toda la iglesia, sin importar la Red." />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <RolGlobalCard codigo="LIDER_JOVENES" nombre="Líder de Jóvenes" icon={Users} color="#ff9500" iglesiaActivaId={iglesiaActivaId} />
+        <RolGlobalCard codigo="ENCARGADO_MATRIMONIOS" nombre="Encargado de Matrimonios" icon={Heart} color="#ff375f" iglesiaActivaId={iglesiaActivaId} />
       </div>
     </div>
   );

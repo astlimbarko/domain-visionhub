@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as personaService from '@/services/persona.service';
-import type { DatosCensales, DatosIdentidad, NuevaPersona } from '@/types/persona.types';
+import type { DatosCensales, DatosIdentidad, MilagroCategoria, NuevaPersona } from '@/types/persona.types';
 import type { DatosDireccion } from '@/services/persona.service';
 
 export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, incluirOcultas: boolean) {
@@ -208,6 +208,23 @@ export function useQuitarReferenciaFamiliar(personaId: string) {
   const invalidarFicha = useInvalidarFicha(personaId);
   return useMutation({
     mutationFn: (referenciaId: string) => personaService.quitarReferenciaFamiliar(referenciaId),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useAgregarMilagro(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: ({ categoria, detalle, fecha }: { categoria: MilagroCategoria; detalle: string; fecha: string }) =>
+      personaService.agregarMilagro(personaId, categoria, detalle, fecha),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useQuitarMilagro(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (milagroId: string) => personaService.quitarMilagro(milagroId),
     onSuccess: invalidarFicha,
   });
 }

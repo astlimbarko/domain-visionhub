@@ -146,7 +146,11 @@ export function Dashboard() {
       {vista.tipo === 'pastor' && <DashboardPastor onSeleccionarIglesia={(iglesiaId) => avanzar({ tipo: 'supervisor', iglesiaId })} />}
       {vista.tipo === 'supervisor' && <DashboardSupervisor iglesiaId={vista.iglesiaId} onSeleccionarRed={irARed} />}
       {vista.tipo === 'red' && (
-        <DashboardLiderRed redId={vista.redId} onSeleccionarCdp={(cdpId) => avanzar({ tipo: 'cdp', cdpId, esSublider: false })} />
+        <DashboardLiderRed
+          redId={vista.redId}
+          esSublider={roles.redes_lider?.find((r) => r.id === vista.redId)?.es_sublider ?? false}
+          onSeleccionarCdp={(cdpId) => avanzar({ tipo: 'cdp', cdpId, esSublider: false })}
+        />
       )}
       {vista.tipo === 'cdp' && <DashboardLiderCdp casaDePazId={vista.cdpId} esSublider={vista.esSublider} />}
     </div>

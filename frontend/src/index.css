@@ -138,3 +138,15 @@
   }
 }
 
+/* LogoSpinner (components/ui/logo-spinner.tsx) -- sonar minimalista: el sello
+   respira mientras dos anillos se expanden y se desvanecen en cascada. */
+@keyframes logo-spinner-ping {
+  0% { transform: scale(0.85); opacity: 0.45; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes logo-spinner-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+

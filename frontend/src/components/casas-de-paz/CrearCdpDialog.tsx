@@ -22,7 +22,7 @@ import {
 import { useCiudades } from '@/hooks/useCasasDePaz';
 import { BuscadorPersona } from './BuscadorPersona';
 import { DIAS_SEMANA } from './EditarReunionCdpDialog';
-import type { DatosNuevaCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { DatosNuevaCdp, ModalidadCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 const SIN_DIA = 'SIN_DIA';
 
@@ -78,6 +78,7 @@ export function CrearCdpDialog({ open, onOpenChange, redNombre, iglesiaId, crean
   const [lider, setLider] = useState<PersonaBusqueda>();
   const [sublideres, setSublideres] = useState<PersonaBusqueda[]>([]);
   const [anfitrion, setAnfitrion] = useState<PersonaBusqueda>();
+  const [modalidad, setModalidad] = useState<ModalidadCdp>('PRESENCIAL');
   const [dia, setDia] = useState<string>(SIN_DIA);
   const [hora, setHora] = useState('');
   const [ciudadId, setCiudadId] = useState('');
@@ -96,6 +97,7 @@ export function CrearCdpDialog({ open, onOpenChange, redNombre, iglesiaId, crean
       setLider(undefined);
       setSublideres([]);
       setAnfitrion(undefined);
+      setModalidad('PRESENCIAL');
       setDia(SIN_DIA);
       setHora('');
       setCiudadId('');
@@ -116,6 +118,7 @@ export function CrearCdpDialog({ open, onOpenChange, redNombre, iglesiaId, crean
       liderId: lider.id,
       sublideresIds: sublideres.map((s) => s.id),
       anfitrionId: anfitrion?.id,
+      modalidad,
       diaReunion: dia === SIN_DIA ? null : Number(dia),
       horaReunion: hora || null,
       domicilio: ciudadId
@@ -140,6 +143,19 @@ export function CrearCdpDialog({ open, onOpenChange, redNombre, iglesiaId, crean
         </DialogHeader>
 
         <div className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-1.5">
+            <Label>Modalidad *</Label>
+            <Select value={modalidad} onValueChange={(v) => setModalidad(v as ModalidadCdp)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                <SelectItem value="VIRTUAL">Virtual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex flex-col gap-3">
             <SelectorPersona
               label="Líder *"
