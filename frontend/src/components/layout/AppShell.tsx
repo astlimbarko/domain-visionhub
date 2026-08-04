@@ -183,6 +183,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   // el usuario operativo describa el problema sin tener que copiar esos datos
   // a mano.
   const location = useLocation();
+  // El cuerpo (no solo la barra/sidebar) también se oscurece, pero solo en
+  // /administracion -- otras páginas (Afirmación, etc.) siguen viviendo con
+  // el cuerpo claro de siempre aunque el rol activo sea Super Admin.
+  const esPanelAdmin = location.pathname === ROUTES.ADMINISTRACION;
   const cuerpoSoporte = [
     'Hola equipo,',
     '',
@@ -336,7 +340,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col bg-muted/30">
+      <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#0a0e1a]' : 'bg-muted/30')}>
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
         <header className={cn(
