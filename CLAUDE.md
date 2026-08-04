@@ -99,6 +99,23 @@ día real que esa persona trabaje.
 
 ---
 
+## Seguimiento en Jira (obligatorio)
+
+Este equipo trabaja con Jira (proyecto `KAN`, sitio `visionhubsc.atlassian.net`).
+**Todo cambio de código o de base de datos que se haga en una sesión de
+Claude Code tiene que quedar registrado en un ticket de Jira** — no alcanza
+con que quede solo en el commit o en la bitácora local.
+
+- Antes de dar un cambio por terminado, buscar si ya existe un ticket que lo
+  cubra. Si existe, actualizarlo con lo que se hizo (no crear uno duplicado).
+- **Si no existe ticket, crearlo** — no dejar trabajo sin registrar asumiendo
+  que "es chico" o que "se anota después".
+- **Todo ticket que se cree o cuyo estado se mueva/cambie debe quedar con
+  Gonzalo (`astlimbark`, `accountId: 712020:380af14d-4028-4be6-ade6-2e837916b2b1`)
+  como reporter y como assignee** — sin importar qué persona del equipo esté
+  en la sesión de Claude Code en ese momento. Es una decisión del owner
+  (2026-08-03): él es quien centraliza el seguimiento en Jira.
+
 ## Otras convenciones del proyecto
 
 Ver también `harness/README.md` (specs técnicas del sistema) y
