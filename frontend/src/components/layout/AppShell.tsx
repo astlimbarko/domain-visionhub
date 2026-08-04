@@ -27,7 +27,8 @@ import { useRolUI } from '@/hooks/useRolUI';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
-import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, ROL_UI_META, obtenerNavItems, type NavItem } from '@/utils/permisos';
+import { NAVBAR_COLOR_ROL } from '@/utils/navbar-color-rol';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { Vista } from '@/types/dashboard.types';
 import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
@@ -161,12 +162,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   // visualmente distinto a propósito. Cada rol va a tener su color más
   // adelante; por ahora solo Super Admin usa este oscuro.
   const esOscuro = rolUI === 'SUPER_ADMIN';
+  // Color propio de navbar por rol (hoy solo Líder de Red) -- ver
+  // navbar-color-rol.ts. `navbarClaro` decide si el texto/íconos de la
+  // barra van en blanco (Super Admin oscuro, o cualquier rol con color
+  // propio) o en el gris/negro de siempre.
+  const colorNavbarRol = rolUI ? NAVBAR_COLOR_ROL[rolUI] : undefined;
+  const navbarClaro = esOscuro || !!colorNavbarRol;
+  const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
+  // Tono suave del mismo color en el sidebar (desktop y drawer móvil) --
+  // acompaña al navbar sin repetir el mismo azul saturado (pedido del
+  // owner, 2026-08-04). El texto del sidebar sigue oscuro (`oscuro={false}`
+  // en NavLinks), la mezcla es lo bastante clara para eso.
+  const estiloSidebarColor = colorNavbarRol
+    ? { backgroundColor: `color-mix(in oklab, ${colorNavbarRol} 10%, white)` }
+    : undefined;
 
   // El título ("Pastor", "Supervisor", etc.) es de la iglesia activa -- no
   // tiene sentido mostrarlo mientras se actúa como Super Admin (panel
   // global, sin iglesia asociada), confundiría con qué sombrero está puesto.
   const tituloMostrado = esOscuro ? null : titulo;
   const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
+  // Cargo del rol activo (ej. "Líder de Red"), para la barra superior --
+  // reemplaza al selector de iglesia que aparecía ahí antes (bug: salía en
+  // cualquier rol, sin ser un selector oficial de nada -- pedido del owner,
+  // 2026-08-04). El selector real de iglesia sigue viviendo en el drawer
+  // móvil para cuentas con más de una.
+  const cargoLabel = rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
 
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esLiderJovenes = useEsLiderJovenes();
@@ -259,10 +280,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
       {/* Sidebar */}
-      <aside className={cn(
-        'hidden w-[250px] shrink-0 flex-col border-r p-4 sm:flex',
-        esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-sidebar-border bg-sidebar'
-      )}>
+      <aside
+        className={cn(
+          'hidden w-[250px] shrink-0 flex-col border-r p-4 sm:flex',
+          esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/5' : 'border-sidebar-border bg-sidebar'
+        )}
+        style={estiloSidebarColor}
+      >
         <div className="mb-6 flex items-center gap-3 px-3 pt-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
@@ -278,16 +302,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Header mobile */}
-      <header className={cn(
-        'flex items-center justify-between border-b px-4 py-3 sm:hidden',
-        esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-sidebar-border bg-sidebar'
-      )}>
+      <header
+        className={cn(
+          'flex items-center justify-between border-b px-4 py-3 sm:hidden',
+          esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/10' : 'border-sidebar-border bg-sidebar'
+        )}
+        style={estiloNavbarColor}
+      >
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             aria-label="Abrir menú"
-            className={cn('rounded-xl', esOscuro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+            className={cn('rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
             onClick={() => setMenuAbierto(true)}
           >
             <Menu className="h-5 w-5" />
@@ -295,14 +322,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
-          <span className={cn('text-[15px] font-bold', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
+          <span className={cn('text-[15px] font-bold', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
         </div>
-        <div className={cn(esOscuro && 'text-white/70')}><NotificacionesBell /></div>
+        <div className={cn(navbarClaro && 'text-white/70')}><NotificacionesBell /></div>
       </header>
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
-        <SheetContent side="left" className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : 'bg-sidebar')}>
+        <SheetContent
+          side="left"
+          className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
+          style={estiloSidebarColor}
+        >
           <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
@@ -360,10 +391,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#12172a]' : 'bg-muted/30')}>
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
-        <header className={cn(
-          'hidden items-center justify-between gap-3 border-b px-8 py-1.5 sm:flex',
-          esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-border bg-card'
-        )}>
+        <header
+          className={cn(
+            'hidden items-center justify-between gap-3 border-b px-8 py-1.5 sm:flex',
+            esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/10' : 'border-border bg-card'
+          )}
+          style={estiloNavbarColor}
+        >
           <div className="min-w-0">
             {esOscuro ? (
               // El panel de Super Admin es global (gestiona todas las iglesias a
@@ -373,22 +407,21 @@ export function AppShell({ children }: { children: ReactNode }) {
               // del módulo de Estructura Organizacional, solo el color -- el
               // resto de esta barra (campanita, menú de cuenta) queda igual.
               <p className="text-[13px] font-semibold text-white">Administración</p>
-            ) : iglesias.length > 1 ? (
-              <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
-                <SelectTrigger size="sm" className="w-52"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
-                <SelectContent>{iglesias.map((i) => (<SelectItem key={i.id} value={i.id}>{i.nombre}</SelectItem>))}</SelectContent>
-              </Select>
             ) : (
-              <p className="text-[13px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
+              // Antes había acá un selector de iglesia que aparecía para
+              // cualquier rol con más de una iglesia asociada (bug: no era un
+              // selector "oficial" de nada, solo confundía -- pedido del
+              // owner, 2026-08-04). En su lugar, el cargo del rol activo.
+              <p className={cn('text-[13px] font-semibold', navbarClaro ? 'text-white' : 'text-foreground')}>{cargoLabel}</p>
             )}
           </div>
-          <div className={cn('flex items-center gap-1', esOscuro && 'text-white/70')}>
+          <div className={cn('flex items-center gap-1', navbarClaro && 'text-white/70')}>
           <NotificacionesBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={cn(
                 'flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-all',
-                esOscuro
+                navbarClaro
                   ? 'text-white/80 hover:bg-white/10 hover:text-white'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}>

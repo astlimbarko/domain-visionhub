@@ -106,7 +106,7 @@ export function SeleccionarRol() {
           <button
             type="button"
             onClick={handleSalir}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10 active:border-destructive active:bg-destructive active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <LogOut className="h-3.5 w-3.5" />
             Cerrar sesión
