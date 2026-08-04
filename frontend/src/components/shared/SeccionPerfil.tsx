@@ -23,17 +23,20 @@ export function TarjetaHeader({
   titulo,
   descripcion,
   accion,
+  oscuro,
 }: {
   icon: LucideIcon;
   color: string;
   titulo: string;
   descripcion: string;
   accion?: ReactNode;
+  /** Variante para tarjetas sobre fondo oscuro (hoy solo el panel de Super Admin). */
+  oscuro?: boolean;
 }) {
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4"
-      style={{ backgroundColor: `color-mix(in oklab, ${color} 8%, transparent)` }}
+      className={`flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 ${oscuro ? 'border-white/10' : 'border-border/60'}`}
+      style={{ backgroundColor: `color-mix(in oklab, ${color} ${oscuro ? 14 : 8}%, transparent)` }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -44,7 +47,7 @@ export function TarjetaHeader({
         </div>
         <div>
           <p className="font-semibold" style={{ color }}>{titulo}</p>
-          <p className="text-[12px] text-muted-foreground">{descripcion}</p>
+          <p className={`text-[12px] ${oscuro ? 'text-white/50' : 'text-muted-foreground'}`}>{descripcion}</p>
         </div>
       </div>
       {accion}

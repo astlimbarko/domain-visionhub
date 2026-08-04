@@ -83,9 +83,9 @@ export function SeleccionarRol() {
 
         <div className="mt-7">
           {opcionesContextuales === undefined ? (
-            <div className="flex flex-col gap-0.5 overflow-hidden rounded-2xl">
-              <Skeleton className="h-[92px] w-full rounded-none" />
-              <Skeleton className="h-[92px] w-full rounded-none" />
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-[60px] w-full rounded-2xl" />
+              <Skeleton className="h-[60px] w-full rounded-2xl" />
             </div>
           ) : (
             <GrupoOpcionesRol opciones={opcionesContextuales} onSeleccionar={elegir} />
@@ -106,7 +106,7 @@ export function SeleccionarRol() {
           <button
             type="button"
             onClick={handleSalir}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10 active:border-destructive active:bg-destructive active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <LogOut className="h-3.5 w-3.5" />
             Cerrar sesión

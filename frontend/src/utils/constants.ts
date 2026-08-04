@@ -39,10 +39,18 @@ export const ROUTES = {
   JOVENES: '/jovenes',
   MATRIMONIOS: '/matrimonios',
   REGISTRO_PUBLICO: '/registro/:slug',
+  // Constructor visual de la estructura organizacional (KAN-52): sin
+  // AppShell a proposito, barra superior oscura propia -- se entra desde la
+  // lista de Iglesias del panel de Super Admin, una iglesia a la vez.
+  ESTRUCTURA_ORGANIZACIONAL: '/estructura-organizacional/:iglesiaId',
 } as const;
 
 export function rutaRegistroPublico(slug: string) {
   return `/registro/${slug}`;
+}
+
+export function rutaEstructuraOrganizacional(iglesiaId: string) {
+  return `/estructura-organizacional/${iglesiaId}`;
 }
 
 /**

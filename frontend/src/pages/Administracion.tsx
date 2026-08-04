@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, Database, IdCard, MoreVertical, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
+import { Building2, Database, IdCard, MoreVertical, Network, Plus, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { rutaEstructuraOrganizacional } from '@/utils/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +66,7 @@ interface ConfirmarIglesia {
 }
 
 export function Administracion() {
+  const navigate = useNavigate();
   const [mostrarCrearIglesia, setMostrarCrearIglesia] = useState(false);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
   const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
@@ -134,8 +137,8 @@ export function Administracion() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Panorama general</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl font-semibold text-white">Panorama general</h1>
+        <p className="text-sm text-white/50">
           Indicadores generales del sistema. Sin datos operativos de ninguna iglesia en particular.
         </p>
       </div>
@@ -143,75 +146,42 @@ export function Administracion() {
       {cargandoPanorama || !panorama ? (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-2xl bg-white/5" />)}
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+            {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl bg-white/5" />)}
           </div>
         </div>
       ) : (
         <>
+          {/* KPIs minimalistas: en fila angosta (compact), sin ocupar tanto lugar. */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiMosaico label="Iglesias" icon={Building2} color={MARINO}>{panorama.iglesias.length}</KpiMosaico>
-            <KpiMosaico label="Personas (todo el sistema)" icon={Users} color={AZUL}>{panorama.crecimiento.total_personas}</KpiMosaico>
-            <KpiMosaico label="Cuentas" icon={IdCard} color={TEAL} sub={`${panorama.cuentas.nunca_inicio_sesion} nunca iniciaron sesión`}>
+            <KpiMosaico compact label="Iglesias" icon={Building2} color={MARINO}>{panorama.iglesias.length}</KpiMosaico>
+            <KpiMosaico compact label="Personas" icon={Users} color={AZUL}>{panorama.crecimiento.total_personas}</KpiMosaico>
+            <KpiMosaico compact label="Cuentas" icon={IdCard} color={TEAL} sub={`${panorama.cuentas.nunca_inicio_sesion} nunca iniciaron sesión`}>
               {panorama.cuentas.total}
             </KpiMosaico>
-            <KpiMosaico label="Tamaño de la base" icon={Database} color={AMBAR}>{`${panorama.salud_bd.tamano_mb} MB`}</KpiMosaico>
+            <KpiMosaico compact label="Tamaño BD" icon={Database} color={AMBAR}>{`${panorama.salud_bd.tamano_mb} MB`}</KpiMosaico>
           </div>
 
+          {/* "Crecimiento de personas" y "Resumen por iglesia" removidos a pedido
+              del owner (2026-08-03) -- no se necesitaban acá. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={TrendingUp} color={AZUL} titulo="Crecimiento de personas" descripcion="Nuevas personas por mes, últimos 6 meses, todas las iglesias." />
-              <div className="p-5">
-                {panorama.crecimiento.por_mes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sin altas registradas en este período.</p>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {panorama.crecimiento.por_mes.map((m) => (
-                      <div key={m.mes} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{m.mes}</span>
-                        <span className="font-medium">{m.nuevas}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={UserCog} color={TEAL} titulo="Cuentas por rol" descripcion={`${panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.`} />
+            <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+              <TarjetaHeader oscuro icon={UserCog} color={TEAL} titulo="Cuentas por rol" descripcion={`${panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.`} />
               <div className="flex flex-col gap-1.5 p-5">
                 {panorama.cuentas.por_rol.map((r) => (
                   <div key={r.rol} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{NOMBRE_ROL_CORTO[r.rol]}</span>
-                    <span className="font-medium">{r.cantidad}</span>
+                    <span className="text-white/50">{NOMBRE_ROL_CORTO[r.rol]}</span>
+                    <span className="font-medium text-white">{r.cantidad}</span>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={Building2} color={MARINO} titulo="Resumen por iglesia" descripcion="Redes, CdP y personas por iglesia." />
-              <div className="flex flex-col gap-2 p-5">
-                {panorama.iglesias.map((i) => (
-                  <div key={i.id} className="rounded-lg border border-border px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium">
-                        {i.nombre} {!i.activa && <Badge variant="outline">Inactiva</Badge>}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {i.ciudad}
-                      {i.iglesia_padre && ` · hija de ${i.iglesia_padre}`} · {i.redes} red(es) · {i.cdp} CdP · {i.personas} personas
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
               <TarjetaHeader
+                oscuro
                 icon={ShieldCheck}
                 color={AMBAR}
                 titulo="Salud de la base de datos"
@@ -224,8 +194,8 @@ export function Administracion() {
               <div className="flex flex-col gap-1.5 p-5">
                 {panorama.salud_bd.tablas_mas_grandes.map((t) => (
                   <div key={t.tabla} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{t.tabla}</span>
-                    <span className="font-medium">{t.mb} MB</span>
+                    <span className="text-white/50">{t.tabla}</span>
+                    <span className="font-medium text-white">{t.mb} MB</span>
                   </div>
                 ))}
               </div>
@@ -235,8 +205,9 @@ export function Administracion() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
           <TarjetaHeader
+            oscuro
             icon={Building2}
             color={MARINO}
             titulo="Iglesias"
@@ -249,36 +220,54 @@ export function Administracion() {
             }
           />
           <div className="flex flex-col gap-2 p-5">
-            {cargandoIglesias && <Skeleton className="h-24 w-full rounded-2xl" />}
+            {cargandoIglesias && <Skeleton className="h-24 w-full rounded-2xl bg-white/5" />}
             {!cargandoIglesias && iglesias.length === 0 && (
-              <p className="text-sm text-muted-foreground">Todavía no hay iglesias.</p>
+              <p className="text-sm text-white/50">Todavía no hay iglesias.</p>
             )}
             {iglesias.map((i) => (
-              <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+              <div
+                key={i.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate(rutaEstructuraOrganizacional(i.id));
+                }}
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-3 text-left transition-colors hover:bg-white/5"
+              >
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{i.nombre}</p>
-                  <p className="truncate text-sm text-muted-foreground">
+                  <p className="truncate font-medium text-white">{i.nombre}</p>
+                  <p className="truncate text-sm text-white/50">
                     {i.ciudad}
                     {i.iglesia_padre_id &&
                       ` · ${i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'} de ${iglesias.find((p) => p.id === i.iglesia_padre_id)?.nombre ?? '—'}`}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {!i.activo && <Badge variant="outline">Inactiva</Badge>}
+                  {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" aria-label="Acciones">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Acciones"
+                        className="text-white/60 hover:bg-white/10 hover:text-white"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setIglesiaEditar(i)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })}>
+                    <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))} className="focus:bg-white/10 focus:text-white">
+                        <Network className="h-4 w-4" /> Estructura organizacional
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">
                         {i.activo ? 'Suspender' : 'Reactivar'}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={() => setConfirmarIglesia({ iglesia: i, accion: 'eliminar' })}
-                        className="text-destructive focus:text-destructive"
+                        className="text-destructive focus:bg-destructive/20 focus:text-destructive"
                       >
                         Eliminar
                       </DropdownMenuItem>
@@ -290,8 +279,9 @@ export function Administracion() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
           <TarjetaHeader
+            oscuro
             icon={Users}
             color={TEAL}
             titulo="Usuarios"
@@ -304,32 +294,32 @@ export function Administracion() {
             }
           />
           <div className="flex flex-col gap-2 p-5">
-            {cargandoUsuarios && <Skeleton className="h-24 w-full rounded-2xl" />}
+            {cargandoUsuarios && <Skeleton className="h-24 w-full rounded-2xl bg-white/5" />}
             {!cargandoUsuarios && usuarios.length === 0 && (
-              <p className="text-sm text-muted-foreground">Todavía no hay usuarios.</p>
+              <p className="text-sm text-white/50">Todavía no hay usuarios.</p>
             )}
             {usuarios.map((u) => (
-              <div key={u.usuario_rol_id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+              <div key={u.usuario_rol_id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{u.correo}</p>
-                  <p className="truncate text-sm text-muted-foreground">
+                  <p className="truncate font-medium text-white">{u.correo}</p>
+                  <p className="truncate text-sm text-white/50">
                     {NOMBRE_ROL[u.rol]}
                     {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-xs text-white/40">
                     {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
                   </p>
                 </div>
                 {ROLES_GESTIONABLES_DESDE_ADMIN.includes(u.rol) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label="Acciones">
+                      <Button variant="ghost" size="icon-sm" className="shrink-0 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Acciones">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setUsuarioEditar(u)}>Editar cargo</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:text-destructive">
+                    <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
+                      <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
                         Remover
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -346,6 +336,7 @@ export function Administracion() {
         onOpenChange={setMostrarCrearIglesia}
         iglesias={iglesias}
         creando={crearIglesia.isPending}
+        oscuro
         onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin) => {
           try {
             const resultado = await crearIglesia.mutateAsync({
@@ -371,6 +362,7 @@ export function Administracion() {
         onOpenChange={(abierto) => !abierto && setIglesiaEditar(null)}
         iglesia={iglesiaEditar}
         guardando={actualizarIglesia.isPending}
+        oscuro
         onGuardar={(sufijo, ciudad, correo, pin) => {
           if (!iglesiaEditar) return;
           actualizarIglesia.mutate(
@@ -395,6 +387,7 @@ export function Administracion() {
           }
           requiereMotivo={confirmarIglesia.accion === 'eliminar'}
           procesando={eliminarIglesia.isPending || toggleIglesiaActiva.isPending}
+          oscuro
           onConfirmar={confirmarAccionIglesia}
         />
       )}
@@ -405,6 +398,7 @@ export function Administracion() {
         iglesias={iglesias}
         invitando={invitarUsuario.isPending}
         asignando={asignarUsuarioExistente.isPending}
+        oscuro
         onInvitar={(correo, rol, iglesiaId, pin) =>
           invitarUsuario.mutate(
             { correo, rol, iglesiaId, pin },
@@ -441,6 +435,7 @@ export function Administracion() {
         usuario={usuarioEditar}
         iglesias={iglesias}
         guardando={actualizarUsuarioRol.isPending}
+        oscuro
         onGuardar={(rol, iglesiaId, pin) => {
           if (!usuarioEditar) return;
           actualizarUsuarioRol.mutate(
@@ -460,6 +455,7 @@ export function Administracion() {
           titulo={`Remover a ${usuarioRemover.correo}`}
           descripcion="Pierde acceso al sistema con este cargo; el historial se conserva."
           requiereMotivo
+          oscuro
           procesando={toggleUsuarioRol.isPending}
           onConfirmar={(_motivo, pin) =>
             toggleUsuarioRol.mutate(

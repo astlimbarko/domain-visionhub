@@ -6,6 +6,13 @@ máquina. Existe para que el comportamiento del editor sea el mismo para
 las 3 personas que trabajan acá, y para que nadie (ni Claude) "se salga" o
 invente convenciones nuevas sin que quede documentado.
 
+## Idioma
+
+El idioma oficial de este proyecto es **español**. Toda respuesta de Claude
+Code en este repositorio (texto de conversación, mensajes de commit,
+tickets de Jira, comentarios de código cuando corresponda) va en español,
+sin importar el idioma en que esté escrito el mensaje del usuario.
+
 ## Equipo
 
 Este proyecto lo trabajan 3 programadores:

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { SelectorCiudad } from '@/components/admin/SelectorCiudad';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import type { IglesiaAdmin } from '@/types/admin.types';
 
@@ -19,10 +20,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   iglesia: IglesiaAdmin | null;
   guardando: boolean;
+  /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
+  oscuro?: boolean;
   onGuardar: (sufijo: string, ciudad: string, correo: string | null, pin?: string) => void;
 }
 
-export function EditarIglesiaDialog({ open, onOpenChange, iglesia, guardando, onGuardar }: Props) {
+export function EditarIglesiaDialog({ open, onOpenChange, iglesia, guardando, oscuro, onGuardar }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const [sufijo, setSufijo] = useState('');
   const [ciudad, setCiudad] = useState('');
@@ -47,7 +50,7 @@ export function EditarIglesiaDialog({ open, onOpenChange, iglesia, guardando, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className={cn('max-w-sm', oscuro && 'dark')}>
         <DialogHeader>
           <DialogTitle>Editar iglesia</DialogTitle>
         </DialogHeader>

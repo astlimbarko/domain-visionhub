@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CampoOtp } from '@/components/shared/CampoOtp';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 
 interface Props {
@@ -25,6 +26,8 @@ interface Props {
    * Admin (2026-08-01, Gestión de Redes: "esto es delicado" para el
    * Supervisor, no solo para Super Admin). */
   siempreOtp?: boolean;
+  /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
+  oscuro?: boolean;
   onConfirmar: (motivo: string, pin?: string) => void;
 }
 
@@ -40,6 +43,7 @@ export function ConfirmarCambioDialog({
   procesando,
   requiereMotivo = true,
   siempreOtp = false,
+  oscuro,
   onConfirmar,
 }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
@@ -59,7 +63,7 @@ export function ConfirmarCambioDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className={cn('max-w-sm', oscuro && 'dark')}>
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           {descripcion && <DialogDescription>{descripcion}</DialogDescription>}
