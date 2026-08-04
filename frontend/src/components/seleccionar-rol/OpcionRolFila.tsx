@@ -31,23 +31,23 @@ export function OpcionRolFila({ opcion, onSeleccionar }: Props) {
       type="button"
       onClick={onSeleccionar}
       style={vars}
-      className="group flex min-h-[92px] w-full items-center gap-4 rounded-2xl border-2 border-[var(--fila-borde)] bg-[var(--fila-bg)] px-5 py-4 text-left transition-colors hover:border-[var(--fila-color)] active:border-white/30 active:bg-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
+      className="group flex min-h-[60px] w-full items-center gap-3 rounded-2xl border-2 border-[var(--fila-borde)] bg-[var(--fila-bg)] px-4 py-2.5 text-left transition-colors hover:border-[var(--fila-color)] active:border-white/30 active:bg-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
     >
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--fila-borde)] transition-colors group-active:bg-white">
-        <Icon className="h-5 w-5" style={{ color: opcion.colorIcono }} strokeWidth={2} />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--fila-borde)] transition-colors group-active:bg-white">
+        <Icon className="h-4 w-4" style={{ color: opcion.colorIcono }} strokeWidth={2} />
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 block text-[15px] font-bold leading-snug text-foreground transition-colors group-active:text-white">{opcion.titulo}</span>
+        <span className="line-clamp-1 block text-[14px] font-bold leading-snug text-foreground transition-colors group-active:text-white">{opcion.titulo}</span>
         {opcion.lineas.length > 0 && (
-          <span className="mt-1 flex flex-col gap-0.5">
+          <span className="mt-0.5 flex flex-col gap-0.5">
             {opcion.lineas.map((linea, i) => (
               <span
                 key={i}
-                className="flex items-center gap-1.5 truncate text-[13px] text-muted-foreground transition-colors group-active:text-white/85"
+                className="flex items-center gap-1.5 truncate text-[12px] text-muted-foreground transition-colors group-active:text-white/85"
                 title={linea.texto}
               >
-                {linea.icon && <linea.icon className="h-3.5 w-3.5 shrink-0" />}
+                {linea.icon && <linea.icon className="h-3 w-3 shrink-0" />}
                 <span className="truncate">{linea.texto}</span>
               </span>
             ))}
@@ -57,14 +57,14 @@ export function OpcionRolFila({ opcion, onSeleccionar }: Props) {
 
       {opcion.colorRed && (
         <span
-          className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/5 group-active:ring-white/40"
+          className="h-5 w-5 shrink-0 rounded-full shadow-sm ring-1 ring-black/5 group-active:ring-white/40"
           style={{ backgroundColor: opcion.colorRed }}
           aria-hidden="true"
         />
       )}
 
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:bg-[var(--fila-color)] group-hover:text-white group-active:bg-[var(--fila-color-oscuro)] group-active:text-white">
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:bg-[var(--fila-color)] group-hover:text-white group-active:bg-[var(--fila-color-oscuro)] group-active:text-white">
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
       </span>
     </button>
   );

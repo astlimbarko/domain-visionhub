@@ -84,8 +84,8 @@ export function SeleccionarRol() {
         <div className="mt-7">
           {opcionesContextuales === undefined ? (
             <div className="flex flex-col gap-3">
-              <Skeleton className="h-[92px] w-full rounded-2xl" />
-              <Skeleton className="h-[92px] w-full rounded-2xl" />
+              <Skeleton className="h-[60px] w-full rounded-2xl" />
+              <Skeleton className="h-[60px] w-full rounded-2xl" />
             </div>
           ) : (
             <GrupoOpcionesRol opciones={opcionesContextuales} onSeleccionar={elegir} />
