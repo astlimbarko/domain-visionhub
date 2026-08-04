@@ -1,5 +1,5 @@
-import { Navigate, useParams } from 'react-router-dom';
-import { Crosshair, Minus, Plus, Search } from 'lucide-react';
+import { Navigate, Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Crosshair, Minus, Plus, Search } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { AppLoadingScreen } from '@/components/ui/logo-spinner';
@@ -35,6 +35,13 @@ export function EstructuraOrganizacional() {
   return (
     <div className="flex h-svh flex-col bg-[#eef1f6]">
       <header className="flex flex-wrap items-center gap-4 border-b border-white/10 bg-[#0a0e1a] px-6 py-3">
+        <Link
+          to={ROUTES.ADMINISTRACION}
+          aria-label="Volver a Administración"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         <div className="flex shrink-0 items-center gap-2.5">
           <img src="/logo.png" alt="VisionHub" className="h-8 w-8 rounded-lg object-contain brightness-0 invert" />
           <span className="text-[15px] font-bold text-white">
@@ -44,11 +51,7 @@ export function EstructuraOrganizacional() {
         <div className="hidden h-8 w-px shrink-0 bg-white/15 sm:block" />
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-white">Estructura Organizacional</h1>
-          <p className="truncate text-[12.5px] text-white/50">
-            {iglesia
-              ? `Crea entidades y asigna responsables para construir la estructura de ${iglesia.nombre}.`
-              : 'Crea entidades y asigna responsables para construir la estructura inicial de la iglesia.'}
-          </p>
+          <p className="truncate text-left text-[12.5px] font-medium text-white/70">Iglesia: {iglesia?.nombre ?? 'Elegí una iglesia'}</p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2.5">
           <div className="relative">
