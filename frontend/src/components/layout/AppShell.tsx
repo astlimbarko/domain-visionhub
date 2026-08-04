@@ -357,7 +357,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       {/* Content */}
-      <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#0a0e1a]' : 'bg-muted/30')}>
+      <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#12172a]' : 'bg-muted/30')}>
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
         <header className={cn(
