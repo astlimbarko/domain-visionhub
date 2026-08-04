@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Network as NetworkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGl
 import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { Vista } from '@/types/dashboard.types';
-import { ROUTES } from '@/utils/constants';
+import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 
 interface Sombrero { key: string; label: string; vista: Vista; }
 
@@ -171,12 +171,29 @@ export function AppShell({ children }: { children: ReactNode }) {
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esLiderJovenes = useEsLiderJovenes();
   const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
-  const navItems = [
-    ...(rolUI ? obtenerNavItems(rolUI) : []),
-    ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
-    ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
-    ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
-  ];
+  // Super Admin no ve Afirmación/Jóvenes/Matrimonios en su menú aunque la
+  // cuenta también tenga esas capacidades en otra iglesia -- eso se elige
+  // desde el selector multi-rol, no debe aparecer mezclado con el rol
+  // activo (2026-08-03, pedido explícito del owner). En su lugar, el único
+  // ítem adicional es el acceso a Estructura Organizacional -- por ahora
+  // apunta a la primera iglesia de la lista (placeholder hasta que exista
+  // un selector propio de iglesia dentro del módulo).
+  const navItems = esOscuro
+    ? [
+        ...(rolUI ? obtenerNavItems(rolUI) : []),
+        {
+          icon: NetworkIcon,
+          label: 'Estructura Organizacional',
+          path: iglesias[0] ? rutaEstructuraOrganizacional(iglesias[0].id) : ROUTES.ADMINISTRACION,
+          color: '#5e5ce6',
+        },
+      ]
+    : [
+        ...(rolUI ? obtenerNavItems(rolUI) : []),
+        ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+        ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
+        ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
+      ];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
   // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
