@@ -322,7 +322,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
-          <span className={cn('text-[15px] font-bold', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
+          {/* Con navbar de color propio (hoy Lider de Red), el header movil
+              dice el cargo -- no el nombre de la iglesia (pedido del owner,
+              2026-08-04, mismo criterio que la barra de escritorio). */}
+          <span className={cn('text-[15px] font-bold', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{colorNavbarRol ? cargoLabel : nombreMarca}</span>
         </div>
         <div className={cn(navbarClaro && 'text-white/70')}><NotificacionesBell /></div>
       </header>
