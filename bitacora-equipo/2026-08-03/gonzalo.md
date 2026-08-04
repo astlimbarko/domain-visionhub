@@ -32,5 +32,7 @@
 - [x] Agregada regla nueva a `CLAUDE.md`: todo cambio debe quedar registrado en Jira (crear ticket si no existe), con astlimbark como reporter y assignee siempre
 - [x] Decisión tomada: cuentas huérfanas `cijanmag@gmail.com` e `info.goforex77@gmail.com` dadas de baja (soft-delete del rol, reversible) — KAN-70
 - [x] Decisión tomada: Montero sigue sin Pastor propio, depende del Pastor de El Edén — sin cambios, cerrado
-- [ ] Falta: mergear/desplegar la rama `fix/rls-vistas-e-indices-rendimiento` (vistas + índices + permisos anon + los 3 fixes chicos de hoy)
+- [x] KAN-67 arreglado de raíz: el login ahora lleva directo al selector multi-rol (antes dependía de qué iglesia quedaba activa por default) y se ocultó el selector de iglesia dentro del panel de Super Admin — rama `login_+_multirol`, pusheada, probado en vivo con 3 cuentas distintas (multirol, Super Admin, un solo rol)
+- [x] Renombradas 2 ramas para que el nombre diga para qué sirven: `gestion-administrativa-3-roles` → `superadmin-pastor-supervisor`, y la nueva de hoy quedó como `login_+_multirol` (ambas ya en GitHub)
+- [ ] Falta: mergear/desplegar la rama `fix/rls-vistas-e-indices-rendimiento` (vistas + índices + permisos anon + los 3 fixes chicos de hoy) y la rama `login_+_multirol`
 - [ ] Falta: pushear esta rama de bitácora (`docs/bitacora-2026-08-03`)
