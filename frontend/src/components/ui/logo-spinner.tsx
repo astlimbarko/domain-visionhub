@@ -73,3 +73,46 @@ export function ContenidoCargando() {
     </div>
   );
 }
+
+/**
+ * Bug real reportado (2026-08-03): la app se quedaba "cargando" para siempre
+ * si el pedido de roles fallaba (sesión vencida, corte de red) -- antes no
+ * había forma de distinguir "todavía cargando" de "falló", así que
+ * PrivateLayout mostraba el mismo spinner sin salida en ambos casos. Esta
+ * pantalla le da al usuario un camino real: reintentar el mismo pedido, o
+ * cerrar sesión si el problema es la sesión vencida.
+ */
+export function AppErrorScreen({ onReintentar, onCerrarSesion }: { onReintentar: () => void; onCerrarSesion: () => void }) {
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-muted p-6 text-center">
+      <div
+        className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg shadow-black/10"
+        style={{ background: 'var(--brand-navy)' }}
+      >
+        <img src="/logo.png" alt="" className="h-9 w-9 object-contain brightness-0 invert" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-[15px] font-semibold text-foreground">No se pudo conectar</p>
+        <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">
+          Revisá tu conexión a internet e intentá de nuevo.
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onReintentar}
+          className="rounded-full bg-[var(--brand-navy)] px-5 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+        >
+          Reintentar
+        </button>
+        <button
+          type="button"
+          onClick={onCerrarSesion}
+          className="rounded-full border border-border bg-card px-5 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}

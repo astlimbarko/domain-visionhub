@@ -4,9 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useOpcionesRolContextuales, type OpcionRolContextual } from '@/hooks/useOpcionesRolContextuales';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
+import { AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ROUTES } from '@/utils/constants';
 
 export function SeleccionarRol() {
@@ -16,14 +18,33 @@ export function SeleccionarRol() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const setRolActivo = useAuthStore((s) => s.setRolActivo);
   const logout = useAuthStore((s) => s.logout);
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
 
   // Fuente de verdad de "hay ambigüedad real": por TIPO de rol, la misma que
   // usa PrivateLayout -- no se toca. Las opciones contextuales (abajo) son
   // solo para mostrar cada asignación por separado dentro de esos tipos.
   const opciones = useOpcionesRol();
   const opcionesContextuales = useOpcionesRolContextuales();
+  // Mismo query que ya usan los hooks de arriba (misma queryKey, sin pedido de
+  // red extra) -- solo para leer isError/refetch, ver AppErrorScreen abajo.
+  const { isError: fallaRoles, refetch: reintentarRoles } = useMisRoles(iglesiaActivaId ?? undefined);
 
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+
+  async function handleSalir() {
+    await cerrarSesion();
+    logout();
+    queryClient.clear();
+  }
+
+  // Esta pantalla vive fuera de PrivateLayout (se autoprotege aparte), así que
+  // necesita el mismo blindaje contra "sesión vencida / corte de red" que se
+  // agregó ahí -- sin esto, quedaba mostrando el esqueleto para siempre
+  // (2026-08-03, mismo bug, confirmado en vivo).
+  if (fallaRoles) {
+    return <AppErrorScreen onReintentar={() => reintentarRoles()} onCerrarSesion={handleSalir} />;
+  }
+
   // Blindaje contra acceso directo por URL: sin ambigüedad no hay nada que elegir
   // (esto ya cubre al Super Admin sin otros roles: Dashboard lo manda a Administración).
   if (opciones && opciones.length <= 1) return <Navigate to={ROUTES.DASHBOARD} replace />;
@@ -35,12 +56,6 @@ export function SeleccionarRol() {
       return;
     }
     navigate(ROUTES.DASHBOARD, { replace: true, state: opcion.vista ? { vista: opcion.vista } : undefined });
-  }
-
-  async function handleSalir() {
-    await cerrarSesion();
-    logout();
-    queryClient.clear();
   }
 
   const primerNombre = nombreCompleto?.split(' ')[0];
