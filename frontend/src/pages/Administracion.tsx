@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, Database, IdCard, MoreVertical, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
+import { Building2, Database, IdCard, MoreVertical, Network, Plus, ShieldCheck, TrendingUp, UserCog, Users } from 'lucide-react';
+import { rutaEstructuraOrganizacional } from '@/utils/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +66,7 @@ interface ConfirmarIglesia {
 }
 
 export function Administracion() {
+  const navigate = useNavigate();
   const [mostrarCrearIglesia, setMostrarCrearIglesia] = useState(false);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
   const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
@@ -254,7 +257,16 @@ export function Administracion() {
               <p className="text-sm text-muted-foreground">Todavía no hay iglesias.</p>
             )}
             {iglesias.map((i) => (
-              <div key={i.id} className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
+              <div
+                key={i.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate(rutaEstructuraOrganizacional(i.id));
+                }}
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-left transition-colors hover:bg-muted/40"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">{i.nombre}</p>
                   <p className="truncate text-sm text-muted-foreground">
@@ -267,11 +279,19 @@ export function Administracion() {
                   {!i.activo && <Badge variant="outline">Inactiva</Badge>}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" aria-label="Acciones">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Acciones"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))}>
+                        <Network className="h-4 w-4" /> Estructura organizacional
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setIglesiaEditar(i)}>Editar</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })}>
                         {i.activo ? 'Suspender' : 'Reactivar'}

@@ -41,6 +41,7 @@ const Departamentos = lazy(() => import('@/pages/Departamentos').then((m) => ({ 
 const GestionRedes = lazy(() => import('@/pages/GestionRedes').then((m) => ({ default: m.GestionRedes })));
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
 const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
+const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizacional').then((m) => ({ default: m.EstructuraOrganizacional })));
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
@@ -126,6 +127,15 @@ function App() {
           <Route path={ROUTES.PASTOR_GESTION} element={
             <Suspense fallback={<CargandoPagina />}>
               <PastorGestion />
+            </Suspense>
+          } />
+
+          {/* Estructura organizacional (KAN-52/53): fuera de PrivateLayout a
+              propósito, barra superior oscura propia -- se autoprotege igual
+              que PastorGestion. */}
+          <Route path={ROUTES.ESTRUCTURA_ORGANIZACIONAL} element={
+            <Suspense fallback={<CargandoPagina />}>
+              <EstructuraOrganizacional />
             </Suspense>
           } />
 
