@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { EyeOff, Plus, Search, UserRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight, EyeOff, Plus, Search, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useBuscarPersonas } from '@/hooks/usePersonas';
+import type { RolUI } from '@/utils/permisos';
 import { CrearPersonaDialog } from '@/components/personas/CrearPersonaDialog';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { PersonasDeRedVista } from '@/components/personas/PersonasDeRedVista';
@@ -63,16 +64,27 @@ function PersonasDeRed() {
 }
 
 /** Búsqueda global de personas de la iglesia (Supervisor, Pastor, Líder/Sublíder de CdP). */
-function BusquedaPersonas() {
+function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [incluirOcultas, setIncluirOcultas] = useState(false);
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
+  const [pagina, setPagina] = useState(1);
+  // El Supervisor no debe ver los registros de evangelismo tipo "Semilla"
+  // (persona real sin datos reales, solo cuenta -- identificados por tener un
+  // evangelismo de tipo 'SEMILLA' vigente, no por membresía) mezclados con el
+  // resto -- pedido del owner, 2026-08-04/05. El resto de los roles siguen
+  // viendo la lista completa, como siempre.
+  const excluirSemillas = rolUI === 'SUPERVISOR';
 
   useEffect(() => { const t = setTimeout(() => setTexto(textoInput), 300); return () => clearTimeout(t); }, [textoInput]);
-  const { data: resultados = [], isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, incluirOcultas);
+  useEffect(() => { setPagina(1); }, [texto, incluirOcultas]);
+  const { data, isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, incluirOcultas, excluirSemillas, pagina);
+  const resultados = data?.resultados ?? [];
+  const total = data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / 20));
 
   return (
     <div className="flex flex-col gap-5">
@@ -129,6 +141,34 @@ function BusquedaPersonas() {
         </div>
       )}
 
+      {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-3 text-[13px]">
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            disabled={pagina <= 1}
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="font-medium text-muted-foreground">
+            {pagina} <span className="text-muted-foreground/60">de {totalPaginas}</span>
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            disabled={pagina >= totalPaginas}
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            aria-label="Página siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       <CrearPersonaDialog open={mostrarCrear} onOpenChange={setMostrarCrear} iglesiaId={iglesiaActivaId} onCreada={(id) => setPersonaSeleccionadaId(id)} />
       <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
     </div>
@@ -144,5 +184,5 @@ export function Personas() {
   const rolUI = useRolUI();
   if (rolUI === null) return <CargandoPersonas />;
   if (rolUI === 'LIDER_RED') return <PersonasDeRed />;
-  return <BusquedaPersonas />;
+  return <BusquedaPersonas rolUI={rolUI} />;
 }

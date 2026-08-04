@@ -89,11 +89,15 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.VISITAS,
 ];
 
+// El Supervisor no carga reportes (igual que el Líder de Red): supervisa,
+// no reporta -- "Historial de Reportes" pasa a ser su vista de Control de
+// Reportes agrupada por Red (HistorialReportes.tsx, rama SUPERVISOR),
+// mismo criterio que ya usa el Líder de Red con Control de Reportes
+// (pedido del owner, 2026-08-04).
 const RUTAS_SUPERVISOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
-  ROUTES.REPORTES,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,

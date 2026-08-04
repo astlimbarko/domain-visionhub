@@ -11,8 +11,10 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
+import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
@@ -33,6 +35,7 @@ function semanasVentana(hoy: Date, n: number): { inicio: string; fin: string }[]
 }
 
 export function HistorialReportes() {
+  const rolUI = useRolUI();
   const personaId = useAuthStore((s) => s.personaId);
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
@@ -61,6 +64,12 @@ export function HistorialReportes() {
     if (semanasConReporte.has(s.inicio)) racha++;
     else break;
   }
+
+  // El Supervisor no lidera/sublidera ninguna Casa de Paz propia (misCasas
+  // vacío no significa "sin nada que ver" para él como para el resto de los
+  // roles) -- ve el Control de Reportes agrupado por Red de toda la iglesia,
+  // no el historial de una sola CdP.
+  if (rolUI === 'SUPERVISOR') return <HistorialReportesSupervisorVista />;
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 

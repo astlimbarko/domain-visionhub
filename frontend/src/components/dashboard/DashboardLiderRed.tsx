@@ -4,8 +4,6 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ClipboardCheck,
-  Coins,
-  Gift,
   Home,
   Network,
   UserCheck,
@@ -19,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
+import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { useAuthStore } from '@/store/auth.store';
 import { useDashboardLiderRed, useIngresosRedPeriodo } from '@/hooks/useDashboard';
 import { PERIODOS_DASHBOARD, rangoPeriodoActual, type PeriodoDashboard } from '@/utils/periodo-dashboard';
@@ -41,52 +40,6 @@ function SelloCasaDePaz({ className }: { className?: string }) {
       <path d="M6 10v8.5h12V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 17.2c-1.5-1-2.7-2-2.7-3.3a1.45 1.45 0 0 1 2.7-.66 1.45 1.45 0 0 1 2.7.66c0 1.3-1.2 2.3-2.7 3.3Z" fill="currentColor" />
     </svg>
-  );
-}
-
-type BolsaMoneda = Map<string, number>;
-interface FinanzasResumen {
-  ofrenda: BolsaMoneda;
-  diezmo: BolsaMoneda;
-  total: BolsaMoneda;
-}
-
-function bolsaVacia(): FinanzasResumen {
-  return { ofrenda: new Map(), diezmo: new Map(), total: new Map() };
-}
-
-function StatFinanciero({ label, valores, color, icon: Icon }: { label: string; valores: BolsaMoneda; color: string; icon: typeof Wallet }) {
-  const entradas = Array.from(valores.entries());
-  return (
-    <div
-      className="flex flex-col gap-1.5 rounded-xl p-3"
-      style={{ backgroundColor: `color-mix(in oklab, ${color} 9%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 25%, transparent)` }}
-    >
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase" style={{ color }}>
-        <Icon className="h-3.5 w-3.5" /> {label}
-      </span>
-      {entradas.length === 0 ? (
-        <span className="text-sm text-muted-foreground">Sin registros</span>
-      ) : (
-        <div className="flex flex-col">
-          {entradas.map(([simbolo, monto]) => (
-            <span key={simbolo} className="text-lg font-bold tabular-nums" style={{ color }}>{simbolo} {monto.toFixed(2)}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** [Ofrenda][Diezmo][Total] -- pedido exacto del owner, 2026-08-02. Se reusa
- * igual para el total global de la Red y para el desglose de una sola CdP. */
-function BloqueFinanciero({ resumen }: { resumen: FinanzasResumen }) {
-  return (
-    <div className="grid grid-cols-3 gap-2.5">
-      <StatFinanciero label="Ofrenda" valores={resumen.ofrenda} color={VERDE} icon={Gift} />
-      <StatFinanciero label="Diezmo" valores={resumen.diezmo} color={AMBAR} icon={Coins} />
-      <StatFinanciero label="Total" valores={resumen.total} color={TEAL} icon={Wallet} />
-    </div>
   );
 }
 
@@ -137,22 +90,9 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
   // Contabilidad global de la Red -- [Ofrenda][Diezmo][Total], pedido exacto
   // del owner (2026-08-02). Se arma tanto el total global como uno por CdP
   // (para el desglose que se despliega al presionar "Ver finanzas" en una
-  // CdP, debajo de las cards) a partir del mismo recorrido de `ingresos`.
-  const finanzasGlobal = bolsaVacia();
-  const finanzasPorCdp = new Map<string, FinanzasResumen>();
-  for (const c of casas) finanzasPorCdp.set(c.etiqueta, bolsaVacia());
-  for (const i of ingresos) {
-    const clave = i.casa_de_paz_nombre ?? 'Sin Casa de Paz';
-    const bolsa = finanzasPorCdp.get(clave) ?? bolsaVacia();
-    finanzasPorCdp.set(clave, bolsa);
-    const monto = Number(i.total);
-    const destino = i.tipo_codigo === 'OFRENDA' ? bolsa.ofrenda : i.tipo_codigo === 'DIEZMO' ? bolsa.diezmo : null;
-    const destinoGlobal = i.tipo_codigo === 'OFRENDA' ? finanzasGlobal.ofrenda : i.tipo_codigo === 'DIEZMO' ? finanzasGlobal.diezmo : null;
-    if (destino) destino.set(i.moneda_simbolo, (destino.get(i.moneda_simbolo) ?? 0) + monto);
-    if (destinoGlobal) destinoGlobal.set(i.moneda_simbolo, (destinoGlobal.get(i.moneda_simbolo) ?? 0) + monto);
-    bolsa.total.set(i.moneda_simbolo, (bolsa.total.get(i.moneda_simbolo) ?? 0) + monto);
-    finanzasGlobal.total.set(i.moneda_simbolo, (finanzasGlobal.total.get(i.moneda_simbolo) ?? 0) + monto);
-  }
+  // CdP, debajo de las cards) a partir del mismo recorrido de `ingresos`
+  // (`agruparFinanzasPorCdp`, compartido con FinanzasSupervisorVista).
+  const { global: finanzasGlobal, porCdp: finanzasPorCdp } = agruparFinanzasPorCdp(ingresos, casas.map((c) => c.etiqueta));
   const finanzasCdpAbierta = cdpFinanzas ? finanzasPorCdp.get(cdpFinanzas) : undefined;
 
   // Indicadores derivados de los datos reales de la Red.
