@@ -30,5 +30,7 @@
 - [x] Probado en vivo el flujo completo de Afirmación: alta de miembro por formulario interno (funciona bien) y por link público (funcionaba, pero el mensaje de confirmación mostraba el nombre de la Casa de Paz vacío)
 - [x] Encontrado y arreglado ese bug del link público (KAN-68): usaba una columna vacía a propósito en vez de la función que calcula el nombre visible de la CdP
 - [x] Agregada regla nueva a `CLAUDE.md`: todo cambio debe quedar registrado en Jira (crear ticket si no existe), con astlimbark como reporter y assignee siempre
-- [ ] Falta: mergear/desplegar la rama `fix/rls-vistas-e-indices-rendimiento` (vistas + índices + permisos anon + los 2 fixes chicos de hoy)
+- [x] Decisión tomada: cuentas huérfanas `cijanmag@gmail.com` e `info.goforex77@gmail.com` dadas de baja (soft-delete del rol, reversible) — KAN-70
+- [x] Decisión tomada: Montero sigue sin Pastor propio, depende del Pastor de El Edén — sin cambios, cerrado
+- [ ] Falta: mergear/desplegar la rama `fix/rls-vistas-e-indices-rendimiento` (vistas + índices + permisos anon + los 3 fixes chicos de hoy)
 - [ ] Falta: pushear esta rama de bitácora (`docs/bitacora-2026-08-03`)
