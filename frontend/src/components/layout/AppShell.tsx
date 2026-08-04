@@ -301,14 +301,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col bg-muted/30">
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
-        <header className="hidden items-center justify-between gap-3 border-b border-border bg-card px-8 py-1.5 sm:flex">
+        <header className={cn(
+          'hidden items-center justify-between gap-3 border-b px-8 py-1.5 sm:flex',
+          rolUI === 'SUPER_ADMIN' ? 'border-white/10 bg-[#0a0e1a]' : 'border-border bg-card'
+        )}>
           <div className="min-w-0">
             {rolUI === 'SUPER_ADMIN' ? (
               // El panel de Super Admin es global (gestiona todas las iglesias a
               // la vez) -- elegir "iglesia activa" ahí no filtra nada y solo
               // confunde el flujo de rol (KAN-67), así que no se muestra el
-              // selector mientras se actúa como Super Admin.
-              <p className="text-[13px] font-semibold text-foreground">Administración</p>
+              // selector mientras se actúa como Super Admin. Misma barra oscura
+              // del módulo de Estructura Organizacional, solo el color -- el
+              // resto de esta barra (campanita, menú de cuenta) queda igual.
+              <p className="text-[13px] font-semibold text-white">Administración</p>
             ) : iglesias.length > 1 ? (
               <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
                 <SelectTrigger size="sm" className="w-52"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
@@ -318,11 +323,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className={cn('flex items-center gap-1', rolUI === 'SUPER_ADMIN' && 'text-white/70')}>
           <NotificacionesBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
+              <button className={cn(
+                'flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-all',
+                rolUI === 'SUPER_ADMIN'
+                  ? 'text-white/80 hover:bg-white/10 hover:text-white'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}>
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {(nombreCompleto ?? correo ?? '?')[0]?.toUpperCase()}
                 </div>
