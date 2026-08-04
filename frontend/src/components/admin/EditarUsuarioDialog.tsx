@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { CampoOtp } from '@/components/shared/CampoOtp';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import type { RolSistema } from '@/types/auth.types';
 import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
@@ -36,10 +37,12 @@ interface Props {
   usuario: UsuarioListado | null;
   iglesias: IglesiaAdmin[];
   guardando: boolean;
+  /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
+  oscuro?: boolean;
   onGuardar: (rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
 }
 
-export function EditarUsuarioDialog({ open, onOpenChange, usuario, iglesias, guardando, onGuardar }: Props) {
+export function EditarUsuarioDialog({ open, onOpenChange, usuario, iglesias, guardando, oscuro, onGuardar }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
   const [rol, setRol] = useState<RolSistema | ''>('');
   const [iglesiaId, setIglesiaId] = useState('');
@@ -64,7 +67,7 @@ export function EditarUsuarioDialog({ open, onOpenChange, usuario, iglesias, gua
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className={cn('max-w-sm', oscuro && 'dark')}>
         <DialogHeader>
           <DialogTitle>Editar cargo</DialogTitle>
           {usuario && <DialogDescription>{usuario.correo}</DialogDescription>}

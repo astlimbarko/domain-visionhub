@@ -31,6 +31,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   iglesias: IglesiaAdmin[];
   creando: boolean;
+  /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
+  oscuro?: boolean;
   onCrear: (
     sufijo: string,
     ciudad: string,
@@ -56,6 +58,7 @@ export function CrearIglesiaDialog({
   onOpenChange,
   iglesias,
   creando,
+  oscuro,
   onCrear,
 }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
@@ -134,7 +137,7 @@ export function CrearIglesiaDialog({
   return (
     <Dialog open={open} onOpenChange={handleCerrar}>
       <DialogContent
-        className="max-w-sm"
+        className={cn('max-w-sm', oscuro && 'dark')}
         onInteractOutside={(e) => { if (hayContenido) e.preventDefault(); }}
         onEscapeKeyDown={(e) => { if (hayContenido) e.preventDefault(); }}
       >

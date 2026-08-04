@@ -39,6 +39,8 @@ interface Props {
   iglesias: IglesiaAdmin[];
   invitando: boolean;
   asignando: boolean;
+  /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
+  oscuro?: boolean;
   onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
   onAsignarExistente: (usuarioId: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
 }
@@ -49,6 +51,7 @@ export function InvitarUsuarioDialog({
   iglesias,
   invitando,
   asignando,
+  oscuro,
   onInvitar,
   onAsignarExistente,
 }: Props) {
@@ -102,7 +105,7 @@ export function InvitarUsuarioDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className={cn('max-w-sm', oscuro && 'dark')}>
         <DialogHeader>
           <DialogTitle>Agregar usuario</DialogTitle>
         </DialogHeader>

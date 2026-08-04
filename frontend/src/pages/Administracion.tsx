@@ -336,6 +336,7 @@ export function Administracion() {
         onOpenChange={setMostrarCrearIglesia}
         iglesias={iglesias}
         creando={crearIglesia.isPending}
+        oscuro
         onCrear={async (sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin) => {
           try {
             const resultado = await crearIglesia.mutateAsync({
@@ -361,6 +362,7 @@ export function Administracion() {
         onOpenChange={(abierto) => !abierto && setIglesiaEditar(null)}
         iglesia={iglesiaEditar}
         guardando={actualizarIglesia.isPending}
+        oscuro
         onGuardar={(sufijo, ciudad, correo, pin) => {
           if (!iglesiaEditar) return;
           actualizarIglesia.mutate(
@@ -385,6 +387,7 @@ export function Administracion() {
           }
           requiereMotivo={confirmarIglesia.accion === 'eliminar'}
           procesando={eliminarIglesia.isPending || toggleIglesiaActiva.isPending}
+          oscuro
           onConfirmar={confirmarAccionIglesia}
         />
       )}
@@ -395,6 +398,7 @@ export function Administracion() {
         iglesias={iglesias}
         invitando={invitarUsuario.isPending}
         asignando={asignarUsuarioExistente.isPending}
+        oscuro
         onInvitar={(correo, rol, iglesiaId, pin) =>
           invitarUsuario.mutate(
             { correo, rol, iglesiaId, pin },
@@ -431,6 +435,7 @@ export function Administracion() {
         usuario={usuarioEditar}
         iglesias={iglesias}
         guardando={actualizarUsuarioRol.isPending}
+        oscuro
         onGuardar={(rol, iglesiaId, pin) => {
           if (!usuarioEditar) return;
           actualizarUsuarioRol.mutate(
@@ -450,6 +455,7 @@ export function Administracion() {
           titulo={`Remover a ${usuarioRemover.correo}`}
           descripcion="Pierde acceso al sistema con este cargo; el historial se conserva."
           requiereMotivo
+          oscuro
           procesando={toggleUsuarioRol.isPending}
           onConfirmar={(_motivo, pin) =>
             toggleUsuarioRol.mutate(
