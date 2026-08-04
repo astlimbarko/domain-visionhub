@@ -46,26 +46,27 @@ function mismaVista(a: Vista, b: Vista): boolean {
 // administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
 // prellenados -- no es un formulario propio, para no construir/mantener
 // backend solo para esto.
-function SoporteFooter({ href, onClick, className }: { href: string; onClick?: () => void; className?: string }) {
+function SoporteFooter({ href, onClick, className, oscuro }: { href: string; onClick?: () => void; className?: string; oscuro?: boolean }) {
   return (
     <a
       href={href}
       onClick={onClick}
       className={cn(
-        'flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-[12px] text-muted-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-foreground',
+        'flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-[12px] transition-colors',
+        oscuro ? 'text-white/50 hover:bg-white/10 hover:text-white' : 'text-muted-foreground/75 hover:bg-sidebar-accent hover:text-foreground',
         className
       )}
     >
       <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0" />
       <span className="flex flex-col gap-0.5 text-left">
-        <span className="font-medium text-foreground/70">¿Encontraste un problema?</span>
+        <span className={cn('font-medium', oscuro ? 'text-white/80' : 'text-foreground/70')}>¿Encontraste un problema?</span>
         <span className="text-[11px] leading-snug">Ayúdanos a mejorar la plataforma</span>
       </span>
     </a>
   );
 }
 
-function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[] }) {
+function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
   const location = useLocation();
   const vistaActual = (location.state as { vista?: Vista } | null)?.vista;
   const queryClient = useQueryClient();
@@ -98,7 +99,7 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
         if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
           return (
             <div key={path} className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold text-foreground">
+              <div className={cn('flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold', oscuro ? 'text-white' : 'text-foreground')}>
                 {iconoChip}{label}
               </div>
               {sombreros.map((s) => {
@@ -106,7 +107,12 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
                 return (
                   <Link key={s.key} to={path} state={{ vista: s.vista }} onClick={onNavigate}
                     onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-                    className={cn('truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-foreground')}>
+                    className={cn(
+                      'truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] transition-all',
+                      oscuro
+                        ? cn('text-white/60 hover:bg-white/10 hover:text-white', activoSombrero && 'bg-white/10 font-medium text-white')
+                        : cn('text-muted-foreground hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-foreground')
+                    )}>
                     {s.label}
                   </Link>
                 );
@@ -118,7 +124,12 @@ function NavLinks({ onNavigate, navItems, sombreros }: { onNavigate?: () => void
         return (
           <Link key={path} to={path} onClick={onNavigate}
             onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-            className={cn('flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            className={cn(
+              'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all',
+              oscuro
+                ? cn('hover:bg-white/10', activo ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white')
+                : cn('hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')
+            )}>
             {iconoChip}<span className="truncate">{label}</span>
           </Link>
         );
@@ -145,11 +156,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
+  // Super Admin tiene su propio "tema" oscuro en todo el shell (sidebar +
+  // barra superior + menú de cuenta) -- panel global, sin iglesia asociada,
+  // visualmente distinto a propósito. Cada rol va a tener su color más
+  // adelante; por ahora solo Super Admin usa este oscuro.
+  const esOscuro = rolUI === 'SUPER_ADMIN';
 
   // El título ("Pastor", "Supervisor", etc.) es de la iglesia activa -- no
   // tiene sentido mostrarlo mientras se actúa como Super Admin (panel
   // global, sin iglesia asociada), confundiría con qué sombrero está puesto.
-  const tituloMostrado = rolUI === 'SUPER_ADMIN' ? null : titulo;
+  const tituloMostrado = esOscuro ? null : titulo;
   const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
 
   const esLiderAfirmacion = useEsLiderAfirmacion();
@@ -222,43 +238,59 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
       {/* Sidebar */}
-      <aside className="hidden w-[250px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 sm:flex">
+      <aside className={cn(
+        'hidden w-[250px] shrink-0 flex-col border-r p-4 sm:flex',
+        esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-sidebar-border bg-sidebar'
+      )}>
         <div className="mb-6 flex items-center gap-3 px-3 pt-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
           </div>
-          <span className="text-[15px] font-bold tracking-tight text-sidebar-foreground">{nombreMarca}</span>
+          <span className={cn('text-[15px] font-bold tracking-tight', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
         </div>
-        <NavLinks navItems={navItems} sombreros={sombreros} />
-        <SoporteFooter href={mailtoSoporte} className="mt-2 border-t border-sidebar-border pt-3" />
+        <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
+        <SoporteFooter
+          href={mailtoSoporte}
+          oscuro={esOscuro}
+          className={cn('mt-2 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}
+        />
       </aside>
 
       {/* Header mobile */}
-      <header className="flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 sm:hidden">
+      <header className={cn(
+        'flex items-center justify-between border-b px-4 py-3 sm:hidden',
+        esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-sidebar-border bg-sidebar'
+      )}>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" aria-label="Abrir menú" className="rounded-xl text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => setMenuAbierto(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Abrir menú"
+            className={cn('rounded-xl', esOscuro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+            onClick={() => setMenuAbierto(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
-          <span className="text-[15px] font-bold text-sidebar-foreground">{nombreMarca}</span>
+          <span className={cn('text-[15px] font-bold', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
         </div>
-        <NotificacionesBell />
+        <div className={cn(esOscuro && 'text-white/70')}><NotificacionesBell /></div>
       </header>
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
-        <SheetContent side="left" className="flex w-[270px] flex-col border-none bg-sidebar p-0">
-          <SheetHeader className="border-b border-sidebar-border px-5 py-4">
-            <SheetTitle className="flex items-center gap-3 text-sidebar-foreground">
+        <SheetContent side="left" className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : 'bg-sidebar')}>
+          <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
                 <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
               </div>
               <span className="text-[15px] font-bold">{nombreMarca}</span>
             </SheetTitle>
           </SheetHeader>
-          {iglesias.length > 1 && rolUI !== 'SUPER_ADMIN' && (
+          {iglesias.length > 1 && !esOscuro && (
             <div className="px-4 pt-4">
               <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
                 <SelectTrigger className="w-full"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
@@ -267,22 +299,28 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           )}
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
-            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} />
+            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
-          <div className="border-t border-sidebar-border px-3 pt-3">
-            <SoporteFooter href={mailtoSoporte} onClick={() => setMenuAbierto(false)} />
+          <div className={cn('border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <SoporteFooter href={mailtoSoporte} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
           </div>
           <SheetFooter className="gap-1 p-3">
             <button
               onClick={() => { setMenuAbierto(false); navigate(ROUTES.CUENTA); }}
-              className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+              className={cn(
+                'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors',
+                esOscuro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent'
+              )}
             >
               <UserCog className="h-4 w-4" /> Mi cuenta
             </button>
             {opcionesRol && opcionesRol.length > 1 && (
               <button
                 onClick={() => { setMenuAbierto(false); handleCambiarRol(); }}
-                className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors',
+                  esOscuro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                )}
               >
                 <Repeat className="h-4 w-4" /> Cambiar rol
               </button>
@@ -303,10 +341,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             cuenta viven en el pie del drawer. */}
         <header className={cn(
           'hidden items-center justify-between gap-3 border-b px-8 py-1.5 sm:flex',
-          rolUI === 'SUPER_ADMIN' ? 'border-white/10 bg-[#0a0e1a]' : 'border-border bg-card'
+          esOscuro ? 'border-white/10 bg-[#0a0e1a]' : 'border-border bg-card'
         )}>
           <div className="min-w-0">
-            {rolUI === 'SUPER_ADMIN' ? (
+            {esOscuro ? (
               // El panel de Super Admin es global (gestiona todas las iglesias a
               // la vez) -- elegir "iglesia activa" ahí no filtra nada y solo
               // confunde el flujo de rol (KAN-67), así que no se muestra el
@@ -323,13 +361,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-foreground">{iglesias[0]?.nombre}</p>
             )}
           </div>
-          <div className={cn('flex items-center gap-1', rolUI === 'SUPER_ADMIN' && 'text-white/70')}>
+          <div className={cn('flex items-center gap-1', esOscuro && 'text-white/70')}>
           <NotificacionesBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={cn(
                 'flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-all',
-                rolUI === 'SUPER_ADMIN'
+                esOscuro
                   ? 'text-white/80 hover:bg-white/10 hover:text-white'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}>
@@ -340,12 +378,30 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ChevronDown className="h-3 w-3 shrink-0 opacity-40" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onSelect={() => navigate(ROUTES.CUENTA)} className="gap-2"><UserCog className="h-4 w-4" /> Mi cuenta</DropdownMenuItem>
+            <DropdownMenuContent
+              align="end"
+              className={cn('w-44', esOscuro && 'border border-white/10 bg-[#0a0e1a] text-white')}
+            >
+              <DropdownMenuItem
+                onSelect={() => navigate(ROUTES.CUENTA)}
+                className={cn('gap-2', esOscuro && 'focus:bg-white/10 focus:text-white')}
+              >
+                <UserCog className="h-4 w-4" /> Mi cuenta
+              </DropdownMenuItem>
               {opcionesRol && opcionesRol.length > 1 && (
-                <DropdownMenuItem onSelect={handleCambiarRol} className="gap-2"><Repeat className="h-4 w-4" /> Cambiar rol</DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={handleCambiarRol}
+                  className={cn('gap-2', esOscuro && 'focus:bg-white/10 focus:text-white')}
+                >
+                  <Repeat className="h-4 w-4" /> Cambiar rol
+                </DropdownMenuItem>
               )}
-              <DropdownMenuItem onSelect={handleLogout} className="gap-2 text-destructive focus:text-destructive"><LogOut className="h-4 w-4" /> Salir</DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={handleLogout}
+                className={cn('gap-2 text-destructive focus:text-destructive', esOscuro && 'focus:bg-destructive/20')}
+              >
+                <LogOut className="h-4 w-4" /> Salir
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           </div>
