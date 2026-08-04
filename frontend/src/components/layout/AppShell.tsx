@@ -142,10 +142,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
-  const textoUsuario = nombreCompleto ? titulo ? `${nombreCompleto} — ${titulo}` : nombreCompleto : (correo ?? '');
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
+
+  // El título ("Pastor", "Supervisor", etc.) es de la iglesia activa -- no
+  // tiene sentido mostrarlo mientras se actúa como Super Admin (panel
+  // global, sin iglesia asociada), confundiría con qué sombrero está puesto.
+  const tituloMostrado = rolUI === 'SUPER_ADMIN' ? null : titulo;
+  const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
+
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esLiderJovenes = useEsLiderJovenes();
   const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
@@ -252,7 +258,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="text-[15px] font-bold">{nombreMarca}</span>
             </SheetTitle>
           </SheetHeader>
-          {iglesias.length > 1 && (
+          {iglesias.length > 1 && rolUI !== 'SUPER_ADMIN' && (
             <div className="px-4 pt-4">
               <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
                 <SelectTrigger className="w-full"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
@@ -297,7 +303,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             cuenta viven en el pie del drawer. */}
         <header className="hidden items-center justify-between gap-3 border-b border-border bg-card px-8 py-1.5 sm:flex">
           <div className="min-w-0">
-            {iglesias.length > 1 ? (
+            {rolUI === 'SUPER_ADMIN' ? (
+              // El panel de Super Admin es global (gestiona todas las iglesias a
+              // la vez) -- elegir "iglesia activa" ahí no filtra nada y solo
+              // confunde el flujo de rol (KAN-67), así que no se muestra el
+              // selector mientras se actúa como Super Admin.
+              <p className="text-[13px] font-semibold text-foreground">Administración</p>
+            ) : iglesias.length > 1 ? (
               <Select value={iglesiaActivaId ?? ''} onValueChange={setIglesiaActiva}>
                 <SelectTrigger size="sm" className="w-52"><SelectValue placeholder="Elegí una iglesia" /></SelectTrigger>
                 <SelectContent>{iglesias.map((i) => (<SelectItem key={i.id} value={i.id}>{i.nombre}</SelectItem>))}</SelectContent>
