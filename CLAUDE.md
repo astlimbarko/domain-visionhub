@@ -115,6 +115,11 @@ con que quede solo en el commit o en la bitácora local.
   como reporter y como assignee** — sin importar qué persona del equipo esté
   en la sesión de Claude Code en ese momento. Es una decisión del owner
   (2026-08-03): él es quien centraliza el seguimiento en Jira.
+- **Título y descripción siempre breves, directo al grano.** Título: una
+  línea que diga qué es. Descripción: 2-4 líneas con qué se hizo/qué pasa y
+  por qué — nada de bloques largos, sin fragmentos de código pegados, sin
+  listas de "posibles soluciones" extensas. Si hace falta explayarse, esa
+  explicación va en el commit o en la conversación, no en el ticket.
 
 ## Otras convenciones del proyecto
 
