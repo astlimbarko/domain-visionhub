@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Building2, ChevronDown, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { rutaEstructuraOrganizacional } from '@/utils/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -113,6 +113,7 @@ export function Administracion() {
   const [mostrarCrearIglesia, setMostrarCrearIglesia] = useState(false);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
   const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
+  const [iglesiasContraidas, setIglesiasContraidas] = useState<Set<string>>(() => new Set());
   const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
@@ -270,12 +271,14 @@ export function Administracion() {
             )}
             {gruposIglesias.map((grupo) => (
               <div key={grupo.raiz.id} className="overflow-hidden rounded-2xl border border-white/20 bg-white/[0.02]">
-                {grupo.filas.map(({ iglesia: i, nivel }, indice) => (
+                {grupo.filas
+                  .filter(({ nivel }) => nivel === 0 || !iglesiasContraidas.has(grupo.raiz.id))
+                  .map(({ iglesia: i, nivel }, indice) => (
                   <div key={i.id} className={`flex items-stretch ${indice > 0 ? 'border-t border-white/10' : ''}`}>
                     <button
                       type="button"
                       onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
-                      className="group flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+                      className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pr-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                       style={{ paddingLeft: `${16 + nivel * 22}px` }}
                       aria-label={`Abrir estructura organizacional de ${i.nombre}`}
                     >
@@ -309,7 +312,31 @@ export function Administracion() {
                       </span>
                       {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                     </button>
-                    <div className="flex shrink-0 items-center pr-2">
+                    <div className="flex shrink-0 items-center gap-1 pr-2">
+                      {indice === 0 && grupo.filas.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${iglesiasContraidas.has(grupo.raiz.id) ? 'Expandir' : 'Contraer'} iglesias dependientes de ${grupo.raiz.nombre}`}
+                          aria-expanded={!iglesiasContraidas.has(grupo.raiz.id)}
+                          title={iglesiasContraidas.has(grupo.raiz.id) ? 'Expandir iglesias' : 'Contraer iglesias'}
+                          className="cursor-pointer text-white/50 hover:bg-white/10 hover:text-white"
+                          onClick={() => {
+                            setIglesiasContraidas((actuales) => {
+                              const siguientes = new Set(actuales);
+                              if (siguientes.has(grupo.raiz.id)) siguientes.delete(grupo.raiz.id);
+                              else siguientes.add(grupo.raiz.id);
+                              return siguientes;
+                            });
+                          }}
+                        >
+                          <ChevronDown
+                            aria-hidden="true"
+                            className={`h-4 w-4 transition-transform ${iglesiasContraidas.has(grupo.raiz.id) ? '-rotate-90' : ''}`}
+                          />
+                        </Button>
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -339,7 +366,7 @@ export function Administracion() {
                       </DropdownMenu>
                     </div>
                   </div>
-                ))}
+                  ))}
               </div>
             ))}
           </div>
