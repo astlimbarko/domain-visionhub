@@ -148,7 +148,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   };
 
   return (
-    <div className="flex h-svh flex-col bg-[#eef1f6]">
+    <div className="flex h-svh flex-col bg-[#e3e7ee]">
       <header className="z-20 flex flex-wrap items-center gap-4 border-b border-white/10 bg-[#0a0e1a] px-4 py-3 sm:px-6">
         <Link
           to={ROUTES.ADMINISTRACION}

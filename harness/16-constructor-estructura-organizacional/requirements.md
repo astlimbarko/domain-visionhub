@@ -161,9 +161,15 @@ ofrecerse crear un quinto departamento ni eliminar uno de los cuatro.
 la base. Mientras la base no tenga columna de color, la implementación SHALL NOT
 inventar colores definitivos en componentes aislados.
 
-**REQ-DEP-4** — WHERE un departamento no tenga líder vigente, THE tarjeta SHALL
-mostrar color tenue y “Líder sin asignar”. WHERE tenga líder confirmado, SHALL
-mostrar el color con intensidad normal.
+**REQ-DEP-4** — THE tarjeta de Departamento SHALL mostrar siempre el color
+oficial sólido, tenga o no líder vigente. WHERE no tenga líder, SHALL mostrar
+“Líder sin asignar” sobre ese mismo color sólido; SHALL NOT atenuar el color
+por falta de líder.
+
+> Cambio 2026-08-05 (Gonzalo): reemplaza la versión anterior de REQ-DEP-4, que
+> pedía color tenue sin líder. El tenue no gustó visualmente; se unificó con el
+> tratamiento de Afirmación (color sólido siempre). Ver `implementation-plan.md`
+> Fase 2 y Jira KAN-57.
 
 **REQ-DEP-5** — Asignar un líder SHALL cambiar automáticamente la representación
 visual a activa. Este estado visual SHALL derivarse de la asignación vigente y

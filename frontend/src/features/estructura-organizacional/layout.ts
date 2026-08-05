@@ -110,7 +110,6 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     nodo('grupo-departamentos', 590, -250, {
       tipo: 'GRUPO_DEPARTAMENTOS',
       titulo: 'Departamentos',
-      subtitulo: '4 departamentos oficiales',
       ancho: 1035,
       alto: 190,
     }),

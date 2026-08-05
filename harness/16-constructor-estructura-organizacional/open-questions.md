@@ -24,8 +24,9 @@
   el Super Admin puede asignarlo o cambiarlo.
 - ✅ **Varios Supervisores en base, uno en UI inicial.** No cerrar el modelo por
   una práctica actual que todavía puede cambiar.
-- ✅ **Cuatro departamentos permanentes.** Sin líder se ven tenues; con líder,
-  intensos. El estado visual no modifica `departamento.activo`.
+- ✅ **Cuatro departamentos permanentes.** Color oficial sólido siempre, tengan
+  o no líder asignado (revisado 2026-08-05, ver REQ-DEP-4). El estado visual no
+  modifica `departamento.activo`.
 - ✅ **Entidades sin líder.** Red, CdP y demás entidades pueden existir incompletas.
 - ✅ **CdP progresiva.** Líder, anfitrión, dirección y sublíderes pueden añadirse
   después de crearla.

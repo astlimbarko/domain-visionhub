@@ -227,6 +227,45 @@ la acción para asignar o cambiar líder permanece en KAN-56/KAN-57.
 lint con cero errores. Pendiente revisión visual autenticada mediante captura
 del navegador principal.
 
+### Corrección — Departamento siempre en color sólido
+
+**Título:** Quitar el estado tenue de Departamento sin líder.
+
+**Descripción breve:** La tarjeta de Departamento ya no se atenúa cuando no
+tiene líder; usa siempre el color oficial sólido, igual que Afirmación. Solo
+cambia el texto (“Líder sin asignar”) y el punto gris/verde de confirmación.
+Reemplaza REQ-DEP-4 anterior.
+
+**Vinculación:** KAN-57 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, `NodoEstructura.tsx`.
+Build y lint Docker/local correctos tras el cambio.
+
+### Corrección — quitar subtítulo redundante de Departamentos
+
+**Título:** Quitar el texto “4 departamentos oficiales”.
+
+**Descripción breve:** Es obvio para la iglesia y no aporta información; se
+retira el subtítulo de la sección `Departamentos`, que ahora solo muestra el
+título.
+
+**Vinculación:** KAN-54/KAN-57 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, `layout.ts`.
+
+### Corrección — fondo del lienzo más oscuro que los grupos
+
+**Título:** Diferenciar el fondo del lienzo de los contenedores de sección.
+
+**Descripción breve:** El fondo general (`#eef1f6`) se confundía con el fondo
+traslúcido blanco de los grupos Departamentos/Redes. Se oscureció levemente a
+`#e3e7ee` para que los grupos se lean como paneles distinguibles sobre el
+lienzo.
+
+**Vinculación:** KAN-54 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, `EstructuraOrganizacional.tsx`.
+
 ### Backlog visual/funcional derivado de las referencias
 
 - [x] nodos especializados de Pastor y Supervisor con iniciales y correo;

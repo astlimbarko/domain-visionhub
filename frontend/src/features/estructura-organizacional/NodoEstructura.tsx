@@ -84,7 +84,6 @@ function NodoResponsablePrincipal({ data, selected }: { data: DatosNodoEstructur
 function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selected: boolean }) {
   const principal = data.responsables?.[0];
   const iniciales = principal ? inicialesPersona(principal) : null;
-  const activo = Boolean(principal);
   const pendiente = principal?.membresiaPendiente ?? false;
   const color = data.color ?? '#64748b';
   const nombreResponsable = principal?.nombre?.trim() || principal?.correo;
@@ -95,25 +94,17 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
       className={`relative flex min-h-[96px] w-[235px] flex-col items-stretch rounded-xl border px-3.5 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30),0_8px_20px_rgba(15,23,42,0.12)]'
-          : activo
-            ? 'border-white/40 hover:border-white/75 hover:shadow-md'
-            : 'border-slate-300 hover:border-slate-400 hover:shadow-md'
+          : 'border-white/40 hover:border-white/75 hover:shadow-md'
       }`}
-      style={activo
-        ? { background: `color-mix(in oklab, ${color} 78%, #0f172a)` }
-        : { background: `color-mix(in oklab, ${color} 11%, white)`, borderLeftWidth: 5, borderLeftColor: color }}
+      style={{ background: `color-mix(in oklab, ${color} 78%, #0f172a)` }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-white/65" />
-      <span className={`block truncate text-sm font-bold ${activo ? 'text-white' : 'text-slate-950'}`}>
+      <span className="block truncate text-sm font-bold text-white">
         {data.titulo}
       </span>
-      <span className={`mt-2 flex items-center gap-2 border-t pt-2 ${activo ? 'border-white/20' : 'border-slate-300/70'}`}>
-        <span
-          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
-            activo ? 'bg-white/16 text-white' : 'bg-white/80 text-slate-700'
-          }`}
-        >
-          {activo ? (iniciales ?? <Mail className="h-3.5 w-3.5" aria-hidden="true" />) : <Building2 className="h-4 w-4" aria-hidden="true" />}
+      <span className="mt-2 flex items-center gap-2 border-t border-white/20 pt-2">
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/16 text-[10px] font-bold text-white">
+          {iniciales ?? <Mail className="h-3.5 w-3.5" aria-hidden="true" />}
           {principal && (
             <span
               title={textoEstado}
@@ -124,15 +115,13 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
           )}
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <span className={`block text-[10px] font-semibold tracking-wide uppercase ${activo ? 'text-white/65' : 'text-slate-500'}`}>Líder</span>
-        <span
-          title={nombreResponsable ?? 'Líder sin asignar'}
-          className={`block truncate text-xs leading-4 ${
-            activo ? 'text-white/85 [overflow-wrap:anywhere]' : 'font-medium text-slate-700'
-          }`}
-        >
-          {nombreResponsable ?? 'Líder sin asignar'}
-        </span>
+          <span className="block text-[10px] font-semibold tracking-wide text-white/65 uppercase">Líder</span>
+          <span
+            title={nombreResponsable ?? 'Líder sin asignar'}
+            className="block truncate text-xs leading-4 text-white/85 [overflow-wrap:anywhere]"
+          >
+            {nombreResponsable ?? 'Líder sin asignar'}
+          </span>
         </span>
       </span>
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-white/65" />

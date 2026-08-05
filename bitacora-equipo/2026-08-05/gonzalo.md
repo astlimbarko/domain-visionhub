@@ -38,3 +38,10 @@
 - [x] Validé el frontend con el Docker Compose compartido: build estático de Vite correcto, lint con 0 errores y localhost:5174 responde HTTP 200.
 - [ ] Falta: revisión visual autenticada; la conexión interna del navegador de Codex falló en Windows aunque el servidor local responde correctamente.
 - [ ] Falta: completar corrección/cancelación de correo, cuenta ya existente y pruebas E2E de las designaciones antes de cerrar KAN-58.
+- [x] Retomé la sesión con Claude Code: audité toda la épica 16 (harness, código, migraciones, Jira y referencias Figma) antes de seguir tocando nada.
+- [x] Detecté que KAN-54, KAN-55, KAN-57, KAN-75, KAN-76 y KAN-77 tienen avance real no reflejado en Jira (siguen "Tareas por hacer"); solo KAN-53 y KAN-58 estaban al día.
+- [x] Armé la lista de pendientes para terminar el lienzo: asignación real de Pastor/Supervisor/Afirmación, Casas de Paz completas, aviso de color de Red repetido, corrección/cancelación de correo, caso de correo ya existente, responsividad móvil, cámara local, cierre integral.
+- [x] Cambié Departamento sin líder a color sólido siempre (ya no tenue), igual que Afirmación; actualicé REQ-DEP-4 en harness/16 y comenté KAN-57.
+- [x] Quité el subtítulo redundante "4 departamentos oficiales" de la sección Departamentos.
+- [x] Oscurecí el fondo del lienzo (`#eef1f6` → `#e3e7ee`) para diferenciarlo de los paneles de Departamentos/Redes.
+- [x] Validé los 3 cambios: `npx tsc -b`, `npm run lint` (0 errores, las 5 advertencias históricas de siempre) y `npm run build` correctos.
