@@ -151,11 +151,16 @@ acciones de edición todavía.
 
 ## Fase 3 — Persistencia y organizar
 
-1. Activar Modo organizar según rol/dispositivo.
-2. Guardar al finalizar drag con debounce.
-3. Manejar conflicto de versión.
-4. Implementar “Organizar automáticamente” con confirmación y batch.
-5. Persistir cámara local sin compartirla.
+1. [x] Activar Modo organizar para Super Admin/Supervisor autorizado.
+2. [x] Guardar al finalizar drag con debounce de 400 ms y cuadrícula de 16 px.
+3. [x] Manejar conflicto de versión sin sobrescritura silenciosa.
+4. [x] Implementar “Organizar automáticamente” con confirmación y batch.
+5. [ ] Persistir cámara local sin compartirla.
+
+**Estado:** interfaz y RPC `fn_estructura_guardar_posiciones` implementadas
+localmente. La UI detecta si los cimientos aún no existen y mantiene desactivado
+el modo para no llamar tablas inexistentes. Falta validar/aplicar la migración
+en un entorno Supabase seguro antes de probar persistencia entre sesiones.
 
 **Prueba:** Super Admin mueve; Supervisor recarga y ve igual; conflicto simultáneo
 no pierde cambios silenciosamente.

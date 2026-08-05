@@ -213,6 +213,117 @@ create policy pol_estructura_otp_auditoria_select
     )
   );
 
+-- 6. Persistencia transaccional y optimista del layout. La escritura directa
+-- permanece revocada: solo esta RPC puede insertar o mover posiciones.
+create or replace function public.fn_estructura_guardar_posiciones(
+  p_iglesia_id uuid,
+  p_nodos jsonb,
+  p_version_esperada bigint
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_version_actual bigint;
+  v_nodo jsonb;
+  v_nodo_clave text;
+  v_tipo_nodo text;
+  v_entidad_id uuid;
+  v_x integer;
+  v_y integer;
+begin
+  if auth.uid() is null then
+    raise exception 'NO_AUTENTICADO';
+  end if;
+
+  if not (
+    public.fn_es_super_admin()
+    or public.fn_es_operativo_en(p_iglesia_id)
+    or exists (
+      select 1
+      from public.iglesia i
+      where i.id = p_iglesia_id
+        and i.tipo = 'SATELITE'::public.iglesia_tipo_enum
+        and i.fecha_eliminacion is null
+        and i.iglesia_padre_id is not null
+        and public.fn_es_operativo_en(i.iglesia_padre_id)
+    )
+  ) then
+    raise exception 'SIN_PERMISO';
+  end if;
+
+  if jsonb_typeof(p_nodos) <> 'array'
+     or jsonb_array_length(p_nodos) > 1000 then
+    raise exception 'ESTRUCTURA_NODOS_INVALIDOS';
+  end if;
+
+  insert into public.estructura_organigrama (iglesia_id, creado_por)
+  values (p_iglesia_id, auth.uid())
+  on conflict (iglesia_id) do nothing;
+
+  select eo.version
+  into v_version_actual
+  from public.estructura_organigrama eo
+  where eo.iglesia_id = p_iglesia_id
+  for update;
+
+  if v_version_actual is distinct from p_version_esperada then
+    raise exception 'ESTRUCTURA_LAYOUT_DESACTUALIZADO';
+  end if;
+
+  for v_nodo in select value from jsonb_array_elements(p_nodos)
+  loop
+    v_nodo_clave := v_nodo ->> 'nodo_clave';
+    v_tipo_nodo := v_nodo ->> 'tipo_nodo';
+    v_entidad_id := nullif(v_nodo ->> 'entidad_id', '')::uuid;
+    v_x := (v_nodo ->> 'posicion_x')::integer;
+    v_y := (v_nodo ->> 'posicion_y')::integer;
+
+    if v_nodo_clave is null
+       or v_nodo_clave !~ '^[a-z0-9:_-]+$'
+       or v_tipo_nodo not in (
+         'PASTOR_SLOT', 'SUPERVISOR_SLOT', 'GRUPO_DEPARTAMENTOS',
+         'DEPARTAMENTO', 'GRUPO_REDES', 'RED', 'CASA_DE_PAZ'
+       )
+       or mod(v_x, 16) <> 0
+       or mod(v_y, 16) <> 0 then
+      raise exception 'ESTRUCTURA_NODO_INVALIDO';
+    end if;
+
+    insert into public.estructura_nodo_posicion (
+      iglesia_id, nodo_clave, tipo_nodo, entidad_id,
+      posicion_x, posicion_y, creado_por, actualizado_por
+    ) values (
+      p_iglesia_id, v_nodo_clave, v_tipo_nodo, v_entidad_id,
+      v_x, v_y, auth.uid(), auth.uid()
+    )
+    on conflict (iglesia_id, nodo_clave)
+      where fecha_eliminacion is null
+    do update set
+      tipo_nodo = excluded.tipo_nodo,
+      entidad_id = excluded.entidad_id,
+      posicion_x = excluded.posicion_x,
+      posicion_y = excluded.posicion_y,
+      actualizado_por = auth.uid();
+  end loop;
+
+  update public.estructura_organigrama
+  set version = version + 1,
+      actualizado_por = auth.uid()
+  where iglesia_id = p_iglesia_id
+  returning version into v_version_actual;
+
+  return v_version_actual;
+end;
+$$;
+
+revoke all on function public.fn_estructura_guardar_posiciones(uuid, jsonb, bigint)
+  from public, anon;
+grant execute on function public.fn_estructura_guardar_posiciones(uuid, jsonb, bigint)
+  to authenticated;
+
 commit;
 
 -- Reversión manual, solo antes de que existan datos funcionales:

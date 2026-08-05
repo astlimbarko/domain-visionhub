@@ -24,3 +24,6 @@
 - [x] Añadí cursor de mano y acordeón accesible por iglesia madre para expandir/contraer descendientes en `feature/navegacion-iglesias-super-admin` (`2896d58`); build Docker y lint correctos.
 - [x] Implementé la primera entrega KAN-54 del lienzo organizacional en `feature/estructura-organizacional`: lectura por iglesia, nodos horizontales, estados vacíos, N redes/Casas de Paz, cuadrícula, pan, zoom, búsqueda, resaltado, centrado y minimapa para estructuras grandes.
 - [x] Validé KAN-54 dentro del Docker compartido: build de producción correcto (3.380 módulos) y lint con cero errores nuevos; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Implementé localmente el Modo organizar: arrastre condicionado, snap de 16 px, guardado agrupado a 400 ms, reorganización automática con confirmación y detección de conflicto de versión.
+- [x] Añadí a la migración local la RPC transaccional `fn_estructura_guardar_posiciones`; conserva escrituras directas revocadas, autoriza por iglesia, bloquea la fila de versión y realiza upsert por lote.
+- [ ] Falta: validar la RPC y la persistencia compartida en una rama Supabase segura; no se aplicó ningún cambio a producción ni se generó costo.

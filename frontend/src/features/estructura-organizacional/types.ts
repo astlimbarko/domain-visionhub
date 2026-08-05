@@ -40,6 +40,22 @@ export interface EstructuraOrganizacionalDatos {
   departamentos: DepartamentoEstructura[];
   redes: RedEstructura[];
   casasDePaz: CasaDePazEstructura[];
+  layout: {
+    disponible: boolean;
+    version: number;
+    posiciones: PosicionNodoEstructura[];
+  };
+}
+
+export interface PosicionNodoEstructura {
+  nodo_clave: string;
+  posicion_x: number;
+  posicion_y: number;
+}
+
+export interface PosicionNodoGuardar extends PosicionNodoEstructura {
+  tipo_nodo: TipoNodoEstructura;
+  entidad_id: string | null;
 }
 
 export interface DatosNodoEstructura extends Record<string, unknown> {

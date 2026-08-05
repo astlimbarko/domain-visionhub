@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link, useParams } from 'react-router-dom';
 import {
   Background,
@@ -7,19 +7,27 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useOnViewportChange,
+  useNodesState,
   useReactFlow,
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Crosshair, Minus, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Crosshair, Grip, Minus, Plus, Search, WandSparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { AppLoadingScreen } from '@/components/ui/logo-spinner';
 import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
-import { useEstructuraOrganizacional } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
-import type { DatosNodoEstructura } from '@/features/estructura-organizacional/types';
+import {
+  useEstructuraOrganizacional,
+  useGuardarPosicionesEstructura,
+} from '@/features/estructura-organizacional/useEstructuraOrganizacional';
+import type {
+  DatosNodoEstructura,
+  PosicionNodoGuardar,
+} from '@/features/estructura-organizacional/types';
 
 const nodeTypes = { estructura: NodoEstructura };
 
@@ -30,27 +38,73 @@ interface ContenidoProps {
 
 function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
+  const guardarPosiciones = useGuardarPosicionesEstructura(iglesiaId);
   const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
+  const [modoOrganizar, setModoOrganizar] = useState(false);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
+  const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
+  const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useOnViewportChange({ onChange: (viewport) => setZoom(viewport.zoom) });
 
-  const grafo = useMemo(() => {
+  const grafoBase = useMemo(() => {
     if (!data) return { nodes: [], edges: [] };
-    const base = crearGrafoEstructura(data);
+    return crearGrafoEstructura(data);
+  }, [data]);
+
+  useEffect(() => {
+    setNodes(grafoBase.nodes);
+  }, [grafoBase.nodes, setNodes]);
+
+  useEffect(() => () => {
+    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+  }, []);
+
+  const nodesVisibles = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase('es');
-    if (termino.length < 2) return base;
-    return {
-      ...base,
-      nodes: base.nodes.map((node) => ({
+    if (termino.length < 2) return nodes;
+    return nodes.map((node) => ({
         ...node,
         data: { ...node.data, resaltado: node.data.buscable.includes(termino) },
-      })),
-    };
-  }, [busqueda, data]);
+      }));
+  }, [busqueda, nodes]);
+
+  const persistirPendientes = () => {
+    if (!data || pendientesRef.current.size === 0) return;
+    const nodos = [...pendientesRef.current.values()];
+    pendientesRef.current.clear();
+    guardarPosiciones.mutate(
+      { nodos, version: data.layout.version },
+      {
+        onSuccess: () => toast.success('Organización guardada'),
+        onError: (fallo) => {
+          toast.error(
+            fallo.message.includes('ESTRUCTURA_LAYOUT_DESACTUALIZADO')
+              ? 'La estructura cambió en otra sesión; se recargará.'
+              : 'No se pudo guardar la organización.',
+          );
+        },
+      },
+    );
+  };
+
+  const programarGuardado = (node: Node<DatosNodoEstructura>) => {
+    const partes = node.id.split(':');
+    const entidadId = partes.length === 2 && !node.id.startsWith('casa-vacia:') ? partes[1] : null;
+    pendientesRef.current.set(node.id, {
+      nodo_clave: node.id,
+      tipo_nodo: node.data.tipo,
+      entidad_id: entidadId,
+      posicion_x: Math.round(node.position.x / 16) * 16,
+      posicion_y: Math.round(node.position.y / 16) * 16,
+    });
+    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+    temporizadorRef.current = setTimeout(persistirPendientes, 400);
+  };
 
   const centrarBusqueda = () => {
-    const coincidencia = grafo.nodes.find((node) => node.data.resaltado);
+    const coincidencia = nodesVisibles.find((node) => node.data.resaltado);
     if (!coincidencia) return;
     void setCenter(coincidencia.position.x + 125, coincidencia.position.y + 45, {
       zoom: Math.max(zoom, 0.9),
@@ -103,6 +157,38 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
           >
             <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
           </button>
+          <button
+            type="button"
+            disabled={!data?.layout.disponible || guardarPosiciones.isPending}
+            title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
+            onClick={() => setModoOrganizar((actual) => !actual)}
+            className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+              modoOrganizar
+                ? 'border-blue-400 bg-blue-500/20 text-blue-100'
+                : 'border-white/15 text-white hover:bg-white/5'
+            }`}
+          >
+            <Grip className="h-4 w-4" />
+            <span className="hidden lg:inline">{modoOrganizar ? 'Organizando' : 'Modo organizar'}</span>
+          </button>
+          {modoOrganizar && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
+                const automatico = crearGrafoEstructura({
+                  ...data,
+                  layout: { ...data.layout, posiciones: [] },
+                });
+                setNodes(automatico.nodes);
+                automatico.nodes.forEach(programarGuardado);
+              }}
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3 text-[13px] font-medium text-white hover:bg-white/5"
+            >
+              <WandSparkles className="h-4 w-4" />
+              <span className="hidden xl:inline">Organizar automáticamente</span>
+            </button>
+          )}
           <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
             <button
               type="button"
@@ -137,22 +223,26 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
         )}
         {!isLoading && !error && (
           <ReactFlow
-            nodes={grafo.nodes}
-            edges={grafo.edges}
+            nodes={nodesVisibles}
+            edges={grafoBase.edges}
+            onNodesChange={onNodesChange}
+            onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
-            nodesDraggable={false}
+            nodesDraggable={modoOrganizar && !guardarPosiciones.isPending}
             nodesConnectable={false}
             elementsSelectable
             fitView
             fitViewOptions={{ padding: 0.16 }}
             minZoom={0.25}
             maxZoom={1.8}
+            snapToGrid
+            snapGrid={[16, 16]}
             panOnScroll
             selectionOnDrag={false}
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd5e1" />
-            {grafo.nodes.length > 20 && (
+            {nodesVisibles.length > 20 && (
               <MiniMap
                 pannable
                 zoomable

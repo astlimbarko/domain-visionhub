@@ -32,7 +32,6 @@ function nodo(
     id,
     type: 'estructura',
     position: { x, y },
-    draggable: false,
     selectable: true,
     data: {
       ...data,
@@ -158,5 +157,15 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     }
   }
 
-  return { nodes, edges };
+  const posiciones = new Map(
+    datos.layout.posiciones.map((posicion) => [
+      posicion.nodo_clave,
+      { x: posicion.posicion_x, y: posicion.posicion_y },
+    ]),
+  );
+
+  return {
+    nodes: nodes.map((node) => ({ ...node, position: posiciones.get(node.id) ?? node.position })),
+    edges,
+  };
 }

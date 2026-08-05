@@ -4,8 +4,13 @@ import type {
   DepartamentoEstructura,
   EstructuraOrganizacionalDatos,
   PersonaEstructura,
+  PosicionNodoGuardar,
   RedEstructura,
 } from './types';
+
+function esCimientoNoDisponible(error: { code?: string } | null): boolean {
+  return error?.code === 'PGRST205' || error?.code === '42P01';
+}
 
 interface IglesiaFila {
   id: string;
@@ -32,7 +37,8 @@ function nombrePersona(persona: PersonaFila): string {
 export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
-  const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado] =
+  const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
+    configuracionResultado, posicionesResultado] =
     await Promise.all([
       supabase
         .from('iglesia')
@@ -64,6 +70,16 @@ export async function obtenerEstructuraOrganizacional(
         .eq('iglesia_id', iglesiaId)
         .is('fecha_fin', null)
         .is('fecha_eliminacion', null),
+      supabase
+        .from('estructura_organigrama')
+        .select('version')
+        .eq('iglesia_id', iglesiaId)
+        .maybeSingle(),
+      supabase
+        .from('estructura_nodo_posicion')
+        .select('nodo_clave, posicion_x, posicion_y')
+        .eq('iglesia_id', iglesiaId)
+        .is('fecha_eliminacion', null),
     ]);
 
   const errores = [
@@ -74,6 +90,9 @@ export async function obtenerEstructuraOrganizacional(
     relacionesResultado.error,
   ].filter(Boolean);
   if (errores[0]) throw errores[0];
+
+  const errorLayout = configuracionResultado.error ?? posicionesResultado.error;
+  if (errorLayout && !esCimientoNoDisponible(errorLayout)) throw errorLayout;
 
   const iglesia = iglesiaResultado.data as IglesiaFila;
   const personaIds = [iglesia.pastor_id, iglesia.supervisor_id].filter(
@@ -114,5 +133,24 @@ export async function obtenerEstructuraOrganizacional(
       nombre: casa.nombre,
       redId: redPorCasa.get(casa.id) ?? null,
     })) as CasaDePazEstructura[],
+    layout: {
+      disponible: !errorLayout,
+      version: Number(configuracionResultado.data?.version ?? 0),
+      posiciones: posicionesResultado.data ?? [],
+    },
   };
+}
+
+export async function guardarPosicionesEstructura(
+  iglesiaId: string,
+  nodos: PosicionNodoGuardar[],
+  versionEsperada: number,
+): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_estructura_guardar_posiciones', {
+    p_iglesia_id: iglesiaId,
+    p_nodos: nodos,
+    p_version_esperada: versionEsperada,
+  });
+  if (error) throw error;
+  return Number(data);
 }
