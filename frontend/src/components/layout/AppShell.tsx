@@ -271,10 +271,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
-      {/* Sidebar */}
+      {/* El Super Admin trabaja directamente en Administración y abre cada
+          organigrama desde su iglesia. Su menú lateral queda oculto en todos
+          los tamaños hasta que exista un menú con nuevas funciones reales. */}
       <aside
         className={cn(
-          'hidden w-[250px] shrink-0 flex-col border-r sm:flex',
+          'w-[250px] shrink-0 flex-col border-r',
+          esOscuro ? 'hidden' : 'hidden sm:flex',
           colorNavbarRol ? 'p-0' : 'p-4',
           esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/5' : 'border-sidebar-border bg-sidebar'
         )}
@@ -319,15 +322,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={estiloNavbarColor}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Abrir menú"
-            className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
-            onClick={() => setMenuAbierto(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {!esOscuro && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Abrir menú"
+              className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+              onClick={() => setMenuAbierto(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
@@ -374,7 +379,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Drawer mobile */}
-      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
+      <Sheet open={!esOscuro && menuAbierto} onOpenChange={setMenuAbierto}>
         <SheetContent
           side="left"
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
