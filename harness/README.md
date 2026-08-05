@@ -1,12 +1,18 @@
 # Harness — VisionHub
 
-Especificaciones técnicas para construir VisionHub. Cada área tiene tres documentos:
+Especificaciones técnicas para construir VisionHub. Las áreas iniciales usan
+tres documentos; los paquetes recientes agregan inventario de base, preguntas y
+plan de implementación para separar con precisión lo existente de lo propuesto:
 
 | Archivo | Contenido |
 |---------|-----------|
 | `requirements.md` | Qué debe hacer el sistema. Criterios de aceptación en formato EARS (`THE ... SHALL`, `WHEN ... THEN`, `IF ... THEN`, `WHERE ...`). Verificables, sin ambigüedad. |
 | `design.md` | Cómo se construye. Tablas, políticas RLS, funciones, endpoints, decisiones y sus razones. |
 | `tasks.md` | En qué orden se implementa. Lista accionable, cada tarea referencia los requisitos que cumple. |
+| `technical-design.md` | Cómo se construye un paquete reciente, anclado al código y esquema reales. |
+| `database-impact.md` | Inventario `EXISTE` vs. `PROPUESTO`; RLS, migraciones, riesgos y verificación. |
+| `implementation-plan.md` | Orden de entrega por fases/paneles, pruebas y criterios de terminación. |
+| `open-questions.md` | Decisiones cerradas con el owner y preguntas todavía abiertas. |
 
 ---
 
@@ -28,6 +34,9 @@ Especificaciones técnicas para construir VisionHub. Cada área tiene tres docum
 | [11](11-esquema-bd/) | Esquema de BD | DDL completo, RLS, seeds |
 | [12](12-pruebas-curl/) | Pruebas con curl | Arnés de verificación contra Supabase |
 | [13](13-registro-publico-cdp/) | Registro público por URL | Enlace único por líder de CdP, formulario sin login, modalidad de registro |
+| [14](14-afirmacion/) | Departamento de Afirmación | Especificación, impacto de base y plan del módulo de Afirmación |
+| [15](15-gestion-administrativa/) | Gestión administrativa | Super Admin, Pastor, Supervisor, iglesias hijas/satélite y OTP |
+| [16](16-constructor-estructura-organizacional/) | Constructor de Estructura Organizacional | Lienzo dinámico por iglesia, layout, asignaciones, OTP local y responsividad |
 | [99](99-modulos-futuros.md) | Módulos futuros | Esbozo de los módulos 2 al 6 |
 
 | Documento | Contenido |

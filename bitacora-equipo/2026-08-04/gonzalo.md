@@ -1,0 +1,24 @@
+# Gonzalo — 2026-08-04
+
+- [x] Sincronicé y verifiqué `master` contra `origin/master`; quedó limpio y actualizado en `232ecd5`.
+- [x] Creé la rama local `EstrcturaOrganizacional` desde `master` para preparar el trabajo de Estructura Organizacional.
+- [x] Revisé la épica KAN-52 y sus tareas KAN-53 a KAN-63; confirmé KAN-53 finalizada y el resto pendiente.
+- [x] Aclaré con Codex el funcionamiento del constructor: organigrama horizontal independiente por iglesia, layout compartido, N redes/CdP, asignación dual, confirmación gris/verde y OTP local.
+- [x] Audité en solo lectura el código, `harness/03-estructura`, `harness/15-gestion-administrativa` y el esquema activo de Supabase.
+- [x] Creé el paquete de especificación `harness/16-constructor-estructura-organizacional/` con requisitos, diseño técnico, impacto de base, preguntas y plan de implementación.
+- [x] Revisé y aprobé técnicamente el harness 16; corregí trazabilidad, estados documentales y consistencia interna antes de implementar.
+- [x] Renombré la rama local `EstrcturaOrganizacional` a `feature/estructura-organizacional`, conservando todos los cambios del harness.
+- [x] Instalé `@xyflow/react@12.11.2` en el frontend mediante Docker y validé correctamente `npm run build` dentro del contenedor.
+- [x] Confirmé que el constructor mantiene el despliegue estático de VisionHub en HostGator: Node.js se usa solo para compilar y a producción se sube `frontend/dist/`.
+- [x] Preparé `migration-draft.sql` para revisión, con configuración/versionado del organigrama, posiciones, colores institucionales, auditoría OTP, RLS y regla especial de administración para iglesias satélite; no lo apliqué a Supabase.
+- [x] Gonzalo aprobó el contrato SQL y generé con Supabase CLI la migración ejecutable local `20260804235508_estructura_organigrama_cimientos.sql`; continúa sin aplicarse.
+- [ ] Falta: autorizar o descartar una rama temporal de Supabase para probar la migración sin tocar producción; costo informado por Supabase: USD 0,01344 por hora.
+- [x] Ajusté el acceso KAN-53: la lista de Iglesias del Super Admin ahora agrupa jerárquicamente madre, hijas y satélites; cada entidad abre su propio organigrama y se retiró el acceso ambiguo del navbar.
+- [x] Separé el ajuste visual del Super Admin en `feature/navegacion-iglesias-super-admin` (`c4560ff`) y regresé a `feature/estructura-organizacional` sin mezclar esos dos archivos de interfaz.
+- [x] Establecí la regla de trazabilidad: todo alcance nuevo de la épica KAN-52 se documentará con título, descripción breve, vínculo Jira, rama, estado y commit.
+- [x] Añadí `└─` como indicador visual de dependencia para iglesias hijas y satélites en `feature/navegacion-iglesias-super-admin` (`d365f83`); build Docker y lint correctos.
+- [x] Corregí el indicador para que `└─` reemplace al punto —sin cambiar agrupamiento ni sangría— en `feature/navegacion-iglesias-super-admin` (`f51f7db`); build Docker correcto.
+- [x] Quité la viñeta circular de las iglesias principales y conservé `└─` solo en hijas/satélites en `feature/navegacion-iglesias-super-admin` (`0281e8a`); build Docker correcto.
+- [x] Reemplacé el icono genérico final por iconos automáticos de iglesia madre, hija y satélite en `feature/navegacion-iglesias-super-admin` (`9ae10f4`); build Docker y lint correctos.
+- [x] Moví los iconos de tipo de iglesia al inicio de cada fila, después de `└─` cuando corresponde, en `feature/navegacion-iglesias-super-admin` (`29d8271`); build Docker correcto.
+- [x] Añadí cursor de mano y acordeón accesible por iglesia madre para expandir/contraer descendientes en `feature/navegacion-iglesias-super-admin` (`2896d58`); build Docker y lint correctos.
