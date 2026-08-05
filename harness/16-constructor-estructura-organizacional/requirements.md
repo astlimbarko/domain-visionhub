@@ -76,8 +76,9 @@ que exista una definición aprobada; no se inventarán permisos.
 **REQ-PER-5** — THE backend SHALL validar iglesia y rol en cada escritura. Ocultar
 botones en el frontend SHALL NOT considerarse control de autorización.
 
-**REQ-PER-6** — THE Supervisor SHALL poder asignar o cambiar al Pastor desde
-este módulo, conforme a la decisión del owner para la etapa de armado inicial.
+**REQ-PER-6** — THE Supervisor de la Visión SHALL poder ver el nodo Pastor de su
+iglesia, pero SHALL NOT asignarlo, cambiarlo ni modificarlo. Solo el Super Admin
+SHALL poder modificar al Pastor desde este módulo.
 
 **REQ-PER-7** — THE base SHALL permitir varios Supervisores de la Visión
 vigentes; WHERE el frontend muestre el organigrama inicial, SHALL presentar un
@@ -122,6 +123,10 @@ la relación oficial se cambia mediante acciones de negocio con validación.
 **REQ-LI-11** — THE nodos SHALL mantener un tamaño mínimo legible; el sistema
 SHALL ampliar el espacio navegable en vez de comprimir indefinidamente tarjetas.
 
+**REQ-LI-12** — THE jerarquía principal y las entidades hermanas SHALL crecer
+horizontalmente. Los datos y descendientes propios de cada entidad SHALL crecer
+verticalmente debajo de su entidad padre.
+
 ## 5. Jerarquía y grupos
 
 **REQ-JER-1** — THE Pastor SHALL aparecer como nodo jerárquico inicial aunque no
@@ -139,6 +144,10 @@ contenedor Redes de Casas de Paz, aun con grandes cantidades de nodos.
 
 **REQ-JER-5** — THE contenedor Redes SHALL mostrar cada Red y, conectadas a ella,
 sus Casas de Paz vigentes.
+
+**REQ-JER-6** — THE Redes hermanas SHALL distribuirse de izquierda a derecha.
+Debajo de cada Red SHALL aparecer su Supervisor de Red y luego sus Casas de Paz
+en una columna vertical independiente, sin mezclar descendientes entre Redes.
 
 ## 6. Departamentos
 
@@ -160,8 +169,14 @@ mostrar el color con intensidad normal.
 visual a activa. Este estado visual SHALL derivarse de la asignación vigente y
 SHALL NOT cambiar `departamento.activo`.
 
-**REQ-DEP-6** — THE sistema SHALL permitir asignar o cambiar al Líder de
-Departamento por persona existente o por correo.
+**REQ-DEP-6** — En la etapa actual, THE sistema SHALL permitir asignar o cambiar
+únicamente al Líder de Afirmación por persona existente o por correo. Evangelismo,
+Discipulado y Envío SHALL permanecer visibles pero sin acción de asignación hasta
+que su funcionalidad exista en el sistema.
+
+**REQ-DEP-7** — THE cuatro Departamentos SHALL distribuirse en una sola fila
+horizontal. Los datos del líder y futuras entidades propias de cada Departamento
+SHALL crecer verticalmente debajo de su tarjeta.
 
 ## 7. Redes y Supervisor de Red
 
@@ -196,10 +211,12 @@ SHALL heredar su color únicamente como acento visual.
 horario, estado, anfitrión, dirección ni sublíderes. Estos datos MAY completarse
 después.
 
-**REQ-CDP-4** — WHERE exista líder, la tarjeta SHALL usar su nombre como dato
-principal; WHERE no exista, SHALL mostrar “Casa de Paz sin líder”.
+**REQ-CDP-4** — THE Casa de Paz SHALL NOT tener nombre propio ni solicitar un
+campo de nombre. WHERE exista líder, la tarjeta SHALL usar el nombre del líder
+como referencia principal; WHERE no exista, SHALL mostrar “Líder sin asignar”.
 
-**REQ-CDP-5** — WHERE exista dirección, SHALL mostrar una versión breve; WHERE
+**REQ-CDP-5** — Debajo de la referencia principal, WHERE exista la dirección del
+anfitrión o lugar de reunión, la tarjeta SHALL mostrar una versión breve; WHERE
 no exista, SHALL mostrar “Dirección pendiente” sin bloquear la entidad.
 
 **REQ-CDP-6** — THE sistema SHALL permitir N sublíderes de CdP, uno por operación,
@@ -207,6 +224,11 @@ sin duplicados ni permitir que el líder vigente sea también sublíder de la mi
 
 **REQ-CDP-7** — THE sistema SHALL permitir asignar después anfitrión, dirección,
 líder y sublíderes reutilizando los modelos existentes.
+
+**REQ-CDP-8** — WHERE una Casa de Paz todavía no tenga líder, su tarjeta SHALL
+usar fondo gris y texto negro con contraste suficiente. Sus acciones SHALL ser
+“Asignar líder” y, si corresponde, “Añadir dirección”; SHALL NOT mostrar
+“Escribir nombre”.
 
 ## 9. Asignación por doble vía
 
@@ -220,9 +242,11 @@ de la iglesia/alcance autorizado podrán seleccionarse.
 **REQ-ASG-3** — THE sistema SHALL asignar una persona por operación y SHALL
 reutilizar el buscador existente; SHALL NOT crear un buscador paralelo.
 
-**REQ-ASG-4** — En “Por correo”, THE sistema SHALL permitir designar todos los
-cargos del constructor: Pastor, Supervisor de la Visión, Líder de Departamento,
-Líder y Supervisor de Red, Líder y Sublíder de CdP y Anfitrión.
+**REQ-ASG-4** — En “Por correo”, THE sistema SHALL permitir designar los cargos
+funcionales disponibles del constructor: Pastor, Supervisor de la Visión,
+Líder de Afirmación, Líder y Supervisor de Red, Líder y Sublíder de CdP y
+Anfitrión. Evangelismo, Discipulado y Envío SHALL permanecer sin acción de
+asignación mientras esos cargos no existan en el sistema.
 
 **REQ-ASG-5** — La designación es una decisión de la iglesia, no una solicitud
 de consentimiento. THE sistema SHALL crear inmediatamente la asignación o
@@ -349,11 +373,14 @@ expliquen qué ocurrió y cómo corregirlo, sin exponer SQL ni datos sensibles.
 | KAN-56 | REQ-ASG: componente reutilizable y búsqueda |
 | KAN-57 | REQ-JER, REQ-DEP, Supervisor(es) |
 | KAN-58 | REQ-RED |
-| KAN-59 | REQ-CDP-1 a REQ-CDP-5 |
+| KAN-59 | REQ-CDP-1 a REQ-CDP-5 y REQ-CDP-8 |
 | KAN-60 | REQ-CDP-6 y visualización compacta |
 | KAN-61 | REQ-ASG-4 a REQ-ASG-11 |
-| KAN-62 | REQ-PER, REQ-OTP, REQ-INT y pruebas integrales |
+| KAN-62 | REQ-INT y pruebas integrales, incluyendo capturas por iglesia |
 | KAN-63 | REQ-MOB y REQ-REN |
+| KAN-75 | REQ-LI-4 a REQ-LI-9: posiciones, cuadrícula y organizar |
+| KAN-76 | REQ-PER y contrato seguro de base de datos/RPC/RLS |
+| KAN-77 | REQ-OTP: protección exclusiva del constructor |
 
 ## 15. Fuera de alcance
 

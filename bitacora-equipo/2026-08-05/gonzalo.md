@@ -1,0 +1,27 @@
+# Gonzalo — 2026-08-05
+
+- [x] Continué la Tarea 1 de Estructura Organizacional sin sincronizar la rama con `master` ni tocar Supabase.
+- [x] Implementé tarjetas especializadas de Pastor y Supervisor con cargo, iniciales o correo, estado gris/verde y membresía pendiente.
+- [x] Reforcé la carga de responsables principales desde `iglesia.pastor_id` y `iglesia.supervisor_id`, conservando el fallback del listado de usuarios.
+- [x] Ajusté la geometría horizontal de los nodos principales y sus conexiones hacia Departamentos y Redes de Casas de Paz.
+- [x] Validé en Docker: build de producción correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Revisé la estructura con una captura real de Gonzalo y corregí el centrado inicial, la alineación Pastor–Supervisor, el correo largo y el ruido visual del contador adicional.
+- [x] Revalidé en Docker después de los ajustes: build correcto y lint con cero errores.
+- [x] Confirmé con Gonzalo la coherencia visual de las cajas Pastor y Supervisor y cerré la Tarea 1.
+- [x] Inicié la Tarea 2 y, tras precisar el modelo conceptual, organicé los cuatro Departamentos en una sola fila horizontal sin convertir la sección en una entidad seleccionable.
+- [x] Verifiqué que Supabase no tenía columnas de color y apliqué una migración aditiva con `color_nombre` y `color`, restricciones y los valores oficiales para los 9 registros existentes.
+- [x] Registré `departamento_colores_oficiales` en el historial remoto de migraciones y alineé el archivo local con la versión aplicada.
+- [x] Conecté el organigrama a `departamento.color` y conservé la paleta institucional centralizada como fallback defensivo.
+- [x] Implementé estados tenue/activo, nombre o correo del líder y punto gris/verde de confirmación en las tarjetas de Departamento.
+- [x] Validé la Tarea 2 en Docker: build correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Documenté que el lienzo comienza en Pastor; Super Admin administra el conjunto, pero no forma parte del organigrama como nodo.
+- [x] Documenté el crecimiento horizontal de entidades hermanas y vertical de la información y descendencia propia de cada entidad.
+- [x] Restringí la asignación departamental actual a Afirmación; Evangelismo, Discipulado y Envío permanecen visibles sin acción de asignar.
+- [x] Inicié la Tarea 3 con Redes distribuidas horizontalmente y Líder, Supervisor de Red y Casas de Paz creciendo verticalmente por columna.
+- [x] Mostré en cada tarjeta de Red el Líder y el Supervisor de Red reales, con fallback a correo y estado gris/verde de confirmación.
+- [x] Apliqué colores provisionales visibles a Redes sin color persistido; no se escribió ningún color ficticio en la base de datos.
+- [x] Eliminé tarjetas ficticias de “Sin Casas de Paz”; una Red sin CdP queda vacía y lista para crecer sin simular una entidad.
+- [x] Actualicé brevemente Jira KAN-54, KAN-57 y KAN-58 con el modelo visual aprobado.
+- [x] Validé la nueva geometría en Docker: build correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Gonzalo revisó en su sesión autenticada el nuevo diseño horizontal de Departamentos y Redes y confirmó que los cambios se ven bien.
+- [x] Preparé un commit de respaldo del avance exclusivamente en `feature/estructura-organizacional`, sin merge ni push a `master`.

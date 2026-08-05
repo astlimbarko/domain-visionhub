@@ -69,9 +69,9 @@ type TipoNodoEstructura =
   | 'CASA_DE_PAZ';
 ```
 
-Los responsables se muestran dentro de la entidad; no se convierten en nodos
-independientes salvo Pastor/Supervisor, porque el organigrama representa cargos
-principales y entidades, no un grafo libre de todas las personas.
+Los responsables se muestran dentro de la entidad o inmediatamente debajo de
+ella dentro de su misma columna visual; no se convierten en un grafo libre de
+personas. Pastor y Supervisor de la Visión permanecen como nodos principales.
 
 ### Claves estables
 
@@ -94,9 +94,10 @@ Las aristas se generan en memoria desde datos oficiales:
 - `pastor → supervisor-principal`
 - `supervisor-principal → grupo-departamentos`
 - `supervisor-principal → grupo-redes`
-- `grupo-departamentos → cada departamento`
-- `grupo-redes → cada red`
-- `red → cada CdP vigente`
+- `grupo-departamentos → cada departamento` como composición horizontal
+- `grupo-redes → cada red` como composición horizontal
+- `red (Líder y Supervisor de Red en secciones internas) → cada CdP vigente`
+  como columna vertical
 
 No se persisten aristas visuales: ya existen en `departamento`, `red`,
 `casa_de_paz_red` y tablas de cargos.
@@ -105,13 +106,14 @@ No se persisten aristas visuales: ya existen en `departamento`, `red`,
 
 ### Coordenadas iniciales
 
-El algoritmo calcula bandas horizontales:
+El algoritmo combina flujo horizontal con descendencia vertical:
 
 1. Pastor.
 2. Supervisor.
 3. Contenedores Departamentos y Redes.
-4. Departamentos / Redes.
-5. Casas de Paz de cada Red.
+4. Los cuatro Departamentos en una fila horizontal y las N Redes en otra fila.
+5. Responsables y entidades propias debajo de su Departamento/Red.
+6. Casas de Paz apiladas verticalmente dentro de la columna de su Red.
 
 Los nodos nuevos se colocan en el primer espacio libre de su banda, ordenados
 por `orden` oficial o nombre, evitando solapamiento con un margen fijo.
@@ -330,9 +332,9 @@ confirmar. Si falla un paso, hace rollback completo.
 
 ## 12. Departamentos y colores
 
-`departamento` en Supabase no tiene `color` al 2026-08-04. Se propone columna
-`text NOT NULL` con CHECK hexadecimal y seed idempotente de los colores oficiales
-ya acordados en harness 15. El estado tenue/intenso se calcula por existencia de
+`departamento` incorporó el 2026-08-05 `color_nombre text NOT NULL` y
+`color text NOT NULL`, con CHECK de nombre no vacío, CHECK hexadecimal y seed
+idempotente de los colores oficiales ya acordados en harness 15. El estado tenue/intenso se calcula por existencia de
 `LIDER_DEPARTAMENTO` vigente/confirmado; no se cambia `activo` automáticamente.
 
 ## 13. Iglesias hijas y satélite

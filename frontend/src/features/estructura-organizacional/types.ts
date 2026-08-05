@@ -19,13 +19,15 @@ export interface DepartamentoEstructura {
   id: string;
   codigo: string;
   nombre: string;
+  color?: string | null;
+  colorNombre?: string | null;
   lideres: PersonaEstructura[];
 }
 
 export interface RedEstructura {
   id: string;
   nombre: string;
-  color: string;
+  color: string | null;
   lideres: PersonaEstructura[];
   supervisores: PersonaEstructura[];
 }
@@ -71,7 +73,12 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   tipo: TipoNodoEstructura;
   titulo: string;
   subtitulo?: string;
+  etiquetaRol?: string;
+  responsables?: PersonaEstructura[];
+  supervisores?: PersonaEstructura[];
   color?: string;
+  ancho?: number;
+  alto?: number;
   buscable: string;
   resaltado?: boolean;
   estadoIncompleto?: boolean;

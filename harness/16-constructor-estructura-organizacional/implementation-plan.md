@@ -109,7 +109,7 @@ expandido para conservar visibilidad inicial.
 - [x] Cerrar decisiones funcionales con Gonzalo.
 - [x] Crear paquete harness 16.
 - [x] Revisar y aprobar formalmente los cinco documentos con Gonzalo.
-- [ ] Corregir Jira si una tarea contradice estas decisiones.
+- [x] Corregir Jira si una tarea contradice estas decisiones.
 
 **Salida:** “Especificación aprobada; se puede implementar KAN-54”.
 
@@ -122,7 +122,7 @@ expandido para conservar visibilidad inicial.
 - [x] Hacer de cada iglesia un botón que abre su organigrama independiente.
 - [x] Retirar el acceso ambiguo del navbar que apuntaba a la primera iglesia.
 
-## Fase 1 — Cimientos de base y contrato
+## Fase 1 — KAN-76: cimientos de base y contrato
 
 Estado de diseño: borrador revisable creado en `migration-draft.sql`; todavía no
 es una migración ejecutable ni fue aplicado a Supabase.
@@ -184,27 +184,58 @@ con datos reales, colores, contraste, densidad y estados vacíos.
 
 **Título:** Diferenciar entidades sin datos y redes sin color configurado.
 
-**Descripción breve:** Una Red o Casa de Paz sin nombre ni líder usa fondo gris,
-texto negro y la guía `Escribe un nombre · Asigna un líder`. Si conserva uno de
-los dos datos, mantiene el color y señala solamente lo faltante. Las redes cuyo
-color persistido sea blanco o vacío reciben una paleta provisional determinista
-para que sean distinguibles sin modificar todavía la base de datos.
+**Descripción breve:** Una Red sin nombre ni líder usa fondo gris, texto negro y
+la guía `Escribe un nombre · Asigna un líder`. Una Casa de Paz no tiene nombre
+propio: usa el nombre de su líder como referencia principal y debajo la dirección
+breve del anfitrión o lugar de reunión. Si no tiene líder usa fondo gris, texto
+negro y `Asignar líder`; si no tiene dirección muestra `Dirección pendiente` y
+puede ofrecer `Añadir dirección`. Las redes cuyo color persistido sea blanco o
+vacío reciben una paleta provisional determinista para que sean distinguibles
+sin modificar todavía la base de datos.
 
 **Aclaración visual:** el color identificativo pertenece únicamente a la Red.
 Durante desarrollo se inventa un fallback para los registros actuales en
 `#FFFFFF`; en producción el usuario lo escoge. Las Casas de Paz no poseen color
 propio: usan fondo blanco, texto negro y heredan de su Red solamente conexión,
-icono y acento lateral. El gris queda reservado al estado sin nombre y sin líder.
+icono y acento lateral. En una Red el gris representa falta de nombre y líder;
+en una Casa de Paz representa falta de líder.
 
 **Vinculación:** KAN-54/KAN-58/KAN-59 dentro de la épica KAN-52.
 
+### Entrega visual — fila horizontal de Departamentos
+
+**Título:** Mostrar los cuatro departamentos oficiales en una fila horizontal.
+
+**Descripción breve:** La sección no interactiva `Departamentos` contiene los
+cuatro nodos oficiales en una sola fila horizontal. Cada nodo continúa siendo una
+entidad independiente y manipulable. El código hexadecimal se lee de
+`departamento.color`; `departamento.color_nombre` conserva además su nombre
+legible. La paleta institucional centralizada permanece como fallback
+defensivo. Si no existe líder se presenta una versión tenue con texto oscuro y `Líder sin
+asignar`, mientras que una asignación vigente activa el relleno completo, texto
+blanco y el indicador gris/verde de confirmación. El responsable usa su nombre
+y, cuando la membresía todavía no aporta uno, su correo como referencia debajo
+del Departamento. Futuras entidades del Departamento crecerán verticalmente.
+
+**Alcance de esta entrega:** solo lectura y presentación de datos existentes;
+la acción para asignar o cambiar líder permanece en KAN-56/KAN-57.
+
+**Vinculación:** KAN-57 dentro de la épica KAN-52.
+
+**Validación:** migración aditiva aplicada en Supabase con 9 registros válidos,
+0 nombres vacíos y 0 códigos hexadecimales inválidos. Build Docker correcto y
+lint con cero errores. Pendiente revisión visual autenticada mediante captura
+del navegador principal.
+
 ### Backlog visual/funcional derivado de las referencias
 
-- nodos especializados de Pastor y Supervisor con iniciales, correo y acciones;
+- [x] nodos especializados de Pastor y Supervisor con iniciales y correo;
 - contenedores no interactivos para Departamentos y Redes/Casas de Paz;
-- cuadrícula 2×2 de departamentos y acción de asignación;
+- [x] fila horizontal y estados visuales de Departamentos;
+- acción de asignación únicamente para Líder de Afirmación;
 - tarjeta completa de Red con Líder y Supervisor de Red;
-- tarjeta de Casa de Paz con dirección, líder, sublíderes y contador `+N`;
+- tarjeta de Casa de Paz sin nombre propio: líder como referencia principal,
+  dirección del anfitrión debajo, sublíderes y contador `+N`;
 - botones contextuales `Nueva red`, `+ Casa de Paz` y `Añadir sublíder`;
 - paneles de doble vía (base/correo) para cada asignación;
 - formularios de creación de Red/Casa de Paz, paleta y vista previa;
@@ -214,7 +245,7 @@ icono y acento lateral. El gris queda reservado al estado sin nombre y sin líde
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.
 
-## Fase 3 — Persistencia y organizar
+## Fase 3 — KAN-75: persistencia y organizar
 
 1. [x] Activar Modo organizar para Super Admin/Supervisor autorizado.
 2. [x] Guardar al finalizar drag con debounce de 400 ms y cuadrícula de 16 px.
@@ -266,25 +297,33 @@ directamente `auth.users` y aplica la misma regla a todas las iglesias.
 **Implementación:** `feature/estructura-organizacional`, en el corte de carga de
 responsables reales y fallback por correo.
 
-**Prueba:** asignar/cambiar Pastor, Supervisor y Líder de Departamento; una
-iglesia nunca ve personas de otra.
+**Prueba:** asignar/cambiar Pastor, Supervisor y Líder de Afirmación; una
+iglesia nunca ve personas de otra. Evangelismo, Discipulado y Envío permanecen
+visibles, pero sin acción de asignación mientras esos cargos no existan en el
+sistema.
 
 ## Fase 6 — KAN-58: Redes
 
-1. Crear Red sin responsables.
-2. Paleta/hex, colores usados, advertencia y contraste.
-3. Asignar Líder y Supervisor de Red (`SUBLIDER_RED`).
-4. Editar/corregir conservando historial.
-5. Auto-colocar nueva Red sin mover las anteriores.
+1. Distribuir N Redes horizontalmente como entidades hermanas.
+2. Mostrar Líder dentro de la Red y Supervisor de Red debajo en su columna.
+3. Apilar verticalmente las Casas de Paz pertenecientes a cada Red.
+4. Crear Red sin responsables.
+5. Paleta/hex, colores usados, advertencia y contraste.
+6. Asignar Líder y Supervisor de Red (`SUBLIDER_RED`).
+7. Editar/corregir conservando historial.
+8. Auto-colocar nueva Red sin mover las anteriores.
 
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 
 1. Crear CdP mínima dentro de Red mediante RPC transaccional.
-2. Estados sin líder/sin dirección.
-3. Asignar después líder, anfitrión y dirección.
-4. Añadir N sublíderes sin duplicados.
-5. Iniciales, contador `+N`, tooltips y detalle.
-6. Auto-colocar nueva CdP en su Red.
+2. No solicitar ni mostrar nombre propio para la CdP.
+3. Mostrar líder como referencia principal y dirección del anfitrión debajo.
+4. Estados `Líder sin asignar`/`Dirección pendiente`, con fondo gris y texto
+   negro cuando falte líder.
+5. Asignar después líder, anfitrión y dirección.
+6. Añadir N sublíderes sin duplicados.
+7. Iniciales, contador `+N`, tooltips y detalle.
+8. Auto-colocar nueva CdP en su Red.
 
 ## Fase 8 — KAN-61: designación por correo
 
@@ -299,7 +338,7 @@ iglesia nunca ve personas de otra.
 **Prueba:** correo nuevo, existente, typo corregido, reenvío, enlace anterior
 inválido, doble clic idempotente y ningún duplicado.
 
-## Fase 9 — OTP exclusivo del módulo
+## Fase 9 — KAN-77: OTP exclusivo del módulo
 
 1. Persistir switch por iglesia, `false` por defecto.
 2. UI discreta en barra con estado accesible.

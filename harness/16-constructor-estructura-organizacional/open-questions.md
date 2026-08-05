@@ -20,7 +20,8 @@
   y Redes → entidades hijas.
 - ✅ **Roles administradores.** Super Admin y Supervisor de la Visión. El Pastor
   no se implementa hasta definir su comportamiento.
-- ✅ **Supervisor puede cambiar Pastor** durante esta etapa de armado inicial.
+- ✅ **Pastor protegido.** El Supervisor puede verlo, pero no modificarlo; solo
+  el Super Admin puede asignarlo o cambiarlo.
 - ✅ **Varios Supervisores en base, uno en UI inicial.** No cerrar el modelo por
   una práctica actual que todavía puede cambiar.
 - ✅ **Cuatro departamentos permanentes.** Sin líder se ven tenues; con líder,
@@ -28,6 +29,9 @@
 - ✅ **Entidades sin líder.** Red, CdP y demás entidades pueden existir incompletas.
 - ✅ **CdP progresiva.** Líder, anfitrión, dirección y sublíderes pueden añadirse
   después de crearla.
+- ✅ **CdP sin nombre propio.** La referencia principal es el nombre del líder y
+  debajo se muestra la dirección breve del anfitrión o lugar de reunión. Sin
+  líder/dirección se muestran estados pendientes; nunca se solicita nombre de CdP.
 - ✅ **Supervisor de Red.** Es el cargo existente `SUBLIDER_RED`; no se crea enum
   ni rol nuevo. Etiqueta UI oficial: “Supervisor de Red”.
 - ✅ **Asignación, no invitación voluntaria.** La iglesia designa. El destinatario

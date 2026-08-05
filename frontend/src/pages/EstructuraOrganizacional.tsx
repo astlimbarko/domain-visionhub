@@ -48,6 +48,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iglesiaCentradaRef = useRef<string | null>(null);
   useOnViewportChange({ onChange: (viewport) => setZoom(viewport.zoom) });
 
   const grafoBase = useMemo(() => {
@@ -57,7 +58,13 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
 
   useEffect(() => {
     setNodes(grafoBase.nodes);
-  }, [grafoBase.nodes, setNodes]);
+    if (grafoBase.nodes.length === 0 || iglesiaCentradaRef.current === iglesiaId) return;
+    iglesiaCentradaRef.current = iglesiaId;
+    const frame = window.requestAnimationFrame(() => {
+      void fitView({ padding: 0.16, duration: 500 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [fitView, grafoBase.nodes, iglesiaId, setNodes]);
 
   useEffect(() => () => {
     if (temporizadorRef.current) clearTimeout(temporizadorRef.current);

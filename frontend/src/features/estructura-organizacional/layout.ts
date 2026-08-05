@@ -1,12 +1,11 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { DatosNodoEstructura, DepartamentoEstructura, EstructuraOrganizacionalDatos } from './types';
-
-const COLORES_DEPARTAMENTO: Record<string, string> = {
-  EVANGELISMO: '#F5C518',
-  AFIRMACION: '#0071E3',
-  DISCIPULADO: '#FF3B30',
-  ENVIO: '#8E8E93',
-};
+import type {
+  DatosNodoEstructura,
+  DepartamentoEstructura,
+  EstructuraOrganizacionalDatos,
+  PersonaEstructura,
+} from './types';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 
 const PALETA_RED_PROVISIONAL = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#EA580C', '#DB2777'];
 
@@ -19,10 +18,10 @@ function colorRedVisible(color: string | null | undefined, indice: number): stri
 }
 
 const DEPARTAMENTOS_OFICIALES: DepartamentoEstructura[] = [
-  { id: 'slot-evangelismo', codigo: 'EVANGELISMO', nombre: 'Evangelismo', lideres: [] },
-  { id: 'slot-afirmacion', codigo: 'AFIRMACION', nombre: 'Afirmación', lideres: [] },
-  { id: 'slot-discipulado', codigo: 'DISCIPULADO', nombre: 'Discipulado', lideres: [] },
-  { id: 'slot-envio', codigo: 'ENVIO', nombre: 'Envío', lideres: [] },
+  { id: 'slot-evangelismo', codigo: 'EVANGELISMO', nombre: 'Evangelismo', color: null, lideres: [] },
+  { id: 'slot-afirmacion', codigo: 'AFIRMACION', nombre: 'Afirmación', color: null, lideres: [] },
+  { id: 'slot-discipulado', codigo: 'DISCIPULADO', nombre: 'Discipulado', color: null, lideres: [] },
+  { id: 'slot-envio', codigo: 'ENVIO', nombre: 'Envío', color: null, lideres: [] },
 ];
 
 function resumenResponsables(responsables: { etiqueta: string; membresiaPendiente: boolean }[], vacio: string): string {
@@ -41,7 +40,12 @@ function nodo(
     tipo: DatosNodoEstructura['tipo'];
     titulo: string;
     subtitulo?: string;
+    etiquetaRol?: string;
+    responsables?: PersonaEstructura[];
+    supervisores?: PersonaEstructura[];
     color?: string;
+    ancho?: number;
+    alto?: number;
     buscable?: string;
     resaltado?: boolean;
     estadoIncompleto?: boolean;
@@ -78,27 +82,44 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
 } {
   const nodes: Node<DatosNodoEstructura>[] = [];
   const edges: Edge[] = [];
+  const maximoCasasPorRed = Math.max(
+    0,
+    ...datos.redes.map((red) => datos.casasDePaz.filter((casa) => casa.redId === red.id).length),
+  );
+  const cantidadColumnasRed = Math.max(datos.redes.length, 1);
+  const anchoGrupoRedes = Math.max(535, 50 + cantidadColumnasRed * 270);
+  const altoGrupoRedes = 300 + maximoCasasPorRed * 110;
 
   nodes.push(
     nodo('pastor', 0, 0, {
       tipo: 'PASTOR_SLOT',
       titulo: 'Pastor',
       subtitulo: resumenResponsables(datos.pastores, 'Pastor sin asignar'),
+      etiquetaRol: 'Pastor',
+      responsables: datos.pastores,
+      buscable: `Pastor ${datos.pastores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
     }),
     nodo('supervisor', 285, 0, {
       tipo: 'SUPERVISOR_SLOT',
-      titulo: 'Supervisor de la Visión',
+      titulo: 'Supervisor de la Visión en Acción',
       subtitulo: resumenResponsables(datos.supervisores, 'Supervisor sin asignar'),
+      etiquetaRol: 'Supervisor',
+      responsables: datos.supervisores,
+      buscable: `Supervisor de la Visión en Acción ${datos.supervisores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
     }),
-    nodo('grupo-departamentos', 555, -190, {
+    nodo('grupo-departamentos', 590, -250, {
       tipo: 'GRUPO_DEPARTAMENTOS',
       titulo: 'Departamentos',
       subtitulo: '4 departamentos oficiales',
+      ancho: 1035,
+      alto: 190,
     }),
-    nodo('grupo-redes', 555, 190, {
+    nodo('grupo-redes', 590, 100, {
       tipo: 'GRUPO_REDES',
       titulo: 'Redes de Casas de Paz',
       subtitulo: datos.redes.length === 0 ? 'Sin redes creadas' : `${datos.redes.length} redes`,
+      ancho: anchoGrupoRedes,
+      alto: altoGrupoRedes,
     }),
   );
   edges.push(
@@ -112,71 +133,58 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   );
   departamentos.forEach((departamento, indice) => {
     const id = `departamento:${departamento.id}`;
+    const codigo = departamento.codigo.toUpperCase();
     nodes.push(
-      nodo(id, 805, -350 + indice * 104, {
+      nodo(id, 610 + indice * 250, -165, {
         tipo: 'DEPARTAMENTO',
         titulo: departamento.nombre,
         subtitulo: resumenResponsables(departamento.lideres, 'Líder sin asignar'),
-        color: COLORES_DEPARTAMENTO[departamento.codigo.toUpperCase()] ?? '#64748b',
+        responsables: departamento.lideres,
+        color: departamento.color ?? DEPARTAMENTO_META[codigo]?.color ?? '#64748b',
+        buscable: `${departamento.nombre} ${departamento.lideres.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
+        estadoIncompleto: departamento.lideres.length === 0,
       }),
     );
-    edges.push(arista(`grupo-departamentos-${id}`, 'grupo-departamentos', id));
   });
 
   if (datos.redes.length === 0) {
     nodes.push(
-      nodo('redes-vacio', 805, 190, {
+      nodo('redes-vacio', 615, 175, {
         tipo: 'RED',
-        titulo: 'Sin redes',
-        subtitulo: 'La primera Red puede crearse después',
+        titulo: 'Primera Red',
+        subtitulo: 'Crea una Red cuando la iglesia la necesite',
         color: '#94a3b8',
+        estadoIncompleto: true,
       }),
     );
-    edges.push(arista('grupo-redes-vacio', 'grupo-redes', 'redes-vacio'));
   } else {
-    let cursorY = 80;
     for (const [indiceRed, red] of datos.redes.entries()) {
       const casas = datos.casasDePaz.filter((casa) => casa.redId === red.id);
       const colorRed = colorRedVisible(red.color, indiceRed);
       const redSinNombre = !red.nombre?.trim();
       const redSinLider = red.lideres.length === 0;
-      const altoBloque = Math.max(130, casas.length * 110);
-      const redY = cursorY + (altoBloque - 90) / 2;
+      const redX = 615 + indiceRed * 270;
       const redId = `red:${red.id}`;
       nodes.push(
-        nodo(redId, 805, redY, {
+        nodo(redId, redX, 175, {
           tipo: 'RED',
           titulo: red.nombre?.trim() || `Red ${String(indiceRed + 1).padStart(2, '0')}`,
-          subtitulo: redSinNombre && redSinLider
-            ? 'Escribe un nombre · Asigna un líder'
-            : redSinNombre
-              ? `Escribe un nombre · ${resumenResponsables(red.lideres, '')}`
-              : `${resumenResponsables(red.lideres, 'Asigna un líder')} · ${casas.length} CdP`,
+          subtitulo: redSinNombre ? 'Escribe un nombre' : `${casas.length} Casas de Paz`,
+          responsables: red.lideres,
+          supervisores: red.supervisores,
           color: colorRed,
+          buscable: `${red.nombre ?? ''} ${red.lideres.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')} ${red.supervisores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
           estadoIncompleto: redSinNombre && redSinLider,
         }),
       );
-      edges.push(arista(`grupo-redes-${redId}`, 'grupo-redes', redId, colorRed));
 
-      if (casas.length === 0) {
-        const casaId = `casa-vacia:${red.id}`;
-        nodes.push(
-          nodo(casaId, 1080, redY, {
-            tipo: 'CASA_DE_PAZ',
-            titulo: 'Sin Casas de Paz',
-            subtitulo: 'Puede crearse sin líder',
-            color: colorRed,
-          }),
-        );
-        edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
-      } else {
-        casas.forEach((casa, indice) => {
+      casas.forEach((casa, indice) => {
           const casaId = `casa:${casa.id}`;
-          const casaY = cursorY + indice * 110;
+          const casaY = 405 + indice * 110;
           const casaSinNombre = !casa.nombre?.trim();
           const casaSinLider = casa.lideres.length === 0;
           nodes.push(
-            nodo(casaId, 1080, casaY, {
+            nodo(casaId, redX, casaY, {
               tipo: 'CASA_DE_PAZ',
               titulo: casa.nombre?.trim() || `Casa de Paz ${String(indice + 1).padStart(2, '0')}`,
               subtitulo: casaSinNombre && casaSinLider
@@ -189,9 +197,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
             }),
           );
           edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
-        });
-      }
-      cursorY += altoBloque + 50;
+      });
     }
   }
 

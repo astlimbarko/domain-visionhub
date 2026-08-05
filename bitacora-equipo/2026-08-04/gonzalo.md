@@ -34,6 +34,13 @@
 - [x] Oculté el menú lateral del Super Admin en web, tablet y móvil dentro de `feature/navegacion-iglesias-super-admin` (`7f7e10a`); Administración usa todo el ancho y Estructura Organizacional se abre únicamente desde cada iglesia.
 - [x] Audité en solo lectura las entidades reales: 6 redes y 4 Casas de Paz vigentes, sin huérfanas ni cruces de iglesia; detecté responsables existentes que el lienzo todavía no cargaba.
 - [x] Incorporé la lectura de Pastor, Supervisor y cargos vigentes de departamentos, redes y Casas de Paz; se muestra nombre cuando existe y correo con `membresía pendiente` cuando falta la persona vinculada.
-- [x] Corregí la representación para mostrar siempre los cuatro departamentos oficiales y etiquetas estables para Casas de Paz sin nombre; build Docker y lint correctos.
-- [x] Definí estados visuales para Redes/Casas de Paz incompletas: gris con texto negro cuando faltan nombre y líder, guía de la acción pendiente y paleta provisional para redes con color blanco.
+- [x] Corregí la representación para mostrar siempre los cuatro departamentos oficiales y referencias estables para Casas de Paz sin líder; build Docker y lint correctos.
+- [x] Definí estados visuales para entidades incompletas: Redes sin nombre/líder y Casas de Paz sin líder usan gris con texto negro; las redes blancas reciben paleta provisional de desarrollo.
 - [x] Aclaré que el color identificativo pertenece solo a la Red: las Casas de Paz usan fondo blanco, texto negro y únicamente heredan conexión, icono y acento; documenté el backlog derivado de las referencias visuales.
+- [x] Alineé harness y Jira antes de continuar: corregí KAN-53, KAN-54, KAN-58, KAN-59, KAN-61 y KAN-62 con descripciones breves y decisiones vigentes.
+- [x] Documenté la regla definitiva de Casa de Paz: no tiene nombre propio; se identifica por el líder y debajo muestra la dirección breve del anfitrión o lugar de reunión.
+- [x] Creé bajo KAN-52 las tareas técnicas KAN-75 (persistencia/organización), KAN-76 (base segura/RLS/RPC) y KAN-77 (OTP exclusivo).
+- [x] Asigné a `astlimbark` la tarea finalizada KAN-53 y las nuevas tareas pendientes KAN-75, KAN-76 y KAN-77; verifiqué la asignación en Jira.
+- [x] Subí a GitHub `feature/navegacion-iglesias-super-admin` con la jerarquía, iconos y acordeón de iglesias; quedó siguiendo a `origin/feature/navegacion-iglesias-super-admin`.
+- [x] Creé y fusioné el PR #15 hacia `master` con la navegación jerárquica del Super Admin; GitHub confirmó el merge `7d2b2aa` sin conflictos.
+- [ ] Falta: continuar mañana con la planificación detallada y luego ejecutar las fases pendientes; no se programaron funcionalidades nuevas durante esta alineación.

@@ -31,6 +31,13 @@ interface PersonaFila {
 }
 
 interface CargoFila { id: string; codigo: string }
+interface DepartamentoFila {
+  id: string;
+  codigo: string;
+  nombre: string;
+  color: string;
+  color_nombre: string;
+}
 interface CargoEntidadFila { persona_id: string; cargo_id: string; red_id?: string; casa_de_paz_id?: string; departamento_id?: string }
 interface UsuarioRolFila {
   usuario_id: string;
@@ -61,7 +68,7 @@ export async function obtenerEstructuraOrganizacional(
         .single(),
       supabase
         .from('departamento')
-        .select('id, codigo, nombre')
+        .select('id, codigo, nombre, color, color_nombre')
         .eq('iglesia_id', iglesiaId)
         .is('fecha_eliminacion', null)
         .order('codigo'),
@@ -142,7 +149,11 @@ export async function obtenerEstructuraOrganizacional(
     ...(cargosCdpResultado.data ?? []),
     ...(cargosDepartamentoResultado.data ?? []),
   ] as CargoEntidadFila[];
-  const personaIds = [...new Set(todasAsignaciones.map((asignacion) => asignacion.persona_id))];
+  const personaIds = [...new Set([
+    ...todasAsignaciones.map((asignacion) => asignacion.persona_id),
+    iglesia.pastor_id,
+    iglesia.supervisor_id,
+  ].filter((id): id is string => Boolean(id)))];
 
   let personas = new Map<string, PersonaEstructura>();
   if (personaIds.length > 0) {
@@ -160,7 +171,7 @@ export async function obtenerEstructuraOrganizacional(
           nombre: nombrePersona(persona),
           correo: persona.correo,
           etiqueta: nombrePersona(persona) || persona.correo || 'Persona sin identificar',
-          membresiaPendiente: false,
+          membresiaPendiente: !persona.usuario_id,
         },
       ]),
     );
@@ -183,9 +194,10 @@ export async function obtenerEstructuraOrganizacional(
     .filter((persona): persona is PersonaEstructura => Boolean(persona));
 
   const usuarios = (usuariosResultado.data ?? []) as UsuarioRolFila[];
-  const responsablesRol = (rol: string): PersonaEstructura[] => usuarios
-    .filter((usuario) => usuario.rol === rol)
-    .map((usuario) => {
+  const responsablesRol = (rol: string, personaIdPrincipal: string | null): PersonaEstructura[] => {
+    const responsables: PersonaEstructura[] = usuarios
+      .filter((usuario) => usuario.rol === rol)
+      .map((usuario) => {
       const nombre = usuario.persona_nombre?.trim() || null;
       return {
         id: usuario.persona_id ?? usuario.usuario_id,
@@ -195,16 +207,26 @@ export async function obtenerEstructuraOrganizacional(
         membresiaPendiente: !nombre,
       };
     });
+    const principal = personaIdPrincipal ? personas.get(personaIdPrincipal) : null;
+    if (principal && !responsables.some((responsable) => responsable.id === principal.id)) {
+      responsables.unshift(principal);
+    }
+    return responsables;
+  };
 
   return {
     iglesia: {
       id: iglesia.id,
       nombre: iglesia.nombre ?? iglesia.sufijo,
     },
-    pastores: responsablesRol('PASTOR'),
-    supervisores: responsablesRol('SUPERVISOR_VISION_ACCION'),
-    departamentos: (departamentosResultado.data ?? []).map((departamento) => ({
-      ...departamento,
+    pastores: responsablesRol('PASTOR', iglesia.pastor_id),
+    supervisores: responsablesRol('SUPERVISOR_VISION_ACCION', iglesia.supervisor_id),
+    departamentos: ((departamentosResultado.data ?? []) as DepartamentoFila[]).map((departamento) => ({
+      id: departamento.id,
+      codigo: departamento.codigo,
+      nombre: departamento.nombre,
+      color: departamento.color,
+      colorNombre: departamento.color_nombre,
       lideres: responsablesDe(
         (cargosDepartamentoResultado.data ?? []) as CargoEntidadFila[],
         'departamento_id', departamento.id, 'LIDER_DEPARTAMENTO',

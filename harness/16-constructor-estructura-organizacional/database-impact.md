@@ -14,7 +14,7 @@
 | `cargo` | incluye `SUBLIDER_RED` retitulado | Supervisor de Red |
 | `red_cargo` | historial por persona/cargo/red | líderes y supervisores de red |
 | `casa_de_paz_cargo` | líder, sublíder y anfitrión | responsables de CdP |
-| `departamento` | cuatro entidades por iglesia; **sin color en vivo** | grupo de departamentos |
+| `departamento` | cuatro entidades por iglesia; `color_nombre` y `color` aplicados el 2026-08-05 | grupo de departamentos |
 | `departamento_cargo` | historial de líderes | líder/estado visual |
 | `usuario_rol` | roles de sistema | Pastor/Supervisor y permisos |
 | `invitacion_lider` | correo, destino, estado pendiente/completada | base para designación por correo |
@@ -32,8 +32,8 @@
 1. Harness 15 proponía “Supervisor de Red” como enum nuevo, pero el estado
    vigente lo resolvió como cargo `SUBLIDER_RED` con paridad de Líder de Red.
    **No crear un rol nuevo.**
-2. `departamento.color` fue propuesto anteriormente, pero no está presente en la
-   base activa. Sigue siendo cambio pendiente.
+2. `departamento.color_nombre` y `departamento.color` se aplicaron de forma
+   aditiva el 2026-08-05, con seed oficial y restricciones de integridad.
 3. `invitacion_lider.estado` conoce `PENDIENTE`/completada, pero no modela de
    forma explícita “confirmó que leyó”, reenvío/corrección segura ni reserva de
    slot sin permisos.
@@ -61,7 +61,7 @@ designación no es exactamente la invitación histórica.
 
 | Tabla | Cambio |
 |---|---|
-| `departamento` | `color text NOT NULL` + CHECK `^#[0-9A-Fa-f]{6}$` + seed |
+| `departamento` | `color_nombre text NOT NULL` + `color text NOT NULL` + CHECK de nombre/hexadecimal + seed |
 
 No agregar columnas de posición a `red`, `casa_de_paz` o `departamento`: mezclaría
 presentación con dominio y dificultaría múltiples vistas futuras.
