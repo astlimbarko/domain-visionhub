@@ -195,6 +195,12 @@ válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya
 **REQ-RED-3** — THE texto sobre el color de Red SHALL alcanzar contraste legible
 calculado automáticamente.
 
+> Fix 2026-08-05: el fondo sólido de Red y Departamento mezclaba el color con
+> azul marino oscuro para forzar texto blanco, lo que ensuciaba colores claros
+> (ej. amarillo se veía mostaza). Ahora el fondo usa el color real sin mezclar
+> y el color de texto (blanco o oscuro) se calcula por luminancia
+> (`contraste.ts`). Ver Jira KAN-58.
+
 **REQ-RED-4** — THE sistema SHALL permitir cambiar nombre, color, Líder y
 Supervisor de Red conservando el historial de asignaciones.
 

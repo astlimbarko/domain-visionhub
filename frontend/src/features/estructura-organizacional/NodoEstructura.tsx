@@ -1,5 +1,6 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Building2, Home, LayoutGrid, Mail, Network, ShieldCheck, UserRound } from 'lucide-react';
+import { textoLegibleSobre } from './contraste';
 import type { DatosNodoEstructura, PersonaEstructura } from './types';
 
 type NodoVisual = Node<DatosNodoEstructura, 'estructura'>;
@@ -86,6 +87,9 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
   const iniciales = principal ? inicialesPersona(principal) : null;
   const pendiente = principal?.membresiaPendiente ?? false;
   const color = data.color ?? '#64748b';
+  const texto = textoLegibleSobre(color);
+  const capaSuave = `color-mix(in oklab, ${texto} 16%, transparent)`;
+  const bordeSuave = `color-mix(in oklab, ${texto} 20%, transparent)`;
   const nombreResponsable = principal?.nombre?.trim() || principal?.correo;
   const textoEstado = pendiente ? 'Confirmación pendiente' : 'Cuenta confirmada';
 
@@ -96,14 +100,17 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30),0_8px_20px_rgba(15,23,42,0.12)]'
           : 'border-white/40 hover:border-white/75 hover:shadow-md'
       }`}
-      style={{ background: `color-mix(in oklab, ${color} 78%, #0f172a)` }}
+      style={{ background: color }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-white/65" />
-      <span className="block truncate text-sm font-bold text-white">
+      <span className="block truncate text-sm font-bold" style={{ color: texto }}>
         {data.titulo}
       </span>
-      <span className="mt-2 flex items-center gap-2 border-t border-white/20 pt-2">
-        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/16 text-[10px] font-bold text-white">
+      <span className="mt-2 flex items-center gap-2 border-t pt-2" style={{ borderColor: bordeSuave }}>
+        <span
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold"
+          style={{ background: capaSuave, color: texto }}
+        >
           {iniciales ?? <Mail className="h-3.5 w-3.5" aria-hidden="true" />}
           {principal && (
             <span
@@ -115,10 +122,11 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
           )}
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <span className="block text-[10px] font-semibold tracking-wide text-white/65 uppercase">Líder</span>
+          <span className="block text-[10px] font-semibold tracking-wide uppercase" style={{ color: texto, opacity: 0.65 }}>Líder</span>
           <span
             title={nombreResponsable ?? 'Líder sin asignar'}
-            className="block truncate text-xs leading-4 text-white/85 [overflow-wrap:anywhere]"
+            className="block truncate text-xs leading-4 [overflow-wrap:anywhere]"
+            style={{ color: texto, opacity: 0.85 }}
           >
             {nombreResponsable ?? 'Líder sin asignar'}
           </span>
@@ -129,13 +137,31 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
   );
 }
 
-function ResumenPersonaRed({ persona, claro }: { persona?: PersonaEstructura; claro: boolean }) {
+function ResumenPersonaRed({ persona, texto }: { persona?: PersonaEstructura; texto: string | null }) {
   const iniciales = persona ? inicialesPersona(persona) : null;
   const nombre = persona?.nombre?.trim() || persona?.correo || 'Sin asignar';
 
+  if (texto === null) {
+    return (
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[9px] font-bold text-slate-700">
+          {iniciales ?? (persona ? <Mail className="h-3 w-3" aria-hidden="true" /> : <UserRound className="h-3 w-3" aria-hidden="true" />)}
+          {persona && (
+            <span
+              className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-white"
+              style={{ backgroundColor: persona.membresiaPendiente ? '#94a3b8' : '#22c55e' }}
+            />
+          )}
+        </span>
+        <span title={nombre} className="min-w-0 truncate text-xs font-medium text-slate-800">{nombre}</span>
+      </span>
+    );
+  }
+
+  const capaSuave = `color-mix(in oklab, ${texto} 15%, transparent)`;
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <span className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${claro ? 'bg-white/15 text-white' : 'bg-white text-slate-700'}`}>
+      <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-bold" style={{ background: capaSuave, color: texto }}>
         {iniciales ?? (persona ? <Mail className="h-3 w-3" aria-hidden="true" /> : <UserRound className="h-3 w-3" aria-hidden="true" />)}
         {persona && (
           <span
@@ -144,7 +170,7 @@ function ResumenPersonaRed({ persona, claro }: { persona?: PersonaEstructura; cl
           />
         )}
       </span>
-      <span title={nombre} className={`min-w-0 truncate text-xs font-medium ${claro ? 'text-white/90' : 'text-slate-800'}`}>
+      <span title={nombre} className="min-w-0 truncate text-xs font-medium" style={{ color: texto, opacity: 0.9 }}>
         {nombre}
       </span>
     </span>
@@ -153,8 +179,10 @@ function ResumenPersonaRed({ persona, claro }: { persona?: PersonaEstructura; cl
 
 function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: boolean }) {
   const incompleto = Boolean(data.estadoIncompleto);
-  const claro = !incompleto;
   const color = data.color ?? '#64748b';
+  const texto = incompleto ? null : textoLegibleSobre(color);
+  const capaSuave = texto ? `color-mix(in oklab, ${texto} 16%, transparent)` : undefined;
+  const bordeSuave = texto ? `color-mix(in oklab, ${texto} 20%, transparent)` : undefined;
   const lider = data.responsables?.[0];
   const supervisor = data.supervisores?.[0];
 
@@ -167,25 +195,38 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
             ? 'border-slate-300 bg-slate-200 hover:border-slate-400 hover:shadow-md'
             : 'border-white/35 hover:border-white/70 hover:shadow-md'
       }`}
-      style={claro ? { background: `color-mix(in oklab, ${color} 76%, #0f172a)` } : undefined}
+      style={texto ? { background: color } : undefined}
     >
       <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-white/65" />
       <div className="flex items-center gap-2.5">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${claro ? 'bg-white/15 text-white' : 'bg-white text-slate-700'}`}>
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${texto ? '' : 'bg-white text-slate-700'}`}
+          style={texto ? { background: capaSuave, color: texto } : undefined}
+        >
           <Network className="h-4.5 w-4.5" aria-hidden="true" />
         </span>
         <span className="min-w-0">
-          <span className={`block truncate text-sm font-bold ${claro ? 'text-white' : 'text-slate-950'}`}>{data.titulo}</span>
-          {data.subtitulo && <span className={`block truncate text-[11px] ${claro ? 'text-white/70' : 'text-slate-600'}`}>{data.subtitulo}</span>}
+          <span className={`block truncate text-sm font-bold ${texto ? '' : 'text-slate-950'}`} style={texto ? { color: texto } : undefined}>
+            {data.titulo}
+          </span>
+          {data.subtitulo && (
+            <span className={`block truncate text-[11px] ${texto ? '' : 'text-slate-600'}`} style={texto ? { color: texto, opacity: 0.7 } : undefined}>
+              {data.subtitulo}
+            </span>
+          )}
         </span>
       </div>
-      <div className={`mt-3 border-t pt-2.5 ${claro ? 'border-white/20' : 'border-slate-300'}`}>
-        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${claro ? 'text-white/60' : 'text-slate-500'}`}>Líder de Red</span>
-        <ResumenPersonaRed persona={lider} claro={claro} />
+      <div className={`mt-3 border-t pt-2.5 ${texto ? '' : 'border-slate-300'}`} style={texto ? { borderColor: bordeSuave } : undefined}>
+        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto, opacity: 0.6 } : undefined}>
+          Líder de Red
+        </span>
+        <ResumenPersonaRed persona={lider} texto={texto} />
       </div>
-      <div className={`mt-2 border-t pt-2.5 ${claro ? 'border-white/20' : 'border-slate-300'}`}>
-        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${claro ? 'text-white/60' : 'text-slate-500'}`}>Supervisor de Red</span>
-        <ResumenPersonaRed persona={supervisor} claro={claro} />
+      <div className={`mt-2 border-t pt-2.5 ${texto ? '' : 'border-slate-300'}`} style={texto ? { borderColor: bordeSuave } : undefined}>
+        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto, opacity: 0.6 } : undefined}>
+          Supervisor de Red
+        </span>
+        <ResumenPersonaRed persona={supervisor} texto={texto} />
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import { textoLegibleSobre } from './contraste';
 import {
   useActualizarRedEstructura,
   useAsignarCargoRedEstructura,
@@ -283,7 +284,10 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
                 <input type="color" value={color} onChange={(evento) => setColor(evento.target.value.toUpperCase())} className="h-5 w-7 cursor-pointer border-0 bg-transparent p-0" />
               </label>
             </div>
-            <div className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: color }}>
+            <div
+              className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold"
+              style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+            >
               {nombre.trim() || 'Vista previa de la Red'}
             </div>
           </div>

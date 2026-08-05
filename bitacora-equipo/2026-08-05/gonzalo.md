@@ -45,3 +45,4 @@
 - [x] Quité el subtítulo redundante "4 departamentos oficiales" de la sección Departamentos.
 - [x] Oscurecí el fondo del lienzo (`#eef1f6` → `#e3e7ee`) para diferenciarlo de los paneles de Departamentos/Redes.
 - [x] Validé los 3 cambios: `npx tsc -b`, `npm run lint` (0 errores, las 5 advertencias históricas de siempre) y `npm run build` correctos.
+- [x] Encontré y corregí un bug real de color: el fondo sólido de Red/Departamento mezclaba el color elegido con azul marino para forzar texto blanco, y colores claros (amarillo) se veían mostaza. Ahora el fondo usa el color real y el texto se calcula por contraste (`contraste.ts`, REQ-RED-3). Comenté KAN-58.
