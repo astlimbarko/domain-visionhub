@@ -25,3 +25,7 @@
 - [x] Validé la nueva geometría en Docker: build correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
 - [x] Gonzalo revisó en su sesión autenticada el nuevo diseño horizontal de Departamentos y Redes y confirmó que los cambios se ven bien.
 - [x] Preparé un commit de respaldo del avance exclusivamente en `feature/estructura-organizacional`, sin merge ni push a `master`.
+- [x] Apliqué y alineé con Supabase la migración base del módulo: organigrama por iglesia, posiciones de nodos, auditoría OTP, RLS y función para guardar posiciones.
+- [x] Apliqué una migración aditiva con operaciones seguras para crear, editar y asignar responsables de Redes, respetando el aislamiento por iglesia y la protección OTP del módulo.
+- [x] Dejé ambas migraciones con los mismos identificadores del historial remoto para que el repositorio pueda reproducirse correctamente en los equipos del grupo.
+- [ ] Falta: conectar las operaciones de Redes al panel lateral del frontend, ejecutar los asesores de seguridad/rendimiento y revalidar pruebas y Docker.
