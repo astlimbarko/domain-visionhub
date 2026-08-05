@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, Database, IdCard, MoreVertical, Network, Plus, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Building2, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { rutaEstructuraOrganizacional } from '@/utils/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -294,7 +294,20 @@ export function Administracion() {
                         <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
                       </span>
                       {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
-                      <Network className="h-4 w-4 shrink-0 text-white/30 transition-colors group-hover:text-white/70" />
+                      <span
+                        role="img"
+                        aria-label={!i.iglesia_padre_id ? 'Iglesia madre' : i.tipo === 'SATELITE' ? 'Iglesia satélite' : 'Iglesia hija'}
+                        title={!i.iglesia_padre_id ? 'Iglesia madre' : i.tipo === 'SATELITE' ? 'Iglesia satélite' : 'Iglesia hija'}
+                        className="shrink-0 text-white/30 transition-colors group-hover:text-white/70"
+                      >
+                        {!i.iglesia_padre_id ? (
+                          <Church className="h-4 w-4" aria-hidden="true" />
+                        ) : i.tipo === 'SATELITE' ? (
+                          <RadioTower className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Building2 className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </span>
                     </button>
                     <div className="flex shrink-0 items-center pr-2">
                       <DropdownMenu>
