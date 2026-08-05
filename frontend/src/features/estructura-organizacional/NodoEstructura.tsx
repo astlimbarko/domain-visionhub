@@ -35,7 +35,8 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
     );
   }
 
-  const usaRelleno = data.tipo === 'DEPARTAMENTO' || data.tipo === 'RED' || data.tipo === 'CASA_DE_PAZ';
+  const usaRelleno = data.tipo === 'DEPARTAMENTO' || data.tipo === 'RED';
+  const esCasaDePaz = data.tipo === 'CASA_DE_PAZ';
   const incompleto = Boolean(data.estadoIncompleto);
 
   return (
@@ -46,10 +47,12 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
           : incompleto
             ? 'border-slate-300 bg-slate-200 hover:border-slate-400 hover:shadow-md'
             : usaRelleno
-            ? 'border-white/35 hover:border-white/70 hover:shadow-md'
+              ? 'border-white/35 hover:border-white/70 hover:shadow-md'
             : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
       }`}
-      style={usaRelleno && !incompleto ? { background: `color-mix(in oklab, ${color} 74%, #0f172a)` } : { borderLeftWidth: 5, borderLeftColor: incompleto ? '#94a3b8' : color }}
+      style={usaRelleno && !incompleto
+        ? { background: `color-mix(in oklab, ${color} 74%, #0f172a)` }
+        : { borderLeftWidth: esCasaDePaz || incompleto ? 5 : undefined, borderLeftColor: incompleto ? '#94a3b8' : color }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-white/65" />
       <div className="flex min-w-0 items-center gap-3">

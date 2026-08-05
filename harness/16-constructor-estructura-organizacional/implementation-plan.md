@@ -190,7 +190,26 @@ los dos datos, mantiene el color y señala solamente lo faltante. Las redes cuyo
 color persistido sea blanco o vacío reciben una paleta provisional determinista
 para que sean distinguibles sin modificar todavía la base de datos.
 
+**Aclaración visual:** el color identificativo pertenece únicamente a la Red.
+Durante desarrollo se inventa un fallback para los registros actuales en
+`#FFFFFF`; en producción el usuario lo escoge. Las Casas de Paz no poseen color
+propio: usan fondo blanco, texto negro y heredan de su Red solamente conexión,
+icono y acento lateral. El gris queda reservado al estado sin nombre y sin líder.
+
 **Vinculación:** KAN-54/KAN-58/KAN-59 dentro de la épica KAN-52.
+
+### Backlog visual/funcional derivado de las referencias
+
+- nodos especializados de Pastor y Supervisor con iniciales, correo y acciones;
+- contenedores no interactivos para Departamentos y Redes/Casas de Paz;
+- cuadrícula 2×2 de departamentos y acción de asignación;
+- tarjeta completa de Red con Líder y Supervisor de Red;
+- tarjeta de Casa de Paz con dirección, líder, sublíderes y contador `+N`;
+- botones contextuales `Nueva red`, `+ Casa de Paz` y `Añadir sublíder`;
+- paneles de doble vía (base/correo) para cada asignación;
+- formularios de creación de Red/Casa de Paz, paleta y vista previa;
+- estados gris/verde de confirmación, reenvío/corrección de correo y OTP;
+- responsive, pruebas de escala y capturas finales por iglesia.
 
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.
