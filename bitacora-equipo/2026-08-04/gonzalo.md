@@ -32,3 +32,6 @@
 - [x] Rediseñé `Departamentos` y `Redes de Casas de Paz` como encabezados no seleccionables; las entidades reales usan relleno completo por color, texto blanco y un layout más compacto.
 - [ ] Falta: tomar capturas de la estructura de cada iglesia al cierre y revisar contraste, agrupación, espaciado y estados vacíos con datos reales.
 - [x] Oculté el menú lateral del Super Admin en web, tablet y móvil dentro de `feature/navegacion-iglesias-super-admin` (`7f7e10a`); Administración usa todo el ancho y Estructura Organizacional se abre únicamente desde cada iglesia.
+- [x] Audité en solo lectura las entidades reales: 6 redes y 4 Casas de Paz vigentes, sin huérfanas ni cruces de iglesia; detecté responsables existentes que el lienzo todavía no cargaba.
+- [x] Incorporé la lectura de Pastor, Supervisor y cargos vigentes de departamentos, redes y Casas de Paz; se muestra nombre cuando existe y correo con `membresía pendiente` cuando falta la persona vinculada.
+- [x] Corregí la representación para mostrar siempre los cuatro departamentos oficiales y etiquetas estables para Casas de Paz sin nombre; build Docker y lint correctos.

@@ -9,25 +9,34 @@ export type TipoNodoEstructura =
 
 export interface PersonaEstructura {
   id: string;
-  nombre: string;
+  nombre: string | null;
+  correo: string | null;
+  etiqueta: string;
+  membresiaPendiente: boolean;
 }
 
 export interface DepartamentoEstructura {
   id: string;
   codigo: string;
   nombre: string;
+  lideres: PersonaEstructura[];
 }
 
 export interface RedEstructura {
   id: string;
   nombre: string;
   color: string;
+  lideres: PersonaEstructura[];
+  supervisores: PersonaEstructura[];
 }
 
 export interface CasaDePazEstructura {
   id: string;
   nombre: string | null;
   redId: string | null;
+  lideres: PersonaEstructura[];
+  sublideres: PersonaEstructura[];
+  anfitriones: PersonaEstructura[];
 }
 
 export interface EstructuraOrganizacionalDatos {
@@ -35,8 +44,8 @@ export interface EstructuraOrganizacionalDatos {
     id: string;
     nombre: string;
   };
-  pastor: PersonaEstructura | null;
-  supervisor: PersonaEstructura | null;
+  pastores: PersonaEstructura[];
+  supervisores: PersonaEstructura[];
   departamentos: DepartamentoEstructura[];
   redes: RedEstructura[];
   casasDePaz: CasaDePazEstructura[];

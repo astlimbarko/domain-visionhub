@@ -26,6 +26,18 @@ interface PersonaFila {
   segundo_nombre: string | null;
   primer_apellido: string;
   segundo_apellido: string | null;
+  correo: string | null;
+  usuario_id: string | null;
+}
+
+interface CargoFila { id: string; codigo: string }
+interface CargoEntidadFila { persona_id: string; cargo_id: string; red_id?: string; casa_de_paz_id?: string; departamento_id?: string }
+interface UsuarioRolFila {
+  usuario_id: string;
+  correo: string;
+  rol: string;
+  persona_id: string | null;
+  persona_nombre: string | null;
 }
 
 function nombrePersona(persona: PersonaFila): string {
@@ -38,7 +50,8 @@ export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
   const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
-    configuracionResultado, posicionesResultado] =
+    configuracionResultado, posicionesResultado, usuariosResultado, cargosResultado,
+    cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado] =
     await Promise.all([
       supabase
         .from('iglesia')
@@ -80,6 +93,30 @@ export async function obtenerEstructuraOrganizacional(
         .select('nodo_clave, posicion_x, posicion_y')
         .eq('iglesia_id', iglesiaId)
         .is('fecha_eliminacion', null),
+      supabase.rpc('fn_listar_usuarios', { p_iglesia_id: iglesiaId }),
+      supabase
+        .from('cargo')
+        .select('id, codigo')
+        .in('codigo', ['LIDER_RED', 'SUBLIDER_RED', 'LIDER_CDP', 'SUBLIDER_CDP', 'ANFITRION', 'LIDER_DEPARTAMENTO'])
+        .is('fecha_eliminacion', null),
+      supabase
+        .from('red_cargo')
+        .select('red_id, persona_id, cargo_id')
+        .eq('iglesia_id', iglesiaId)
+        .is('fecha_fin', null)
+        .is('fecha_eliminacion', null),
+      supabase
+        .from('casa_de_paz_cargo')
+        .select('casa_de_paz_id, persona_id, cargo_id')
+        .eq('iglesia_id', iglesiaId)
+        .is('fecha_fin', null)
+        .is('fecha_eliminacion', null),
+      supabase
+        .from('departamento_cargo')
+        .select('departamento_id, persona_id, cargo_id')
+        .eq('iglesia_id', iglesiaId)
+        .is('fecha_fin', null)
+        .is('fecha_eliminacion', null),
     ]);
 
   const errores = [
@@ -88,6 +125,11 @@ export async function obtenerEstructuraOrganizacional(
     redesResultado.error,
     casasResultado.error,
     relacionesResultado.error,
+    usuariosResultado.error,
+    cargosResultado.error,
+    cargosRedResultado.error,
+    cargosCdpResultado.error,
+    cargosDepartamentoResultado.error,
   ].filter(Boolean);
   if (errores[0]) throw errores[0];
 
@@ -95,22 +137,31 @@ export async function obtenerEstructuraOrganizacional(
   if (errorLayout && !esCimientoNoDisponible(errorLayout)) throw errorLayout;
 
   const iglesia = iglesiaResultado.data as IglesiaFila;
-  const personaIds = [iglesia.pastor_id, iglesia.supervisor_id].filter(
-    (id): id is string => Boolean(id),
-  );
+  const todasAsignaciones = [
+    ...(cargosRedResultado.data ?? []),
+    ...(cargosCdpResultado.data ?? []),
+    ...(cargosDepartamentoResultado.data ?? []),
+  ] as CargoEntidadFila[];
+  const personaIds = [...new Set(todasAsignaciones.map((asignacion) => asignacion.persona_id))];
 
   let personas = new Map<string, PersonaEstructura>();
   if (personaIds.length > 0) {
     const { data, error } = await supabase
       .from('persona')
-      .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido')
+      .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, usuario_id')
       .in('id', personaIds)
       .is('fecha_eliminacion', null);
     if (error) throw error;
     personas = new Map(
       ((data ?? []) as PersonaFila[]).map((persona) => [
         persona.id,
-        { id: persona.id, nombre: nombrePersona(persona) },
+        {
+          id: persona.id,
+          nombre: nombrePersona(persona),
+          correo: persona.correo,
+          etiqueta: nombrePersona(persona) || persona.correo || 'Persona sin identificar',
+          membresiaPendiente: false,
+        },
       ]),
     );
   }
@@ -118,20 +169,59 @@ export async function obtenerEstructuraOrganizacional(
   const redPorCasa = new Map(
     (relacionesResultado.data ?? []).map((relacion) => [relacion.casa_de_paz_id, relacion.red_id]),
   );
+  const codigoPorCargo = new Map(
+    ((cargosResultado.data ?? []) as CargoFila[]).map((cargo) => [cargo.id, cargo.codigo]),
+  );
+  const responsablesDe = (
+    asignaciones: CargoEntidadFila[],
+    campo: 'red_id' | 'casa_de_paz_id' | 'departamento_id',
+    entidadId: string,
+    codigo: string,
+  ): PersonaEstructura[] => asignaciones
+    .filter((asignacion) => asignacion[campo] === entidadId && codigoPorCargo.get(asignacion.cargo_id) === codigo)
+    .map((asignacion) => personas.get(asignacion.persona_id))
+    .filter((persona): persona is PersonaEstructura => Boolean(persona));
+
+  const usuarios = (usuariosResultado.data ?? []) as UsuarioRolFila[];
+  const responsablesRol = (rol: string): PersonaEstructura[] => usuarios
+    .filter((usuario) => usuario.rol === rol)
+    .map((usuario) => {
+      const nombre = usuario.persona_nombre?.trim() || null;
+      return {
+        id: usuario.persona_id ?? usuario.usuario_id,
+        nombre,
+        correo: usuario.correo,
+        etiqueta: nombre ?? usuario.correo,
+        membresiaPendiente: !nombre,
+      };
+    });
 
   return {
     iglesia: {
       id: iglesia.id,
       nombre: iglesia.nombre ?? iglesia.sufijo,
     },
-    pastor: iglesia.pastor_id ? personas.get(iglesia.pastor_id) ?? null : null,
-    supervisor: iglesia.supervisor_id ? personas.get(iglesia.supervisor_id) ?? null : null,
-    departamentos: (departamentosResultado.data ?? []) as DepartamentoEstructura[],
-    redes: (redesResultado.data ?? []) as RedEstructura[],
+    pastores: responsablesRol('PASTOR'),
+    supervisores: responsablesRol('SUPERVISOR_VISION_ACCION'),
+    departamentos: (departamentosResultado.data ?? []).map((departamento) => ({
+      ...departamento,
+      lideres: responsablesDe(
+        (cargosDepartamentoResultado.data ?? []) as CargoEntidadFila[],
+        'departamento_id', departamento.id, 'LIDER_DEPARTAMENTO',
+      ),
+    })) as DepartamentoEstructura[],
+    redes: (redesResultado.data ?? []).map((red) => ({
+      ...red,
+      lideres: responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'LIDER_RED'),
+      supervisores: responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'SUBLIDER_RED'),
+    })) as RedEstructura[],
     casasDePaz: (casasResultado.data ?? []).map((casa) => ({
       id: casa.id,
       nombre: casa.nombre,
       redId: redPorCasa.get(casa.id) ?? null,
+      lideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'LIDER_CDP'),
+      sublideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'SUBLIDER_CDP'),
+      anfitriones: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'ANFITRION'),
     })) as CasaDePazEstructura[],
     layout: {
       disponible: !errorLayout,

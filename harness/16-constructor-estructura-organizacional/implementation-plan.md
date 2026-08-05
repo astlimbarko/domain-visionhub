@@ -214,11 +214,26 @@ contenido de edición se incorporará por entidad en KAN-56 a KAN-60.
 ## Fase 5 — KAN-56 y KAN-57: asignaciones base
 
 1. Extraer doble vía reutilizando `BuscadorPersona`.
-2. Mostrar nombre+correo en resultados.
-3. Implementar Pastor y slot principal de Supervisor.
-4. Implementar cuatro departamentos permanentes y sus colores.
+2. [x] Leer responsables vigentes y usar nombre o correo como fallback.
+3. [x] Cargar Pastor y Supervisor desde `usuario_rol` mediante RPC autorizada.
+4. [x] Mostrar siempre los cuatro departamentos y cargar sus líderes existentes.
 5. Asignar desde base con operaciones atómicas.
 6. Estado tenue/intenso derivado de líder confirmado.
+
+### Ampliación detectada — identidad por correo sin membresía
+
+**Título:** Mostrar asignaciones sin persona mediante correo.
+
+**Descripción breve:** Cuando una asignación administrativa tiene cuenta/correo
+pero todavía no existe una `persona` vinculada, el organigrama muestra el correo
+como identidad visible y la leyenda `membresía pendiente`. Cuando existe persona,
+prioriza el nombre. La lectura usa `fn_listar_usuarios` para no exponer
+directamente `auth.users` y aplica la misma regla a todas las iglesias.
+
+**Vinculación:** KAN-56/KAN-57 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, en el corte de carga de
+responsables reales y fallback por correo.
 
 **Prueba:** asignar/cambiar Pastor, Supervisor y Líder de Departamento; una
 iglesia nunca ve personas de otra.
