@@ -36,32 +36,35 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   }
 
   const usaRelleno = data.tipo === 'DEPARTAMENTO' || data.tipo === 'RED' || data.tipo === 'CASA_DE_PAZ';
+  const incompleto = Boolean(data.estadoIncompleto);
 
   return (
     <div
       className={`w-[235px] rounded-2xl border px-4 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30)]'
-          : usaRelleno
+          : incompleto
+            ? 'border-slate-300 bg-slate-200 hover:border-slate-400 hover:shadow-md'
+            : usaRelleno
             ? 'border-white/35 hover:border-white/70 hover:shadow-md'
             : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
       }`}
-      style={usaRelleno ? { background: `color-mix(in oklab, ${color} 74%, #0f172a)` } : { borderLeftWidth: 5, borderLeftColor: color }}
+      style={usaRelleno && !incompleto ? { background: `color-mix(in oklab, ${color} 74%, #0f172a)` } : { borderLeftWidth: 5, borderLeftColor: incompleto ? '#94a3b8' : color }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-white/65" />
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={usaRelleno
+          style={usaRelleno && !incompleto
             ? { color: 'white', backgroundColor: 'rgba(255,255,255,0.16)' }
             : { color, backgroundColor: `color-mix(in oklab, ${color} 12%, white)` }}
         >
           <Icono className="h-4.5 w-4.5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className={`block truncate text-sm font-semibold ${usaRelleno ? 'text-white' : 'text-slate-900'}`}>{data.titulo}</span>
+          <span className={`block truncate text-sm font-semibold ${usaRelleno && !incompleto ? 'text-white' : 'text-slate-900'}`}>{data.titulo}</span>
           {data.subtitulo && (
-            <span className={`mt-0.5 block truncate text-xs ${usaRelleno ? 'text-white/75' : 'text-slate-500'}`}>{data.subtitulo}</span>
+            <span className={`mt-0.5 block truncate text-xs ${usaRelleno && !incompleto ? 'text-white/75' : 'text-slate-700'}`}>{data.subtitulo}</span>
           )}
         </span>
       </div>

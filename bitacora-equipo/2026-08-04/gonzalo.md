@@ -35,3 +35,4 @@
 - [x] Audité en solo lectura las entidades reales: 6 redes y 4 Casas de Paz vigentes, sin huérfanas ni cruces de iglesia; detecté responsables existentes que el lienzo todavía no cargaba.
 - [x] Incorporé la lectura de Pastor, Supervisor y cargos vigentes de departamentos, redes y Casas de Paz; se muestra nombre cuando existe y correo con `membresía pendiente` cuando falta la persona vinculada.
 - [x] Corregí la representación para mostrar siempre los cuatro departamentos oficiales y etiquetas estables para Casas de Paz sin nombre; build Docker y lint correctos.
+- [x] Definí estados visuales para Redes/Casas de Paz incompletas: gris con texto negro cuando faltan nombre y líder, guía de la acción pendiente y paleta provisional para redes con color blanco.

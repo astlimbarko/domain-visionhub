@@ -180,6 +180,18 @@ conexiones y agrupaciones.
 **Verificación pendiente:** capturas por iglesia al cierre para revisar estados
 con datos reales, colores, contraste, densidad y estados vacíos.
 
+### Ajuste visual — entidades incompletas y colores provisionales
+
+**Título:** Diferenciar entidades sin datos y redes sin color configurado.
+
+**Descripción breve:** Una Red o Casa de Paz sin nombre ni líder usa fondo gris,
+texto negro y la guía `Escribe un nombre · Asigna un líder`. Si conserva uno de
+los dos datos, mantiene el color y señala solamente lo faltante. Las redes cuyo
+color persistido sea blanco o vacío reciben una paleta provisional determinista
+para que sean distinguibles sin modificar todavía la base de datos.
+
+**Vinculación:** KAN-54/KAN-58/KAN-59 dentro de la épica KAN-52.
+
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.
 

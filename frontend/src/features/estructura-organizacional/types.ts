@@ -74,4 +74,5 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   color?: string;
   buscable: string;
   resaltado?: boolean;
+  estadoIncompleto?: boolean;
 }

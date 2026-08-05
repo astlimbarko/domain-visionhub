@@ -8,6 +8,16 @@ const COLORES_DEPARTAMENTO: Record<string, string> = {
   ENVIO: '#8E8E93',
 };
 
+const PALETA_RED_PROVISIONAL = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#EA580C', '#DB2777'];
+
+function colorRedVisible(color: string | null | undefined, indice: number): string {
+  const normalizado = color?.trim().toUpperCase();
+  if (!normalizado || normalizado === '#FFFFFF' || normalizado === '#FFF') {
+    return PALETA_RED_PROVISIONAL[indice % PALETA_RED_PROVISIONAL.length];
+  }
+  return color as string;
+}
+
 const DEPARTAMENTOS_OFICIALES: DepartamentoEstructura[] = [
   { id: 'slot-evangelismo', codigo: 'EVANGELISMO', nombre: 'Evangelismo', lideres: [] },
   { id: 'slot-afirmacion', codigo: 'AFIRMACION', nombre: 'Afirmación', lideres: [] },
@@ -34,6 +44,7 @@ function nodo(
     color?: string;
     buscable?: string;
     resaltado?: boolean;
+    estadoIncompleto?: boolean;
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -124,20 +135,28 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     edges.push(arista('grupo-redes-vacio', 'grupo-redes', 'redes-vacio'));
   } else {
     let cursorY = 80;
-    for (const red of datos.redes) {
+    for (const [indiceRed, red] of datos.redes.entries()) {
       const casas = datos.casasDePaz.filter((casa) => casa.redId === red.id);
+      const colorRed = colorRedVisible(red.color, indiceRed);
+      const redSinNombre = !red.nombre?.trim();
+      const redSinLider = red.lideres.length === 0;
       const altoBloque = Math.max(130, casas.length * 110);
       const redY = cursorY + (altoBloque - 90) / 2;
       const redId = `red:${red.id}`;
       nodes.push(
         nodo(redId, 805, redY, {
           tipo: 'RED',
-          titulo: red.nombre,
-          subtitulo: `${resumenResponsables(red.lideres, 'Líder sin asignar')} · ${casas.length} CdP`,
-          color: red.color,
+          titulo: red.nombre?.trim() || `Red ${String(indiceRed + 1).padStart(2, '0')}`,
+          subtitulo: redSinNombre && redSinLider
+            ? 'Escribe un nombre · Asigna un líder'
+            : redSinNombre
+              ? `Escribe un nombre · ${resumenResponsables(red.lideres, '')}`
+              : `${resumenResponsables(red.lideres, 'Asigna un líder')} · ${casas.length} CdP`,
+          color: colorRed,
+          estadoIncompleto: redSinNombre && redSinLider,
         }),
       );
-      edges.push(arista(`grupo-redes-${redId}`, 'grupo-redes', redId, red.color));
+      edges.push(arista(`grupo-redes-${redId}`, 'grupo-redes', redId, colorRed));
 
       if (casas.length === 0) {
         const casaId = `casa-vacia:${red.id}`;
@@ -146,23 +165,30 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
             tipo: 'CASA_DE_PAZ',
             titulo: 'Sin Casas de Paz',
             subtitulo: 'Puede crearse sin líder',
-            color: red.color,
+            color: colorRed,
           }),
         );
-        edges.push(arista(`${redId}-${casaId}`, redId, casaId, red.color));
+        edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
       } else {
         casas.forEach((casa, indice) => {
           const casaId = `casa:${casa.id}`;
           const casaY = cursorY + indice * 110;
+          const casaSinNombre = !casa.nombre?.trim();
+          const casaSinLider = casa.lideres.length === 0;
           nodes.push(
             nodo(casaId, 1080, casaY, {
               tipo: 'CASA_DE_PAZ',
               titulo: casa.nombre?.trim() || `Casa de Paz ${String(indice + 1).padStart(2, '0')}`,
-              subtitulo: resumenResponsables(casa.lideres, 'Líder sin asignar'),
-              color: red.color,
+              subtitulo: casaSinNombre && casaSinLider
+                ? 'Escribe un nombre · Asigna un líder'
+                : casaSinNombre
+                  ? `Escribe un nombre · ${resumenResponsables(casa.lideres, '')}`
+                  : resumenResponsables(casa.lideres, 'Asigna un líder'),
+              color: colorRed,
+              estadoIncompleto: casaSinNombre && casaSinLider,
             }),
           );
-          edges.push(arista(`${redId}-${casaId}`, redId, casaId, red.color));
+          edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
         });
       }
       cursorY += altoBloque + 50;
