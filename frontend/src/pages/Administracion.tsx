@@ -279,6 +279,9 @@ export function Administracion() {
                       style={{ paddingLeft: `${16 + nivel * 22}px` }}
                       aria-label={`Abrir estructura organizacional de ${i.nombre}`}
                     >
+                      {nivel > 0 && (
+                        <span aria-hidden="true" className="shrink-0 font-mono text-sm text-white/35">└─</span>
+                      )}
                       <span className={`h-2 w-2 shrink-0 rounded-full ${i.activo ? 'bg-white/70' : 'bg-white/25'}`} />
                       <span className="min-w-0 flex-1">
                         <span className="flex min-w-0 items-center gap-2">
