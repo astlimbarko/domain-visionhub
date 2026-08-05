@@ -232,7 +232,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
             nodes={nodesVisibles}
             edges={grafoBase.edges}
             onNodesChange={onNodesChange}
-            onNodeClick={(_evento, node) => setNodoSeleccionadoId(node.id)}
+            onNodeClick={(_evento, node) => {
+              if (node.data.tipo === 'GRUPO_DEPARTAMENTOS' || node.data.tipo === 'GRUPO_REDES') return;
+              setNodoSeleccionadoId(node.id);
+            }}
             onPaneClick={() => setNodoSeleccionadoId(null)}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}

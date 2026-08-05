@@ -12,7 +12,7 @@
 - [x] Confirmé que el constructor mantiene el despliegue estático de VisionHub en HostGator: Node.js se usa solo para compilar y a producción se sube `frontend/dist/`.
 - [x] Preparé `migration-draft.sql` para revisión, con configuración/versionado del organigrama, posiciones, colores institucionales, auditoría OTP, RLS y regla especial de administración para iglesias satélite; no lo apliqué a Supabase.
 - [x] Gonzalo aprobó el contrato SQL y generé con Supabase CLI la migración ejecutable local `20260804235508_estructura_organigrama_cimientos.sql`; continúa sin aplicarse.
-- [ ] Falta: autorizar o descartar una rama temporal de Supabase para probar la migración sin tocar producción; costo informado por Supabase: USD 0,01344 por hora.
+- [x] Descarté la rama temporal pagada de Supabase por decisión del owner: VisionHub utilizará únicamente funcionalidades y alternativas gratuitas.
 - [x] Ajusté el acceso KAN-53: la lista de Iglesias del Super Admin ahora agrupa jerárquicamente madre, hijas y satélites; cada entidad abre su propio organigrama y se retiró el acceso ambiguo del navbar.
 - [x] Separé el ajuste visual del Super Admin en `feature/navegacion-iglesias-super-admin` (`c4560ff`) y regresé a `feature/estructura-organizacional` sin mezclar esos dos archivos de interfaz.
 - [x] Establecí la regla de trazabilidad: todo alcance nuevo de la épica KAN-52 se documentará con título, descripción breve, vínculo Jira, rama, estado y commit.
@@ -26,6 +26,8 @@
 - [x] Validé KAN-54 dentro del Docker compartido: build de producción correcto (3.380 módulos) y lint con cero errores nuevos; permanecen cinco advertencias históricas ajenas al módulo.
 - [x] Implementé localmente el Modo organizar: arrastre condicionado, snap de 16 px, guardado agrupado a 400 ms, reorganización automática con confirmación y detección de conflicto de versión.
 - [x] Añadí a la migración local la RPC transaccional `fn_estructura_guardar_posiciones`; conserva escrituras directas revocadas, autoriza por iglesia, bloquea la fila de versión y realiza upsert por lote.
-- [ ] Falta: validar la RPC y la persistencia compartida en una rama Supabase segura; no se aplicó ningún cambio a producción ni se generó costo.
+- [ ] Falta: validar la RPC y la persistencia compartida mediante una alternativa gratuita/local; no se aplicó ningún cambio a producción ni se generó costo.
 - [x] Implementé el shell KAN-55 de detalle contextual: selección de nodos, scrim, panel lateral desktop, sheet inferior móvil y cierre accesible por botón, fondo o Escape; build Docker y lint correctos.
 - [x] Ajusté la identidad de la cabecera del organigrama: `Iglesia` en negrita y nombre de la iglesia en peso normal donde antes aparecía `VisionHub`, sin duplicar el nombre debajo del título.
+- [x] Rediseñé `Departamentos` y `Redes de Casas de Paz` como encabezados no seleccionables; las entidades reales usan relleno completo por color, texto blanco y un layout más compacto.
+- [ ] Falta: tomar capturas de la estructura de cada iglesia al cierre y revisar contraste, agrupación, espaciado y estados vacíos con datos reales.

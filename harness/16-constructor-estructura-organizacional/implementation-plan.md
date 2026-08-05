@@ -9,6 +9,13 @@
 - Rama recomendada: `feature/estructura-organizacional`.
 - Rama activa confirmada: `feature/estructura-organizacional`.
 
+## Regla de costos
+
+- No usar funcionalidades pagadas ni recursos que generen cobros.
+- Queda descartada la rama temporal pagada de Supabase.
+- Las migraciones se validarán mediante alternativas gratuitas/locales antes de
+  cualquier aplicación controlada al proyecto.
+
 ## Regla de trazabilidad Jira
 
 - Todo alcance nuevo descubierto durante el desarrollo debe registrarse con
@@ -157,6 +164,22 @@ de la entidad en peso normal. El nombre no se repite debajo del título
 
 **Vinculación:** ajuste visual de KAN-54 dentro de la épica KAN-52.
 
+### Ajuste visual — secciones y color de entidades
+
+**Título:** Diferenciar secciones organizativas de entidades administrables.
+
+**Descripción breve:** `Departamentos` y `Redes de Casas de Paz` se representan
+como encabezados de sección, sin apariencia seleccionable ni posibilidad de
+asignarles un líder. Departamentos, Redes y Casas de Paz utilizan relleno
+completo derivado de su color oficial y texto blanco con contraste reforzado.
+El layout reduce espacios horizontales y verticales conservando legibilidad de
+conexiones y agrupaciones.
+
+**Vinculación:** ajuste visual de KAN-54/KAN-55 dentro de la épica KAN-52.
+
+**Verificación pendiente:** capturas por iglesia al cierre para revisar estados
+con datos reales, colores, contraste, densidad y estados vacíos.
+
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.
 
@@ -171,7 +194,8 @@ acciones de edición todavía.
 **Estado:** interfaz y RPC `fn_estructura_guardar_posiciones` implementadas
 localmente. La UI detecta si los cimientos aún no existen y mantiene desactivado
 el modo para no llamar tablas inexistentes. Falta validar/aplicar la migración
-en un entorno Supabase seguro antes de probar persistencia entre sesiones.
+mediante una alternativa gratuita/local antes de probar persistencia entre
+sesiones; no se utilizará una rama temporal pagada de Supabase.
 
 **Prueba:** Super Admin mueve; Supervisor recarga y ve igual; conflicto simultáneo
 no pierde cambios silenciosamente.

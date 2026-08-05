@@ -28,11 +28,13 @@ function nodo(
     resaltado?: boolean;
   },
 ): Node<DatosNodoEstructura> {
+  const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
   return {
     id,
     type: 'estructura',
     position: { x, y },
-    selectable: true,
+    selectable: !esSeccion,
+    draggable: esSeccion ? false : undefined,
     data: {
       ...data,
       buscable: (data.buscable ?? `${data.titulo} ${data.subtitulo ?? ''}`).toLocaleLowerCase('es'),
@@ -64,17 +66,17 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       titulo: 'Pastor',
       subtitulo: datos.pastor?.nombre ?? 'Pastor sin asignar',
     }),
-    nodo('supervisor', 320, 0, {
+    nodo('supervisor', 285, 0, {
       tipo: 'SUPERVISOR_SLOT',
       titulo: 'Supervisor de la Visión',
       subtitulo: datos.supervisor?.nombre ?? 'Supervisor sin asignar',
     }),
-    nodo('grupo-departamentos', 650, -220, {
+    nodo('grupo-departamentos', 555, -190, {
       tipo: 'GRUPO_DEPARTAMENTOS',
       titulo: 'Departamentos',
       subtitulo: '4 departamentos oficiales',
     }),
-    nodo('grupo-redes', 650, 220, {
+    nodo('grupo-redes', 555, 190, {
       tipo: 'GRUPO_REDES',
       titulo: 'Redes de Casas de Paz',
       subtitulo: datos.redes.length === 0 ? 'Sin redes creadas' : `${datos.redes.length} redes`,
@@ -90,7 +92,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   departamentos.forEach((departamento, indice) => {
     const id = `departamento:${departamento.id}`;
     nodes.push(
-      nodo(id, 980, -400 + indice * 120, {
+      nodo(id, 805, -350 + indice * 104, {
         tipo: 'DEPARTAMENTO',
         titulo: departamento.nombre,
         subtitulo: 'Líder sin asignar',
@@ -102,7 +104,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
 
   if (datos.redes.length === 0) {
     nodes.push(
-      nodo('redes-vacio', 980, 220, {
+      nodo('redes-vacio', 805, 190, {
         tipo: 'RED',
         titulo: 'Sin redes',
         subtitulo: 'La primera Red puede crearse después',
@@ -118,7 +120,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       const redY = cursorY + (altoBloque - 90) / 2;
       const redId = `red:${red.id}`;
       nodes.push(
-        nodo(redId, 980, redY, {
+        nodo(redId, 805, redY, {
           tipo: 'RED',
           titulo: red.nombre,
           subtitulo: casas.length === 0 ? 'Sin Casas de Paz' : `${casas.length} Casas de Paz`,
@@ -130,7 +132,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       if (casas.length === 0) {
         const casaId = `casa-vacia:${red.id}`;
         nodes.push(
-          nodo(casaId, 1310, redY, {
+          nodo(casaId, 1080, redY, {
             tipo: 'CASA_DE_PAZ',
             titulo: 'Sin Casas de Paz',
             subtitulo: 'Puede crearse sin líder',
@@ -143,7 +145,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
           const casaId = `casa:${casa.id}`;
           const casaY = cursorY + indice * 110;
           nodes.push(
-            nodo(casaId, 1310, casaY, {
+            nodo(casaId, 1080, casaY, {
               tipo: 'CASA_DE_PAZ',
               titulo: casa.nombre?.trim() || 'Casa de Paz sin líder',
               subtitulo: 'Líder sin asignar',
