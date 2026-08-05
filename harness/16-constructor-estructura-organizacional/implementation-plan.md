@@ -314,12 +314,35 @@ contenido de edición se incorporará por entidad en KAN-56 a KAN-60.
 
 ## Fase 5 — KAN-56 y KAN-57: asignaciones base
 
-1. Extraer doble vía reutilizando `BuscadorPersona`.
+1. [x] Pastor: doble vía (BD/correo) implementada en `PanelPastorEstructura.tsx`.
+   Supervisor y Departamentos todavía sin panel de asignación propio.
 2. [x] Leer responsables vigentes y usar nombre o correo como fallback.
 3. [x] Cargar Pastor y Supervisor desde `usuario_rol` mediante RPC autorizada.
 4. [x] Mostrar siempre los cuatro departamentos y cargar sus líderes existentes.
-5. Asignar desde base con operaciones atómicas.
-6. Estado tenue/intenso derivado de líder confirmado.
+5. [x] Asignar Pastor con operación atómica (`fn_estructura_asignar_pastor`,
+   reemplaza al Pastor anterior en una sola transacción/OTP). Supervisor y
+   Departamentos: pendiente.
+6. Estado tenue/intenso derivado de líder confirmado. *(Superado: ver ajuste
+   2026-08-05 en Fase 2 — Departamento ahora siempre en color sólido.)*
+
+### Entrega — Asignar Pastor (Super Admin)
+
+**Título:** Panel para asignar/cambiar Pastor desde el lienzo.
+
+**Descripción breve:** Nueva RPC `fn_estructura_asignar_pastor(iglesia, persona,
+otp)`: reemplaza atómicamente al Pastor vigente (singular, a diferencia de
+Supervisor de Red que admite plural), reusa `trg_validar_rol` existente
+(Super Admin únicamente) y el switch OTP propio del módulo. Vía correo reusa
+la función `invitar-usuario` ya existente (mismo patrón que el panel del
+Pastor asignando su Supervisor, `PastorGestion.tsx`) — no se duplicó
+infraestructura de invitación. Solo Super Admin ve la acción; Supervisor ve
+el nodo de Pastor en modo lectura (REQ-PER-6).
+
+**Vinculación:** KAN-56/KAN-57 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, migración
+`20260805194500_estructura_asignar_pastor.sql` (pendiente de aplicar a
+Supabase — requiere autenticar la CLI), `PanelPastorEstructura.tsx`.
 
 ### Ampliación detectada — identidad por correo sin membresía
 

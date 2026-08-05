@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarRedEstructura,
   asignarCargoRedEstructura,
+  asignarPastorEstructura,
   buscarPersonasEstructura,
   configurarOtpEstructura,
   crearRedEstructura,
@@ -78,6 +79,15 @@ export function useQuitarCargoRedEstructura(iglesiaId: string) {
   return useMutation({
     mutationFn: ({ redId, codigo, otp }: { redId: string; codigo: CargoRedEstructura; otp?: string | null }) =>
       quitarCargoRedEstructura(redId, codigo, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useAsignarPastorEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
+      asignarPastorEstructura(iglesiaId, personaId, otp),
     onSuccess: invalidar,
   });
 }

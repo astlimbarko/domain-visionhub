@@ -24,6 +24,7 @@ import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
 import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
+import { PanelPastorEstructura } from '@/features/estructura-organizacional/PanelPastorEstructura';
 import { PanelRedEstructura } from '@/features/estructura-organizacional/PanelRedEstructura';
 import {
   useConfigurarOtpEstructura,
@@ -34,15 +35,17 @@ import type {
   DatosNodoEstructura,
   PosicionNodoGuardar,
 } from '@/features/estructura-organizacional/types';
+import type { RolUI } from '@/utils/permisos';
 
 const nodeTypes = { estructura: NodoEstructura };
 
 interface ContenidoProps {
   iglesiaId: string;
   nombreInicial: string;
+  rolUI: RolUI;
 }
 
-function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
+function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
   const guardarPosiciones = useGuardarPosicionesEstructura(iglesiaId);
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
@@ -52,6 +55,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   const [modoOrganizar, setModoOrganizar] = useState(false);
   const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
   const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
+  const [panelPastor, setPanelPastor] = useState(false);
   const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
@@ -295,13 +299,16 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
                 setPanelRed(node.id === 'redes-vacio'
                   ? { modo: 'crear' }
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
+                setPanelPastor(false);
                 return;
               }
               setPanelRed(null);
+              setPanelPastor(node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN');
             }}
             onPaneClick={() => {
               setNodoSeleccionadoId(null);
               setPanelRed(null);
+              setPanelPastor(false);
             }}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
@@ -329,7 +336,17 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
             )}
           </ReactFlow>
         )}
-        {nodoSeleccionado && !panelRed && (
+        {panelPastor && data && (
+          <PanelPastorEstructura
+            iglesiaId={iglesiaId}
+            pastorActual={data.pastores[0]}
+            onClose={() => {
+              setPanelPastor(false);
+              setNodoSeleccionadoId(null);
+            }}
+          />
+        )}
+        {nodoSeleccionado && !panelRed && !panelPastor && (
           <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
         {panelRed && data && (
@@ -394,7 +411,7 @@ export function EstructuraOrganizacional() {
 
   return (
     <ReactFlowProvider>
-      <ContenidoEstructura iglesiaId={iglesiaId} nombreInicial={iglesia?.nombre ?? 'Iglesia'} />
+      <ContenidoEstructura iglesiaId={iglesiaId} nombreInicial={iglesia?.nombre ?? 'Iglesia'} rolUI={rolUI} />
     </ReactFlowProvider>
   );
 }

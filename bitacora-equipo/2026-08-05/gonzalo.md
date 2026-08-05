@@ -46,3 +46,6 @@
 - [x] Oscurecí el fondo del lienzo (`#eef1f6` → `#e3e7ee`) para diferenciarlo de los paneles de Departamentos/Redes.
 - [x] Validé los 3 cambios: `npx tsc -b`, `npm run lint` (0 errores, las 5 advertencias históricas de siempre) y `npm run build` correctos.
 - [x] Encontré y corregí un bug real de color: el fondo sólido de Red/Departamento mezclaba el color elegido con azul marino para forzar texto blanco, y colores claros (amarillo) se veían mostaza. Ahora el fondo usa el color real y el texto se calcula por contraste (`contraste.ts`, REQ-RED-3). Comenté KAN-58.
+- [x] Implementé "Asignar Pastor" desde el lienzo (primer ítem de la lista de pendientes): panel con doble vía (BD/correo), solo visible para Super Admin. Reutilicé la función `invitar-usuario` existente para el correo (mismo patrón que `PastorGestion.tsx`) en vez de duplicar infraestructura.
+- [x] Escribí la migración `fn_estructura_asignar_pastor` (reemplazo atómico del Pastor, un solo OTP, respeta el switch OTP del módulo) — decidido junto con Gonzalo: RPC propia del constructor, no la ruta genérica de 2 llamadas. Falta aplicarla a Supabase (necesito autenticar la CLI en esta sesión).
+- [x] Validé el frontend (`tsc -b`, lint, build) con el nuevo panel; sin errores nuevos.

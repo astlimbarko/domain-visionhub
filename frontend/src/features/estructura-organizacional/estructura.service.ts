@@ -381,6 +381,20 @@ export async function configurarOtpEstructura(
   return Boolean(data);
 }
 
+export async function asignarPastorEstructura(
+  iglesiaId: string,
+  personaId: string,
+  otp?: string | null,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_estructura_asignar_pastor', {
+    p_iglesia_id: iglesiaId,
+    p_persona_id: personaId,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
 export async function buscarPersonasEstructura(
   iglesiaId: string,
   texto: string,
