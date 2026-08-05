@@ -57,6 +57,15 @@ implementar tras revisar todos sus consumidores. Recomendación: tabla
 `estructura_designacion` si la semántica nueva complica compatibilidad; una
 designación no es exactamente la invitación histórica.
 
+### 3.1.1 Decisión implementada para Redes — 2026-08-05
+
+- Se mantienen `estructura_organigrama` y `estructura_nodo_posicion` como tablas propias del constructor, aislando layout/OTP del dominio existente.
+- Para las designaciones de Líder y Supervisor de Red se reutiliza de forma controlada `invitacion_lider`; no se creó una tabla duplicada.
+- “Supervisor de Red” usa el cargo de dominio `SUBLIDER_RED` y conserva `LIDER_RED` como rol funcional existente; no se agregó un enum nuevo.
+- Se añadió el índice parcial `idx_invitacion_lider_red_pendiente` para consultar reservas pendientes por iglesia, Red y cargo.
+- Las RPC `fn_estructura_validar_otp_red`, `fn_estructura_invitar_supervisor_red` y `fn_estructura_listar_invitaciones_red` tienen `search_path` fijo, autorización interna y ejecución exclusiva de `authenticated`.
+- Las migraciones se aplicaron de forma aditiva; no se reasignaron Redes, Casas de Paz ni cargos existentes.
+- Sigue pendiente resolver el correo equivocado/cancelación y el caso de cuenta ya existente antes de declarar completa la semántica de designación.
 ### 3.2 Columnas aditivas
 
 | Tabla | Cambio |

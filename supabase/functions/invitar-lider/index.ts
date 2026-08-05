@@ -1,7 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 
-const ROLES_VALIDOS = ["LIDER_RED", "LIDER_CDP", "SUBLIDER_CDP"];
+const ROLES_VALIDOS = ["LIDER_RED", "SUPERVISOR_RED", "LIDER_CDP", "SUBLIDER_CDP"];
 
 // Separado de invitar-usuario a proposito: ese es el camino de Super
 // Admin/Pastor/Supervisor para dar de alta cuentas de sistema (correo +
@@ -67,16 +67,16 @@ export default {
       if (!rol || !ROLES_VALIDOS.includes(rol)) {
         return Response.json({ error: "Rol invalido" }, { status: 400 });
       }
-      if (rol === "LIDER_RED" && !redId) {
+      if ((rol === "LIDER_RED" || rol === "SUPERVISOR_RED") && !redId) {
         return Response.json({ error: "Falta la red" }, { status: 400 });
       }
-      if (rol !== "LIDER_RED" && !casaDePazId) {
+      if (rol !== "LIDER_RED" && rol !== "SUPERVISOR_RED" && !casaDePazId) {
         return Response.json({ error: "Falta la casa de paz" }, { status: 400 });
       }
     }
 
     const { data: puedeInvitar, error: errorPermiso } = await ctx.supabase.rpc("fn_puede_invitar_lider", {
-      p_rol: rol,
+      p_rol: rol === "SUPERVISOR_RED" ? "LIDER_RED" : rol,
       p_red_id: redId,
       p_casa_de_paz_id: casaDePazId,
       p_departamento_id: departamentoId,
@@ -89,7 +89,15 @@ export default {
     // owner, 2026-08-01): siempre exige codigo de confirmacion, sin importar
     // quien invite. LIDER_CDP/SUBLIDER_CDP quedan afuera a proposito (area
     // de Matias, mismo hallazgo pendiente de que el lo aplique ahi).
-    if (rol === "LIDER_RED" || departamentoId) {
+    if (rol === "LIDER_RED" || rol === "SUPERVISOR_RED") {
+      const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_estructura_validar_otp_red", {
+        p_red_id: redId,
+        p_codigo: body.pin ?? null,
+      });
+      if (errorOtp || !otpOk) {
+        return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
+      }
+    } else if (departamentoId) {
       const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_verificar_otp", { p_codigo: body.pin ?? null });
       if (errorOtp || !otpOk) {
         return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
@@ -119,14 +127,20 @@ export default {
       return Response.json({ error: error.message }, { status: 500 });
     }
 
-    const { error: errorInvitar } = await ctx.supabase.rpc("fn_invitar_lider", {
-      p_usuario_id: data.user.id,
-      p_correo: correo,
-      p_rol: rol,
-      p_red_id: redId,
-      p_casa_de_paz_id: casaDePazId,
-      p_departamento_id: departamentoId,
-    });
+    const { error: errorInvitar } = rol === "SUPERVISOR_RED"
+      ? await ctx.supabase.rpc("fn_estructura_invitar_supervisor_red", {
+          p_usuario_id: data.user.id,
+          p_correo: correo,
+          p_red_id: redId,
+        })
+      : await ctx.supabase.rpc("fn_invitar_lider", {
+          p_usuario_id: data.user.id,
+          p_correo: correo,
+          p_rol: rol,
+          p_red_id: redId,
+          p_casa_de_paz_id: casaDePazId,
+          p_departamento_id: departamentoId,
+        });
     if (errorInvitar) {
       return Response.json({ error: errorInvitar.message }, { status: 500 });
     }

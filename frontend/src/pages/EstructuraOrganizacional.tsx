@@ -12,16 +12,21 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Crosshair, Grip, Minus, Plus, Search, WandSparkles } from 'lucide-react';
+import { ArrowLeft, Crosshair, Grip, Minus, Network, Plus, Search, ShieldCheck, WandSparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { AppLoadingScreen } from '@/components/ui/logo-spinner';
+import { CampoOtp } from '@/components/shared/CampoOtp';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
 import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
+import { PanelRedEstructura } from '@/features/estructura-organizacional/PanelRedEstructura';
 import {
+  useConfigurarOtpEstructura,
   useEstructuraOrganizacional,
   useGuardarPosicionesEstructura,
 } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
@@ -40,11 +45,15 @@ interface ContenidoProps {
 function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
   const guardarPosiciones = useGuardarPosicionesEstructura(iglesiaId);
+  const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
   const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
   const [modoOrganizar, setModoOrganizar] = useState(false);
   const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
+  const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
+  const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
+  const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -123,6 +132,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
 
   const nombreIglesia = data?.iglesia.nombre ?? nombreInicial;
   const nodoSeleccionado = nodesVisibles.find((node) => node.id === nodoSeleccionadoId)?.data;
+  const redSeleccionada = panelRed?.modo === 'editar'
+    ? data?.redes.find((red) => red.id === panelRed.redId) ?? null
+    : null;
+
+  const cambiarProteccionOtp = async (requerido: boolean, codigo?: string) => {
+    try {
+      await configurarOtp.mutateAsync({ requerido, otp: codigo || null });
+      toast.success(requerido ? 'Protección OTP activada' : 'Protección OTP desactivada');
+      setConfirmarDesactivarOtp(false);
+      setOtpConfiguracion('');
+    } catch (fallo) {
+      toast.error(fallo instanceof Error ? fallo.message : 'No se pudo cambiar la protección OTP');
+    }
+  };
 
   return (
     <div className="flex h-svh flex-col bg-[#eef1f6]">
@@ -225,6 +248,32 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
       </header>
 
       <main className="relative min-h-0 flex-1">
+        {!isLoading && !error && data && (
+          <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setNodoSeleccionadoId(null);
+                setPanelRed({ modo: 'crear' });
+              }}
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-950/10 hover:bg-blue-700"
+            >
+              <Network className="h-4 w-4" /> Nueva Red
+            </button>
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur">
+              <ShieldCheck className="h-4 w-4 text-blue-600" />
+              Protección OTP
+              <Switch
+                checked={data.layout.otpRequerido}
+                disabled={configurarOtp.isPending}
+                onCheckedChange={(activo) => {
+                  if (activo) void cambiarProteccionOtp(true);
+                  else setConfirmarDesactivarOtp(true);
+                }}
+              />
+            </label>
+          </div>
+        )}
         {isLoading && <AppLoadingScreen />}
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
@@ -242,8 +291,18 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
             onNodeClick={(_evento, node) => {
               if (node.data.tipo === 'GRUPO_DEPARTAMENTOS' || node.data.tipo === 'GRUPO_REDES') return;
               setNodoSeleccionadoId(node.id);
+              if (node.data.tipo === 'RED') {
+                setPanelRed(node.id === 'redes-vacio'
+                  ? { modo: 'crear' }
+                  : { modo: 'editar', redId: node.id.replace('red:', '') });
+                return;
+              }
+              setPanelRed(null);
             }}
-            onPaneClick={() => setNodoSeleccionadoId(null)}
+            onPaneClick={() => {
+              setNodoSeleccionadoId(null);
+              setPanelRed(null);
+            }}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
             nodesDraggable={modoOrganizar && !guardarPosiciones.isPending}
@@ -270,10 +329,50 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
             )}
           </ReactFlow>
         )}
-        {nodoSeleccionado && (
+        {nodoSeleccionado && !panelRed && (
           <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
+        {panelRed && data && (
+          <PanelRedEstructura
+            iglesiaId={iglesiaId}
+            modo={panelRed.modo}
+            red={redSeleccionada}
+            otpRequerido={data.layout.otpRequerido}
+            onClose={() => {
+              setPanelRed(null);
+              setNodoSeleccionadoId(null);
+            }}
+          />
+        )}
       </main>
+      <Dialog open={confirmarDesactivarOtp} onOpenChange={setConfirmarDesactivarOtp}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Desactivar protección OTP</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Esta protección aplica solamente a los cambios del constructor organizacional.
+          </p>
+          <CampoOtp value={otpConfiguracion} onChange={setOtpConfiguracion} />
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setConfirmarDesactivarOtp(false)}
+              className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={configurarOtp.isPending || !/^\d{6}$/.test(otpConfiguracion)}
+              onClick={() => void cambiarProteccionOtp(false, otpConfiguracion)}
+              className="h-10 cursor-pointer rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Confirmar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

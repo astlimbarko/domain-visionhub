@@ -13,6 +13,7 @@ export interface PersonaEstructura {
   correo: string | null;
   etiqueta: string;
   membresiaPendiente: boolean;
+  invitacionId?: string | null;
 }
 
 export interface DepartamentoEstructura {
@@ -54,6 +55,7 @@ export interface EstructuraOrganizacionalDatos {
   layout: {
     disponible: boolean;
     version: number;
+    otpRequerido: boolean;
     posiciones: PosicionNodoEstructura[];
   };
 }
@@ -82,4 +84,20 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   buscable: string;
   resaltado?: boolean;
   estadoIncompleto?: boolean;
+}
+export interface PersonaOpcionEstructura {
+  id: string;
+  nombre: string;
+  correo: string | null;
+}
+
+export type CargoRedEstructura = 'LIDER_RED' | 'SUBLIDER_RED';
+
+export interface CrearRedEstructuraEntrada {
+  iglesiaId: string;
+  nombre: string;
+  color: string;
+  liderPersonaId?: string | null;
+  supervisorPersonaId?: string | null;
+  otp?: string | null;
 }

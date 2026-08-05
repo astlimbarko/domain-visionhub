@@ -304,14 +304,18 @@ sistema.
 
 ## Fase 6 — KAN-58: Redes
 
-1. Distribuir N Redes horizontalmente como entidades hermanas.
-2. Mostrar Líder dentro de la Red y Supervisor de Red debajo en su columna.
-3. Apilar verticalmente las Casas de Paz pertenecientes a cada Red.
-4. Crear Red sin responsables.
-5. Paleta/hex, colores usados, advertencia y contraste.
-6. Asignar Líder y Supervisor de Red (`SUBLIDER_RED`).
-7. Editar/corregir conservando historial.
-8. Auto-colocar nueva Red sin mover las anteriores.
+1. [x] Distribuir N Redes horizontalmente como entidades hermanas.
+2. [x] Mostrar Líder y Supervisor de Red (`SUBLIDER_RED`) dentro de la tarjeta de Red.
+3. [x] Apilar verticalmente las Casas de Paz pertenecientes a cada Red.
+4. [x] Crear una Red sin responsables mediante RPC transaccional.
+5. [ ] Paleta/hex y vista previa implementadas; falta advertir colores ya usados y validar contraste visual con capturas.
+6. [x] Asignar Líder y Supervisor de Red desde base de datos o por correo.
+7. [ ] Editar nombre/color e historial de cargos implementado; falta corregir/cancelar un correo pendiente equivocado.
+8. [x] Auto-colocar una Red nueva conservando las posiciones ya guardadas.
+
+**Estado 2026-08-05:** panel lateral funcional conectado a Supabase. Incluye creación/edición de Red, selección incremental por nombre o correo, designación por correo reutilizando `invitar-lider`, indicador gris/verde, reenvío y OTP exclusivo del constructor. La función `invitar-lider` versión 7 quedó `ACTIVE` con JWT obligatorio. Build y lint Docker correctos; falta la prueba visual autenticada y los casos reales de correo.
+
+**Base de datos:** migraciones `20260805160451_estructura_redes_operaciones` y `20260805170233_estructura_invitacion_supervisor_red` aplicadas. Las RPC validan usuario, permiso por iglesia, destino y OTP; no conceden acceso anónimo.
 
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 
@@ -327,24 +331,25 @@ sistema.
 
 ## Fase 8 — KAN-61: designación por correo
 
-1. Implementar reserva organizacional inmediata.
-2. Integrar SMTP/Edge Function existente.
-3. Nuevo usuario: confirmar lectura, contraseña y completar cuenta.
-4. Usuario existente: notificar y confirmar lectura.
-5. Punto gris/verde.
-6. Reenviar, corregir correo, cancelar e invalidar enlaces.
-7. Activar asignación/permisos solamente al confirmar.
+1. [x] Crear la reserva organizacional inmediata para Líder/Supervisor de Red.
+2. [x] Integrar SMTP/Auth mediante la Edge Function existente, sin duplicar infraestructura.
+3. [ ] Nuevo usuario: validar de extremo a extremo confirmación de lectura, contraseña y membresía.
+4. [ ] Usuario existente: notificar el nuevo cargo y confirmar lectura sin intentar crear otra cuenta.
+5. [x] Mostrar punto gris para pendiente y verde para cuenta confirmada.
+6. [ ] Reenvío implementado; faltan corrección de correo, cancelación e invalidación del enlace anterior.
+7. [ ] Confirmar mediante prueba E2E que los permisos operativos no quedan utilizables antes de completar la cuenta.
 
-**Prueba:** correo nuevo, existente, typo corregido, reenvío, enlace anterior
-inválido, doble clic idempotente y ningún duplicado.
+**Prueba pendiente:** correo nuevo, existente, typo corregido, reenvío, enlace anterior inválido, doble clic idempotente y ningún duplicado.
 
 ## Fase 9 — KAN-77: OTP exclusivo del módulo
 
-1. Persistir switch por iglesia, `false` por defecto.
-2. UI discreta en barra con estado accesible.
-3. Activar sin OTP; desactivar desde activo con OTP.
-4. RPC del constructor condicionadas al switch.
-5. Verificar que otros módulos no cambian.
+1. [x] Persistir switch por iglesia, `false` por defecto.
+2. [x] Mostrar UI discreta y accesible en el lienzo.
+3. [x] Activar sin OTP y exigir OTP para desactivar desde estado activo.
+4. [x] Condicionar las RPC del constructor al switch, incluida la designación por correo de Redes.
+5. [ ] Completar regresión E2E para confirmar que las reglas OTP de otros módulos permanecen intactas.
+
+**Seguridad verificada:** las RPC nuevas usan `SECURITY DEFINER` con `search_path` fijo, autorización interna por iglesia, `REVOKE` a `PUBLIC/anon` y `GRANT` exclusivo a `authenticated`.
 
 ## Fase 10 — KAN-63: móvil y escalabilidad
 

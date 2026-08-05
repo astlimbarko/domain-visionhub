@@ -28,4 +28,13 @@
 - [x] Apliqué y alineé con Supabase la migración base del módulo: organigrama por iglesia, posiciones de nodos, auditoría OTP, RLS y función para guardar posiciones.
 - [x] Apliqué una migración aditiva con operaciones seguras para crear, editar y asignar responsables de Redes, respetando el aislamiento por iglesia y la protección OTP del módulo.
 - [x] Dejé ambas migraciones con los mismos identificadores del historial remoto para que el repositorio pueda reproducirse correctamente en los equipos del grupo.
-- [ ] Falta: conectar las operaciones de Redes al panel lateral del frontend, ejecutar los asesores de seguridad/rendimiento y revalidar pruebas y Docker.
+- [x] Conecté las operaciones de Redes al panel lateral, ejecuté los asesores de Supabase y revalidé build/lint con Docker.
+- [x] Recuperé la referencia local de `feature/estructura-organizacional` tras el reinicio, conservando los commits y verificando la integridad del repositorio con `git fsck`.
+- [x] Implementé creación y edición de Red, paleta/color, asignación desde base de datos y designación por correo de Líder y Supervisor de Red.
+- [x] Reutilicé `invitacion_lider` y la Edge Function existente; añadí RPC seguras para Supervisor de Red, OTP condicional y listado de invitaciones pendientes.
+- [x] Desplegué `invitar-lider` versión 7 en Supabase con JWT obligatorio e import map relativo y portable.
+- [x] Verifiqué permisos, restricciones e índices de las nuevas RPC; no se concedió ejecución anónima y los avisos de `SECURITY DEFINER` son intencionales por autorización interna.
+- [x] Actualicé el harness con el estado real y los pendientes de correo/cancelación/E2E; actualicé KAN-58, lo asigné a `astlimbark` y lo moví a En curso.
+- [x] Validé el frontend con el Docker Compose compartido: build estático de Vite correcto, lint con 0 errores y localhost:5174 responde HTTP 200.
+- [ ] Falta: revisión visual autenticada; la conexión interna del navegador de Codex falló en Windows aunque el servidor local responde correctamente.
+- [ ] Falta: completar corrección/cancelación de correo, cuenta ya existente y pruebas E2E de las designaciones antes de cerrar KAN-58.

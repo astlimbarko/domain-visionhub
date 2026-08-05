@@ -1,9 +1,12 @@
 import { supabase } from '@/services/supabase';
 import type {
+  CargoRedEstructura,
   CasaDePazEstructura,
+  CrearRedEstructuraEntrada,
   DepartamentoEstructura,
   EstructuraOrganizacionalDatos,
   PersonaEstructura,
+  PersonaOpcionEstructura,
   PosicionNodoGuardar,
   RedEstructura,
 } from './types';
@@ -47,6 +50,20 @@ interface UsuarioRolFila {
   persona_nombre: string | null;
 }
 
+interface InvitacionRedFila {
+  id: string;
+  correo: string;
+  red_id: string;
+  cargo_codigo: CargoRedEstructura;
+  estado: 'PENDIENTE' | 'COMPLETADA';
+}
+
+interface PersonaBusquedaFila {
+  id: string;
+  nombre_completo: string;
+  correo: string | null;
+}
+
 function nombrePersona(persona: PersonaFila): string {
   return [persona.primer_nombre, persona.segundo_nombre, persona.primer_apellido, persona.segundo_apellido]
     .filter(Boolean)
@@ -57,7 +74,7 @@ export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
   const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
-    configuracionResultado, posicionesResultado, usuariosResultado, cargosResultado,
+    configuracionResultado, posicionesResultado, invitacionesRedResultado, usuariosResultado, cargosResultado,
     cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado] =
     await Promise.all([
       supabase
@@ -92,7 +109,7 @@ export async function obtenerEstructuraOrganizacional(
         .is('fecha_eliminacion', null),
       supabase
         .from('estructura_organigrama')
-        .select('version')
+        .select('version, otp_requerido')
         .eq('iglesia_id', iglesiaId)
         .maybeSingle(),
       supabase
@@ -100,6 +117,7 @@ export async function obtenerEstructuraOrganizacional(
         .select('nodo_clave, posicion_x, posicion_y')
         .eq('iglesia_id', iglesiaId)
         .is('fecha_eliminacion', null),
+      supabase.rpc('fn_estructura_listar_invitaciones_red', { p_iglesia_id: iglesiaId }),
       supabase.rpc('fn_listar_usuarios', { p_iglesia_id: iglesiaId }),
       supabase
         .from('cargo')
@@ -132,6 +150,7 @@ export async function obtenerEstructuraOrganizacional(
     redesResultado.error,
     casasResultado.error,
     relacionesResultado.error,
+    invitacionesRedResultado.error,
     usuariosResultado.error,
     cargosResultado.error,
     cargosRedResultado.error,
@@ -193,6 +212,22 @@ export async function obtenerEstructuraOrganizacional(
     .map((asignacion) => personas.get(asignacion.persona_id))
     .filter((persona): persona is PersonaEstructura => Boolean(persona));
 
+  const invitacionesPendientes = (invitacionesRedResultado.data ?? []) as InvitacionRedFila[];
+  const invitadosDe = (redId: string, codigo: CargoRedEstructura): PersonaEstructura[] =>
+    invitacionesPendientes
+      .filter((invitacion) =>
+        invitacion.red_id === redId
+        && invitacion.cargo_codigo === codigo
+        && invitacion.estado === 'PENDIENTE',
+      )
+      .map((invitacion) => ({
+        id: `invitacion:${invitacion.id}`,
+        nombre: null,
+        correo: invitacion.correo,
+        etiqueta: invitacion.correo,
+        membresiaPendiente: true,
+        invitacionId: invitacion.id,
+      }));
   const usuarios = (usuariosResultado.data ?? []) as UsuarioRolFila[];
   const responsablesRol = (rol: string, personaIdPrincipal: string | null): PersonaEstructura[] => {
     const responsables: PersonaEstructura[] = usuarios
@@ -234,8 +269,14 @@ export async function obtenerEstructuraOrganizacional(
     })) as DepartamentoEstructura[],
     redes: (redesResultado.data ?? []).map((red) => ({
       ...red,
-      lideres: responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'LIDER_RED'),
-      supervisores: responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'SUBLIDER_RED'),
+      lideres: [
+        ...responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'LIDER_RED'),
+        ...invitadosDe(red.id, 'LIDER_RED'),
+      ],
+      supervisores: [
+        ...responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'SUBLIDER_RED'),
+        ...invitadosDe(red.id, 'SUBLIDER_RED'),
+      ],
     })) as RedEstructura[],
     casasDePaz: (casasResultado.data ?? []).map((casa) => ({
       id: casa.id,
@@ -248,6 +289,7 @@ export async function obtenerEstructuraOrganizacional(
     layout: {
       disponible: !errorLayout,
       version: Number(configuracionResultado.data?.version ?? 0),
+      otpRequerido: Boolean(configuracionResultado.data?.otp_requerido),
       posiciones: posicionesResultado.data ?? [],
     },
   };
@@ -265,4 +307,94 @@ export async function guardarPosicionesEstructura(
   });
   if (error) throw error;
   return Number(data);
+}
+export async function crearRedEstructura(entrada: CrearRedEstructuraEntrada): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_estructura_crear_red', {
+    p_iglesia_id: entrada.iglesiaId,
+    p_nombre: entrada.nombre,
+    p_color: entrada.color,
+    p_lider_persona_id: entrada.liderPersonaId ?? null,
+    p_supervisor_persona_id: entrada.supervisorPersonaId ?? null,
+    p_otp: entrada.otp ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function actualizarRedEstructura(
+  redId: string,
+  nombre: string,
+  color: string,
+  otp?: string | null,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_estructura_actualizar_red', {
+    p_red_id: redId,
+    p_nombre: nombre,
+    p_color: color,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function asignarCargoRedEstructura(
+  redId: string,
+  personaId: string,
+  codigo: CargoRedEstructura,
+  otp?: string | null,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_estructura_asignar_cargo_red', {
+    p_red_id: redId,
+    p_persona_id: personaId,
+    p_codigo: codigo,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function quitarCargoRedEstructura(
+  redId: string,
+  codigo: CargoRedEstructura,
+  otp?: string | null,
+): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_estructura_quitar_cargo_red', {
+    p_red_id: redId,
+    p_codigo: codigo,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return Number(data);
+}
+
+export async function configurarOtpEstructura(
+  iglesiaId: string,
+  requerido: boolean,
+  otp?: string | null,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_estructura_configurar_otp', {
+    p_iglesia_id: iglesiaId,
+    p_requerido: requerido,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function buscarPersonasEstructura(
+  iglesiaId: string,
+  texto: string,
+): Promise<PersonaOpcionEstructura[]> {
+  const { data, error } = await supabase.rpc('fn_buscar_personas', {
+    p_iglesia_id: iglesiaId,
+    p_texto: texto.trim(),
+    p_incluir_ocultas: false,
+    p_limite: 10,
+  });
+  if (error) throw error;
+  return ((data ?? []) as PersonaBusquedaFila[]).map((persona) => ({
+    id: persona.id,
+    nombre: persona.nombre_completo,
+    correo: persona.correo,
+  }));
 }

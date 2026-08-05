@@ -13,7 +13,7 @@ async function extraerError(error: unknown): Promise<Error> {
 
 export async function invitarLider(
   correo: string,
-  rol: RolInvitable | null,
+  rol: RolInvitable | 'SUPERVISOR_RED' | null,
   redId: string | null,
   casaDePazId: string | null,
   departamentoId: string | null = null,

@@ -29,7 +29,7 @@ export function useInvitarLider() {
       pin,
     }: {
       correo: string;
-      rol: RolInvitable | null;
+      rol: RolInvitable | 'SUPERVISOR_RED' | null;
       redId: string | null;
       casaDePazId: string | null;
       departamentoId?: string | null;
