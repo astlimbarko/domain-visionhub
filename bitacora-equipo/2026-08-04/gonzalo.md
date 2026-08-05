@@ -28,3 +28,4 @@
 - [x] Añadí a la migración local la RPC transaccional `fn_estructura_guardar_posiciones`; conserva escrituras directas revocadas, autoriza por iglesia, bloquea la fila de versión y realiza upsert por lote.
 - [ ] Falta: validar la RPC y la persistencia compartida en una rama Supabase segura; no se aplicó ningún cambio a producción ni se generó costo.
 - [x] Implementé el shell KAN-55 de detalle contextual: selección de nodos, scrim, panel lateral desktop, sheet inferior móvil y cierre accesible por botón, fondo o Escape; build Docker y lint correctos.
+- [x] Ajusté la identidad de la cabecera del organigrama: `Iglesia` en negrita y nombre de la iglesia en peso normal donde antes aparecía `VisionHub`, sin duplicar el nombre debajo del título.

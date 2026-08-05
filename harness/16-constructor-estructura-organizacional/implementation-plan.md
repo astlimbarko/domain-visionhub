@@ -146,6 +146,17 @@ advisors sin hallazgos nuevos críticos.
 existentes de Supabase; todavía no permite editar ni persistir posiciones.
 Compilación de producción Docker correcta y lint sin errores nuevos.
 
+### Ajuste visual — identidad de la iglesia en cabecera
+
+**Título:** Mostrar la iglesia abierta en lugar de la marca genérica.
+
+**Descripción breve:** La zona izquierda de la cabecera donde originalmente se
+mostraba `VisionHub` presenta ahora la palabra **Iglesia** en negrita y el nombre
+de la entidad en peso normal. El nombre no se repite debajo del título
+`Estructura Organizacional` y se trunca limpiamente cuando el espacio es corto.
+
+**Vinculación:** ajuste visual de KAN-54 dentro de la épica KAN-52.
+
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.
 

@@ -129,7 +129,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
         </Link>
         <div className="flex min-w-0 shrink items-center gap-2.5">
           <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
-          <span className="max-w-52 truncate text-[15px] font-bold text-white sm:max-w-72">{nombreIglesia}</span>
+          <span className="flex max-w-52 min-w-0 items-baseline gap-1.5 text-[15px] text-white sm:max-w-72">
+            <span className="shrink-0 font-bold">Iglesia</span>
+            <span className="truncate font-normal text-white/75">{nombreIglesia}</span>
+          </span>
         </div>
         <div className="hidden h-8 w-px shrink-0 bg-white/15 sm:block" />
         <div className="hidden min-w-0 md:block">
