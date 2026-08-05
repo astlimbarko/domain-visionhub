@@ -31,3 +31,4 @@
 - [x] Ajusté la identidad de la cabecera del organigrama: `Iglesia` en negrita y nombre de la iglesia en peso normal donde antes aparecía `VisionHub`, sin duplicar el nombre debajo del título.
 - [x] Rediseñé `Departamentos` y `Redes de Casas de Paz` como encabezados no seleccionables; las entidades reales usan relleno completo por color, texto blanco y un layout más compacto.
 - [ ] Falta: tomar capturas de la estructura de cada iglesia al cierre y revisar contraste, agrupación, espaciado y estados vacíos con datos reales.
+- [x] Oculté el menú lateral del Super Admin en web, tablet y móvil dentro de `feature/navegacion-iglesias-super-admin` (`7f7e10a`); Administración usa todo el ancho y Estructura Organizacional se abre únicamente desde cada iglesia.
