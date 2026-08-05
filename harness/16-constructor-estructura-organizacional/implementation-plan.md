@@ -134,12 +134,17 @@ advisors sin hallazgos nuevos críticos.
 
 1. [x] Instalar `@xyflow/react` con versión fijada y lockfile; compilación Docker
    validada con `@xyflow/react@12.11.2`.
-2. Extraer componentes de barra ya construidos en KAN-53.
-3. Implementar tipos de nodo y aristas derivadas.
-4. Implementar estado vacío, N redes y N CdP.
-5. Implementar pan, zoom/pinch, centrar, búsqueda y resaltado.
-6. Implementar layout inicial/incremental y cuadrícula.
-7. Corregir cabecera para mostrar nombre de iglesia.
+2. [x] Integrar la barra del módulo con el lienzo sin mezclar el panel Super Admin.
+3. [x] Implementar tipos de nodo y aristas derivadas.
+4. [x] Implementar estado vacío, N redes y N CdP.
+5. [x] Implementar pan, zoom/pinch, centrar, búsqueda y resaltado.
+6. [x] Implementar layout inicial determinista y cuadrícula.
+7. [x] Corregir cabecera para mostrar nombre de iglesia.
+
+**Estado:** primera entrega funcional implementada en
+`feature/estructura-organizacional`. Consume en modo lectura las entidades
+existentes de Supabase; todavía no permite editar ni persistir posiciones.
+Compilación de producción Docker correcta y lint sin errores nuevos.
 
 **Prueba:** estructuras de 0, 1, 20, 100 y 500 nodos; jerarquía correcta; sin
 acciones de edición todavía.

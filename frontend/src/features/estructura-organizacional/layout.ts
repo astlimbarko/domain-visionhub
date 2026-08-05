@@ -1,0 +1,162 @@
+import type { Edge, Node } from '@xyflow/react';
+import type { DatosNodoEstructura, DepartamentoEstructura, EstructuraOrganizacionalDatos } from './types';
+
+const COLORES_DEPARTAMENTO: Record<string, string> = {
+  EVANGELISMO: '#F5C518',
+  AFIRMACION: '#0071E3',
+  DISCIPULADO: '#FF3B30',
+  ENVIO: '#8E8E93',
+};
+
+const DEPARTAMENTOS_OFICIALES: DepartamentoEstructura[] = [
+  { id: 'slot-evangelismo', codigo: 'EVANGELISMO', nombre: 'Evangelismo' },
+  { id: 'slot-afirmacion', codigo: 'AFIRMACION', nombre: 'Afirmación' },
+  { id: 'slot-discipulado', codigo: 'DISCIPULADO', nombre: 'Discipulado' },
+  { id: 'slot-envio', codigo: 'ENVIO', nombre: 'Envío' },
+];
+
+function nodo(
+  id: string,
+  x: number,
+  y: number,
+  data: {
+    tipo: DatosNodoEstructura['tipo'];
+    titulo: string;
+    subtitulo?: string;
+    color?: string;
+    buscable?: string;
+    resaltado?: boolean;
+  },
+): Node<DatosNodoEstructura> {
+  return {
+    id,
+    type: 'estructura',
+    position: { x, y },
+    draggable: false,
+    selectable: true,
+    data: {
+      ...data,
+      buscable: (data.buscable ?? `${data.titulo} ${data.subtitulo ?? ''}`).toLocaleLowerCase('es'),
+    },
+  };
+}
+
+function arista(id: string, source: string, target: string, color = '#94a3b8'): Edge {
+  return {
+    id,
+    source,
+    target,
+    type: 'smoothstep',
+    selectable: false,
+    style: { stroke: color, strokeWidth: 1.5 },
+  };
+}
+
+export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
+  nodes: Node<DatosNodoEstructura>[];
+  edges: Edge[];
+} {
+  const nodes: Node<DatosNodoEstructura>[] = [];
+  const edges: Edge[] = [];
+
+  nodes.push(
+    nodo('pastor', 0, 0, {
+      tipo: 'PASTOR_SLOT',
+      titulo: 'Pastor',
+      subtitulo: datos.pastor?.nombre ?? 'Pastor sin asignar',
+    }),
+    nodo('supervisor', 320, 0, {
+      tipo: 'SUPERVISOR_SLOT',
+      titulo: 'Supervisor de la Visión',
+      subtitulo: datos.supervisor?.nombre ?? 'Supervisor sin asignar',
+    }),
+    nodo('grupo-departamentos', 650, -220, {
+      tipo: 'GRUPO_DEPARTAMENTOS',
+      titulo: 'Departamentos',
+      subtitulo: '4 departamentos oficiales',
+    }),
+    nodo('grupo-redes', 650, 220, {
+      tipo: 'GRUPO_REDES',
+      titulo: 'Redes de Casas de Paz',
+      subtitulo: datos.redes.length === 0 ? 'Sin redes creadas' : `${datos.redes.length} redes`,
+    }),
+  );
+  edges.push(
+    arista('pastor-supervisor', 'pastor', 'supervisor'),
+    arista('supervisor-departamentos', 'supervisor', 'grupo-departamentos'),
+    arista('supervisor-redes', 'supervisor', 'grupo-redes'),
+  );
+
+  const departamentos = datos.departamentos.length > 0 ? datos.departamentos : DEPARTAMENTOS_OFICIALES;
+  departamentos.forEach((departamento, indice) => {
+    const id = `departamento:${departamento.id}`;
+    nodes.push(
+      nodo(id, 980, -400 + indice * 120, {
+        tipo: 'DEPARTAMENTO',
+        titulo: departamento.nombre,
+        subtitulo: 'Líder sin asignar',
+        color: COLORES_DEPARTAMENTO[departamento.codigo.toUpperCase()] ?? '#64748b',
+      }),
+    );
+    edges.push(arista(`grupo-departamentos-${id}`, 'grupo-departamentos', id));
+  });
+
+  if (datos.redes.length === 0) {
+    nodes.push(
+      nodo('redes-vacio', 980, 220, {
+        tipo: 'RED',
+        titulo: 'Sin redes',
+        subtitulo: 'La primera Red puede crearse después',
+        color: '#94a3b8',
+      }),
+    );
+    edges.push(arista('grupo-redes-vacio', 'grupo-redes', 'redes-vacio'));
+  } else {
+    let cursorY = 80;
+    for (const red of datos.redes) {
+      const casas = datos.casasDePaz.filter((casa) => casa.redId === red.id);
+      const altoBloque = Math.max(130, casas.length * 110);
+      const redY = cursorY + (altoBloque - 90) / 2;
+      const redId = `red:${red.id}`;
+      nodes.push(
+        nodo(redId, 980, redY, {
+          tipo: 'RED',
+          titulo: red.nombre,
+          subtitulo: casas.length === 0 ? 'Sin Casas de Paz' : `${casas.length} Casas de Paz`,
+          color: red.color,
+        }),
+      );
+      edges.push(arista(`grupo-redes-${redId}`, 'grupo-redes', redId, red.color));
+
+      if (casas.length === 0) {
+        const casaId = `casa-vacia:${red.id}`;
+        nodes.push(
+          nodo(casaId, 1310, redY, {
+            tipo: 'CASA_DE_PAZ',
+            titulo: 'Sin Casas de Paz',
+            subtitulo: 'Puede crearse sin líder',
+            color: red.color,
+          }),
+        );
+        edges.push(arista(`${redId}-${casaId}`, redId, casaId, red.color));
+      } else {
+        casas.forEach((casa, indice) => {
+          const casaId = `casa:${casa.id}`;
+          const casaY = cursorY + indice * 110;
+          nodes.push(
+            nodo(casaId, 1310, casaY, {
+              tipo: 'CASA_DE_PAZ',
+              titulo: casa.nombre?.trim() || 'Casa de Paz sin líder',
+              subtitulo: 'Líder sin asignar',
+              color: red.color,
+            }),
+          );
+          edges.push(arista(`${redId}-${casaId}`, redId, casaId, red.color));
+        });
+      }
+      cursorY += altoBloque + 50;
+    }
+  }
+
+  return { nodes, edges };
+}

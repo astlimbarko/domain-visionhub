@@ -22,3 +22,5 @@
 - [x] Reemplacé el icono genérico final por iconos automáticos de iglesia madre, hija y satélite en `feature/navegacion-iglesias-super-admin` (`9ae10f4`); build Docker y lint correctos.
 - [x] Moví los iconos de tipo de iglesia al inicio de cada fila, después de `└─` cuando corresponde, en `feature/navegacion-iglesias-super-admin` (`29d8271`); build Docker correcto.
 - [x] Añadí cursor de mano y acordeón accesible por iglesia madre para expandir/contraer descendientes en `feature/navegacion-iglesias-super-admin` (`2896d58`); build Docker y lint correctos.
+- [x] Implementé la primera entrega KAN-54 del lienzo organizacional en `feature/estructura-organizacional`: lectura por iglesia, nodos horizontales, estados vacíos, N redes/Casas de Paz, cuadrícula, pan, zoom, búsqueda, resaltado, centrado y minimapa para estructuras grandes.
+- [x] Validé KAN-54 dentro del Docker compartido: build de producción correcto (3.380 módulos) y lint con cero errores nuevos; permanecen cinco advertencias históricas ajenas al módulo.
