@@ -282,18 +282,6 @@ export function Administracion() {
                       {nivel > 0 && (
                         <span aria-hidden="true" className="shrink-0 font-mono text-sm text-white/35">└─</span>
                       )}
-                      <span className="min-w-0 flex-1">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span className="truncate font-medium text-white">{i.nombre}</span>
-                          {nivel > 0 && (
-                            <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
-                              {i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'}
-                            </span>
-                          )}
-                        </span>
-                        <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
-                      </span>
-                      {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                       <span
                         role="img"
                         aria-label={!i.iglesia_padre_id ? 'Iglesia madre' : i.tipo === 'SATELITE' ? 'Iglesia satélite' : 'Iglesia hija'}
@@ -308,6 +296,18 @@ export function Administracion() {
                           <Building2 className="h-4 w-4" aria-hidden="true" />
                         )}
                       </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium text-white">{i.nombre}</span>
+                          {nivel > 0 && (
+                            <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+                              {i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
+                      </span>
+                      {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                     </button>
                     <div className="flex shrink-0 items-center pr-2">
                       <DropdownMenu>
