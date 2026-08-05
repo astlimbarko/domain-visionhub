@@ -7,23 +7,31 @@ import type {
   NuevaPersona,
   PersonaDeRed,
   PersonaFicha,
-  PersonaResultadoBusqueda,
+  ResultadoBusquedaPersonas,
   TipoRelacion,
   TipoTelefono,
 } from '@/types/persona.types';
+
+const PERSONAS_POR_PAGINA = 20;
 
 export async function buscarPersonas(
   iglesiaId: string,
   texto: string,
   incluirOcultas = false,
-): Promise<PersonaResultadoBusqueda[]> {
+  excluirSemillas = false,
+  pagina = 1,
+): Promise<ResultadoBusquedaPersonas> {
   const { data, error } = await supabase.rpc('fn_buscar_personas', {
     p_iglesia_id: iglesiaId,
     p_texto: texto.trim() === '' ? null : texto.trim(),
     p_incluir_ocultas: incluirOcultas,
+    p_excluir_semillas: excluirSemillas,
+    p_pagina: pagina,
+    p_por_pagina: PERSONAS_POR_PAGINA,
   });
   if (error) throw error;
-  return data ?? [];
+  const resultados = data ?? [];
+  return { resultados, total: resultados[0]?.total ?? 0 };
 }
 
 export async function obtenerFicha(personaId: string): Promise<PersonaFicha> {
