@@ -49,3 +49,6 @@
 - [x] Implementé "Asignar Pastor" desde el lienzo (primer ítem de la lista de pendientes): panel con doble vía (BD/correo), solo visible para Super Admin. Reutilicé la función `invitar-usuario` existente para el correo (mismo patrón que `PastorGestion.tsx`) en vez de duplicar infraestructura.
 - [x] Escribí la migración `fn_estructura_asignar_pastor` (reemplazo atómico del Pastor, un solo OTP, respeta el switch OTP del módulo) — decidido junto con Gonzalo: RPC propia del constructor, no la ruta genérica de 2 llamadas. Falta aplicarla a Supabase (necesito autenticar la CLI en esta sesión).
 - [x] Validé el frontend (`tsc -b`, lint, build) con el nuevo panel; sin errores nuevos.
+- [x] Apliqué la migración `fn_estructura_asignar_pastor` a Supabase (`supabase db push`, confirmado con `migration list`).
+- [x] Verifiqué visualmente el fix de contraste con datos reales (Playwright + captura + estilos computados, no solo a ojo): Departamentos y Redes muestran color sólido verdadero y el texto cambia correctamente oscuro/blanco según el color de fondo.
+- [ ] Pendiente (anotado, no implementado): reordenar la paleta de sugerencias de color de Red (colores primarios primero) y cambiar el selector "Personalizado" por un botón que abra la paleta completa (más parecido a la referencia de Figma). Se suma al ítem 7 de la lista de pendientes (avisar colores repetidos).
