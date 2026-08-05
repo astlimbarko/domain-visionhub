@@ -167,11 +167,14 @@ no pierde cambios silenciosamente.
 
 ## Fase 4 — KAN-55: interacción común
 
-1. Panel lateral/sheet reutilizable.
-2. Scrim y elevación del origen seleccionado.
-3. Cierre seguro con formularios sucios.
-4. Tooltips desktop y alternativa táctil.
-5. Estados accesibles y navegación por teclado.
+1. [x] Panel lateral/sheet reutilizable.
+2. [x] Scrim y elevación del origen seleccionado.
+3. [ ] Cierre seguro con formularios sucios (se activa al incorporar formularios).
+4. [ ] Tooltips desktop y alternativa táctil.
+5. [x] Cierre accesible por botón, fondo y tecla Escape.
+
+**Estado:** shell de consulta contextual terminado y validado en Docker. El
+contenido de edición se incorporará por entidad en KAN-56 a KAN-60.
 
 ## Fase 5 — KAN-56 y KAN-57: asignaciones base
 

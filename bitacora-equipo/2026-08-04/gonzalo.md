@@ -27,3 +27,4 @@
 - [x] Implementé localmente el Modo organizar: arrastre condicionado, snap de 16 px, guardado agrupado a 400 ms, reorganización automática con confirmación y detección de conflicto de versión.
 - [x] Añadí a la migración local la RPC transaccional `fn_estructura_guardar_posiciones`; conserva escrituras directas revocadas, autoriza por iglesia, bloquea la fila de versión y realiza upsert por lote.
 - [ ] Falta: validar la RPC y la persistencia compartida en una rama Supabase segura; no se aplicó ningún cambio a producción ni se generó costo.
+- [x] Implementé el shell KAN-55 de detalle contextual: selección de nodos, scrim, panel lateral desktop, sheet inferior móvil y cierre accesible por botón, fondo o Escape; build Docker y lint correctos.

@@ -20,6 +20,7 @@ import { AppLoadingScreen } from '@/components/ui/logo-spinner';
 import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
+import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
 import {
   useEstructuraOrganizacional,
   useGuardarPosicionesEstructura,
@@ -43,6 +44,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
   const [modoOrganizar, setModoOrganizar] = useState(false);
+  const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,6 +115,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
   };
 
   const nombreIglesia = data?.iglesia.nombre ?? nombreInicial;
+  const nodoSeleccionado = nodesVisibles.find((node) => node.id === nodoSeleccionadoId)?.data;
 
   return (
     <div className="flex h-svh flex-col bg-[#eef1f6]">
@@ -226,6 +229,8 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
             nodes={nodesVisibles}
             edges={grafoBase.edges}
             onNodesChange={onNodesChange}
+            onNodeClick={(_evento, node) => setNodoSeleccionadoId(node.id)}
+            onPaneClick={() => setNodoSeleccionadoId(null)}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
             nodesDraggable={modoOrganizar && !guardarPosiciones.isPending}
@@ -251,6 +256,9 @@ function ContenidoEstructura({ iglesiaId, nombreInicial }: ContenidoProps) {
               />
             )}
           </ReactFlow>
+        )}
+        {nodoSeleccionado && (
+          <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
       </main>
     </div>
