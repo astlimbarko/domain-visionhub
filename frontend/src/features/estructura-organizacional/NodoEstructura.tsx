@@ -207,7 +207,7 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
         </span>
         <span className="min-w-0">
           <span className={`block truncate text-sm font-bold ${texto ? '' : 'text-slate-950'}`} style={texto ? { color: texto } : undefined}>
-            {data.titulo}
+            Red: &quot;{data.titulo}&quot;
           </span>
           {data.subtitulo && (
             <span className={`block truncate text-[11px] ${texto ? '' : 'text-slate-600'}`} style={texto ? { color: texto, opacity: 0.7 } : undefined}>

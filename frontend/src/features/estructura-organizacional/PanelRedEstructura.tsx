@@ -4,6 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   useCancelarInvitacionLider,
   useCorregirCorreoInvitacionLider,
   useInvitarLider,
@@ -376,7 +383,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               id="estructura-red-nombre"
               value={nombre}
               onChange={(evento) => setNombre(evento.target.value)}
-              placeholder="Ej. Red Sion"
+              placeholder="Ej. Sion"
               className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             />
             <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
@@ -414,7 +421,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold"
               style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
             >
-              {nombre.trim() || 'Vista previa de la Red'}
+              {nombre.trim() ? `Red: "${nombre.trim()}"` : 'Vista previa de la Red'}
             </div>
           </div>
 
@@ -449,172 +456,16 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                     </span>
                     <p className="text-sm font-semibold text-slate-900">Casas de Paz</p>
                   </div>
-                  {!creandoCdp && (
-                    <button
-                      type="button"
-                      onClick={() => setCreandoCdp(true)}
-                      className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                    >
-                      + Nueva
-                    </button>
-                  )}
-                </div>
-
-                {creandoCdp && (
-                  <div className="mt-3 space-y-3">
-                    <p className="text-xs text-slate-500">
-                      Se crea sin nombre propio. El líder es opcional y se puede asignar después.
-                    </p>
-                    {liderCdpElegido ? (
-                      <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                        <span className="truncate text-slate-900">{liderCdpElegido.nombre}</span>
-                        <button type="button" onClick={() => setLiderCdpElegido(null)} className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
-                          Cambiar
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                          value={busquedaLiderCdp}
-                          onChange={(evento) => setBusquedaLiderCdp(evento.target.value)}
-                          placeholder="Líder (opcional): nombre, apellido o correo"
-                          className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                        />
-                      </div>
-                    )}
-                    {!liderCdpElegido && busquedaLiderCdp.trim().length >= 2 && (
-                      <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
-                        {buscandoLiderCdp && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
-                        {!buscandoLiderCdp && personasCdp.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
-                        {personasCdp.map((persona) => (
-                          <button
-                            key={persona.id}
-                            type="button"
-                            onClick={() => { setLiderCdpElegido(persona); setBusquedaLiderCdp(''); }}
-                            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
-                          >
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
-                              <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
-                        className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        disabled={procesando || !otpValido}
-                        onClick={() => void crearNuevaCasaDePaz()}
-                        className="h-9 cursor-pointer rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {crearCdp.isPending ? 'Creando…' : 'Crear Casa de Paz'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </section>
-            </>
-          )}
-
-          {cargoActivo && red && (
-            <section className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {cargoActivo === 'LIDER_RED' ? 'Designar Líder de Red' : 'Designar Supervisor de Red'}
-                  </p>
-                  <p className="text-xs text-slate-500">El cargo aparece de inmediato; el punto será gris hasta confirmar la cuenta.</p>
-                </div>
-                <button type="button" onClick={() => setCargoActivo(null)} className="cursor-pointer text-slate-400 hover:text-slate-700">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setModoAsignacion('base')}
-                  className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Desde base de datos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModoAsignacion('correo')}
-                  className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Por correo electrónico
-                </button>
-              </div>
-
-              {modoAsignacion === 'base' ? (
-                <div className="mt-3">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      value={busqueda}
-                      onChange={(evento) => setBusqueda(evento.target.value)}
-                      placeholder="Escribe nombre, apellido o correo"
-                      className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </div>
-                  {busqueda.trim().length >= 2 && (
-                    <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
-                      {isFetching && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
-                      {!isFetching && personas.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
-                      {personas.map((persona) => (
-                        <button
-                          key={persona.id}
-                          type="button"
-                          disabled={procesando || !otpValido}
-                          onClick={() => void seleccionarPersona(persona)}
-                          className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
-                            <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <label htmlFor="estructura-red-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
-                    <input
-                      id="estructura-red-correo"
-                      type="email"
-                      value={correo}
-                      onChange={(evento) => setCorreo(evento.target.value)}
-                      placeholder="persona@correo.com"
-                      className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </div>
                   <button
                     type="button"
-                    disabled={procesando || !correo.trim().includes('@') || !otpValido}
-                    onClick={() => void invitarPorCorreo()}
-                    className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => setCreandoCdp(true)}
+                    className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                   >
-                    {invitar.isPending ? 'Enviando…' : 'Designar y enviar correo'}
+                    + Nueva
                   </button>
                 </div>
-              )}
-            </section>
+              </section>
+            </>
           )}
 
           {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
@@ -632,6 +483,159 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           </button>
         </div>
       </aside>
+
+      <Dialog open={!!cargoActivo} onOpenChange={(abierto) => { if (!abierto) setCargoActivo(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{cargoActivo === 'LIDER_RED' ? 'Designar Líder de Red' : 'Designar Supervisor de Red'}</DialogTitle>
+            <DialogDescription>El cargo aparece de inmediato; el punto será gris hasta confirmar la cuenta.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setModoAsignacion('base')}
+              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              Desde base de datos
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoAsignacion('correo')}
+              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              Por correo electrónico
+            </button>
+          </div>
+
+          {modoAsignacion === 'base' ? (
+            <div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={busqueda}
+                  onChange={(evento) => setBusqueda(evento.target.value)}
+                  placeholder="Escribe nombre, apellido o correo"
+                  className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              {busqueda.trim().length >= 2 && (
+                <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                  {isFetching && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                  {!isFetching && personas.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                  {personas.map((persona) => (
+                    <button
+                      key={persona.id}
+                      type="button"
+                      disabled={procesando || !otpValido}
+                      onClick={() => void seleccionarPersona(persona)}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                        <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {otpRequerido && <div className="mt-3"><CampoOtp value={otp} onChange={setOtp} /></div>}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="estructura-red-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
+                <input
+                  id="estructura-red-correo"
+                  type="email"
+                  value={correo}
+                  onChange={(evento) => setCorreo(evento.target.value)}
+                  placeholder="persona@correo.com"
+                  className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+              <button
+                type="button"
+                disabled={procesando || !correo.trim().includes('@') || !otpValido}
+                onClick={() => void invitarPorCorreo()}
+                className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {invitar.isPending ? 'Enviando…' : 'Designar y enviar correo'}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nueva Casa de Paz</DialogTitle>
+            <DialogDescription>Se crea sin nombre propio. El líder es opcional y se puede asignar después.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {liderCdpElegido ? (
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                <span className="truncate text-slate-900">{liderCdpElegido.nombre}</span>
+                <button type="button" onClick={() => setLiderCdpElegido(null)} className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={busquedaLiderCdp}
+                  onChange={(evento) => setBusquedaLiderCdp(evento.target.value)}
+                  placeholder="Líder (opcional): nombre, apellido o correo"
+                  className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            )}
+            {!liderCdpElegido && busquedaLiderCdp.trim().length >= 2 && (
+              <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                {buscandoLiderCdp && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                {!buscandoLiderCdp && personasCdp.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                {personasCdp.map((persona) => (
+                  <button
+                    key={persona.id}
+                    type="button"
+                    onClick={() => { setLiderCdpElegido(persona); setBusquedaLiderCdp(''); }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                      <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
+                className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={procesando || !otpValido}
+                onClick={() => void crearNuevaCasaDePaz()}
+                className="h-9 cursor-pointer rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {crearCdp.isPending ? 'Creando…' : 'Crear Casa de Paz'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

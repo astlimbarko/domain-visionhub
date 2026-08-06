@@ -221,18 +221,18 @@ válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya
 > Gonzalo, práctico para copiar un color exacto de otro lado. No implementado
 > todavía.
 
-> Pendiente 2026-08-05: en `PanelRedEstructura.tsx`, "Asignar/Cambiar" Líder o
-> Supervisor de Red y "+ Nueva" Casa de Paz abren su formulario expandido
-> DEBAJO dentro del mismo panel lateral — inconsistente con el resto de la
-> app, que abre un modal (`AsignarCargoDialog`, ya usado en Departamentos y
-> en `PanelCasaDePazEstructura`/`GestionEstructuraVista`). Falta unificar
-> `PanelRedEstructura` al mismo patrón de modal. No implementado todavía.
+> Hecho 2026-08-05: en `PanelRedEstructura.tsx`, "Asignar/Cambiar" Líder o
+> Supervisor de Red y "+ Nueva" Casa de Paz ahora abren un `Dialog` modal
+> (mismo primitivo `@/components/ui/dialog` que usa `AsignarCargoDialog` en
+> Departamentos/CdP) en vez de expandirse debajo dentro del panel lateral.
+> Verificado en vivo con Playwright: buscar y asignar Supervisor de Red
+> desde el modal, y abrir/cancelar el modal de nueva Casa de Paz.
 
-> Pendiente 2026-08-05: el nombre de la Red NO debe incluir la palabra "Red"
-> (ej. "Vida Nueva", no "Red Vida Nueva") — la tarjeta la agrega fija:
-> `Red: "Vida Nueva"`. Falta renombrar las Redes existentes en la base y
-> ajustar el placeholder del formulario ("Ej. Red Sion" → "Ej. Sion") y la
-> vista previa/tarjeta. No implementado todavía.
+> Hecho 2026-08-05: el nombre de la Red ya no incluye la palabra "Red" (ej.
+> "Vida Nueva", no "Red Vida Nueva") — se renombraron las 5 Redes existentes
+> en la base (`UPDATE red SET nombre = regexp_replace(...)`), el placeholder
+> pasó a "Ej. Sion", y la tarjeta del lienzo (`NodoRed`) y la vista previa
+> del panel muestran el label fijo `Red: "Vida Nueva"`. Verificado en vivo.
 
 **REQ-RED-3** — THE texto sobre el color de Red SHALL alcanzar contraste legible
 calculado automáticamente.

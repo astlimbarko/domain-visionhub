@@ -480,6 +480,30 @@ asignar" sin rastro). Las 2 cuentas de prueba se borraron a mano después
 (decisión de Gonzalo) con los triggers `trg_no_delete_*` deshabilitados solo
 dentro de la transacción de limpieza.
 
+### Entrega — Modal para Asignar/Cambiar cargo y +Nueva CdP en PanelRedEstructura
+
+**Título:** Unificar formularios de PanelRedEstructura al patrón modal.
+
+**Descripción breve:** "Asignar/Cambiar" Líder o Supervisor de Red y "+ Nueva"
+Casa de Paz pasaron de expandirse debajo dentro del panel lateral a un
+`Dialog` modal (`@/components/ui/dialog`, mismo primitivo que
+`AsignarCargoDialog`). Sin cambios de backend — solo se movió el JSX
+existente a `<Dialog>`/`<DialogContent>` y el campo OTP se replicó dentro de
+cada modal (mismo estado `otp` compartido con el resto del panel). Verificado
+en vivo: asignar Supervisor de Red desde el modal, y abrir/cancelar el modal
+de nueva Casa de Paz.
+
+### Entrega — Nombres de Red sin la palabra "Red"
+
+**Título:** Quitar "Red" del nombre y fijarlo como label de la tarjeta.
+
+**Descripción breve:** Se renombraron las 5 Redes existentes en producción
+(`UPDATE red SET nombre = regexp_replace(nombre, '^Red\s+', '', 'i')`);
+"Svalmar" no tenía el prefijo y quedó igual. El placeholder del formulario
+pasó de "Ej. Red Sion" a "Ej. Sion". La tarjeta del lienzo (`NodoRed` en
+`NodoEstructura.tsx`) y la vista previa de `PanelRedEstructura.tsx` ahora
+muestran el label fijo `Red: "Nombre"` en vez del nombre crudo.
+
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 
 1. [x] Crear CdP mínima dentro de Red mediante RPC transaccional.

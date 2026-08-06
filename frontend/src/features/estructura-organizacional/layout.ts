@@ -167,7 +167,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       nodes.push(
         nodo(redId, redX, 175, {
           tipo: 'RED',
-          titulo: red.nombre?.trim() || `Red ${String(indiceRed + 1).padStart(2, '0')}`,
+          titulo: red.nombre?.trim() || String(indiceRed + 1).padStart(2, '0'),
           subtitulo: redSinNombre ? 'Escribe un nombre' : `${casas.length} Casas de Paz`,
           responsables: red.lideres,
           supervisores: red.supervisores,
