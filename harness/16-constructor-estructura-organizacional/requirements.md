@@ -195,6 +195,14 @@ SHALL NOT cambiar `departamento.activo`.
 Discipulado y Envío SHALL permanecer visibles pero sin acción de asignación hasta
 que su funcionalidad exista en el sistema.
 
+> Hecho 2026-08-06: hacer clic en un Departamento ya NO abre directo el modal
+> de asignar — primero abre un panel lateral (`PanelDepartamentoEstructura.tsx`,
+> mismo patrón que Red/CdP), y recién ahí, si el departamento es funcional
+> (Afirmación), aparece el botón "Asignar"/"Cambiar" que abre el modal. Para
+> los otros 3 departamentos el panel muestra un badge "Próximamente" sin
+> botón. Pedido explícito: la barra lateral debe existir siempre porque a
+> futuro habrá más opciones ahí que hoy no existen. Verificado en vivo.
+
 **REQ-DEP-7** — THE cuatro Departamentos SHALL distribuirse en una sola fila
 horizontal. Los datos del líder y futuras entidades propias de cada Departamento
 SHALL crecer verticalmente debajo de su tarjeta.

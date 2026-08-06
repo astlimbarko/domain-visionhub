@@ -21,9 +21,9 @@ import { CampoOtp } from '@/components/shared/CampoOtp';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/utils/constants';
-import { AsignarLiderAfirmacionDialog } from '@/features/estructura-organizacional/AsignarLiderAfirmacionDialog';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { PanelCasaDePazEstructura } from '@/features/estructura-organizacional/PanelCasaDePazEstructura';
+import { PanelDepartamentoEstructura } from '@/features/estructura-organizacional/PanelDepartamentoEstructura';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
 import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
 import { PanelPrincipalEstructura, type TipoPrincipalEstructura } from '@/features/estructura-organizacional/PanelPrincipalEstructura';
@@ -58,7 +58,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
   const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
   const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
-  const [departamentoAfirmacionId, setDepartamentoAfirmacionId] = useState<string | null>(null);
+  const [departamentoSeleccionadoId, setDepartamentoSeleccionadoId] = useState<string | null>(null);
   const [casaDePazSeleccionadaId, setCasaDePazSeleccionadaId] = useState<string | null>(null);
   const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
@@ -385,36 +385,34 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                   ? { modo: 'crear' }
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
                 setPanelPrincipal(null);
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
                 return;
               }
               setPanelRed(null);
               if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR') {
                 setPanelPrincipal(null);
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN') {
                 setPanelPrincipal('PASTOR');
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'SUPERVISOR_SLOT' && rolUI === 'SUPER_ADMIN') {
                 setPanelPrincipal('SUPERVISOR');
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'DEPARTAMENTO') {
-                const departamentoId = node.id.replace('departamento:', '');
-                const departamento = data?.departamentos.find((d) => d.id === departamentoId);
                 setPanelPrincipal(null);
-                setDepartamentoAfirmacionId(departamento?.codigo === 'AFIRMACION' ? departamentoId : null);
+                setDepartamentoSeleccionadoId(node.id.replace('departamento:', ''));
                 setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'CASA_DE_PAZ' && node.id.startsWith('casa:')) {
                 setPanelPrincipal(null);
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(node.id.replace('casa:', ''));
               } else {
                 setPanelPrincipal(null);
-                setDepartamentoAfirmacionId(null);
+                setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
               }
             }}
@@ -422,7 +420,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               setNodoSeleccionadoId(null);
               setPanelRed(null);
               setPanelPrincipal(null);
-              setDepartamentoAfirmacionId(null);
+              setDepartamentoSeleccionadoId(null);
               setCasaDePazSeleccionadaId(null);
             }}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
@@ -463,7 +461,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             }}
           />
         )}
-        {nodoSeleccionado && !panelRed && !panelPrincipal && !departamentoAfirmacionId && !casaDePazSeleccionadaId && (
+        {nodoSeleccionado && !panelRed && !panelPrincipal && !departamentoSeleccionadoId && !casaDePazSeleccionadaId && (
           <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
         {casaDePazSeleccionadaId && data && (() => {
@@ -479,20 +477,19 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             />
           ) : null;
         })()}
-        {departamentoAfirmacionId && (
-          <AsignarLiderAfirmacionDialog
-            open
-            iglesiaId={iglesiaId}
-            departamentoId={departamentoAfirmacionId}
-            departamentoNombre="Afirmación"
-            onOpenChange={(abierto) => {
-              if (!abierto) {
-                setDepartamentoAfirmacionId(null);
+        {departamentoSeleccionadoId && data && (() => {
+          const departamento = data.departamentos.find((d) => d.id === departamentoSeleccionadoId);
+          return departamento ? (
+            <PanelDepartamentoEstructura
+              iglesiaId={iglesiaId}
+              departamento={departamento}
+              onClose={() => {
+                setDepartamentoSeleccionadoId(null);
                 setNodoSeleccionadoId(null);
-              }
-            }}
-          />
-        )}
+              }}
+            />
+          ) : null;
+        })()}
         {panelRed && data && (
           <PanelRedEstructura
             iglesiaId={iglesiaId}
