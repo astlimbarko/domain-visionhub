@@ -358,6 +358,15 @@ enlaces anteriores.
 **REQ-ASG-11** — THE sistema SHALL impedir duplicar correo, persona o el mismo
 cargo vigente/pending en la misma entidad.
 
+> Verificado 2026-08-06 (item 9, KAN-61): el caso "correo ya existe" ya
+> estaba resuelto desde una sesión anterior (2026-08-02, código de
+> `invitar-lider`/`invitar-usuario`) — distingue si la cuenta existente ya
+> tiene una Persona vinculada (mensaje: buscarla por nombre en vez de
+> invitar de nuevo) o si quedó huérfana (mensaje: avisar al equipo técnico,
+> un Super Admin debe vincularla a mano). Probado en vivo en Redes con un
+> correo real (`astlimbark@gmail.com`, ya con Persona): toast correcto,
+> ninguna fila quedó creada. Sin cambios de código — solo verificación.
+
 ## 10. OTP exclusivo del constructor
 
 **REQ-OTP-1** — Cada iglesia SHALL tener una configuración independiente
