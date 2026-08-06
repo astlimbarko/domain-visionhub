@@ -1,7 +1,13 @@
+/** 'ASIGNADA' = meta específica de esta CdP (fijada por su Líder de Red);
+ * 'ASIGNADA_RED' = heredada de la meta que el Supervisor le asignó a la Red
+ * de esta CdP, porque la CdP no tiene una propia; 'PROPIA' = la que fijó la
+ * propia Casa de Paz. */
+export type OrigenMeta = 'ASIGNADA' | 'ASIGNADA_RED' | 'PROPIA';
+
 export interface TasaEvangelismo {
   evangelizados: number;
   meta: number | null;
-  origen: 'ASIGNADA' | 'PROPIA' | null;
+  origen: OrigenMeta | null;
   tasa: number | null;
 }
 
@@ -64,12 +70,31 @@ export interface MetaCdpRed {
   casa_de_paz_id: string;
   etiqueta: string;
   meta: number | null;
-  origen: 'ASIGNADA' | 'PROPIA' | null;
+  origen: OrigenMeta | null;
 }
 
 export interface NuevaMetaAsignada {
   iglesiaId: string;
   casaDePazId: string;
+  asignadorId: string;
+  meta: number;
+  fechaInicio: string;
+  fechaFin: string;
+  observaciones?: string;
+}
+
+/** Meta que el Supervisor le asigna a una Red completa (no a una CdP puntual) --
+ * vigente mientras dure el rango, se hereda hacia cada CdP de esa Red que no
+ * tenga ya su propia meta asignada por su Líder de Red (fn_meta_efectiva). */
+export interface MetaRedAsignada {
+  meta: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+}
+
+export interface NuevaMetaAsignadaRed {
+  iglesiaId: string;
+  redId: string;
   asignadorId: string;
   meta: number;
   fechaInicio: string;

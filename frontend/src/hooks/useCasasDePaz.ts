@@ -43,6 +43,18 @@ export function useCdps(iglesiaId: string | undefined, redId: string | undefined
   });
 }
 
+/** Todas las Casas de Paz de la iglesia, de cualquier Red -- `fn_listar_cdp` ya
+ * soporta `p_red_id` nulo para esto (no filtra), pero `useCdps` de arriba exige
+ * un redId a propósito (varios llamadores lo usan para no disparar la consulta
+ * hasta que se elija una Red puntual) -- este hook aparte no tiene esa traba. */
+export function useCdpsIglesia(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'cdps', iglesiaId, undefined],
+    queryFn: () => obtenerCdps(iglesiaId as string, undefined),
+    enabled: !!iglesiaId,
+  });
+}
+
 export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, edadMinima?: number) {
   return useQuery({
     queryKey: ['estructura', 'buscar-personas', iglesiaId, texto, edadMinima],
