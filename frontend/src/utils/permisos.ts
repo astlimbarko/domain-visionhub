@@ -289,7 +289,8 @@ export function vistaPorDefectoParaRol(
   if (rolUI === 'SUPERVISOR' && iglesiaId) return { tipo: 'supervisor', iglesiaId };
   if (rolUI === 'LIDER_RED' && roles?.redes_lider?.length) return { tipo: 'red', redId: roles.redes_lider[0].id };
   if (rolUI === 'LIDER_CDP' && roles?.cdp_lider?.length) return { tipo: 'cdp', cdpId: roles.cdp_lider[0].id, esSublider: false };
-  if (rolUI === 'SUBLIDER_CDP' && roles?.cdp_sublider?.length) return { tipo: 'cdp', cdpId: roles.cdp_sublider[0].id, esSublider: true };
+  // SUBLIDER_CDP no pasa por acá: Dashboard.tsx lo redirige antes a
+  // ROUTES.CASAS_DE_PAZ (Perfil de Casa de Paz), sin panel de Dashboard.
   return null;
 }
 
