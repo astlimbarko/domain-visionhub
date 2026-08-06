@@ -3,6 +3,7 @@ import { Home, Mail, Pipette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import {
   Dialog,
   DialogContent,
@@ -202,6 +203,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
   const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
   const [nombreConfirmando, setNombreConfirmando] = useState('');
   const [creandoCdp, setCreandoCdp] = useState(false);
@@ -242,6 +244,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const redConMismoColor = redesExistentes.find(
     (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
   );
+  const responsableAQuitar = confirmandoQuitar === 'LIDER_RED' ? red?.lideres[0] : red?.supervisores[0];
+  const etiquetaAQuitar = responsableAQuitar?.nombre?.trim() || responsableAQuitar?.correo || 'esta persona';
 
   const invalidar = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -314,6 +318,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       await quitar.mutateAsync({ redId: red.id, codigo, otp: otp || null });
       toast.success('Cargo retirado');
       setOtp('');
+      setConfirmandoQuitar(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo retirar el cargo');
     }
@@ -468,7 +473,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 titulo="Líder de Red"
                 responsable={red.lideres[0]}
                 onAbrir={() => abrirCargo('LIDER_RED')}
-                onQuitar={() => void quitarCargo('LIDER_RED')}
+                onQuitar={() => setConfirmandoQuitar('LIDER_RED')}
                 onReenviar={(id) => void reenviarInvitacion(id)}
                 onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
                 onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
@@ -478,7 +483,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 titulo="Supervisor de Red"
                 responsable={red.supervisores[0]}
                 onAbrir={() => abrirCargo('SUBLIDER_RED')}
-                onQuitar={() => void quitarCargo('SUBLIDER_RED')}
+                onQuitar={() => setConfirmandoQuitar('SUBLIDER_RED')}
                 onReenviar={(id) => void reenviarInvitacion(id)}
                 onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
                 onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
@@ -704,6 +709,18 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmarQuitarDialog
+        open={!!confirmandoQuitar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoQuitar(null); }}
+        titulo={`¿Quitar a ${etiquetaAQuitar} de ${confirmandoQuitar === 'LIDER_RED' ? 'Líder de Red' : 'Supervisor de Red'}?`}
+        descripcion="Deja de tener acceso de inmediato."
+        procesando={quitar.isPending}
+        onConfirmar={() => { if (confirmandoQuitar) void quitarCargo(confirmandoQuitar); }}
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
     </>
   );
 }

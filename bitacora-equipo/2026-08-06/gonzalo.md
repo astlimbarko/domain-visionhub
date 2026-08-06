@@ -8,3 +8,6 @@
 - [x] El hex directo del color de Red ya funcionaba (clic en el swatch abre el selector nativo), pero no se notaba. Ícono final: gotero (Pipette) al final de la misma fila de colores, con tooltip.
 - [x] Corregí una barra de desplazamiento fea que aparecía al pasar el mouse sobre los colores (el hover agrandaba las muestras y desbordaba la fila).
 - [x] "Guardar cambios" del panel de Red ahora queda deshabilitado hasta que se cambie realmente el color. Comenté KAN-58.
+- [x] Agregué "Quitar cargo" al panel de Afirmación (faltaba) y agregué confirmación (modal rojo + OTP) tanto ahí como en Quitar cargo de Líder/Supervisor de Red — antes quitaban al instante sin preguntar.
+- [x] Extendí ConfirmarQuitarDialog (compartido) con OTP opcional, sin romper a quien ya lo usa (Calendario, Casas de Paz). Casas de Paz ya tenía confirmación propia, no necesitó cambios.
+- [x] Probado en vivo ambos casos. Comenté KAN-57 y KAN-58.

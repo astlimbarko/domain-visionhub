@@ -105,8 +105,15 @@ Gonzalo probó en vivo cambiar el Líder de Red de "Red Vida Nueva" (vía
   tal cual. **2026-08-05:** se implementó un modal de confirmación liviano
   propio (sin motivo, OTP atado a `otpRequerido`) para "Cambiar nombre" de
   Red en `PanelRedEstructura.tsx` — sirve de referencia si se decide extender
-  el mismo patrón a asignar/quitar cargo acá. Sigue pendiente para
-  asignar/quitar cargo (Red, CdP, Departamento) y para cambios de color.
+  el mismo patrón a asignar/quitar cargo acá. **2026-08-06 — resuelto para
+  quitar cargo:** `ConfirmarQuitarDialog` (compartido) ahora acepta OTP
+  opcional (`otpRequerido`/`otp`/`onOtpChange`, sin romper a quien no lo usa)
+  y se aplicó a "Quitar cargo" de Líder/Supervisor de Red y de Líder de
+  Departamento (Afirmación) — antes quitaban al instante, sin ningún paso
+  intermedio. Rojo/destructivo, verificado en vivo. Casas de Paz YA tenía
+  confirmación (dentro de `AsignarCargoDialog`), no necesitó cambios. Sigue
+  pendiente: confirmación para "asignar" (no solo quitar) y para cambios de
+  color de Red.
 
 **Sobre el registro de auditoría (pregunta directa del owner):** sí existe.
 `red_cargo` y las demás tablas de cargos ya guardan `creado_por`/

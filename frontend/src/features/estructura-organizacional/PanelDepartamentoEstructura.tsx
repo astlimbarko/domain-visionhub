@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Mail, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { DepartamentoEstructura } from './types';
@@ -18,20 +22,40 @@ interface Props {
  * todavía no existen (mismo patrón que Red y Casa de Paz).
  */
 export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [asignando, setAsignando] = useState(false);
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
+  const [otpQuitar, setOtpQuitar] = useState('');
   const meta = DEPARTAMENTO_META[departamento.codigo];
   const esFuncional = departamento.codigo === DEPARTAMENTO_FUNCIONAL;
   const lider = departamento.lideres[0];
   const pendiente = lider?.membresiaPendiente ?? false;
   const etiqueta = lider?.nombre?.trim() || lider?.correo || 'Sin asignar';
 
+  const { data: vigentes = [] } = useCargoVigenteDepartamento(esFuncional ? departamento.id : undefined);
+  const vigente = vigentes[0];
+  const quitarCargo = useQuitarCargoDepartamento(departamento.id);
+
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape' && !asignando) onClose();
+      if (evento.key === 'Escape' && !asignando && !confirmandoQuitar) onClose();
     };
     window.addEventListener('keydown', cerrarConEscape);
     return () => window.removeEventListener('keydown', cerrarConEscape);
-  }, [onClose, asignando]);
+  }, [onClose, asignando, confirmandoQuitar]);
+
+  async function confirmarQuitarLider() {
+    if (!vigente) return;
+    try {
+      await quitarCargo.mutateAsync({ id: vigente.id, pin: otpQuitar });
+      await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
+      toast.success('Líder quitado del departamento');
+      setConfirmandoQuitar(false);
+      setOtpQuitar('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo quitar el líder');
+    }
+  }
 
   return (
     <>
@@ -92,6 +116,17 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }
                 <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-500">Próximamente</span>
               )}
             </div>
+            {esFuncional && lider && vigente && (
+              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoQuitar(true)}
+                  className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600"
+                >
+                  Quitar cargo
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </aside>
@@ -105,6 +140,18 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }
           iglesiaId={iglesiaId}
         />
       )}
+
+      <ConfirmarQuitarDialog
+        open={confirmandoQuitar}
+        onOpenChange={(abierto) => { setConfirmandoQuitar(abierto); if (!abierto) setOtpQuitar(''); }}
+        titulo={`¿Quitar a ${etiqueta} de Líder de ${meta?.verbo ?? departamento.nombre}?`}
+        descripcion="Deja de tener acceso al panel del departamento de inmediato."
+        procesando={quitarCargo.isPending}
+        onConfirmar={() => void confirmarQuitarLider()}
+        otpRequerido
+        otp={otpQuitar}
+        onOtpChange={setOtpQuitar}
+      />
     </>
   );
 }
