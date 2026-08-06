@@ -315,15 +315,40 @@ contenido de edición se incorporará por entidad en KAN-56 a KAN-60.
 ## Fase 5 — KAN-56 y KAN-57: asignaciones base
 
 1. [x] Pastor y Supervisor: doble vía (BD/correo) implementada en el panel
-   genérico `PanelPrincipalEstructura.tsx`. Departamentos: sin panel propio.
+   genérico `PanelPrincipalEstructura.tsx`. Afirmación: doble vía reusando el
+   flujo ya existente de Departamentos.
 2. [x] Leer responsables vigentes y usar nombre o correo como fallback.
 3. [x] Cargar Pastor y Supervisor desde `usuario_rol` mediante RPC autorizada.
 4. [x] Mostrar siempre los cuatro departamentos y cargar sus líderes existentes.
 5. [x] Asignar Pastor y Supervisor con operación atómica (`fn_estructura_asignar_pastor`
    / `fn_estructura_asignar_supervisor`, reemplazan al vigente en una sola
-   transacción/OTP). Departamentos: pendiente.
+   transacción/OTP). Afirmación: atómica vía `fn_asignar_cargo_departamento`
+   (ya existente, sin cambios). Evangelismo/Discipulado/Envío: sin acción,
+   como pide REQ-DEP-6.
 6. Estado tenue/intenso derivado de líder confirmado. *(Superado: ver ajuste
    2026-08-05 en Fase 2 — Departamento ahora siempre en color sólido.)*
+
+### Entrega — Asignar Líder de Afirmación (reutilización total)
+
+**Título:** Asignar/cambiar Líder de Afirmación desde el lienzo.
+
+**Descripción breve:** No se creó ninguna RPC ni migración nueva. El
+organigrama reusa exactamente el flujo ya construido en `Departamentos.tsx`
+(RPC `fn_asignar_cargo_departamento`/`fn_quitar_cargo_departamento`, hooks
+`usePanelSupervisor.ts`, componente `AsignarCargoDialog`) mediante un
+wrapper delgado (`AsignarLiderAfirmacionDialog.tsx`) que solo pasa el
+`iglesiaId`/`departamentoId` abiertos en el organigrama. Al hacer clic en el
+nodo Departamento, el módulo verifica el código (`AFIRMACION`) antes de
+abrir el diálogo; los otros 3 departamentos siguen abriendo el panel de
+solo lectura existente. Probado en vivo: abre con el líder vigente
+precargado, doble vía visible, y los departamentos no funcionales quedan en
+modo lectura.
+
+**Vinculación:** KAN-57 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`,
+`AsignarLiderAfirmacionDialog.tsx`, `EstructuraOrganizacional.tsx`. Sin
+migraciones nuevas.
 
 ### Entrega — Asignar Pastor y Supervisor (Super Admin)
 
