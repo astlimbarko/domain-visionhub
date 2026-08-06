@@ -487,6 +487,18 @@ modo, arrastrar un nodo SHALL desplazar el lienzo y no cambiar posiciones.
 **REQ-MOB-3** — Los controles táctiles SHALL tener área aproximada mínima de
 44×44 px; ningún formulario o acción principal SHALL quedar cortado.
 
+> Avance parcial 2026-08-06 (KAN-63 en curso, no cerrado): los botones-texto
+> del panel de Red/Departamento ("Eliminar Red", "Quitar cargo", "Reenviar",
+> "Corregir correo", "Cancelar designación", "Cancelar") medían solo ~16px de
+> alto real. Se amplió su área táctil a ~44px con un pseudo-elemento
+> invisible (`before:-inset-x-2 before:-inset-y-3.5`), sin cambiar nada
+> visual — verificado con Playwright (un toque por fuera del texto visible
+> sigue activando el botón). Los íconos de la cabecera (36×36) y las
+> muestras de color (28×28, tamaño elegido a propósito por el owner para
+> ahorrar espacio) quedan bajo el mínimo pero se dejaron así — no son parte
+> de este fix. Falta todo lo demás del ticket: bottom sheet real, tablet/
+> orientación horizontal, tooltips táctiles, pruebas en dispositivos reales.
+
 **REQ-MOB-4** — THE cambio de orientación SHALL conservar datos de formularios,
 nodo seleccionado y, cuando sea posible, cámara.
 

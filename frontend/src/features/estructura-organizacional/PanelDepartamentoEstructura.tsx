@@ -121,7 +121,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }
                 <button
                   type="button"
                   onClick={() => setConfirmandoQuitar(true)}
-                  className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600"
+                  className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
                 >
                   Quitar cargo
                 </button>

@@ -135,7 +135,7 @@ function ResumenCargo({
           >
             Guardar
           </button>
-          <button type="button" onClick={() => setCorrigiendo(false)} className="shrink-0 cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-700">
+          <button type="button" onClick={() => setCorrigiendo(false)} className="relative shrink-0 cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-slate-700">
             Cancelar
           </button>
         </div>
@@ -148,7 +148,7 @@ function ResumenCargo({
                 type="button"
                 disabled={procesando}
                 onClick={() => onReenviar(responsable.invitacionId as string)}
-                className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50"
+                className="relative cursor-pointer text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-blue-900 disabled:opacity-50"
               >
                 Reenviar
               </button>
@@ -156,7 +156,7 @@ function ResumenCargo({
                 type="button"
                 disabled={procesando}
                 onClick={() => setCorrigiendo((valor) => !valor)}
-                className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50"
+                className="relative cursor-pointer text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-blue-900 disabled:opacity-50"
               >
                 Corregir correo
               </button>
@@ -164,7 +164,7 @@ function ResumenCargo({
                 type="button"
                 disabled={procesando}
                 onClick={() => onCancelarInvitacion(responsable.invitacionId as string)}
-                className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50"
+                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
               >
                 Cancelar designación
               </button>
@@ -174,7 +174,7 @@ function ResumenCargo({
               type="button"
               disabled={procesando}
               onClick={onQuitar}
-              className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50"
+              className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
             >
               Quitar cargo
             </button>
@@ -568,7 +568,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               <button
                 type="button"
                 onClick={() => setConfirmandoEliminar(true)}
-                className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600"
+                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
               >
                 Eliminar Red
               </button>
