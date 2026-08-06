@@ -79,3 +79,5 @@
 - [x] Implementé "Advertir colores de Red repetidos" (ítem 7): aviso ámbar no bloqueante en el panel de Red cuando el color elegido coincide con el de otra Red de la misma iglesia (excluyendo la que se está editando).
 - [x] Probé en vivo con Playwright en "Centro de Vida 4 Anillo": creé una Red con el color por defecto, volví a abrir "Nueva Red" y apareció el aviso correcto; cambié de color y desapareció; edité la propia Red con su color original y no hubo falso aviso. Di de baja lógica la Red de prueba al terminar (no existe borrado físico, hay un trigger que lo bloquea).
 - [x] Comenté KAN-58 con este avance.
+- [x] Documenté en Jira (KAN-78, nuevo) y en harness la vista del lienzo por rol: Supervisor ve solo su rama (a sí mismo/Pastor en lectura); Líder/Supervisor de Red ven solo su Red (se ven entre sí en lectura). Sin código todavía, queda para que Matías haga el front.
+- [ ] Falta: campo para pegar color hexadecimal directo en el panel de Red (pedido de Gonzalo).

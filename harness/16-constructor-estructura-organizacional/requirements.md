@@ -85,6 +85,21 @@ vigentes; WHERE el frontend muestre el organigrama inicial, SHALL presentar un
 solo espacio principal de Supervisor sin imponer una restricción irreversible
 en la base.
 
+**REQ-PER-8** — WHEN el Supervisor de la Visión abre el lienzo, THE módulo
+SHALL mostrar solo su propia rama (Departamentos, Redes, CdP) y permitirle
+reposicionarla libremente. SHALL mostrar también su propio nodo y el del
+Pastor, pero en modo lectura (sin botones de asignar/cambiar/quitar).
+
+**REQ-PER-9** — WHEN el Líder de Red o Supervisor de Red abren el lienzo, THE
+módulo SHALL mostrar y permitir reposicionar solo su propia Red (y sus CdP).
+SHALL mostrar el par Líder/Supervisor de esa Red en modo lectura (sin botones
+de asignar/cambiar/quitar entre ellos).
+
+> Nota 2026-08-05 (KAN-78): REQ-PER-8 y REQ-PER-9 quedan solo especificadas —
+> amplían/corrigen REQ-PER-2 y REQ-PER-3 (antes sin acceso alguno para Líder/
+> Supervisor de Red). No se tocó frontend todavía; queda para que Matías lo
+> implemente.
+
 ## 4. Lienzo dinámico y escalable
 
 **REQ-LI-1** — THE sistema SHALL presentar un lienzo horizontal navegable con
@@ -200,6 +215,11 @@ válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya
 > repetido: no bloqueante, compara contra `redesExistentes` (excluyendo la Red
 > que se está editando), mensaje "Este color ya lo usa la Red «X»...". Verificado
 > en vivo con Playwright creando 2 Redes con el mismo color. Ver Jira KAN-58.
+
+> Pendiente 2026-08-05: falta un campo de texto para pegar un hexadecimal
+> directo (además de la paleta y el selector nativo) — pedido explícito de
+> Gonzalo, práctico para copiar un color exacto de otro lado. No implementado
+> todavía.
 
 **REQ-RED-3** — THE texto sobre el color de Red SHALL alcanzar contraste legible
 calculado automáticamente.
