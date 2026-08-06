@@ -96,7 +96,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, onClose }: Prop
   function handleInvitar(correo: string) {
     if (!dialogoCargo) return;
     invitarLider.mutate(
-      { correo, rol: 'LIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
+      { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
       {
         onSuccess: () => {
           toast.success(`Invitación enviada a ${correo}`);
@@ -160,6 +160,32 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, onClose }: Prop
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Sublíderes</p>
+                {casaDePaz.sublideres.length === 0 ? (
+                  <p className="mt-1 text-sm text-slate-500">Sin sublíderes todavía.</p>
+                ) : (
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {casaDePaz.sublideres.map((sub) => (
+                      <li key={sub.id} className="truncate text-sm text-slate-900">
+                        {sub.nombre?.trim() || sub.correo}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDialogoCargo({ codigo: 'SUBLIDER_CDP', titulo: 'Sublíderes de Casa de Paz', exclusivo: false })}
+                className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                + Añadir
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-2.5">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><MapPin className="h-4 w-4" /></span>
                 <div className="min-w-0">
@@ -194,7 +220,8 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, onClose }: Prop
           onAsignar={(persona) => void handleAsignar(persona)}
           onQuitar={handleQuitar}
           quitando={quitarCargo.isPending}
-          invitable={dialogoCargo.codigo === 'LIDER_CDP'}
+          excluirIdsExtra={dialogoCargo.codigo === 'SUBLIDER_CDP' && lider ? [lider.id] : []}
+          invitable={dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP'}
           invitando={invitarLider.isPending}
           onInvitar={handleInvitar}
         />

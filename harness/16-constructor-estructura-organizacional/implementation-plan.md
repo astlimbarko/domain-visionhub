@@ -431,9 +431,41 @@ sistema.
 4. [x] Estados `Líder sin asignar`/`Dirección pendiente`, con fondo gris y texto
    negro cuando falte líder. *(ya existía en el lienzo desde la Fase 2)*
 5. [x] Asignar después líder, anfitrión y dirección.
-6. Añadir N sublíderes sin duplicados.
-7. Iniciales, contador `+N`, tooltips y detalle.
+6. [x] Añadir N sublíderes sin duplicados por operación.
+7. Iniciales, contador `+N`, tooltips y detalle. *(pendiente: el lienzo no
+   muestra todavía cuántos sublíderes tiene cada CdP — solo el panel)*
 8. [x] Auto-colocar nueva CdP en su Red. *(ya lo hacía `crearGrafoEstructura`)*
+
+### Entrega — Añadir sublíderes de Casa de Paz (reutilización total)
+
+**Título:** Añadir sublíderes desde el lienzo.
+
+**Descripción breve:** Extensión de `PanelCasaDePazEstructura.tsx`: sección
+"Sublíderes" con `AsignarCargoDialog` en modo `exclusivo=false` (mismo
+componente ya usado para Líder/Anfitrión, mismo patrón que
+`GestionEstructuraVista.tsx`). Sin RPC ni migración nueva —
+`casa_de_paz_cargo` no tiene límite para `SUBLIDER_CDP` (0 a infinito, según
+el propio trigger `fn_validar_cdp_cargo`). "Invitar por correo" también
+habilitado para este cargo (mismo criterio que `GestionEstructuraVista`).
+
+**Gap real detectado y corregido (era criterio de aceptación explícito de
+KAN-60):** ni el trigger de base (`fn_validar_cdp_cargo`) ni el flujo ya
+existente impedían que el Líder vigente de la CdP apareciera también como
+opción de Sublíder de la misma CdP —contradecía REQ-CDP-6 y el criterio de
+aceptación "El líder principal no puede duplicarse como sublíder" de
+KAN-60—. Se corrigió sin tocar el trigger compartido: se agregó
+`excluirIdsExtra?: string[]` (opcional, sin cambiar a quien no lo pasa) a
+`AsignarCargoDialog.tsx`, y se pasa el `persona_id` del líder vigente al
+abrir el diálogo de Sublíder tanto desde `PanelCasaDePazEstructura.tsx`
+(este módulo) como desde `GestionEstructuraVista.tsx` (la pantalla
+original, misma corrección para no dejarla con el mismo gap). Probado en
+vivo: buscar al líder vigente como sublíder ahora da "Sin resultados".
+
+**Vinculación:** KAN-60 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`,
+`PanelCasaDePazEstructura.tsx`. Sin migraciones nuevas. Probado en vivo:
+agregar un sublíder no reemplaza al líder ni a otros sublíderes.
 
 ### Entrega — Asignar líder, anfitrión y dirección de Casa de Paz (reutilización total)
 

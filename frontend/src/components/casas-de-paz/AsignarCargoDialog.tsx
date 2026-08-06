@@ -40,6 +40,12 @@ interface Props {
    * a quien no lo necesita (Casas de Paz, autogestión de Líder de Red). */
   pin?: string;
   onPinChange?: (valor: string) => void;
+  /** IDs adicionales a excluir de la búsqueda más allá de los vigentes de
+   * este mismo cargo (2026-08-05, Estructura Organizacional/KAN-60): evita
+   * que quien ya ocupa OTRO cargo exclusivo de la misma entidad (ej. el
+   * Líder vigente) aparezca como opción al asignar un cargo no exclusivo
+   * (ej. Sublíder) -- REQ-CDP-6. Opcional, no cambia a quien no lo pasa. */
+  excluirIdsExtra?: string[];
 }
 
 export function AsignarCargoDialog({
@@ -59,6 +65,7 @@ export function AsignarCargoDialog({
   onInvitar,
   pin,
   onPinChange,
+  excluirIdsExtra = [],
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
@@ -190,7 +197,7 @@ export function AsignarCargoDialog({
             ) : (
               <BuscadorPersona
                 iglesiaId={iglesiaId}
-                excluirIds={vigentes.map((v) => v.persona_id)}
+                excluirIds={[...vigentes.map((v) => v.persona_id), ...excluirIdsExtra]}
                 onSeleccionar={manejarSeleccionPersona}
               />
             )

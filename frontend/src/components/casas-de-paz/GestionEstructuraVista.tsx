@@ -729,6 +729,11 @@ export function GestionEstructuraVista() {
           onAsignar={manejarAsignarCdp}
           onQuitar={(id) => quitarCargoCdp.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
           invitable={dialogoCdp.codigo === 'LIDER_CDP' || dialogoCdp.codigo === 'SUBLIDER_CDP'}
+          excluirIdsExtra={
+            dialogoCdp.codigo === 'SUBLIDER_CDP'
+              ? [cdps.find((c) => c.id === dialogoCdp.cdpId)?.lider_id].filter((id): id is string => Boolean(id))
+              : []
+          }
           invitando={invitarLider.isPending}
           onInvitar={manejarInvitarCdp}
         />
