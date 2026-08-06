@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Mail, Pipette, Search, UserRound, X } from 'lucide-react';
+import { Home, Mail, MoreVertical, Pipette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -13,6 +13,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   useCancelarInvitacionLider,
   useCorregirCorreoInvitacionLider,
   useInvitarLider,
@@ -25,7 +31,9 @@ import {
   useBuscarPersonasEstructura,
   useCrearCasaDePazEstructura,
   useCrearRedEstructura,
+  useDeshacerBorradoDefinitivoRedEstructura,
   useEliminarRedEstructura,
+  useProgramarBorradoDefinitivoRedEstructura,
   useQuitarCargoRedEstructura,
   useReactivarRedEstructura,
 } from './useEstructuraOrganizacional';
@@ -47,6 +55,7 @@ interface Props {
   red: RedEstructura | null;
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
+  esSuperAdmin: boolean;
   onClose: () => void;
 }
 
@@ -185,7 +194,7 @@ function ResumenCargo({
   );
 }
 
-export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, onClose }: Props) {
+export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, esSuperAdmin, onClose }: Props) {
   const queryClient = useQueryClient();
   const crear = useCrearRedEstructura(iglesiaId);
   const actualizar = useActualizarRedEstructura(iglesiaId);
@@ -198,6 +207,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
   const eliminarRed = useEliminarRedEstructura(iglesiaId);
   const reactivarRed = useReactivarRedEstructura(iglesiaId);
+  const programarBorradoDefinitivo = useProgramarBorradoDefinitivoRedEstructura(iglesiaId);
+  const deshacerBorradoDefinitivo = useDeshacerBorradoDefinitivoRedEstructura(iglesiaId);
 
   const [nombre, setNombre] = useState(red?.nombre ?? '');
   const [color, setColor] = useState(red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0]);
@@ -210,6 +221,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
+  const [confirmandoBorradoDefinitivo, setConfirmandoBorradoDefinitivo] = useState(false);
+  const [otpBorradoDefinitivo, setOtpBorradoDefinitivo] = useState('');
   const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
   const [nombreConfirmando, setNombreConfirmando] = useState('');
   const [creandoCdp, setCreandoCdp] = useState(false);
@@ -312,6 +325,36 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       setOtp('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo reactivar la Red');
+    }
+  };
+
+  const confirmarBorradoDefinitivoRed = async () => {
+    if (!red || !/^\d{6}$/.test(otpBorradoDefinitivo)) return;
+    const redId = red.id;
+    const nombreRed = red.nombre;
+    try {
+      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo });
+      setConfirmandoBorradoDefinitivo(false);
+      setOtpBorradoDefinitivo('');
+      onClose();
+      toast(`Red "${nombreRed}" eliminada de la base de datos`, {
+        description: 'Se borrará de verdad en 60 segundos. Podés deshacerlo hasta entonces.',
+        duration: 60_000,
+        action: {
+          label: 'Deshacer',
+          onClick: () => {
+            deshacerBorradoDefinitivo.mutate(
+              { redId },
+              {
+                onSuccess: () => toast.success(`Red "${nombreRed}" recuperada (sigue agrisada como eliminada)`),
+                onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudo deshacer'),
+              },
+            );
+          },
+        },
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red de la base de datos');
     }
   };
 
@@ -582,14 +625,30 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           <div className="flex items-center gap-3">
             <button type="button" onClick={onClose} className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
             {modo === 'editar' && red?.eliminada ? (
-              <button
-                type="button"
-                disabled={reactivarRed.isPending}
-                onClick={() => setConfirmandoReactivar(true)}
-                className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Reactivar Red
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    title="Opciones"
+                    aria-label="Opciones"
+                    disabled={reactivarRed.isPending || programarBorradoDefinitivo.isPending}
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setConfirmandoReactivar(true)}>Reactivar</DropdownMenuItem>
+                  {esSuperAdmin && (
+                    <DropdownMenuItem
+                      onSelect={() => setConfirmandoBorradoDefinitivo(true)}
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    >
+                      Eliminar de base de datos
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <button
                 type="button"
@@ -826,6 +885,20 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         otpRequerido={otpRequerido}
         otp={otp}
         onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoBorradoDefinitivo}
+        onOpenChange={(abierto) => { setConfirmandoBorradoDefinitivo(abierto); if (!abierto) setOtpBorradoDefinitivo(''); }}
+        titulo={`¿Eliminar definitivamente la Red "${red?.nombre}"?`}
+        descripcion="Se eliminará definitivamente de la base de datos, junto con sus Casas de Paz. Tenés 60 segundos para deshacerlo después de confirmar."
+        procesando={programarBorradoDefinitivo.isPending}
+        onConfirmar={() => void confirmarBorradoDefinitivoRed()}
+        textoConfirmar="Sí, eliminar definitivamente"
+        textoProcesando="Eliminando…"
+        otpRequerido
+        otp={otpBorradoDefinitivo}
+        onOtpChange={setOtpBorradoDefinitivo}
       />
     </>
   );

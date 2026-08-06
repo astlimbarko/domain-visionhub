@@ -8,9 +8,11 @@ import {
   configurarOtpEstructura,
   crearCasaDePazEstructura,
   crearRedEstructura,
+  deshacerBorradoDefinitivoRedEstructura,
   eliminarRedEstructura,
   guardarPosicionesEstructura,
   obtenerEstructuraOrganizacional,
+  programarBorradoDefinitivoRedEstructura,
   quitarCargoRedEstructura,
   reactivarRedEstructura,
 } from './estructura.service';
@@ -72,6 +74,22 @@ export function useReactivarRedEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
     mutationFn: ({ redId, otp }: { redId: string; otp?: string | null }) => reactivarRedEstructura(redId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useProgramarBorradoDefinitivoRedEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ redId, otp }: { redId: string; otp: string }) => programarBorradoDefinitivoRedEstructura(redId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useDeshacerBorradoDefinitivoRedEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ redId }: { redId: string }) => deshacerBorradoDefinitivoRedEstructura(redId),
     onSuccess: invalidar,
   });
 }

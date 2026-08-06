@@ -505,6 +505,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             red={redSeleccionada}
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
+            esSuperAdmin={rolUI === 'SUPER_ADMIN'}
             onClose={() => {
               setPanelRed(null);
               setNodoSeleccionadoId(null);
