@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { GitBranch, GitMerge, Home, KeyRound, Mail, Network, Plus, RefreshCw, Trash2, Undo2, Users } from 'lucide-react';
+import { Archive, GitBranch, GitMerge, Home, KeyRound, Mail, MapPin, Network, Plus, RefreshCw, Trash2, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -21,12 +21,14 @@ import {
   useCargos,
   useCdps,
   useCrearCdp,
+  useDomicilioCdp,
   useEliminarCdp,
   useQuitarCargoCdp,
   useQuitarCargoRed,
   useRedes,
   useToggleActivoCdp,
 } from '@/hooks/useCasasDePaz';
+import { lineaDireccionCdp } from '@/utils/direccion-cdp';
 import {
   useDeshacerFusionCdp,
   useDeshacerFusionRed,
@@ -44,12 +46,13 @@ import {
 import { useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
+import { HistoricoCdpEliminadasVista } from '@/components/casas-de-paz/HistoricoCdpEliminadasVista';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { FusionarRedDialog } from '@/components/casas-de-paz/FusionarRedDialog';
 import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
 import { MultiplicarRedDialog } from '@/components/casas-de-paz/MultiplicarRedDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
-import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { GrupoAvataresCompacto } from '@/components/shared/AvatarIniciales';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
@@ -72,6 +75,27 @@ interface CargoDialogoCdp {
   codigo: CargoCdpCodigo;
   titulo: string;
   exclusivo: boolean;
+}
+
+/** Fila compacta de avatares de los sublíderes de una CdP puntual, para la
+ * tarjeta de listado (KAN-60: iniciales + avatares circulares + "+N"). */
+function SublideresCompactos({ cdpId }: { cdpId: string }) {
+  const { data: sublideres = [] } = useCargoVigenteCdp(cdpId, 'SUBLIDER_CDP');
+  if (sublideres.length === 0) return null;
+  return <GrupoAvataresCompacto personas={sublideres.map((s) => ({ id: s.id, nombre_completo: s.nombre_completo }))} />;
+}
+
+/** Dirección breve del lugar de reunión de una CdP puntual, para la tarjeta
+ * de listado (KAN-59: "Dirección pendiente" cuando todavía no se cargó). */
+function DireccionCompacta({ cdpId }: { cdpId: string }) {
+  const { data: domicilio } = useDomicilioCdp(cdpId);
+  const linea = domicilio ? lineaDireccionCdp(domicilio) : '';
+  return (
+    <p className="flex items-center gap-1.5 truncate text-[12px] text-muted-foreground">
+      <MapPin className="h-3.5 w-3.5 shrink-0" />
+      {linea || 'Dirección pendiente'}
+    </p>
+  );
 }
 
 /** Vista de gestión estructural (Redes / Casas de Paz / cargos) para Supervisor y Líder de Red. */
@@ -184,15 +208,18 @@ export function GestionEstructuraVista() {
     );
   }
 
-  function manejarEliminarCdp() {
+  function manejarEliminarCdp(motivo: string) {
     if (!cdpAEliminar) return;
-    eliminarCdp.mutate(cdpAEliminar.id, {
-      onSuccess: () => {
-        toast.success('Casa de Paz eliminada');
-        setCdpAEliminar(undefined);
-      },
-      onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
-    });
+    eliminarCdp.mutate(
+      { cdpId: cdpAEliminar.id, motivo },
+      {
+        onSuccess: () => {
+          toast.success('Casa de Paz eliminada');
+          setCdpAEliminar(undefined);
+        },
+        onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
+      }
+    );
   }
 
   function manejarReenviarInvitacion(invitacionId: string) {
@@ -312,6 +339,7 @@ export function GestionEstructuraVista() {
         <TabsTrigger value="estructura"><Network />Estructura</TabsTrigger>
         <TabsTrigger value="fusion-multiplicacion"><GitMerge />Fusiones y multiplicación</TabsTrigger>
         <TabsTrigger value="invitaciones"><Mail />Invitaciones</TabsTrigger>
+        <TabsTrigger value="historico"><Archive />Histórico Anual</TabsTrigger>
       </TabsList>
 
       <TabsContent value="estructura">
@@ -410,14 +438,18 @@ export function GestionEstructuraVista() {
             <p className="text-sm text-muted-foreground">Esta red todavía no tiene Casas de Paz.</p>
           )}
           {redSeleccionadaId && cdps.map((cdp) => (
-            <div key={cdp.id} className="flex flex-col gap-2 rounded-xl border border-border px-4 py-3">
+            <div
+              key={cdp.id}
+              className={`flex flex-col gap-2 rounded-xl border border-border px-4 py-3 ${!cdp.lider_id ? 'bg-muted/60' : ''}`}
+            >
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 truncate font-medium">
+                  <p className={`flex items-center gap-1.5 truncate font-medium ${!cdp.lider_id ? 'text-foreground' : ''}`}>
                     <Home className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{cdp.etiqueta}</span>
+                    <span className="truncate">{cdp.lider_id ? cdp.etiqueta : 'Líder sin asignar'}</span>
                     {cdp.modalidad === 'VIRTUAL' && <Badge variant="outline" className="rounded-full border-primary/40 text-[10px] text-primary">Virtual</Badge>}
                   </p>
+                  <DireccionCompacta cdpId={cdp.id} />
                   <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                     <Users className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">
@@ -430,6 +462,7 @@ export function GestionEstructuraVista() {
                       )}
                     </span>
                   </p>
+                  {cdp.sublideres_count > 0 && <SublideresCompactos cdpId={cdp.id} />}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -695,6 +728,10 @@ export function GestionEstructuraVista() {
         </div>
       </section>
       </TabsContent>
+
+      <TabsContent value="historico">
+        <HistoricoCdpEliminadasVista />
+      </TabsContent>
     </Tabs>
 
       <CrearCdpDialog
@@ -745,6 +782,14 @@ export function GestionEstructuraVista() {
           asignando={asignarCargoCdp.isPending}
           onAsignar={manejarAsignarCdp}
           onQuitar={(id) => quitarCargoCdp.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
+          excluirIdsExtra={
+            dialogoCdp.codigo === 'SUBLIDER_CDP'
+              ? (() => {
+                  const liderId = cdps.find((c) => c.id === dialogoCdp.cdpId)?.lider_id;
+                  return liderId ? [liderId] : undefined;
+                })()
+              : undefined
+          }
           invitable={dialogoCdp.codigo === 'LIDER_CDP' || dialogoCdp.codigo === 'SUBLIDER_CDP'}
           invitando={invitarLider.isPending}
           onInvitar={manejarInvitarCdp}
@@ -826,19 +871,17 @@ export function GestionEstructuraVista() {
         }}
       />
 
-      <ConfirmarQuitarDialog
+      <ConfirmarCambioDialog
         open={!!cdpAEliminar}
         onOpenChange={(open) => !open && setCdpAEliminar(undefined)}
         titulo="Eliminar Casa de Paz"
         descripcion={
           cdpAEliminar
-            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema. Esta acción no se puede deshacer.`
+            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema (queda consultable en Histórico Anual). Esta acción no se puede deshacer.`
             : undefined
         }
         procesando={eliminarCdp.isPending}
         onConfirmar={manejarEliminarCdp}
-        textoConfirmar="Sí, eliminar"
-        textoProcesando="Eliminando..."
       />
     </>
   );

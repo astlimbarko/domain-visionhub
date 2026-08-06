@@ -13,6 +13,11 @@ interface Props {
   colorChip: string;
   esMenorPorPersona?: Record<string, boolean>;
   onEsMenorChange?: (personaId: string, esMenor: boolean) => void;
+  /** KAN-16: indicador "Asiste a esta CDP" por persona -- true = miembro
+   * habitual, false = visita/no pertenece formalmente. No cambia la
+   * membresía oficial, solo queda asociado a este registro de asistencia. */
+  asisteCdpPorPersona?: Record<string, boolean>;
+  onAsisteCdpChange?: (personaId: string, asiste: boolean) => void;
 }
 
 /**
@@ -30,6 +35,8 @@ export function BuscadorPersonaMultiple({
   colorChip,
   esMenorPorPersona,
   onEsMenorChange,
+  asisteCdpPorPersona,
+  onAsisteCdpChange,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -105,6 +112,16 @@ export function BuscadorPersonaMultiple({
                       onCheckedChange={(v) => onEsMenorChange(id, v === true)}
                     />
                     es menor
+                  </label>
+                )}
+                {onAsisteCdpChange && (
+                  <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      className="h-3 w-3"
+                      checked={asisteCdpPorPersona?.[id] ?? true}
+                      onCheckedChange={(v) => onAsisteCdpChange(id, v === true)}
+                    />
+                    Asiste a esta CDP
                   </label>
                 )}
                 <button type="button" onClick={() => onToggle(id)} className="rounded-full p-0.5 hover:bg-black/10">

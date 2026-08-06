@@ -43,6 +43,18 @@ export interface CargoVigente {
   correo: string | null;
 }
 
+/** KAN-34: fila del Histórico Anual de Casas de Paz eliminadas. */
+export interface CdpHistoricoEliminada {
+  id: string;
+  etiqueta: string;
+  red_nombre: string | null;
+  lider_nombre: string | null;
+  fecha_creacion: string;
+  fecha_eliminacion: string;
+  eliminado_por_nombre: string | null;
+  motivo_eliminacion: string | null;
+}
+
 export interface Ciudad {
   id: string;
   codigo: string;

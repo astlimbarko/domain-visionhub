@@ -50,38 +50,12 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { HeroDato, TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
 import { urlEmbedMapa } from '@/utils/google-maps';
 import { useEmbedMapaResuelto } from '@/hooks/useMaps';
-import type { DomicilioCdp, PersonaBusqueda } from '@/types/casas-de-paz.types';
-
-/** Colores de avatar que rotan por posición, para dar variedad como en el diseño. */
-const COLORES_AVATAR = ['var(--chart-2)', 'var(--chart-1)', 'var(--chart-3)', 'var(--chart-4)'];
+import { AvatarPersona, COLORES_AVATAR } from '@/components/shared/AvatarIniciales';
+import { lineaDireccionCdp } from '@/utils/direccion-cdp';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 function fmtFecha(fecha: string) {
   return new Date(fecha).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function iniciales(nombreCompleto: string) {
-  const palabras = nombreCompleto.trim().split(/\s+/);
-  return ((palabras[0]?.[0] ?? '') + (palabras[1]?.[0] ?? '')).toUpperCase();
-}
-
-/** Dirección de reunión en una sola línea: calle+número, ciudad, zona. */
-function lineaDireccion(d: DomicilioCdp) {
-  const calle = [d.calle, d.numero].filter(Boolean).join(' ');
-  return [calle || null, d.ciudad_nombre || null, d.zona ? `Zona: ${d.zona}` : null]
-    .filter(Boolean)
-    .join(', ');
-}
-
-function AvatarPersona({ nombre, color, size = 'md' }: { nombre: string; color: string; size?: 'md' | 'lg' }) {
-  const dim = size === 'lg' ? 'h-11 w-11 text-sm' : 'h-9 w-9 text-[13px]';
-  return (
-    <div
-      className={`flex ${dim} shrink-0 items-center justify-center rounded-full font-bold`}
-      style={{ backgroundColor: `color-mix(in oklab, ${color} 16%, transparent)`, color }}
-    >
-      {iniciales(nombre) || <UserRound className="h-4 w-4" />}
-    </div>
-  );
 }
 
 /**
@@ -128,7 +102,7 @@ export function GestionSubliderVista() {
   // el texto de calle/zona (pueden no coincidir). Ver utils/google-maps.ts.
   // Si el link es corto (maps.app.goo.gl) no trae coordenadas visibles --
   // useEmbedMapaResuelto lo sigue del lado del servidor para conseguirlas.
-  const direccionDomicilio = domicilio ? lineaDireccion(domicilio) : null;
+  const direccionDomicilio = domicilio ? lineaDireccionCdp(domicilio) : null;
   const embedMapaDirecto = urlEmbedMapa(domicilio?.url_gps, direccionDomicilio);
   const { embed: embedMapaResuelto, isLoading: resolviendoMapa, isError: fallaResolverMapa } = useEmbedMapaResuelto(
     embedMapaDirecto ? null : domicilio?.url_gps
@@ -580,6 +554,7 @@ export function GestionSubliderVista() {
           asignando={asignarCargoCdp.isPending}
           onAsignar={manejarAsignar}
           onQuitar={(id) => manejarQuitar(id, 'este sublíder')}
+          excluirIdsExtra={personaId ? [personaId] : undefined}
           invitable
           invitando={invitarLider.isPending}
           onInvitar={manejarInvitar}

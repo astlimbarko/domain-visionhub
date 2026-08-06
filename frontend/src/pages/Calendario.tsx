@@ -29,7 +29,7 @@ import {
 } from '@/hooks/useCalendario';
 import { CalendarioGrid } from '@/components/calendario/CalendarioGrid';
 import { CalendarioRed } from '@/components/calendario/CalendarioRed';
-import { CalendarioIglesia } from '@/components/calendario/CalendarioIglesia';
+import { CalendarioMultiIglesia } from '@/components/calendario/CalendarioMultiIglesia';
 import { EventoFormDialog } from '@/components/calendario/EventoFormDialog';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
@@ -43,6 +43,8 @@ const ROLES_PUEDEN_MEGA_FIESTA = new Set(['LIDER_RED', 'SUPERVISOR', 'PASTOR', '
 export function Calendario() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const iglesias = useAuthStore((s) => s.iglesias);
+  const nombreIglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Mi iglesia';
   const rolUI = useRolUI();
   const { data: roles } = useMisRoles(iglesiaActivaId);
 
@@ -50,7 +52,6 @@ export function Calendario() {
   // El Supervisor puede administrar el calendario de su iglesia, o el de una
   // hija/satélite directa (Padre -> Hija, ver 101_calendario_padre_satelite.sql).
   const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' ? iglesiaActivaId : undefined);
-  const [iglesiaCalendarioId, setIglesiaCalendarioId] = useState<string>();
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
 
@@ -147,34 +148,21 @@ export function Calendario() {
 
   // El Supervisor no lidera/sublidera ninguna Casa de Paz propia -- antes
   // caía siempre en el placeholder de abajo pese a tener "Calendario" en su
-  // menú. Ve el calendario propio de la iglesia: eventos que fija se ven en
-  // todas las Redes y CdP de esa iglesia (fn_eventos_cdp/fn_eventos_red ya
-  // los mezclan; ver CalendarioIglesia, 100_calendario_ambito_iglesia.sql).
+  // menú. Ve el calendario consolidado de su iglesia + hijas/satélite (KAN-39,
+  // CalendarioMultiIglesia): eventos que fija se ven en todas las Redes y CdP
+  // de esa iglesia (fn_eventos_cdp/fn_eventos_red ya los mezclan; ver
+  // 100_calendario_ambito_iglesia.sql / 101_calendario_padre_satelite.sql).
   // Pastor no tiene "Calendario" en su menú (RUTAS_PASTOR) -- fuera de alcance.
   if (rolUI === 'SUPERVISOR') {
     if (!iglesiaActivaId) return <Skeleton className="h-96 w-full rounded-2xl" />;
-    const iglesiaElegida = iglesiaCalendarioId ?? iglesiaActivaId;
+    // KAN-39: filtro de sede multi-selección + vista consolidada (antes,
+    // <Select> de una sede a la vez) -- ver CalendarioMultiIglesia.
     return (
-      <div className="flex flex-col gap-5">
-        {iglesiasHijas.length > 0 && (
-          <div className="flex justify-end">
-            <Select value={iglesiaElegida} onValueChange={setIglesiaCalendarioId}>
-              <SelectTrigger className="w-full rounded-2xl sm:w-64">
-                <SelectValue placeholder="Elegí una iglesia" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={iglesiaActivaId}>Mi iglesia</SelectItem>
-                {iglesiasHijas.map((i) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nombre} ({i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        <CalendarioIglesia key={iglesiaElegida} iglesiaId={iglesiaElegida} />
-      </div>
+      <CalendarioMultiIglesia
+        iglesiaPrincipalId={iglesiaActivaId}
+        nombreIglesiaPrincipal={nombreIglesiaActiva}
+        iglesiasHijas={iglesiasHijas}
+      />
     );
   }
 

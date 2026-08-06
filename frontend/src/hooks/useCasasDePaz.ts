@@ -15,6 +15,7 @@ import {
   obtenerCdps,
   obtenerCiudades,
   obtenerDomicilioCdp,
+  obtenerHistoricoCdpEliminadas,
   obtenerRedes,
   quitarCargoCdp,
   quitarCargoRed,
@@ -127,14 +128,24 @@ export function useToggleActivoCdp() {
 export function useEliminarCdp() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (cdpId: string) => eliminarCdp(cdpId),
+    mutationFn: ({ cdpId, motivo }: { cdpId: string; motivo?: string }) => eliminarCdp(cdpId, motivo),
     // Igual que useToggleActivoCdp: una CdP eliminada deja de aparecer en
     // Dashboard y Control de Reportes, así que hay que invalidar también esas.
+    // También el Histórico Anual (KAN-34), donde pasa a aparecer.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['reporte'] });
     },
+  });
+}
+
+/** KAN-34: Histórico Anual de Casas de Paz eliminadas. */
+export function useHistoricoCdpEliminadas(iglesiaId: string | undefined, anio: number | undefined, redId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'historico-cdp-eliminadas', iglesiaId, anio, redId],
+    queryFn: () => obtenerHistoricoCdpEliminadas(iglesiaId as string, anio, redId),
+    enabled: !!iglesiaId,
   });
 }
 
