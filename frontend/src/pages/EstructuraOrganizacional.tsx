@@ -197,6 +197,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             </form>
             <button
               type="button"
+              title="Centrar estructura"
               onClick={() => void fitView({ padding: 0.16, duration: 500 })}
               className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
             >
@@ -219,6 +220,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             {modoOrganizar && (
               <button
                 type="button"
+                title="Organizar automáticamente"
                 onClick={() => {
                   if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
                   const automatico = crearGrafoEstructura({
@@ -238,6 +240,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               <button
                 type="button"
                 aria-label="Alejar"
+                title="Alejar"
                 onClick={() => void zoomOut({ duration: 200 })}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
               >
@@ -247,6 +250,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               <button
                 type="button"
                 aria-label="Acercar"
+                title="Acercar"
                 onClick={() => void zoomIn({ duration: 200 })}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
               >
@@ -277,6 +281,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           <button
             type="button"
             aria-label="Centrar estructura"
+            title="Centrar estructura"
             onClick={() => void fitView({ padding: 0.16, duration: 500 })}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5"
           >
@@ -300,6 +305,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <button
               type="button"
               aria-label="Organizar automáticamente"
+              title="Organizar automáticamente"
               onClick={() => {
                 if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
                 const automatico = crearGrafoEstructura({
@@ -318,6 +324,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <button
               type="button"
               aria-label="Alejar"
+              title="Alejar"
               onClick={() => void zoomOut({ duration: 200 })}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             >
@@ -327,6 +334,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <button
               type="button"
               aria-label="Acercar"
+              title="Acercar"
               onClick={() => void zoomIn({ duration: 200 })}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             >
