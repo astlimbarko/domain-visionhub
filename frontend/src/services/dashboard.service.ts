@@ -8,6 +8,7 @@ import type {
   DashboardSupervisor,
   IngresoDetalle,
   IngresoMoneda,
+  MiembroCdpDashboard,
   MisRolesDashboard,
   PuntoTendenciaAsistencia,
 } from '@/types/dashboard.types';
@@ -28,6 +29,21 @@ export async function obtenerDashboardSubliderCdp(casaDePazId: string): Promise<
   const { data, error } = await supabase.rpc('fn_dashboard_sublider_cdp', { p_casa_de_paz_id: casaDePazId });
   if (error) throw error;
   return data as DashboardLiderCdp;
+}
+
+/**
+ * Semáforo de fidelidad (VERDE/AMARILLO/ROJO) de los miembros de una Casa de
+ * Paz -- reusa `fn_lista_miembros_cdp`, que ya existe en el backend (usada
+ * hoy solo internamente por `fn_dashboard_lider_cdp`) pero valida el acceso
+ * por sí misma, así que se puede invocar directo (mismo criterio ya usado
+ * para `fn_ingresos_cdp`, ver `obtenerIngresosCdpPeriodo` más abajo). Se usa
+ * para armar el índice de fidelidad agregado por Red del Supervisor
+ * (`HistorialAsistenciaSupervisorVista`) sumando el semáforo de cada CdP.
+ */
+export async function obtenerSemaforoCdp(casaDePazId: string): Promise<MiembroCdpDashboard[]> {
+  const { data, error } = await supabase.rpc('fn_lista_miembros_cdp', { p_casa_de_paz_id: casaDePazId });
+  if (error) throw error;
+  return (data ?? []) as MiembroCdpDashboard[];
 }
 
 export async function obtenerDashboardLiderRed(redId: string): Promise<DashboardLiderRed> {

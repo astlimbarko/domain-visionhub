@@ -232,24 +232,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   ].join('\n');
   const mailtoSoporte = `mailto:${CORREO_SOPORTE}?subject=${encodeURIComponent('Reporte de incidencia')}&body=${encodeURIComponent(cuerpoSoporte)}`;
 
-  // Sombreros para Dashboard multi-vista
+  // Sombreros para Dashboard multi-vista -- SOLO del mismo nivel que el
+  // rolUI ya resuelto (determinarRolUI, permisos.ts: SUPER_ADMIN > PASTOR >
+  // SUPERVISOR > LIDER_RED > LIDER_CDP > SUBLIDER_CDP). Antes se armaban
+  // agregando TODOS los cargos que la persona tuviera sin importar su rol
+  // activo -- un Supervisor que además fuera Sublíder de alguna CdP (cargo
+  // "de sombra", no su rol operativo) veía "Panel operativo" mezclado con
+  // "CdP (sub): ..." bajo el mismo Dashboard, como si fueran del mismo nivel
+  // (pedido del owner, 2026-08-06: "los dashboards de los roles superiores
+  // no deberían tener sus sombras de otros roles"). Ahora cada rama solo
+  // deja pasar entradas del propio nivel -- para SUPERVISOR/LIDER_RED/
+  // LIDER_CDP con más de una Red/CdP a cargo (multi-instancia real del mismo
+  // nivel, no un rol distinto), sigue permitiendo elegir entre ellas.
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
   const sombreros: Sombrero[] = [];
-  if (roles?.es_operativo && iglesiaActivaId) sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
-  for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
-  // Si ya hay acceso a nivel Red (Líder de Red o Supervisor de la Red en
-  // Acción), no se muestra además un atajo a una CdP que ya pertenece a esa
-  // misma Red -- es redundante, esa CdP ya se ve desde el dashboard de la
-  // Red (pedido del owner, 2026-08-02). Solo se oculta cuando se solapa; una
-  // CdP de una Red distinta a la que lidera/supervisa sigue apareciendo.
-  const redesConAcceso = new Set((roles?.redes_lider ?? []).map((r) => r.id));
-  for (const c of roles?.cdp_lider ?? []) {
-    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
-    sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
-  }
-  for (const c of roles?.cdp_sublider ?? []) {
-    if (c.red_id && redesConAcceso.has(c.red_id)) continue;
-    sombreros.push({ key: `cdp-sub-${c.id}`, label: `CdP (sub): ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: true } });
+  if (rolUI === 'SUPERVISOR') {
+    if (roles?.es_operativo && iglesiaActivaId) {
+      sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
+    }
+  } else if (rolUI === 'LIDER_RED') {
+    for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
+  } else if (rolUI === 'LIDER_CDP') {
+    for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
   }
 
   async function handleLogout() {

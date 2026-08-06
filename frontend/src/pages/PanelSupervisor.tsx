@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { Settings2, Wallet } from 'lucide-react';
+import { Bell, ClipboardList, LayoutDashboard, Settings2, SlidersHorizontal, Users, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
@@ -33,6 +35,19 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
   FAMILIA: 'Conteo de familias',
   REGISTRO: 'Registro público por URL',
 };
+
+// Agrupa las cards por tema en vez de por pares mecánicos, para que cada
+// pestaña tenga un solo nombre claro (no dos títulos pegados con "·").
+// Las categorías que llegue del backend y no estén contempladas acá caen en
+// un grupo "Otros" al final -- así la pantalla no se rompe si se agrega una
+// categoría nueva sin actualizar este mapa.
+const GRUPOS_PESTANIA: { id: string; nombre: string; icon: LucideIcon; categorias: string[] }[] = [
+  { id: 'general', nombre: 'General', icon: SlidersHorizontal, categorias: ['__moneda', 'CDP'] },
+  { id: 'dashboards', nombre: 'Dashboards', icon: LayoutDashboard, categorias: ['DASHBOARD_LIDER', 'DASHBOARD_SUBLIDER', 'DASHBOARD_RED'] },
+  { id: 'formularios', nombre: 'Formularios', icon: ClipboardList, categorias: ['FORMULARIO_MEMBRESIA', 'FORMULARIO_REPORTE'] },
+  { id: 'estados', nombre: 'Estados y familias', icon: Users, categorias: ['SSVA', 'FAMILIA'] },
+  { id: 'comunicacion', nombre: 'Notificaciones y registro', icon: Bell, categorias: ['NOTIFICACION', 'REGISTRO'] },
+];
 
 /**
  * Panel del Supervisor -- solo configuración general (moneda, toggles de
@@ -93,11 +108,10 @@ export function PanelSupervisor() {
 
   const COLORES_CATEGORIA = [AZUL, MORADO, TEAL];
 
-  return (
-    <div className="flex flex-col gap-6">
-      <p className="text-sm text-muted-foreground">{panel.advertencia}</p>
-
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+  const tarjetaMoneda = {
+    id: '__moneda',
+    nodo: (
+      <section key="__moneda" className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Wallet} color={TEAL} titulo="Moneda por defecto" descripcion="Solo afecta a los ingresos nuevos." />
         <div className="p-5">
           <Select
@@ -117,22 +131,70 @@ export function PanelSupervisor() {
           </Select>
         </div>
       </section>
+    ),
+  };
 
-      {Object.entries(panel.categorias).map(([categoria, items], idx) => (
-        <section key={categoria} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader
-            icon={Settings2}
-            color={COLORES_CATEGORIA[idx % COLORES_CATEGORIA.length]}
-            titulo={NOMBRE_CATEGORIA[categoria] ?? categoria}
-            descripcion="Opciones de configuración de esta sección."
-          />
-          <div className="p-5">
-            {items.map((item) => (
-              <ConfiguracionRow key={item.codigo} item={item} onGuardar={handleGuardar} />
-            ))}
-          </div>
-        </section>
-      ))}
+  const tarjetasCategorias = Object.entries(panel.categorias).map(([categoria, items], idx) => ({
+    id: categoria,
+    nodo: (
+      <section key={categoria} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Settings2}
+          color={COLORES_CATEGORIA[idx % COLORES_CATEGORIA.length]}
+          titulo={NOMBRE_CATEGORIA[categoria] ?? categoria}
+          descripcion="Opciones de configuración de esta sección."
+        />
+        <div className="p-5">
+          {items.map((item) => (
+            <ConfiguracionRow key={item.codigo} item={item} onGuardar={handleGuardar} />
+          ))}
+        </div>
+      </section>
+    ),
+  }));
+
+  const tarjetas = [tarjetaMoneda, ...tarjetasCategorias];
+  const mapaTarjetas = new Map(tarjetas.map((t) => [t.id, t]));
+  const idsAgrupados = new Set<string>();
+
+  const pestanas = GRUPOS_PESTANIA.map((def) => ({
+    id: def.id,
+    nombre: def.nombre,
+    icon: def.icon,
+    tarjetas: def.categorias
+      .map((id) => mapaTarjetas.get(id))
+      .filter((t): t is (typeof tarjetas)[number] => {
+        if (!t) return false;
+        idsAgrupados.add(t.id);
+        return true;
+      }),
+  })).filter((p) => p.tarjetas.length > 0);
+
+  const sobrantes = tarjetas.filter((t) => !idsAgrupados.has(t.id));
+  if (sobrantes.length > 0) {
+    pestanas.push({ id: 'otros', nombre: 'Otros', icon: Settings2, tarjetas: sobrantes });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-muted-foreground">{panel.advertencia}</p>
+
+      <Tabs defaultValue={pestanas[0]?.id}>
+        <TabsList>
+          {pestanas.map((p) => (
+            <TabsTrigger key={p.id} value={p.id}>
+              <p.icon />
+              {p.nombre}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {pestanas.map((p) => (
+          <TabsContent key={p.id} value={p.id}>
+            {p.tarjetas.map((t) => t.nodo)}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       <ConfirmarCambioDialog
         open={pinPendiente}

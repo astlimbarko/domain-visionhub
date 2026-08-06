@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MARINO, MORADO, AMBAR, TEAL } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
@@ -305,7 +306,16 @@ export function GestionEstructuraVista() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <>
+    <Tabs defaultValue="estructura">
+      <TabsList>
+        <TabsTrigger value="estructura"><Network />Estructura</TabsTrigger>
+        <TabsTrigger value="fusion-multiplicacion"><GitMerge />Fusiones y multiplicación</TabsTrigger>
+        <TabsTrigger value="invitaciones"><Mail />Invitaciones</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="estructura">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Network}
@@ -477,8 +487,11 @@ export function GestionEstructuraVista() {
           ))}
         </div>
       </section>
+      </div>
+      </TabsContent>
 
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+      <TabsContent value="fusion-multiplicacion">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={GitMerge}
           color={AZUL}
@@ -562,7 +575,7 @@ export function GestionEstructuraVista() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={GitBranch}
           color={MORADO}
@@ -629,8 +642,10 @@ export function GestionEstructuraVista() {
           </div>
         </div>
       </section>
+      </TabsContent>
 
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
+      <TabsContent value="invitaciones">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="Invitaciones a Redes y Casas de Paz de la iglesia" />
         <div className="flex flex-col gap-2 p-5">
           {invitacionesLider.length === 0 && (
@@ -679,6 +694,8 @@ export function GestionEstructuraVista() {
           ))}
         </div>
       </section>
+      </TabsContent>
+    </Tabs>
 
       <CrearCdpDialog
         open={mostrarCrearCdp}
@@ -823,6 +840,6 @@ export function GestionEstructuraVista() {
         textoConfirmar="Sí, eliminar"
         textoProcesando="Eliminando..."
       />
-    </div>
+    </>
   );
 }

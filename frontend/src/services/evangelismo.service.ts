@@ -1,11 +1,14 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
+import { aISO } from '@/utils/calendario-fechas';
 import type {
   Evangelizado,
   EvangelizadoRed,
   MetaCdpRed,
   MetaPropia,
+  MetaRedAsignada,
   NuevaMetaAsignada,
+  NuevaMetaAsignadaRed,
   NuevoEvangelizado,
   TasaEvangelismo,
   TasaEvangelismoRed,
@@ -158,6 +161,48 @@ export async function asignarMetaEvangelismo(datos: NuevaMetaAsignada) {
   const { error } = await supabase.from('meta_evangelismo_asignada').insert({
     iglesia_id: datos.iglesiaId,
     casa_de_paz_id: datos.casaDePazId,
+    asignador_id: datos.asignadorId,
+    meta: datos.meta,
+    fecha_inicio: datos.fechaInicio,
+    fecha_fin: datos.fechaFin,
+    observaciones: datos.observaciones || null,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Meta que el Supervisor le asignó a una Red completa (`red_id`, no
+ * `casa_de_paz_id`) y que esté vigente hoy -- lectura directa, mismo estilo
+ * que `obtenerMetaPropia`. `null` si no hay ninguna vigente.
+ */
+export async function obtenerMetaRedAsignada(redId: string): Promise<MetaRedAsignada | null> {
+  const hoy = aISO(new Date());
+  const { data, error } = await supabase
+    .from('meta_evangelismo_asignada')
+    .select('meta, fecha_inicio, fecha_fin')
+    .eq('red_id', redId)
+    .lte('fecha_inicio', hoy)
+    .gte('fecha_fin', hoy)
+    .order('fecha_inicio', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Asigna una meta de evangelismo a una Red completa -- insert directo (mismo
+ * patrón que `asignarMetaEvangelismo`), con `red_id` en vez de
+ * `casa_de_paz_id`. La policy RLS bifurcada `pol_meta_asignada_insert`
+ * (81_meta_global_red.sql) ya permite esto para un Supervisor/Pastor
+ * (`fn_es_operativo_en`) o el Líder de esa Red. `fn_meta_efectiva`
+ * (103_evangelismo_meta_supervisor_red.sql) la hereda hacia cada Casa de Paz
+ * de la Red que no tenga ya su propia meta asignada.
+ */
+export async function asignarMetaRedEvangelismo(datos: NuevaMetaAsignadaRed) {
+  const { error } = await supabase.from('meta_evangelismo_asignada').insert({
+    iglesia_id: datos.iglesiaId,
+    red_id: datos.redId,
     asignador_id: datos.asignadorId,
     meta: datos.meta,
     fecha_inicio: datos.fechaInicio,
