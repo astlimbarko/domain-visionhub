@@ -413,6 +413,26 @@ sistema.
 
 **Seguridad verificada:** las RPC nuevas usan `SECURITY DEFINER` con `search_path` fijo, autorización interna por iglesia, `REVOKE` a `PUBLIC/anon` y `GRANT` exclusivo a `authenticated`.
 
+### Corrección — cabecera rota en móvil y tablet
+
+**Título:** Corregir cabecera del lienzo en anchos angostos.
+
+**Descripción breve:** La cabecera dependía de `flex-wrap` implícito y se
+partía en 3 filas descoordinadas en celular (buscador flotando entre íconos
+sueltos) y colisionaba título/nombre de iglesia en tablet (~768px). Se
+reescribió con dos layouts explícitos: fila única desde `lg` (buscador +
+acciones + zoom inline) y, debajo de `lg`, buscador de ancho completo más una
+barra compacta de íconos. Encontrado y verificado con Playwright en 360/390/
+768/1024px, no solo a ojo.
+
+**Vinculación:** KAN-63 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, `EstructuraOrganizacional.tsx`.
+
+**Pendiente relacionado:** a 1024px exacto los botones "Centrar estructura"/
+"Modo organizar" todavía truncan/envuelven texto de forma ajustada; queda
+para el pase completo de responsividad de esta fase, no bloquea.
+
 ## Fase 10 — KAN-63: móvil y escalabilidad
 
 1. Pan/pinch y Modo organizar táctil.

@@ -153,67 +153,149 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
 
   return (
     <div className="flex h-svh flex-col bg-[#e3e7ee]">
-      <header className="z-20 flex flex-wrap items-center gap-4 border-b border-white/10 bg-[#0a0e1a] px-4 py-3 sm:px-6">
-        <Link
-          to={ROUTES.ADMINISTRACION}
-          aria-label="Volver a Administración"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex min-w-0 shrink items-center gap-2.5">
-          <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
-          <span className="flex max-w-52 min-w-0 items-baseline gap-1.5 text-[15px] text-white sm:max-w-72">
-            <span className="shrink-0 font-bold">Iglesia</span>
-            <span className="truncate font-normal text-white/75">{nombreIglesia}</span>
-          </span>
-        </div>
-        <div className="hidden h-8 w-px shrink-0 bg-white/15 sm:block" />
-        <div className="hidden min-w-0 md:block">
-          <h1 className="truncate text-base font-bold text-white">Estructura Organizacional</h1>
-          <p className="truncate text-left text-xs font-medium text-white/55">Vista general de la iglesia</p>
-        </div>
-        <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
-          <form
-            className="relative order-last w-full sm:order-none sm:w-auto"
-            onSubmit={(evento) => {
-              evento.preventDefault();
-              centrarBusqueda();
-            }}
+      <header className="z-20 border-b border-white/10 bg-[#0a0e1a] px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-4">
+          <Link
+            to={ROUTES.ADMINISTRACION}
+            aria-label="Volver a Administración"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           >
-            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/40" />
-            <input
-              value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
-              placeholder="Buscar persona o entidad"
-              aria-label="Buscar persona o entidad"
-              className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-[13px] text-white placeholder:text-white/40 outline-none focus-visible:border-white/30 sm:w-64"
-            />
-          </form>
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex min-w-0 shrink items-center gap-2.5">
+            <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
+            <span className="flex max-w-40 min-w-0 items-baseline gap-1.5 text-[15px] text-white sm:max-w-56 lg:max-w-72">
+              <span className="shrink-0 font-bold">Iglesia</span>
+              <span className="truncate font-normal text-white/75">{nombreIglesia}</span>
+            </span>
+          </div>
+          <div className="hidden h-8 w-px shrink-0 bg-white/15 lg:block" />
+          <div className="hidden min-w-0 lg:block">
+            <h1 className="truncate text-base font-bold text-white">Estructura Organizacional</h1>
+            <p className="truncate text-left text-xs font-medium text-white/55">Vista general de la iglesia</p>
+          </div>
+          <div className="ml-auto hidden flex-1 items-center justify-end gap-2 lg:flex">
+            <form
+              className="relative"
+              onSubmit={(evento) => {
+                evento.preventDefault();
+                centrarBusqueda();
+              }}
+            >
+              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                value={busqueda}
+                onChange={(evento) => setBusqueda(evento.target.value)}
+                placeholder="Buscar persona o entidad"
+                aria-label="Buscar persona o entidad"
+                className="h-10 w-64 rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-[13px] text-white placeholder:text-white/40 outline-none focus-visible:border-white/30"
+              />
+            </form>
+            <button
+              type="button"
+              onClick={() => void fitView({ padding: 0.16, duration: 500 })}
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
+            >
+              <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
+            </button>
+            <button
+              type="button"
+              disabled={!data?.layout.disponible || guardarPosiciones.isPending}
+              title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
+              onClick={() => setModoOrganizar((actual) => !actual)}
+              className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                modoOrganizar
+                  ? 'border-blue-400 bg-blue-500/20 text-blue-100'
+                  : 'border-white/15 text-white hover:bg-white/5'
+              }`}
+            >
+              <Grip className="h-4 w-4" />
+              <span className="hidden lg:inline">{modoOrganizar ? 'Organizando' : 'Modo organizar'}</span>
+            </button>
+            {modoOrganizar && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
+                  const automatico = crearGrafoEstructura({
+                    ...data,
+                    layout: { ...data.layout, posiciones: [] },
+                  });
+                  setNodes(automatico.nodes);
+                  automatico.nodes.forEach(programarGuardado);
+                }}
+                className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3 text-[13px] font-medium text-white hover:bg-white/5"
+              >
+                <WandSparkles className="h-4 w-4" />
+                <span className="hidden xl:inline">Organizar automáticamente</span>
+              </button>
+            )}
+            <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
+              <button
+                type="button"
+                aria-label="Alejar"
+                onClick={() => void zoomOut({ duration: 200 })}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-10 text-center text-[13px] tabular-nums">{Math.round(zoom * 100)}%</span>
+              <button
+                type="button"
+                aria-label="Acercar"
+                onClick={() => void zoomIn({ duration: 200 })}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Móvil: buscador y controles en filas propias, sin desbordar el título. */}
+        <form
+          className="relative mt-3 lg:hidden"
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            centrarBusqueda();
+          }}
+        >
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <input
+            value={busqueda}
+            onChange={(evento) => setBusqueda(evento.target.value)}
+            placeholder="Buscar persona o entidad"
+            aria-label="Buscar persona o entidad"
+            className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-[13px] text-white placeholder:text-white/40 outline-none focus-visible:border-white/30"
+          />
+        </form>
+        <div className="mt-2 flex items-center gap-2 lg:hidden">
           <button
             type="button"
+            aria-label="Centrar estructura"
             onClick={() => void fitView({ padding: 0.16, duration: 500 })}
-            className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5"
           >
-            <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
+            <Crosshair className="h-4 w-4" />
           </button>
           <button
             type="button"
+            aria-label="Modo organizar"
             disabled={!data?.layout.disponible || guardarPosiciones.isPending}
             title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
             onClick={() => setModoOrganizar((actual) => !actual)}
-            className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               modoOrganizar
                 ? 'border-blue-400 bg-blue-500/20 text-blue-100'
                 : 'border-white/15 text-white hover:bg-white/5'
             }`}
           >
             <Grip className="h-4 w-4" />
-            <span className="hidden lg:inline">{modoOrganizar ? 'Organizando' : 'Modo organizar'}</span>
           </button>
           {modoOrganizar && (
             <button
               type="button"
+              aria-label="Organizar automáticamente"
               onClick={() => {
                 if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
                 const automatico = crearGrafoEstructura({
@@ -223,13 +305,12 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setNodes(automatico.nodes);
                 automatico.nodes.forEach(programarGuardado);
               }}
-              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3 text-[13px] font-medium text-white hover:bg-white/5"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white hover:bg-white/5"
             >
               <WandSparkles className="h-4 w-4" />
-              <span className="hidden xl:inline">Organizar automáticamente</span>
             </button>
           )}
-          <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
+          <div className="ml-auto flex h-9 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
             <button
               type="button"
               aria-label="Alejar"
@@ -238,7 +319,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="w-10 text-center text-[13px] tabular-nums">{Math.round(zoom * 100)}%</span>
+            <span className="w-9 text-center text-[13px] tabular-nums">{Math.round(zoom * 100)}%</span>
             <button
               type="button"
               aria-label="Acercar"
