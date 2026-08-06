@@ -48,26 +48,20 @@ export function HistorialReportesSupervisorVista() {
     );
   }
 
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex justify-end">
-        {redes.length > 1 && (
-          <Select value={redActiva} onValueChange={setRedId}>
-            <SelectTrigger className="w-full rounded-2xl sm:w-56">
-              <SelectValue placeholder="Elegí una red" />
-            </SelectTrigger>
-            <SelectContent>
-              {redes.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-
-      {redActiva && <ControlReportesVista key={redActiva} redId={redActiva} />}
-    </div>
+  const selectorRed = redes.length > 1 && (
+    <Select value={redActiva} onValueChange={setRedId}>
+      <SelectTrigger className="h-9 w-44 rounded-xl text-sm">
+        <SelectValue placeholder="Elegí una red" />
+      </SelectTrigger>
+      <SelectContent>
+        {redes.map((r) => (
+          <SelectItem key={r.id} value={r.id}>
+            {r.nombre}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
+
+  return redActiva ? <ControlReportesVista key={redActiva} redId={redActiva} accionExtra={selectorRed} /> : null;
 }
