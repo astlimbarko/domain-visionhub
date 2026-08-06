@@ -112,7 +112,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, onClose }: Prop
       <button
         type="button"
         aria-label="Cerrar detalle de Casa de Paz"
-        onClick={onClose}
+        onClick={() => { if (!dialogoCargo && !mostrarDomicilio) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/15 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[78%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-3xl">

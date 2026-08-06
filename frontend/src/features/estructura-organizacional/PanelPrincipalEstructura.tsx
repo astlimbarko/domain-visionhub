@@ -40,14 +40,15 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const [correo, setCorreo] = useState('');
   const [otp, setOtp] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
+  const datosSinGuardar = busqueda.trim().length > 0 || correo.trim().length > 0 || otp.trim().length > 0;
 
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') onClose();
+      if (evento.key === 'Escape' && !datosSinGuardar) onClose();
     };
     window.addEventListener('keydown', cerrarConEscape);
     return () => window.removeEventListener('keydown', cerrarConEscape);
-  }, [onClose]);
+  }, [onClose, datosSinGuardar]);
 
   const procesando = asignar.isPending || invitar.isPending;
   const codigoCompleto = /^\d{6}$/.test(otp);
@@ -100,7 +101,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
       <button
         type="button"
         aria-label={`Cerrar panel de ${etiqueta}`}
-        onClick={onClose}
+        onClick={() => { if (!datosSinGuardar) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[88%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">

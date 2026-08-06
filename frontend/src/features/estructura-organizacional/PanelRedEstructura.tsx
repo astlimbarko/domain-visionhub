@@ -217,13 +217,18 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
   const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
 
+  const colorInicialCierre = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
+  const datosSinGuardar = modo === 'crear'
+    ? nombre.trim().length > 0 || color.toUpperCase() !== PALETA_RED[0].toUpperCase()
+    : color.toUpperCase() !== colorInicialCierre.toUpperCase();
+
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') onClose();
+      if (evento.key === 'Escape' && !datosSinGuardar) onClose();
     };
     window.addEventListener('keydown', cerrarConEscape);
     return () => window.removeEventListener('keydown', cerrarConEscape);
-  }, [onClose]);
+  }, [onClose, datosSinGuardar]);
 
   useEffect(() => {
     setNombre(red?.nombre ?? '');
@@ -415,7 +420,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       <button
         type="button"
         aria-label="Cerrar panel de Red"
-        onClick={onClose}
+        onClick={() => { if (!datosSinGuardar) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[88%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">

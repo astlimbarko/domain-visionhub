@@ -62,7 +62,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }
       <button
         type="button"
         aria-label="Cerrar panel de Departamento"
-        onClick={onClose}
+        onClick={() => { if (!asignando && !confirmandoQuitar) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[88%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
