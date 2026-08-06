@@ -76,6 +76,38 @@
 - ✅ **Nombre de rama cerrado.** Rama activa:
   `feature/estructura-organizacional`.
 
+## Hallazgos de prueba real del owner (2026-08-05, Redes)
+
+Gonzalo probó en vivo cambiar el Líder de Red de "Red Vida Nueva" (vía
+"Desde base de datos") y encontró 3 cosas reales, en cola, no bloqueantes:
+
+- **OQ-NOTIFICAR-ASIGNACION-BD** — al asignar un cargo por vía "Desde base de
+  datos" a una persona que YA tiene cuenta, no se envía ningún correo de
+  notificación. Esto es una brecha real contra REQ-ASG-7 (notificar el nuevo
+  cargo a alguien que ya está registrado) — hoy la vía BD del panel de Red
+  solo hace el INSERT, sin ningún aviso. No es un problema de plantilla
+  faltante en Supabase (hipótesis del owner); es que esa vía nunca llama a
+  ningún envío de correo. Falta implementar.
+- **OTP único confirmado por diseño, no es un bug** — el owner esperaba 2
+  códigos (uno para quitar, uno para asignar) y no llegó ninguno. Cero es
+  correcto hoy porque el switch OTP del módulo está apagado por defecto
+  (REQ-OTP-1). Cuando se active, `fn_estructura_asignar_cargo_red` solo va a
+  pedir **un** código (la baja del anterior y el alta del nuevo son atómicas
+  en la misma RPC) — evita a propósito el patrón de "2 OTP para una sola
+  acción" que ya mordió al equipo antes.
+- **OQ-CONFIRMAR-CAMBIO-CARGO** — falta un paso de confirmación ("¿Seguro que
+  querés quitar a X / asignar a Y?") antes de ejecutar el cambio, tanto al
+  asignar como al quitar un cargo. Hoy se aplica al toque de seleccionar en
+  la búsqueda. El patrón ya existe en otras pantallas (`ConfirmarCambioDialog`,
+  `ConfirmarQuitarDialog` en `components/shared/`) — reusar, no inventar.
+
+**Sobre el registro de auditoría (pregunta directa del owner):** sí existe.
+`red_cargo` y las demás tablas de cargos ya guardan `creado_por`/
+`actualizado_por`/`fecha_creacion`/`fecha_actualizacion` vía el trigger
+`fn_auditoria()` — se usó para confirmar que este cambio lo hizo el propio
+owner. Falta una pantalla para consultarlo cómodo (hoy hay que hacerlo por
+SQL/API directo); no es prioridad ahora, solo queda anotado.
+
 ## Regla de cambio
 
 Una decisión cerrada no se cambia silenciosamente. Cualquier modificación debe
