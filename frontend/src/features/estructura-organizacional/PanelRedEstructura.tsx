@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Mail, Palette, Search, UserRound, X } from 'lucide-react';
+import { Home, Mail, Pipette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -237,6 +237,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
   const formularioValido = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color) && otpValido;
   const esColorPersonalizado = !PALETA_RED.some((opcion) => opcion === color.toUpperCase());
+  const colorInicial = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
+  const hayCambios = modo === 'crear' || color.toUpperCase() !== colorInicial.toUpperCase();
   const redConMismoColor = redesExistentes.find(
     (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
   );
@@ -427,23 +429,24 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               </div>
             )}
             <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2 flex items-center gap-1">
               {PALETA_RED.map((opcion) => (
                 <button
                   key={opcion}
                   type="button"
                   aria-label={`Usar color ${opcion}`}
                   onClick={() => setColor(opcion)}
-                  className={`h-8 w-8 cursor-pointer rounded-full border-2 transition-transform hover:scale-105 ${color.toUpperCase() === opcion ? 'border-slate-900 ring-2 ring-slate-200' : 'border-white'}`}
+                  className={`h-7 w-7 shrink-0 cursor-pointer rounded-full border-2 ${color.toUpperCase() === opcion ? 'border-slate-900 ring-2 ring-slate-200' : 'border-white hover:border-slate-300'}`}
                   style={{ backgroundColor: opcion }}
                 />
               ))}
               <label
-                aria-label="Elegir color personalizado desde la paleta completa"
-                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 transition-transform hover:scale-105 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200 bg-white'}`}
+                aria-label="Elegir color personalizado o escribir un código hexadecimal"
+                title="Color personalizado (hexadecimal)"
+                className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-dashed border-slate-400 bg-white hover:border-slate-500'}`}
                 style={esColorPersonalizado ? { backgroundColor: color } : undefined}
               >
-                <Palette className="h-4 w-4" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
+                <Pipette className="h-3.5 w-3.5" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
                 <input
                   type="color"
                   value={color}
@@ -509,7 +512,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           <button type="button" onClick={onClose} className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
           <button
             type="button"
-            disabled={procesando || !formularioValido}
+            disabled={procesando || !formularioValido || !hayCambios}
             onClick={() => void guardarRed()}
             className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >

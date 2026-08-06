@@ -242,10 +242,24 @@ válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya
 > que se está editando), mensaje "Este color ya lo usa la Red «X»...". Verificado
 > en vivo con Playwright creando 2 Redes con el mismo color. Ver Jira KAN-58.
 
-> Pendiente 2026-08-05: falta un campo de texto para pegar un hexadecimal
-> directo (además de la paleta y el selector nativo) — pedido explícito de
-> Gonzalo, práctico para copiar un color exacto de otro lado. No implementado
-> todavía.
+> Hecho 2026-08-06: el hexadecimal directo ya se podía escribir haciendo clic
+> en el swatch de "Personalizado" (abre el selector nativo del SO, que trae
+> su propio campo de hex) — el problema real era que no se notaba que ese
+> botón servía para eso, y su posición podía saltar a una segunda fila.
+> Versión final: ícono `Pipette` (gotero, estándar de "color personalizado")
+> al final de la MISMA fila que las 8 muestras, con `title` nativo al pasar
+> el mouse. Fila reducida (7×7, gap más chico) para que entren las 9 en un
+> solo renglón sin desbordar ni mostrar scroll horizontal — se quitó también
+> `hover:scale-105` de las muestras porque el crecimiento al pasar el mouse
+> era justo lo que disparaba la barra de desplazamiento fea. Verificado en
+> vivo (`scrollWidth === clientWidth`, incluso en hover).
+
+> Hecho 2026-08-06: "Guardar cambios" (modo editar) estaba habilitado siempre
+> que el formulario fuera válido, sin importar si realmente se tocó algo.
+> Ahora compara el color actual contra el color con el que se abrió el panel
+> y queda deshabilitado si no hay diferencia (el nombre ya no se edita ahí,
+> tiene su propio flujo de "Cambiar nombre"). "Crear Red" no cambia — ahí
+> siempre hay algo nuevo por definición.
 
 > Hecho 2026-08-05: en `PanelRedEstructura.tsx`, "Asignar/Cambiar" Líder o
 > Supervisor de Red y "+ Nueva" Casa de Paz ahora abren un `Dialog` modal
