@@ -106,6 +106,10 @@ export interface ReporteRedFila {
   total_asistentes: number;
   /** Cuándo se cargó el reporte (no la fecha de la reunión) -- para distinguir a tiempo/con retraso. */
   fecha_creacion: string;
+  /** KAN-31: VERDE (a tiempo) / NARANJA (con retraso), calculado en el servidor
+   * (v_reporte_totales) contra el plazo configurable de la iglesia -- ya no se
+   * recalcula en el cliente. */
+  estado_carga: 'VERDE' | 'NARANJA';
 }
 
 export interface ReunionAsistencia {

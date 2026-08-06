@@ -17,20 +17,12 @@ import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
-import { useReportesRedRango } from '@/hooks/useReporte';
+import { useDiasPlazoReporte, useReportesRedRango } from '@/hooks/useReporte';
 import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
 
 const LOTE = 12;
 const ROJO = 'var(--destructive)';
-
-// Días de gracia desde la fecha de la reunión para considerar el reporte "a
-// tiempo" -- pedido del owner, 2026-08-02: 3 colores en vez de 2 (verde =
-// presentó a tiempo, naranja = presentó con retraso, rojo = no presentó).
-// No hay un criterio configurable para esto todavía (a diferencia de
-// EDAD_MINIMA_CREYENTE, etc.) -- si el owner pide ajustarlo, se mueve a
-// configuracion_definicion en vez de este número fijo.
-const DIAS_PLAZO_REPORTE = 2;
 
 const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
@@ -124,6 +116,10 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: cdpsTodas = [], isLoading: cargandoCdps } = useCdps(iglesiaActivaId, redId);
   const cdps = useMemo(() => cdpsTodas.filter((c) => c.activo), [cdpsTodas]);
+  // KAN-31: plazo configurable por iglesia -- solo se usa acá para decidir
+  // ROJO/PENDIENTE (semanas sin reporte todavía). El VERDE/NARANJA de un
+  // reporte ya cargado viene calculado desde el servidor (estado_carga).
+  const { data: diasPlazoReporte = 2 } = useDiasPlazoReporte(iglesiaActivaId);
 
   const hoyDate = new Date();
   const [anio, setAnio] = useState(hoyDate.getFullYear());
@@ -154,12 +150,12 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
 
   // clave "cdpId:semanaInicio" -> reporte de esa semana. Un reporte por CdP y semana.
   const porCdpSemana = useMemo(() => {
-    const mapa = new Map<string, { total: number; fecha: string; fechaCreacion: string }>();
+    const mapa = new Map<string, { total: number; fecha: string; estadoCarga: 'VERDE' | 'NARANJA' }>();
     for (const r of reportes) {
       mapa.set(`${r.casa_de_paz_id}:${inicioSemanaISO(r.fecha_reunion)}`, {
         total: r.total_asistentes,
         fecha: r.fecha_reunion,
-        fechaCreacion: r.fecha_creacion,
+        estadoCarga: r.estado_carga,
       });
     }
     return mapa;
@@ -168,9 +164,11 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   function estadoCeldaFecha(cdpId: string, fechaEsperadaISO: string): EstadoCelda {
     const celda = porCdpSemana.get(`${cdpId}:${inicioSemanaISO(fechaEsperadaISO)}`);
     if (celda) {
-      return diasDeDemora(celda.fecha, celda.fechaCreacion) <= DIAS_PLAZO_REPORTE ? 'VERDE' : 'NARANJA';
+      // Calculado server-side (v_reporte_totales.estado_carga), no se
+      // recalcula en el cliente -- ver 108_control_reportes_plazo_configurable.sql.
+      return celda.estadoCarga;
     }
-    return diasDeDemora(fechaEsperadaISO, ahoraISO) > DIAS_PLAZO_REPORTE ? 'ROJO' : 'PENDIENTE';
+    return diasDeDemora(fechaEsperadaISO, ahoraISO) > diasPlazoReporte ? 'ROJO' : 'PENDIENTE';
   }
 
   const [texto, setTexto] = useState('');

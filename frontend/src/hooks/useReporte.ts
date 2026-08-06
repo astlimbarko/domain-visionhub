@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   crearReporte,
   obtenerCamposObligatorios,
+  obtenerDiasPlazoReporte,
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
@@ -50,6 +51,16 @@ export function useEdadMinimaCreyente(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['reporte', 'edad-minima-creyente', iglesiaId],
     queryFn: () => obtenerEdadMinimaCreyente(iglesiaId as string),
+    enabled: !!iglesiaId,
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
+/** Plazo de gracia configurable (días) para Control de Reportes -- ver obtenerDiasPlazoReporte. */
+export function useDiasPlazoReporte(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'dias-plazo-reporte', iglesiaId],
+    queryFn: () => obtenerDiasPlazoReporte(iglesiaId as string),
     enabled: !!iglesiaId,
     staleTime: 1000 * 60 * 60,
   });

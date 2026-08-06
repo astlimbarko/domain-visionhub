@@ -64,6 +64,14 @@ export async function obtenerEdadMinimaCreyente(iglesiaId: string): Promise<numb
   return data ?? 12;
 }
 
+/** KAN-31: plazo de gracia (días) para considerar un reporte "a tiempo" en
+ * Control de Reportes -- ya no es un número fijo en el componente. */
+export async function obtenerDiasPlazoReporte(iglesiaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: 'DIAS_PLAZO_REPORTE' });
+  if (error) throw error;
+  return data ?? 2;
+}
+
 export async function obtenerCamposObligatorios(iglesiaId: string): Promise<CamposObligatoriosReporte> {
   const { data, error } = await supabase.rpc('fn_config_formulario', {
     p_iglesia_id: iglesiaId,
@@ -142,7 +150,7 @@ export async function obtenerReportesRedRango(
   if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
-    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, fecha_creacion')
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, fecha_creacion, estado_carga')
     .in('casa_de_paz_id', casaDePazIds)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta)
@@ -293,6 +301,10 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
           persona_id: p.id,
           es_menor: p.esMenor ?? null,
           es_visita: p.esVisita ?? false,
+          // El líder ya decidió por persona si asiste como habitual o
+          // visita (checkbox "Asiste a esta CDP" en Reportes.tsx) -- este
+          // valor debe respetarse tal cual, no recalcularse en el trigger.
+          confirmado_manualmente: true,
         }))
       );
       if (errorAsistencia) throw errorAsistencia;
