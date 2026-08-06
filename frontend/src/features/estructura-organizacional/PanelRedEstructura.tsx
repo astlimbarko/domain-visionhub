@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Mail, Search, UserRound, X } from 'lucide-react';
+import { Home, Mail, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -9,6 +9,7 @@ import {
   useActualizarRedEstructura,
   useAsignarCargoRedEstructura,
   useBuscarPersonasEstructura,
+  useCrearCasaDePazEstructura,
   useCrearRedEstructura,
   useQuitarCargoRedEstructura,
 } from './useEstructuraOrganizacional';
@@ -124,6 +125,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
   const quitar = useQuitarCargoRedEstructura(iglesiaId);
   const invitar = useInvitarLider();
   const reenviar = useReenviarInvitacionLider();
+  const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
 
   const [nombre, setNombre] = useState(red?.nombre ?? '');
   const [color, setColor] = useState(red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0]);
@@ -133,6 +135,10 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
+  const [creandoCdp, setCreandoCdp] = useState(false);
+  const [busquedaLiderCdp, setBusquedaLiderCdp] = useState('');
+  const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
+  const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
 
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
@@ -149,10 +155,13 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
     setBusqueda('');
     setCorreo('');
     setOtp('');
+    setCreandoCdp(false);
+    setBusquedaLiderCdp('');
+    setLiderCdpElegido(null);
   }, [red, modo]);
 
   const procesando = crear.isPending || actualizar.isPending || asignar.isPending
-    || quitar.isPending || invitar.isPending || reenviar.isPending;
+    || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending;
   const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
   const formularioValido = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color) && otpValido;
 
@@ -236,6 +245,20 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
     setCorreo('');
   };
 
+  const crearNuevaCasaDePaz = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      toast.success('Casa de Paz creada');
+      setCreandoCdp(false);
+      setBusquedaLiderCdp('');
+      setLiderCdpElegido(null);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo crear la Casa de Paz');
+    }
+  };
+
   return (
     <>
       <button
@@ -310,6 +333,90 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
                 onReenviar={(id) => void reenviarInvitacion(id)}
                 procesando={procesando}
               />
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                      <Home className="h-4 w-4" />
+                    </span>
+                    <p className="text-sm font-semibold text-slate-900">Casas de Paz</p>
+                  </div>
+                  {!creandoCdp && (
+                    <button
+                      type="button"
+                      onClick={() => setCreandoCdp(true)}
+                      className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                    >
+                      + Nueva
+                    </button>
+                  )}
+                </div>
+
+                {creandoCdp && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs text-slate-500">
+                      Se crea sin nombre propio. El líder es opcional y se puede asignar después.
+                    </p>
+                    {liderCdpElegido ? (
+                      <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                        <span className="truncate text-slate-900">{liderCdpElegido.nombre}</span>
+                        <button type="button" onClick={() => setLiderCdpElegido(null)} className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                          Cambiar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          value={busquedaLiderCdp}
+                          onChange={(evento) => setBusquedaLiderCdp(evento.target.value)}
+                          placeholder="Líder (opcional): nombre, apellido o correo"
+                          className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </div>
+                    )}
+                    {!liderCdpElegido && busquedaLiderCdp.trim().length >= 2 && (
+                      <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                        {buscandoLiderCdp && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                        {!buscandoLiderCdp && personasCdp.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                        {personasCdp.map((persona) => (
+                          <button
+                            key={persona.id}
+                            type="button"
+                            onClick={() => { setLiderCdpElegido(persona); setBusquedaLiderCdp(''); }}
+                            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                              <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
+                        className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={procesando || !otpValido}
+                        onClick={() => void crearNuevaCasaDePaz()}
+                        className="h-9 cursor-pointer rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {crearCdp.isPending ? 'Creando…' : 'Crear Casa de Paz'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
             </>
           )}
 

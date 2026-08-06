@@ -409,6 +409,20 @@ export async function asignarSupervisorEstructura(
   return data as string;
 }
 
+export async function crearCasaDePazEstructura(
+  redId: string,
+  liderPersonaId?: string | null,
+  otp?: string | null,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_estructura_crear_cdp', {
+    p_red_id: redId,
+    p_lider_persona_id: liderPersonaId ?? null,
+    p_otp: otp ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
 export async function buscarPersonasEstructura(
   iglesiaId: string,
   texto: string,

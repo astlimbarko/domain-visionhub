@@ -6,6 +6,7 @@ import {
   asignarSupervisorEstructura,
   buscarPersonasEstructura,
   configurarOtpEstructura,
+  crearCasaDePazEstructura,
   crearRedEstructura,
   guardarPosicionesEstructura,
   obtenerEstructuraOrganizacional,
@@ -80,6 +81,15 @@ export function useQuitarCargoRedEstructura(iglesiaId: string) {
   return useMutation({
     mutationFn: ({ redId, codigo, otp }: { redId: string; codigo: CargoRedEstructura; otp?: string | null }) =>
       quitarCargoRedEstructura(redId, codigo, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useCrearCasaDePazEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ redId, liderPersonaId, otp }: { redId: string; liderPersonaId?: string | null; otp?: string | null }) =>
+      crearCasaDePazEstructura(redId, liderPersonaId, otp),
     onSuccess: invalidar,
   });
 }

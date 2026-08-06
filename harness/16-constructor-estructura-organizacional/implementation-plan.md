@@ -423,15 +423,36 @@ sistema.
 
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 
-1. Crear CdP mínima dentro de Red mediante RPC transaccional.
-2. No solicitar ni mostrar nombre propio para la CdP.
+1. [x] Crear CdP mínima dentro de Red mediante RPC transaccional.
+2. [x] No solicitar ni mostrar nombre propio para la CdP.
 3. Mostrar líder como referencia principal y dirección del anfitrión debajo.
-4. Estados `Líder sin asignar`/`Dirección pendiente`, con fondo gris y texto
-   negro cuando falte líder.
+4. [x] Estados `Líder sin asignar`/`Dirección pendiente`, con fondo gris y texto
+   negro cuando falte líder. *(ya existía en el lienzo desde la Fase 2)*
 5. Asignar después líder, anfitrión y dirección.
 6. Añadir N sublíderes sin duplicados.
 7. Iniciales, contador `+N`, tooltips y detalle.
-8. Auto-colocar nueva CdP en su Red.
+8. [x] Auto-colocar nueva CdP en su Red. *(ya lo hacía `crearGrafoEstructura`)*
+
+### Entrega — Crear Casa de Paz (RPC transaccional nueva)
+
+**Título:** Crear Casa de Paz desde el panel de Red.
+
+**Descripción breve:** Nueva RPC `fn_estructura_crear_cdp(red, líder?, otp)`:
+crea la Casa de Paz, su relación con la Red y —si se indica— su Líder en una
+sola transacción. No se reutilizó `crearCdp()` del frontend (marcada en
+`technical-design.md §11` como no transaccional, con varias llamadas
+sueltas). Sin nombre propio (REQ-CDP-4) y sin exigir anfitrión/dirección/
+sublíderes al crear (REQ-CDP-3; se completan en el ítem 5). El líder inicial
+es opcional y solo por vía BD (mismo patrón que `fn_estructura_crear_red`);
+la designación por correo queda para el panel de asignación posterior. Acción
+"+ Nueva" agregada a la sección "Casas de Paz" del panel de editar Red.
+
+**Vinculación:** KAN-59 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`, migración
+`20260805220000_estructura_crear_cdp.sql` (aplicada a Supabase),
+`PanelRedEstructura.tsx`. Probado en vivo: creación sin líder, tarjeta gris
+"Líder sin asignar" y auto-colocación correcta bajo su Red.
 
 ## Fase 8 — KAN-61: designación por correo
 

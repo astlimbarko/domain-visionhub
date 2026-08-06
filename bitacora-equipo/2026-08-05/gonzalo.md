@@ -62,3 +62,6 @@
 - [x] Comenté KAN-57 con el avance y el bug corregido.
 - [x] Implementé "Asignar Líder de Afirmación" (ítem 3 de la lista) sin escribir ninguna RPC ni migración nueva: encontré que `Departamentos.tsx` ya tenía el flujo completo construido (`fn_asignar_cargo_departamento`, `AsignarCargoDialog`) y solo hizo falta un wrapper delgado para reusarlo desde el organigrama.
 - [x] Probé en vivo: el diálogo abre con el líder vigente (Gonzalo Joaquin) precargado y doble vía visible; confirmé que Evangelismo/Discipulado/Envío siguen sin acción (solo lectura), como pide REQ-DEP-6.
+- [x] Implementé "Crear Casa de Paz" (ítem 4 de la lista): RPC propia `fn_estructura_crear_cdp` (transaccional: CdP + relación con Red + líder inicial opcional). No reusé `crearCdp()` del frontend porque `technical-design.md` ya la marcaba como no transaccional (varias llamadas sueltas).
+- [x] Agregué la acción "+ Nueva" en la sección Casas de Paz del panel de editar Red; probé en vivo creando una CdP sin líder en "Svalmar" y confirmé que aparece con tarjeta gris "Líder sin asignar" y se auto-coloca bien bajo su Red.
+- [x] Apliqué la migración a Supabase y comenté KAN-59; lo pasé a "En curso" y me lo asigné (astlimbark), igual que el resto de las tareas de esta épica.
