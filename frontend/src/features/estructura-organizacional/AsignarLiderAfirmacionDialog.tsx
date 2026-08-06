@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { useCargos } from '@/hooks/useCasasDePaz';
@@ -36,6 +37,7 @@ function manejarErrorCargo(e: unknown, generico: string) {
 }
 
 export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoId, departamentoNombre, iglesiaId }: Props) {
+  const queryClient = useQueryClient();
   const [pin, setPin] = useState('');
   const { data: cargos = [] } = useCargos();
   const cargoLiderDepartamento = cargos.find((c) => c.codigo === 'LIDER_DEPARTAMENTO');
@@ -44,12 +46,15 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
   const quitarCargo = useQuitarCargoDepartamento(departamentoId);
   const invitarLider = useInvitarLider();
 
+  const invalidarEstructura = () => queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
+
   async function handleAsignar(persona: PersonaBusqueda) {
     if (!cargoLiderDepartamento) return;
     try {
       await asignarCargo.mutateAsync({ departamentoId, personaId: persona.id, cargoId: cargoLiderDepartamento.id, pin });
       toast.success(`${persona.nombre_completo} asignado`);
       setPin('');
+      void invalidarEstructura();
     } catch (e) {
       manejarErrorCargo(e, 'No se pudo asignar el líder');
     }
@@ -62,6 +67,7 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
         onSuccess: () => {
           toast.success(`Invitación enviada a ${correo}`);
           setPin('');
+          void invalidarEstructura();
         },
         onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
       },
@@ -72,7 +78,10 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     quitarCargo.mutate(
       { id, pin: pinQuitar ?? '' },
       {
-        onSuccess: () => setPin(''),
+        onSuccess: () => {
+          setPin('');
+          void invalidarEstructura();
+        },
         onError: (e) => manejarErrorCargo(e, 'No se pudo quitar el cargo'),
       },
     );

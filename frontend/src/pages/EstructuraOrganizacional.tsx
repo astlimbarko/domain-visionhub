@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { ROUTES } from '@/utils/constants';
 import { AsignarLiderAfirmacionDialog } from '@/features/estructura-organizacional/AsignarLiderAfirmacionDialog';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
+import { PanelCasaDePazEstructura } from '@/features/estructura-organizacional/PanelCasaDePazEstructura';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
 import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
 import { PanelPrincipalEstructura, type TipoPrincipalEstructura } from '@/features/estructura-organizacional/PanelPrincipalEstructura';
@@ -58,6 +59,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
   const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
   const [departamentoAfirmacionId, setDepartamentoAfirmacionId] = useState<string | null>(null);
+  const [casaDePazSeleccionadaId, setCasaDePazSeleccionadaId] = useState<string | null>(null);
   const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
@@ -384,26 +386,36 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
                 setPanelPrincipal(null);
                 setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(null);
                 return;
               }
               setPanelRed(null);
               if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR') {
                 setPanelPrincipal(null);
                 setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN') {
                 setPanelPrincipal('PASTOR');
                 setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'SUPERVISOR_SLOT' && rolUI === 'SUPER_ADMIN') {
                 setPanelPrincipal('SUPERVISOR');
                 setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(null);
               } else if (node.data.tipo === 'DEPARTAMENTO') {
                 const departamentoId = node.id.replace('departamento:', '');
                 const departamento = data?.departamentos.find((d) => d.id === departamentoId);
                 setPanelPrincipal(null);
                 setDepartamentoAfirmacionId(departamento?.codigo === 'AFIRMACION' ? departamentoId : null);
+                setCasaDePazSeleccionadaId(null);
+              } else if (node.data.tipo === 'CASA_DE_PAZ' && node.id.startsWith('casa:')) {
+                setPanelPrincipal(null);
+                setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(node.id.replace('casa:', ''));
               } else {
                 setPanelPrincipal(null);
                 setDepartamentoAfirmacionId(null);
+                setCasaDePazSeleccionadaId(null);
               }
             }}
             onPaneClick={() => {
@@ -411,6 +423,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               setPanelRed(null);
               setPanelPrincipal(null);
               setDepartamentoAfirmacionId(null);
+              setCasaDePazSeleccionadaId(null);
             }}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
@@ -450,9 +463,22 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             }}
           />
         )}
-        {nodoSeleccionado && !panelRed && !panelPrincipal && !departamentoAfirmacionId && (
+        {nodoSeleccionado && !panelRed && !panelPrincipal && !departamentoAfirmacionId && !casaDePazSeleccionadaId && (
           <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
+        {casaDePazSeleccionadaId && data && (() => {
+          const casaDePaz = data.casasDePaz.find((c) => c.id === casaDePazSeleccionadaId);
+          return casaDePaz ? (
+            <PanelCasaDePazEstructura
+              iglesiaId={iglesiaId}
+              casaDePaz={casaDePaz}
+              onClose={() => {
+                setCasaDePazSeleccionadaId(null);
+                setNodoSeleccionadoId(null);
+              }}
+            />
+          ) : null;
+        })()}
         {departamentoAfirmacionId && (
           <AsignarLiderAfirmacionDialog
             open

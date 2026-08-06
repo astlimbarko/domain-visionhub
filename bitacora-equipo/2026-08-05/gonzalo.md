@@ -65,3 +65,7 @@
 - [x] Implementé "Crear Casa de Paz" (ítem 4 de la lista): RPC propia `fn_estructura_crear_cdp` (transaccional: CdP + relación con Red + líder inicial opcional). No reusé `crearCdp()` del frontend porque `technical-design.md` ya la marcaba como no transaccional (varias llamadas sueltas).
 - [x] Agregué la acción "+ Nueva" en la sección Casas de Paz del panel de editar Red; probé en vivo creando una CdP sin líder en "Svalmar" y confirmé que aparece con tarjeta gris "Líder sin asignar" y se auto-coloca bien bajo su Red.
 - [x] Apliqué la migración a Supabase y comenté KAN-59; lo pasé a "En curso" y me lo asigné (astlimbark), igual que el resto de las tareas de esta épica.
+- [x] Implementé "Asignar líder, anfitrión y dirección de Casa de Paz" (ítem 5): otra vez sin RPC ni migración nueva, reusando el flujo completo de `GestionEstructuraVista.tsx` (líder/anfitrión) y `DomicilioAnfitrionDialog` (dirección). Nuevo panel `PanelCasaDePazEstructura.tsx`.
+- [x] Encontré y corregí un bug de integración real: los hooks reusados invalidan su propia caché pero no la del organigrama, así que el lienzo no se actualizaba solo después de asignar (ni en Afirmación ni acá). Agregué invalidación explícita en ambos wrappers.
+- [x] Probé en vivo de punta a punta: asigné a Rosa Illanes como líder de una Casa de Paz y confirmé que el nodo del lienzo cambió de "Asigna un líder" a su nombre sin recargar la página.
+- [x] Comenté KAN-59 con este avance.

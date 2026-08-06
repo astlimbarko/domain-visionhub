@@ -426,12 +426,47 @@ sistema.
 1. [x] Crear CdP mínima dentro de Red mediante RPC transaccional.
 2. [x] No solicitar ni mostrar nombre propio para la CdP.
 3. Mostrar líder como referencia principal y dirección del anfitrión debajo.
+   *(el nombre del líder ya se muestra; falta que la tarjeta muestre también
+   la dirección breve — ver nota de alcance en la entrega de abajo)*
 4. [x] Estados `Líder sin asignar`/`Dirección pendiente`, con fondo gris y texto
    negro cuando falte líder. *(ya existía en el lienzo desde la Fase 2)*
-5. Asignar después líder, anfitrión y dirección.
+5. [x] Asignar después líder, anfitrión y dirección.
 6. Añadir N sublíderes sin duplicados.
 7. Iniciales, contador `+N`, tooltips y detalle.
 8. [x] Auto-colocar nueva CdP en su Red. *(ya lo hacía `crearGrafoEstructura`)*
+
+### Entrega — Asignar líder, anfitrión y dirección de Casa de Paz (reutilización total)
+
+**Título:** Asignar líder, anfitrión y dirección desde el lienzo.
+
+**Descripción breve:** Sin RPC ni migración nueva. Se reusó por completo el
+flujo ya construido en `GestionEstructuraVista.tsx` (`fn_asignar_cargo_cdp`
+para Líder de CdP —exclusivo—, `casa_de_paz_cargo` directo para Anfitrión
+—exclusivo— y `DomicilioAnfitrionDialog`/`fn_guardar_domicilio_cdp` para la
+dirección) mediante un panel nuevo (`PanelCasaDePazEstructura.tsx`). Ninguno
+de estos tres flujos exige OTP (coincide con el comportamiento ya existente
+en esa pantalla). Sublíderes (`SUBLIDER_CDP`, no exclusivo) quedan para el
+ítem 6.
+
+**Bug de integración real encontrado y corregido:** los hooks reusados
+(`useAsignarCargoCdp`, `useAsignarCargoDepartamento` de la entrega de
+Afirmación) invalidan sus propias claves de caché, pero ninguna coincide con
+`['estructura-organizacional', iglesiaId]` — el lienzo no se refrescaba solo
+tras asignar. Se agregó una invalidación explícita de esa clave en ambos
+wrappers (`AsignarLiderAfirmacionDialog` y `PanelCasaDePazEstructura`) tras
+cada asignación/baja exitosa. Verificado en vivo: el nodo del lienzo cambia
+de "Asigna un líder" al nombre real sin recargar la página.
+
+**Alcance no cubierto todavía:** la tarjeta del lienzo no muestra la
+dirección breve del anfitrión (REQ-CDP-5) — el panel sí la lee/edita, pero
+`obtenerEstructuraOrganizacional`/`CasaDePazEstructura` no traen el domicilio
+todavía. Requeriría ampliar la RPC de lectura; queda como pendiente menor,
+no bloquea el resto de la fase.
+
+**Vinculación:** KAN-59/KAN-60 dentro de la épica KAN-52.
+
+**Implementación:** `feature/estructura-organizacional`,
+`PanelCasaDePazEstructura.tsx`. Sin migraciones nuevas.
 
 ### Entrega — Crear Casa de Paz (RPC transaccional nueva)
 
