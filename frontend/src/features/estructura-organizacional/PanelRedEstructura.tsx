@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -201,6 +202,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
+  const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
+  const [nombreConfirmando, setNombreConfirmando] = useState('');
   const [creandoCdp, setCreandoCdp] = useState(false);
   const [busquedaLiderCdp, setBusquedaLiderCdp] = useState('');
   const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
@@ -224,6 +227,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
     setCreandoCdp(false);
     setBusquedaLiderCdp('');
     setLiderCdpElegido(null);
+    setMostrarCambiarNombre(false);
+    setNombreConfirmando('');
   }, [red, modo]);
 
   const procesando = crear.isPending || actualizar.isPending || asignar.isPending
@@ -253,6 +258,18 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo guardar la Red');
+    }
+  };
+
+  const confirmarCambioNombre = async () => {
+    if (!red || nombreConfirmando.trim().length < 2 || !otpValido) return;
+    try {
+      await actualizar.mutateAsync({ redId: red.id, nombre: nombreConfirmando.trim(), color, otp: otp || null });
+      toast.success('Nombre de la Red actualizado');
+      setMostrarCambiarNombre(false);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el nombre');
     }
   };
 
@@ -378,14 +395,37 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
 
         <div className="space-y-4 p-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <label htmlFor="estructura-red-nombre" className="text-xs font-semibold text-slate-700">Nombre de la Red</label>
-            <input
-              id="estructura-red-nombre"
-              value={nombre}
-              onChange={(evento) => setNombre(evento.target.value)}
-              placeholder="Ej. Sion"
-              className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            />
+            {modo === 'crear' ? (
+              <div
+                className="flex items-center gap-1 rounded-xl px-4 py-3 text-sm font-semibold"
+                style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+              >
+                <span className="shrink-0">Red: &quot;</span>
+                <input
+                  aria-label="Nombre de la Red"
+                  value={nombre}
+                  onChange={(evento) => setNombre(evento.target.value)}
+                  placeholder="Sion"
+                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:opacity-60"
+                  style={{ color: textoLegibleSobre(color) }}
+                />
+                <span className="shrink-0">&quot;</span>
+              </div>
+            ) : (
+              <div
+                className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
+                style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+              >
+                <span className="truncate">Red: &quot;{nombre}&quot;</span>
+                <button
+                  type="button"
+                  onClick={() => { setNombreConfirmando(nombre); setMostrarCambiarNombre(true); }}
+                  className="shrink-0 cursor-pointer rounded-lg bg-white/20 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/30"
+                >
+                  Cambiar nombre
+                </button>
+              </div>
+            )}
             <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {PALETA_RED.map((opcion) => (
@@ -417,12 +457,6 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 Este color ya lo usa la Red «{redConMismoColor.nombre}». Podés continuar, pero conviene elegir uno distinto para diferenciarlas.
               </p>
             )}
-            <div
-              className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold"
-              style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
-            >
-              {nombre.trim() ? `Red: "${nombre.trim()}"` : 'Vista previa de la Red'}
-            </div>
           </div>
 
           {modo === 'editar' && red && (
@@ -634,6 +668,37 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mostrarCambiarNombre} onOpenChange={(abierto) => { if (!abierto) { setMostrarCambiarNombre(false); setOtp(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cambiar nombre de la Red</DialogTitle>
+            <DialogDescription>
+              Vas a cambiar el nombre de «{nombre}» a lo que escribas abajo. Es visible para todos de inmediato.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <input
+              aria-label="Nuevo nombre de la Red"
+              autoFocus
+              value={nombreConfirmando}
+              onChange={(evento) => setNombreConfirmando(evento.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+            {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              disabled={actualizar.isPending || nombreConfirmando.trim().length < 2 || !otpValido}
+              onClick={() => void confirmarCambioNombre()}
+              className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {actualizar.isPending ? 'Confirmando…' : 'Confirmar cambio'}
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

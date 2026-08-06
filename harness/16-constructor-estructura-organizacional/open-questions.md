@@ -99,7 +99,14 @@ Gonzalo probó en vivo cambiar el Líder de Red de "Red Vida Nueva" (vía
   querés quitar a X / asignar a Y?") antes de ejecutar el cambio, tanto al
   asignar como al quitar un cargo. Hoy se aplica al toque de seleccionar en
   la búsqueda. El patrón ya existe en otras pantallas (`ConfirmarCambioDialog`,
-  `ConfirmarQuitarDialog` en `components/shared/`) — reusar, no inventar.
+  `ConfirmarQuitarDialog` en `components/shared/`) — pero esos dos exigen un
+  motivo escrito y atan el OTP a si el actor es Super Admin, no al switch
+  `otpRequerido` del módulo (que es el criterio correcto acá) — no encajan
+  tal cual. **2026-08-05:** se implementó un modal de confirmación liviano
+  propio (sin motivo, OTP atado a `otpRequerido`) para "Cambiar nombre" de
+  Red en `PanelRedEstructura.tsx` — sirve de referencia si se decide extender
+  el mismo patrón a asignar/quitar cargo acá. Sigue pendiente para
+  asignar/quitar cargo (Red, CdP, Departamento) y para cambios de color.
 
 **Sobre el registro de auditoría (pregunta directa del owner):** sí existe.
 `red_cargo` y las demás tablas de cargos ya guardan `creado_por`/

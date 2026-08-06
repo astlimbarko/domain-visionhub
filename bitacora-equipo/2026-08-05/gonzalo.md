@@ -88,3 +88,6 @@
 - [x] Unifiqué PanelRedEstructura al patrón modal: Asignar/Cambiar cargo y +Nueva CdP ahora abren un Dialog, no se expanden inline.
 - [x] Renombré las 5 Redes existentes sin la palabra "Red"; la tarjeta y la vista previa ahora muestran el label fijo Red: "Nombre".
 - [x] Probado en vivo ambos cambios; comenté KAN-58.
+- [x] Fusioné el campo de nombre de Red y la vista previa de color en uno solo, al inicio de la tarjeta.
+- [x] Agregué botón "Cambiar nombre" + modal de confirmación (con OTP si corresponde) para renombrar una Red existente; antes se guardaba sin avisar.
+- [x] Probado en vivo: cambié y revertí el nombre de una Red real. Documenté en open-questions.md que el mismo patrón de confirmación falta en asignar/quitar cargo (pendiente, no de hoy). Comenté KAN-58.

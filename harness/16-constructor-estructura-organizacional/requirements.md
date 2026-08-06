@@ -204,6 +204,24 @@ SHALL crecer verticalmente debajo de su tarjeta.
 **REQ-RED-1** — THE sistema SHALL permitir crear una Red sin Líder ni Supervisor
 de Red.
 
+**REQ-RED-4** — WHEN se edita una Red existente, THE cambio de nombre SHALL
+requerir una acción explícita ("Cambiar nombre") y una confirmación en modal
+antes de aplicarse. WHERE el switch OTP del módulo esté activo, la confirmación
+SHALL exigir código; WHERE esté inactivo, SHALL confirmar sin código pero
+SHALL NOT aplicar el cambio sin el paso de confirmación.
+
+> Hecho 2026-08-05: en `PanelRedEstructura.tsx`, el campo "Nombre de la Red" y
+> la vista previa coloreada se fusionaron en uno solo (al inicio de la
+> tarjeta, con el relleno del color elegido). En modo crear sigue siendo
+> editable directo (nada que proteger todavía). En modo editar, ese campo
+> pasa a ser de solo lectura + un botón "Cambiar nombre" que abre un modal de
+> confirmación (nombre nuevo + OTP si corresponde) antes de guardar —
+> reutiliza la misma RPC/mutación de actualizar Red. Verificado en vivo con
+> Playwright (cambiar y revertir el nombre de una Red real). Pendiente para
+> otra sesión: el owner señaló que puede haber otros lugares del módulo que
+> necesiten el mismo patrón de confirmación (ver open-questions.md
+> OQ-CONFIRMAR-CAMBIO-CARGO, mismo pedido para asignar/quitar cargo).
+
 **REQ-RED-2** — THE creación de Red SHALL aceptar nombre y color hexadecimal
 válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya usados.
 
