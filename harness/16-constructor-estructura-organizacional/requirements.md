@@ -283,8 +283,49 @@ calculado automáticamente.
 > y el color de texto (blanco o oscuro) se calcula por luminancia
 > (`contraste.ts`). Ver Jira KAN-58.
 
+> Fix 2026-08-06: el cálculo de contraste elegía bien blanco/negro, pero
+> varios textos secundarios (etiquetas "Líder de Red"/"Supervisor de Red",
+> contador de Casas de Paz, nombre de responsable) aplicaban `opacity`
+> reducida encima de ese color, lo que los acerca matemáticamente al fondo y
+> baja el contraste real por debajo de 4.5:1 en colores saturados (ej. rosa
+> `#db2777`, azul `#2563eb`). Se quitó la opacidad de esos textos en
+> `NodoEstructura.tsx` (Departamento y Red) — verificado con un cálculo WCAG
+> real sobre los 36 textos visibles en el lienzo, los 36 ahora cumplen ≥4.5:1.
+
 **REQ-RED-4** — THE sistema SHALL permitir cambiar nombre, color, Líder y
 Supervisor de Red conservando el historial de asignaciones.
+
+**REQ-RED-7** — WHEN se elimina una Red, THE sistema SHALL marcarla con
+`fecha_eliminacion` (nunca borrado físico) y mantenerla visible en el lienzo,
+agrisada, durante 1 año antes de desaparecer del panel. THE panel SHALL
+ofrecer "Reactivar Red" durante ese período, con confirmación explícita
+(OTP si el módulo lo exige, mensaje de advertencia siempre).
+
+> Hecho 2026-08-06: `fn_estructura_eliminar_red` / `fn_estructura_reactivar_red`
+> (soft-delete vía `fecha_eliminacion`, permiso `fn_estructura_puede_administrar`,
+> OTP opcional vía `fn_estructura_exigir_otp`). Botón "Eliminar Red" en el pie
+> del panel (solo si no está eliminada) + vista de solo lectura con banner
+> ámbar y botón "Reactivar Red" cuando sí lo está. Confirmación con
+> `ConfirmarQuitarDialog` (rojo) en ambos sentidos.
+>
+> Bug encontrado y corregido en el mismo bloque: la política RLS
+> `pol_red_select` filtraba `fecha_eliminacion IS NULL` sin excepción, así
+> que una Red eliminada desaparecía del todo en vez de verse agrisada
+> (el filtro del lado del cliente en `estructura.service.ts` no alcanza si
+> RLS ya la bloquea antes). Corregido en la migración
+> `20260806010000_estructura_red_select_periodo_gracia.sql` para permitir
+> `fecha_eliminacion >= now() - interval '1 year'`. Verificado en vivo
+> (eliminar → agrisado con "Eliminada" → reactivar → vuelve a editable).
+>
+> Este fix además reveló ~13 Redes de prueba de sesiones anteriores
+> (`__...Browser...`, `QA ...`, "Red Prueba Membresia") que quedaron con
+> `fecha_eliminacion` puesta pero invisibles por el bug — no eran visibles
+> antes de hoy y ahora aparecen agrisadas en "Centro de Vida El Eden" hasta
+> que cumplan 1 año o alguien las purgue a mano. Se dejaron intactas
+> (no son de este bloque de trabajo y purgarlas implica limpiar referencias
+> en `fusion_red`/`multiplicacion_red`/`invitacion_lider`); solo se
+> hard-borraron las 2 filas de prueba creadas hoy mismo para esta
+> verificación (`Prueba Eliminar`, `Red Prueba Colores A`), sin dependientes.
 
 **REQ-RED-5** — “Supervisor de Red”, “Supervisor de la Red en Acción” y el código
 existente `SUBLIDER_RED` SHALL representar el mismo cargo. La etiqueta oficial

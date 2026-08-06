@@ -11,3 +11,8 @@
 - [x] Agregué "Quitar cargo" al panel de Afirmación (faltaba) y agregué confirmación (modal rojo + OTP) tanto ahí como en Quitar cargo de Líder/Supervisor de Red — antes quitaban al instante sin preguntar.
 - [x] Extendí ConfirmarQuitarDialog (compartido) con OTP opcional, sin romper a quien ya lo usa (Calendario, Casas de Paz). Casas de Paz ya tenía confirmación propia, no necesitó cambios.
 - [x] Probado en vivo ambos casos. Comenté KAN-57 y KAN-58.
+- [x] Agregué "Eliminar Red" / "Reactivar Red" (soft-delete, agrisada 1 año, confirmación roja + OTP si aplica). Creé y finalicé KAN-79.
+- [x] Bug encontrado en el camino: la política RLS de `red` ocultaba del todo las eliminadas en vez de agrisarlas — corregido con una migración nueva.
+- [x] Ese fix reveló ~13 Redes de prueba viejas (de otras sesiones) que quedaron invisibles por el mismo bug — las dejé intactas (tienen referencias en fusión/multiplicación/invitaciones que no tocamos hoy), solo borré las 2 filas de prueba que creé yo mismo hoy.
+- [x] Auditoría de contraste de texto en Red/Departamento (pedido explícito): encontré que varias etiquetas usaban opacidad reducida encima del color ya calculado, bajando el contraste real por debajo de lo legible en colores saturados. Quité esas opacidades — verificado con cálculo WCAG real, los 36 textos visibles ahora cumplen el mínimo.
+- [ ] Pendiente: responsividad móvil (item 10, KAN-63), persistir cámara local (item 11), revisión visual autenticada (item 13), pruebas E2E de cierre (item 14).

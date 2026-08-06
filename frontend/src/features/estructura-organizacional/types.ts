@@ -31,6 +31,7 @@ export interface RedEstructura {
   color: string | null;
   lideres: PersonaEstructura[];
   supervisores: PersonaEstructura[];
+  eliminada: boolean;
 }
 
 export interface CasaDePazEstructura {
@@ -84,6 +85,7 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   buscable: string;
   resaltado?: boolean;
   estadoIncompleto?: boolean;
+  eliminada?: boolean;
 }
 export interface PersonaOpcionEstructura {
   id: string;

@@ -122,11 +122,11 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
           )}
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <span className="block text-[10px] font-semibold tracking-wide uppercase" style={{ color: texto, opacity: 0.65 }}>Líder</span>
+          <span className="block text-[10px] font-semibold tracking-wide uppercase" style={{ color: texto }}>Líder</span>
           <span
             title={nombreResponsable ?? 'Líder sin asignar'}
             className="block truncate text-xs leading-4 [overflow-wrap:anywhere]"
-            style={{ color: texto, opacity: 0.85 }}
+            style={{ color: texto }}
           >
             {nombreResponsable ?? 'Líder sin asignar'}
           </span>
@@ -170,7 +170,7 @@ function ResumenPersonaRed({ persona, texto }: { persona?: PersonaEstructura; te
           />
         )}
       </span>
-      <span title={nombre} className="min-w-0 truncate text-xs font-medium" style={{ color: texto, opacity: 0.9 }}>
+      <span title={nombre} className="min-w-0 truncate text-xs font-medium" style={{ color: texto }}>
         {nombre}
       </span>
     </span>
@@ -210,20 +210,20 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
             Red: &quot;{data.titulo}&quot;
           </span>
           {data.subtitulo && (
-            <span className={`block truncate text-[11px] ${texto ? '' : 'text-slate-600'}`} style={texto ? { color: texto, opacity: 0.7 } : undefined}>
+            <span className={`block truncate text-[11px] ${texto ? '' : 'text-slate-600'}`} style={texto ? { color: texto } : undefined}>
               {data.subtitulo}
             </span>
           )}
         </span>
       </div>
       <div className={`mt-3 border-t pt-2.5 ${texto ? '' : 'border-slate-300'}`} style={texto ? { borderColor: bordeSuave } : undefined}>
-        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto, opacity: 0.6 } : undefined}>
+        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto } : undefined}>
           Líder de Red
         </span>
         <ResumenPersonaRed persona={lider} texto={texto} />
       </div>
       <div className={`mt-2 border-t pt-2.5 ${texto ? '' : 'border-slate-300'}`} style={texto ? { borderColor: bordeSuave } : undefined}>
-        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto, opacity: 0.6 } : undefined}>
+        <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto } : undefined}>
           Supervisor de Red
         </span>
         <ResumenPersonaRed persona={supervisor} texto={texto} />

@@ -73,6 +73,10 @@ function nombrePersona(persona: PersonaFila): string {
 export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
+  // Una Red eliminada sigue visible (agrisada) durante 1 año antes de
+  // desaparecer del panel -- pedido explícito del owner, mismo criterio de
+  // "nunca borrado físico" que ya usa toda la app.
+  const cortePeriodoGracia = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
   const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
     configuracionResultado, posicionesResultado, invitacionesRedResultado, usuariosResultado, cargosResultado,
     cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado] =
@@ -91,9 +95,9 @@ export async function obtenerEstructuraOrganizacional(
         .order('codigo'),
       supabase
         .from('red')
-        .select('id, nombre, color')
+        .select('id, nombre, color, fecha_eliminacion')
         .eq('iglesia_id', iglesiaId)
-        .is('fecha_eliminacion', null)
+        .or(`fecha_eliminacion.is.null,fecha_eliminacion.gte.${cortePeriodoGracia}`)
         .order('nombre'),
       supabase
         .from('casa_de_paz')
@@ -268,7 +272,10 @@ export async function obtenerEstructuraOrganizacional(
       ),
     })) as DepartamentoEstructura[],
     redes: (redesResultado.data ?? []).map((red) => ({
-      ...red,
+      id: red.id,
+      nombre: red.nombre,
+      color: red.color,
+      eliminada: red.fecha_eliminacion !== null,
       lideres: [
         ...responsablesDe((cargosRedResultado.data ?? []) as CargoEntidadFila[], 'red_id', red.id, 'LIDER_RED'),
         ...invitadosDe(red.id, 'LIDER_RED'),
@@ -319,6 +326,16 @@ export async function crearRedEstructura(entrada: CrearRedEstructuraEntrada): Pr
   });
   if (error) throw error;
   return data as string;
+}
+
+export async function eliminarRedEstructura(redId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_eliminar_red', { p_red_id: redId, p_otp: otp ?? null });
+  if (error) throw error;
+}
+
+export async function reactivarRedEstructura(redId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_reactivar_red', { p_red_id: redId, p_otp: otp ?? null });
+  if (error) throw error;
 }
 
 export async function actualizarRedEstructura(

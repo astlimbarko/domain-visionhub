@@ -49,6 +49,7 @@ function nodo(
     buscable?: string;
     resaltado?: boolean;
     estadoIncompleto?: boolean;
+    eliminada?: boolean;
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -168,12 +169,13 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
         nodo(redId, redX, 175, {
           tipo: 'RED',
           titulo: red.nombre?.trim() || String(indiceRed + 1).padStart(2, '0'),
-          subtitulo: redSinNombre ? 'Escribe un nombre' : `${casas.length} Casas de Paz`,
           responsables: red.lideres,
           supervisores: red.supervisores,
           color: colorRed,
           buscable: `${red.nombre ?? ''} ${red.lideres.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')} ${red.supervisores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
-          estadoIncompleto: redSinNombre && redSinLider,
+          estadoIncompleto: (redSinNombre && redSinLider) || red.eliminada,
+          subtitulo: red.eliminada ? 'Eliminada' : redSinNombre ? 'Escribe un nombre' : `${casas.length} Casas de Paz`,
+          eliminada: red.eliminada,
         }),
       );
 

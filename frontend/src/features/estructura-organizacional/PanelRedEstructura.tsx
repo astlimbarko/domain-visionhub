@@ -25,7 +25,9 @@ import {
   useBuscarPersonasEstructura,
   useCrearCasaDePazEstructura,
   useCrearRedEstructura,
+  useEliminarRedEstructura,
   useQuitarCargoRedEstructura,
+  useReactivarRedEstructura,
 } from './useEstructuraOrganizacional';
 import type {
   CargoRedEstructura,
@@ -194,6 +196,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const cancelarInvitacion = useCancelarInvitacionLider();
   const corregirCorreo = useCorregirCorreoInvitacionLider();
   const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
+  const eliminarRed = useEliminarRedEstructura(iglesiaId);
+  const reactivarRed = useReactivarRedEstructura(iglesiaId);
 
   const [nombre, setNombre] = useState(red?.nombre ?? '');
   const [color, setColor] = useState(red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0]);
@@ -204,6 +208,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [correo, setCorreo] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
   const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
   const [nombreConfirmando, setNombreConfirmando] = useState('');
   const [creandoCdp, setCreandoCdp] = useState(false);
@@ -276,6 +282,31 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       setOtp('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el nombre');
+    }
+  };
+
+  const confirmarEliminarRed = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await eliminarRed.mutateAsync({ redId: red.id, otp: otp || null });
+      toast.success('Red eliminada');
+      setConfirmandoEliminar(false);
+      setOtp('');
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red');
+    }
+  };
+
+  const confirmarReactivarRed = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await reactivarRed.mutateAsync({ redId: red.id, otp: otp || null });
+      toast.success('Red reactivada');
+      setConfirmandoReactivar(false);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo reactivar la Red');
     }
   };
 
@@ -400,6 +431,23 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           </button>
         </div>
 
+        {modo === 'editar' && red?.eliminada ? (
+        <div className="space-y-4 p-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">Esta Red fue eliminada</p>
+            <p className="mt-1 text-xs text-amber-700">
+              Sigue visible (agrisada) durante 1 año. Nada se puede modificar hasta reactivarla.
+            </p>
+          </div>
+          <div
+            className="rounded-xl px-4 py-3 text-sm font-semibold"
+            style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+          >
+            Red: &quot;{red.nombre}&quot;
+          </div>
+          {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+        </div>
+        ) : (
         <div className="space-y-4 p-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             {modo === 'crear' ? (
@@ -512,17 +560,42 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
 
           {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
         </div>
+        )}
 
-        <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
-          <button type="button" onClick={onClose} className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
-          <button
-            type="button"
-            disabled={procesando || !formularioValido || !hayCambios}
-            onClick={() => void guardarRed()}
-            className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
-          </button>
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div>
+            {modo === 'editar' && red && !red.eliminada && (
+              <button
+                type="button"
+                onClick={() => setConfirmandoEliminar(true)}
+                className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600"
+              >
+                Eliminar Red
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
+            {modo === 'editar' && red?.eliminada ? (
+              <button
+                type="button"
+                disabled={reactivarRed.isPending}
+                onClick={() => setConfirmandoReactivar(true)}
+                className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reactivar Red
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={procesando || !formularioValido || !hayCambios}
+                onClick={() => void guardarRed()}
+                className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -717,6 +790,34 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         descripcion="Deja de tener acceso de inmediato."
         procesando={quitar.isPending}
         onConfirmar={() => { if (confirmandoQuitar) void quitarCargo(confirmandoQuitar); }}
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoEliminar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoEliminar(false); }}
+        titulo={`¿Eliminar la Red "${red?.nombre}"?`}
+        descripcion="Queda agrisada en el lienzo durante 1 año; se puede reactivar en cualquier momento."
+        procesando={eliminarRed.isPending}
+        onConfirmar={() => void confirmarEliminarRed()}
+        textoConfirmar="Sí, eliminar"
+        textoProcesando="Eliminando…"
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoReactivar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoReactivar(false); }}
+        titulo={`¿Reactivar la Red "${red?.nombre}"?`}
+        descripcion="Vuelve a mostrarse normal y se puede editar de nuevo."
+        procesando={reactivarRed.isPending}
+        onConfirmar={() => void confirmarReactivarRed()}
+        textoConfirmar="Sí, reactivar"
+        textoProcesando="Reactivando…"
         otpRequerido={otpRequerido}
         otp={otp}
         onOtpChange={setOtp}
