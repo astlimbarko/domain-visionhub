@@ -3,6 +3,7 @@ import {
   actualizarRedEstructura,
   asignarCargoRedEstructura,
   asignarPastorEstructura,
+  asignarSupervisorEstructura,
   buscarPersonasEstructura,
   configurarOtpEstructura,
   crearRedEstructura,
@@ -88,6 +89,15 @@ export function useAsignarPastorEstructura(iglesiaId: string) {
   return useMutation({
     mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
       asignarPastorEstructura(iglesiaId, personaId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useAsignarSupervisorEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
+      asignarSupervisorEstructura(iglesiaId, personaId, otp),
     onSuccess: invalidar,
   });
 }

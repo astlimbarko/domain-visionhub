@@ -314,35 +314,52 @@ contenido de edición se incorporará por entidad en KAN-56 a KAN-60.
 
 ## Fase 5 — KAN-56 y KAN-57: asignaciones base
 
-1. [x] Pastor: doble vía (BD/correo) implementada en `PanelPastorEstructura.tsx`.
-   Supervisor y Departamentos todavía sin panel de asignación propio.
+1. [x] Pastor y Supervisor: doble vía (BD/correo) implementada en el panel
+   genérico `PanelPrincipalEstructura.tsx`. Departamentos: sin panel propio.
 2. [x] Leer responsables vigentes y usar nombre o correo como fallback.
 3. [x] Cargar Pastor y Supervisor desde `usuario_rol` mediante RPC autorizada.
 4. [x] Mostrar siempre los cuatro departamentos y cargar sus líderes existentes.
-5. [x] Asignar Pastor con operación atómica (`fn_estructura_asignar_pastor`,
-   reemplaza al Pastor anterior en una sola transacción/OTP). Supervisor y
-   Departamentos: pendiente.
+5. [x] Asignar Pastor y Supervisor con operación atómica (`fn_estructura_asignar_pastor`
+   / `fn_estructura_asignar_supervisor`, reemplazan al vigente en una sola
+   transacción/OTP). Departamentos: pendiente.
 6. Estado tenue/intenso derivado de líder confirmado. *(Superado: ver ajuste
    2026-08-05 en Fase 2 — Departamento ahora siempre en color sólido.)*
 
-### Entrega — Asignar Pastor (Super Admin)
+### Entrega — Asignar Pastor y Supervisor (Super Admin)
 
-**Título:** Panel para asignar/cambiar Pastor desde el lienzo.
+**Título:** Panel para asignar/cambiar Pastor y Supervisor desde el lienzo.
 
-**Descripción breve:** Nueva RPC `fn_estructura_asignar_pastor(iglesia, persona,
-otp)`: reemplaza atómicamente al Pastor vigente (singular, a diferencia de
-Supervisor de Red que admite plural), reusa `trg_validar_rol` existente
-(Super Admin únicamente) y el switch OTP propio del módulo. Vía correo reusa
-la función `invitar-usuario` ya existente (mismo patrón que el panel del
-Pastor asignando su Supervisor, `PastorGestion.tsx`) — no se duplicó
-infraestructura de invitación. Solo Super Admin ve la acción; Supervisor ve
-el nodo de Pastor en modo lectura (REQ-PER-6).
+**Descripción breve:** RPC propias `fn_estructura_asignar_pastor` y
+`fn_estructura_asignar_supervisor(iglesia, persona, otp)`: reemplazan
+atómicamente al vigente (ambos singulares vía este módulo, a diferencia de
+Supervisor de Red que admite plural), exigen Super Admin — decisión
+explícita del owner 2026-08-05, coincide con `trg_validar_rol` existente
+para Pastor y evita modificar ese trigger global para Supervisor — y
+respetan el switch OTP propio del módulo. Vía correo reusa la función
+`invitar-usuario` ya existente (mismo patrón que `PastorGestion.tsx`) — esa
+vía exige OTP siempre (regla global de Super Admin), independiente del
+switch del módulo; el panel calcula la validez del OTP por separado para
+cada vía. Solo Super Admin ve la acción; Supervisor ve el nodo de Pastor en
+modo lectura (REQ-PER-6). Un único componente genérico
+(`PanelPrincipalEstructura.tsx`, parametrizado por `tipo`) sirve para ambos.
+
+**Bug real encontrado y corregido en pruebas E2E reales:** `uq_usuario_rol_vigente`
+es única por (usuario_id, iglesia_id) sin importar el rol — si la persona ya
+tenía otro cargo de sistema vigente en la misma iglesia, el INSERT chocaba con
+esa restricción y devolvía un error crudo de Postgres. Se agregó una
+validación previa explícita en ambas RPC que devuelve
+`ESTRUCTURA_PERSONA_YA_TIENE_ROL` con mensaje claro, sin auto-reemplazar el
+cargo existente (evita una baja silenciosa no pedida).
 
 **Vinculación:** KAN-56/KAN-57 dentro de la épica KAN-52.
 
-**Implementación:** `feature/estructura-organizacional`, migración
-`20260805194500_estructura_asignar_pastor.sql` (pendiente de aplicar a
-Supabase — requiere autenticar la CLI), `PanelPastorEstructura.tsx`.
+**Implementación:** `feature/estructura-organizacional`, migraciones
+`20260805194500_estructura_asignar_pastor.sql`,
+`20260805210000_estructura_asignar_supervisor.sql` y
+`20260805213000_estructura_principal_valida_conflicto_rol.sql` (las 3
+aplicadas a Supabase), `PanelPrincipalEstructura.tsx`. Probado en vivo:
+auto-asignación bloqueada (trigger existente), conflicto de cargo bloqueado
+con mensaje claro (fix nuevo), switch OTP respetado en la vía BD.
 
 ### Ampliación detectada — identidad por correo sin membresía
 

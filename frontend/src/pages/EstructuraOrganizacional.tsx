@@ -24,7 +24,7 @@ import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
 import { PanelDetalleEstructura } from '@/features/estructura-organizacional/PanelDetalleEstructura';
-import { PanelPastorEstructura } from '@/features/estructura-organizacional/PanelPastorEstructura';
+import { PanelPrincipalEstructura, type TipoPrincipalEstructura } from '@/features/estructura-organizacional/PanelPrincipalEstructura';
 import { PanelRedEstructura } from '@/features/estructura-organizacional/PanelRedEstructura';
 import {
   useConfigurarOtpEstructura,
@@ -55,7 +55,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [modoOrganizar, setModoOrganizar] = useState(false);
   const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
   const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
-  const [panelPastor, setPanelPastor] = useState(false);
+  const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
   const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
@@ -380,16 +380,24 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setPanelRed(node.id === 'redes-vacio'
                   ? { modo: 'crear' }
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
-                setPanelPastor(false);
+                setPanelPrincipal(null);
                 return;
               }
               setPanelRed(null);
-              setPanelPastor(node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN');
+              if (rolUI !== 'SUPER_ADMIN') {
+                setPanelPrincipal(null);
+              } else if (node.data.tipo === 'PASTOR_SLOT') {
+                setPanelPrincipal('PASTOR');
+              } else if (node.data.tipo === 'SUPERVISOR_SLOT') {
+                setPanelPrincipal('SUPERVISOR');
+              } else {
+                setPanelPrincipal(null);
+              }
             }}
             onPaneClick={() => {
               setNodoSeleccionadoId(null);
               setPanelRed(null);
-              setPanelPastor(false);
+              setPanelPrincipal(null);
             }}
             onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
@@ -417,17 +425,19 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             )}
           </ReactFlow>
         )}
-        {panelPastor && data && (
-          <PanelPastorEstructura
+        {panelPrincipal && data && (
+          <PanelPrincipalEstructura
+            tipo={panelPrincipal}
             iglesiaId={iglesiaId}
-            pastorActual={data.pastores[0]}
+            actual={panelPrincipal === 'PASTOR' ? data.pastores[0] : data.supervisores[0]}
+            otpRequerido={data.layout.otpRequerido}
             onClose={() => {
-              setPanelPastor(false);
+              setPanelPrincipal(null);
               setNodoSeleccionadoId(null);
             }}
           />
         )}
-        {nodoSeleccionado && !panelRed && !panelPastor && (
+        {nodoSeleccionado && !panelRed && !panelPrincipal && (
           <PanelDetalleEstructura nodo={nodoSeleccionado} onClose={() => setNodoSeleccionadoId(null)} />
         )}
         {panelRed && data && (

@@ -4,21 +4,36 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { useInvitarUsuario } from '@/hooks/useAdmin';
-import { useAsignarPastorEstructura, useBuscarPersonasEstructura } from './useEstructuraOrganizacional';
+import {
+  useAsignarPastorEstructura,
+  useAsignarSupervisorEstructura,
+  useBuscarPersonasEstructura,
+} from './useEstructuraOrganizacional';
 import type { PersonaEstructura, PersonaOpcionEstructura } from './types';
 
 type ModoAsignacion = 'base' | 'correo';
+export type TipoPrincipalEstructura = 'PASTOR' | 'SUPERVISOR';
+
+const TEXTOS: Record<TipoPrincipalEstructura, { etiqueta: string; rolInvitacion: 'PASTOR' | 'SUPERVISOR_VISION_ACCION' }> = {
+  PASTOR: { etiqueta: 'Pastor', rolInvitacion: 'PASTOR' },
+  SUPERVISOR: { etiqueta: 'Supervisor', rolInvitacion: 'SUPERVISOR_VISION_ACCION' },
+};
 
 interface Props {
+  tipo: TipoPrincipalEstructura;
   iglesiaId: string;
-  pastorActual?: PersonaEstructura;
+  actual?: PersonaEstructura;
+  otpRequerido: boolean;
   onClose: () => void;
 }
 
-export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Props) {
+export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido, onClose }: Props) {
   const queryClient = useQueryClient();
-  const asignar = useAsignarPastorEstructura(iglesiaId);
+  const asignarPastor = useAsignarPastorEstructura(iglesiaId);
+  const asignarSupervisor = useAsignarSupervisorEstructura(iglesiaId);
+  const asignar = tipo === 'PASTOR' ? asignarPastor : asignarSupervisor;
   const invitar = useInvitarUsuario();
+  const { etiqueta, rolInvitacion } = TEXTOS[tipo];
 
   const [modo, setModo] = useState<ModoAsignacion>('base');
   const [busqueda, setBusqueda] = useState('');
@@ -35,30 +50,34 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
   }, [onClose]);
 
   const procesando = asignar.isPending || invitar.isPending;
-  const otpValido = /^\d{6}$/.test(otp);
+  const codigoCompleto = /^\d{6}$/.test(otp);
+  // Vía BD usa la RPC propia del constructor: respeta el switch del módulo.
+  const otpValidoBase = !otpRequerido || codigoCompleto;
+  // Vía correo reusa invitar-usuario (regla global): Super Admin siempre exige OTP.
+  const otpValidoCorreo = codigoCompleto;
 
   const invalidarEstructura = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
   };
 
   const seleccionarPersona = async (persona: PersonaOpcionEstructura) => {
-    if (!otpValido) return;
+    if (!otpValidoBase) return;
     try {
       await asignar.mutateAsync({ personaId: persona.id, otp });
-      toast.success('Pastor asignado');
+      toast.success(`${etiqueta} asignado`);
       setOtp('');
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo asignar al Pastor');
+      toast.error(error instanceof Error ? error.message : `No se pudo asignar al ${etiqueta}`);
     }
   };
 
   const invitarPorCorreo = async () => {
-    if (!correo.trim().includes('@') || !otpValido) return;
+    if (!correo.trim().includes('@') || !otpValidoCorreo) return;
     try {
       const resultado = await invitar.mutateAsync({
         correo: correo.trim().toLowerCase(),
-        rol: 'PASTOR',
+        rol: rolInvitacion,
         iglesiaId,
         pin: otp,
       });
@@ -80,15 +99,15 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
     <>
       <button
         type="button"
-        aria-label="Cerrar panel de Pastor"
+        aria-label={`Cerrar panel de ${etiqueta}`}
         onClick={onClose}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[88%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
-            <p className="text-lg font-bold text-slate-950">{pastorActual ? 'Cambiar Pastor' : 'Asignar Pastor'}</p>
-            <p className="text-xs text-slate-500">Solo Super Admin puede modificar al Pastor.</p>
+            <p className="text-lg font-bold text-slate-950">{actual ? `Cambiar ${etiqueta}` : `Asignar ${etiqueta}`}</p>
+            <p className="text-xs text-slate-500">Solo Super Admin puede modificar al {etiqueta}.</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100">
             <X className="h-4 w-4" />
@@ -96,11 +115,11 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
         </div>
 
         <div className="space-y-4 p-5">
-          {pastorActual && (
+          {actual && (
             <section className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Pastor actual</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{pastorActual.nombre?.trim() || pastorActual.correo}</p>
-              {pastorActual.correo && pastorActual.nombre && <p className="text-xs text-slate-500">{pastorActual.correo}</p>}
+              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{actual.nombre?.trim() || actual.correo}</p>
+              {actual.correo && actual.nombre && <p className="text-xs text-slate-500">{actual.correo}</p>}
             </section>
           )}
 
@@ -140,7 +159,7 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
                     <button
                       key={persona.id}
                       type="button"
-                      disabled={procesando || !otpValido}
+                      disabled={procesando || !otpValidoBase}
                       onClick={() => void seleccionarPersona(persona)}
                       className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -157,19 +176,19 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
           ) : (
             <div className="space-y-3">
               <div>
-                <label htmlFor="estructura-pastor-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
+                <label htmlFor="estructura-principal-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
                 <input
-                  id="estructura-pastor-correo"
+                  id="estructura-principal-correo"
                   type="email"
                   value={correo}
                   onChange={(evento) => setCorreo(evento.target.value)}
-                  placeholder="pastor@correo.com"
+                  placeholder={`${etiqueta.toLowerCase()}@correo.com`}
                   className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
               <button
                 type="button"
-                disabled={procesando || !correo.trim().includes('@') || !otpValido}
+                disabled={procesando || !correo.trim().includes('@') || !otpValidoCorreo}
                 onClick={() => void invitarPorCorreo()}
                 className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -178,7 +197,7 @@ export function PanelPastorEstructura({ iglesiaId, pastorActual, onClose }: Prop
             </div>
           )}
 
-          <CampoOtp value={otp} onChange={setOtp} />
+          {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
         </div>
       </aside>
     </>
