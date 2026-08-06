@@ -12,13 +12,19 @@ const ROLES_VALIDOS = ["LIDER_RED", "SUPERVISOR_RED", "LIDER_CDP", "SUBLIDER_CDP
 // a llenar el formulario de membresia antes de ver su panel
 // (fn_completar_membresia, 42_invitacion_lideres.sql).
 //
-// Dos acciones en la misma funcion: "invitar" (default) crea la cuenta y la
-// invitacion pendiente; "reenviar" vuelve a mandar el correo de una
-// invitacion que ya existe (el usuario nunca confirmo el primer enlace).
+// Cuatro acciones en la misma funcion: "invitar" (default) crea la cuenta y
+// la invitacion pendiente; "reenviar" vuelve a mandar el correo de una
+// invitacion que ya existe (el usuario nunca confirmo el primer enlace);
+// "cancelar" da de baja una invitacion equivocada (banea la cuenta huerfana
+// de auth.users si nunca se completo el alta -- no se puede borrar, queda
+// referenciada por FK desde el soft-delete de invitacion_lider/usuario_rol);
+// "corregir" es cancelar +
+// re-invitar con el correo nuevo, mismo rol/destino (REQ-ASG-10: invalidar
+// el enlace anterior).
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
     let body: {
-      accion?: "invitar" | "reenviar";
+      accion?: "invitar" | "reenviar" | "cancelar" | "corregir";
       correo?: string;
       rol?: string;
       redId?: string | null;
@@ -54,11 +60,39 @@ export default {
       return Response.json({ ok: true });
     }
 
-    const correo = body.correo?.trim().toLowerCase();
-    const rol = body.rol ?? null;
-    const redId = body.redId ?? null;
-    const casaDePazId = body.casaDePazId ?? null;
+    let rol: string | null = body.rol ?? null;
+    let redId = body.redId ?? null;
+    let casaDePazId = body.casaDePazId ?? null;
     const departamentoId = body.departamentoId ?? null;
+
+    if (body.accion === "cancelar" || body.accion === "corregir") {
+      if (!body.invitacionId) {
+        return Response.json({ error: "Falta el id de la invitacion" }, { status: 400 });
+      }
+      const { data: resultado, error: errorCancelar } = await ctx.supabase.rpc("fn_cancelar_invitacion_lider", {
+        p_invitacion_id: body.invitacionId,
+      });
+      if (errorCancelar) {
+        return Response.json({ error: "No tenes permiso, o la invitacion ya no esta pendiente" }, { status: 403 });
+      }
+      if (resultado?.usuario_id_a_borrar) {
+        // No se puede borrar: invitacion_lider/usuario_rol quedan (soft-delete)
+        // referenciando ese auth.users por FK. Banear invalida el enlace
+        // anterior igual de bien (no puede autenticarse ni completar el alta).
+        await ctx.supabaseAdmin.auth.admin.updateUserById(resultado.usuario_id_a_borrar, {
+          ban_duration: "876000h",
+        });
+      }
+      if (body.accion === "cancelar") {
+        return Response.json({ ok: true });
+      }
+      // "corregir": cae al flujo de invitar de abajo con el rol/destino original.
+      rol = resultado.cargo_codigo === "SUBLIDER_RED" ? "SUPERVISOR_RED" : resultado.rol;
+      redId = resultado.red_id;
+      casaDePazId = resultado.casa_de_paz_id;
+    }
+
+    const correo = body.correo?.trim().toLowerCase();
 
     if (!correo || !correo.includes("@")) {
       return Response.json({ error: "Correo invalido" }, { status: 400 });

@@ -3,7 +3,12 @@ import { Home, Mail, Palette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
-import { useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import {
+  useCancelarInvitacionLider,
+  useCorregirCorreoInvitacionLider,
+  useInvitarLider,
+  useReenviarInvitacionLider,
+} from '@/hooks/useInvitacionLider';
 import { textoLegibleSobre } from './contraste';
 import {
   useActualizarRedEstructura,
@@ -40,6 +45,8 @@ interface CargoProps {
   onAbrir: () => void;
   onQuitar: () => void;
   onReenviar: (invitacionId: string) => void;
+  onCorregirCorreo: (invitacionId: string, correoNuevo: string) => void;
+  onCancelarInvitacion: (invitacionId: string) => void;
   procesando: boolean;
 }
 
@@ -49,10 +56,14 @@ function ResumenCargo({
   onAbrir,
   onQuitar,
   onReenviar,
+  onCorregirCorreo,
+  onCancelarInvitacion,
   procesando,
 }: CargoProps) {
   const pendiente = responsable?.membresiaPendiente ?? false;
   const etiqueta = responsable?.nombre?.trim() || responsable?.correo || 'Sin asignar';
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const [correoNuevo, setCorreoNuevo] = useState('');
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -91,17 +102,62 @@ function ResumenCargo({
           {responsable ? 'Cambiar' : 'Asignar'}
         </button>
       </div>
+      {responsable && responsable.invitacionId && corrigiendo && (
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+          <input
+            type="email"
+            autoFocus
+            value={correoNuevo}
+            onChange={(evento) => setCorreoNuevo(evento.target.value)}
+            placeholder="Correo correcto"
+            className="h-9 flex-1 rounded-lg border border-slate-200 px-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+          <button
+            type="button"
+            disabled={procesando || !correoNuevo.trim().includes('@')}
+            onClick={() => {
+              onCorregirCorreo(responsable.invitacionId as string, correoNuevo.trim());
+              setCorrigiendo(false);
+              setCorreoNuevo('');
+            }}
+            className="h-9 shrink-0 cursor-pointer rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Guardar
+          </button>
+          <button type="button" onClick={() => setCorrigiendo(false)} className="shrink-0 cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-700">
+            Cancelar
+          </button>
+        </div>
+      )}
       {responsable && (
-        <div className="mt-3 flex justify-end gap-3 border-t border-slate-100 pt-3">
+        <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-3">
           {responsable.invitacionId ? (
-            <button
-              type="button"
-              disabled={procesando}
-              onClick={() => onReenviar(responsable.invitacionId as string)}
-              className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50"
-            >
-              Reenviar invitación
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => onReenviar(responsable.invitacionId as string)}
+                className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50"
+              >
+                Reenviar
+              </button>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => setCorrigiendo((valor) => !valor)}
+                className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-50"
+              >
+                Corregir correo
+              </button>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => onCancelarInvitacion(responsable.invitacionId as string)}
+                className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50"
+              >
+                Cancelar designación
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -126,6 +182,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const quitar = useQuitarCargoRedEstructura(iglesiaId);
   const invitar = useInvitarLider();
   const reenviar = useReenviarInvitacionLider();
+  const cancelarInvitacion = useCancelarInvitacionLider();
+  const corregirCorreo = useCorregirCorreoInvitacionLider();
   const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
 
   const [nombre, setNombre] = useState(red?.nombre ?? '');
@@ -162,7 +220,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   }, [red, modo]);
 
   const procesando = crear.isPending || actualizar.isPending || asignar.isPending
-    || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending;
+    || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending
+    || cancelarInvitacion.isPending || corregirCorreo.isPending;
   const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
   const formularioValido = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color) && otpValido;
   const esColorPersonalizado = !PALETA_RED.some((opcion) => opcion === color.toUpperCase());
@@ -240,6 +299,31 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       toast.success('Invitación reenviada');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo reenviar la invitación');
+    }
+  };
+
+  const cancelarDesignacion = async (invitacionId: string) => {
+    try {
+      await cancelarInvitacion.mutateAsync(invitacionId);
+      await invalidar();
+      toast.success('Designación cancelada');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo cancelar la designación');
+    }
+  };
+
+  const corregirCorreoDesignacion = async (invitacionId: string, correoNuevo: string) => {
+    if (!otpValido) {
+      toast.error('Ingresá el código de confirmación antes de corregir el correo');
+      return;
+    }
+    try {
+      await corregirCorreo.mutateAsync({ invitacionId, correoNuevo, pin: otp || undefined });
+      await invalidar();
+      toast.success('Correo corregido, invitación reenviada');
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo corregir el correo');
     }
   };
 
@@ -342,6 +426,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 onAbrir={() => abrirCargo('LIDER_RED')}
                 onQuitar={() => void quitarCargo('LIDER_RED')}
                 onReenviar={(id) => void reenviarInvitacion(id)}
+                onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
                 procesando={procesando}
               />
               <ResumenCargo
@@ -350,6 +436,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 onAbrir={() => abrirCargo('SUBLIDER_RED')}
                 onQuitar={() => void quitarCargo('SUBLIDER_RED')}
                 onReenviar={(id) => void reenviarInvitacion(id)}
+                onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
                 procesando={procesando}
               />
 

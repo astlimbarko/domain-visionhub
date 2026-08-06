@@ -221,6 +221,19 @@ válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya
 > Gonzalo, práctico para copiar un color exacto de otro lado. No implementado
 > todavía.
 
+> Pendiente 2026-08-05: en `PanelRedEstructura.tsx`, "Asignar/Cambiar" Líder o
+> Supervisor de Red y "+ Nueva" Casa de Paz abren su formulario expandido
+> DEBAJO dentro del mismo panel lateral — inconsistente con el resto de la
+> app, que abre un modal (`AsignarCargoDialog`, ya usado en Departamentos y
+> en `PanelCasaDePazEstructura`/`GestionEstructuraVista`). Falta unificar
+> `PanelRedEstructura` al mismo patrón de modal. No implementado todavía.
+
+> Pendiente 2026-08-05: el nombre de la Red NO debe incluir la palabra "Red"
+> (ej. "Vida Nueva", no "Red Vida Nueva") — la tarjeta la agrega fija:
+> `Red: "Vida Nueva"`. Falta renombrar las Redes existentes en la base y
+> ajustar el placeholder del formulario ("Ej. Red Sion" → "Ej. Sion") y la
+> vista previa/tarjeta. No implementado todavía.
+
 **REQ-RED-3** — THE texto sobre el color de Red SHALL alcanzar contraste legible
 calculado automáticamente.
 
@@ -310,6 +323,19 @@ estas designaciones.
 **REQ-ASG-10** — THE administrador SHALL poder reenviar la notificación, corregir
 un correo pendiente o cancelar la designación. Corregir/cancelar SHALL invalidar
 enlaces anteriores.
+
+> Hecho 2026-08-05 (Líder/Supervisor de Red): `fn_cancelar_invitacion_lider`
+> (soft-delete de `invitacion_lider`/`usuario_rol`) + acciones `cancelar`/
+> `corregir` en la Edge Function `invitar-lider` (corregir = cancelar +
+> re-invitar con el correo nuevo). La cuenta huérfana de `auth.users` no se
+> puede borrar (FK desde el soft-delete histórico) — se banea permanentemente
+> (`ban_duration`), invalida el enlace igual. Botones "Reenviar/Corregir
+> correo/Cancelar designación" en `PanelRedEstructura.tsx`. **3 bugs reales
+> de permiso encontrados y corregidos en el camino** (Super Admin no podía
+> designar por correo ni cancelar): `fn_puede_invitar_lider`, el trigger
+> `fn_validar_asignacion_rol`, y mi propio `fn_cancelar_invitacion_lider` —
+> ninguno tenía bypass de Super Admin. Verificado en vivo con Playwright
+> (crear → corregir → cancelar, en "Centro de Vida El Eden"). Ver KAN-56/61.
 
 **REQ-ASG-11** — THE sistema SHALL impedir duplicar correo, persona o el mismo
 cargo vigente/pending en la misma entidad.

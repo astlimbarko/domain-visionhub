@@ -414,7 +414,7 @@ sistema.
 4. [x] Crear una Red sin responsables mediante RPC transaccional.
 5. [x] Paleta/hex y vista previa implementadas, colores ya usados advertidos (no bloqueante) y contraste visual validado con capturas.
 6. [x] Asignar Líder y Supervisor de Red desde base de datos o por correo.
-7. [ ] Editar nombre/color e historial de cargos implementado; falta corregir/cancelar un correo pendiente equivocado.
+7. [x] Editar nombre/color e historial de cargos implementado; corregir/cancelar un correo pendiente equivocado también.
 8. [x] Auto-colocar una Red nueva conservando las posiciones ya guardadas.
 
 **Estado 2026-08-05:** panel lateral funcional conectado a Supabase. Incluye creación/edición de Red, selección incremental por nombre o correo, designación por correo reutilizando `invitar-lider`, indicador gris/verde, reenvío y OTP exclusivo del constructor. La función `invitar-lider` versión 7 quedó `ACTIVE` con JWT obligatorio. Build y lint Docker correctos; falta la prueba visual autenticada y los casos reales de correo.
@@ -446,6 +446,39 @@ desapareció; al editar la propia Red con su color original no aparece un
 falso aviso contra sí misma. La Red de prueba se dio de baja lógica
 (`fecha_eliminacion`) al terminar, vía `supabase db query` (no existe borrado
 físico: trigger `fn_bloquear_delete` en `red`).
+
+### Entrega — Corregir/cancelar correo pendiente de una designación
+
+**Título:** Corregir o cancelar una designación de Líder/Supervisor de Red.
+
+**Descripción breve:** Migración `fn_cancelar_invitacion_lider` (soft-delete
+de `invitacion_lider` + `usuario_rol`); Edge Function `invitar-lider` con
+acciones nuevas `cancelar` y `corregir` (corregir = cancelar + re-invitar con
+el correo nuevo, mismo rol/destino). `PanelRedEstructura.tsx`: "Reenviar" /
+"Corregir correo" (mini-formulario inline) / "Cancelar designación" junto a
+cada cargo pendiente.
+
+**3 bugs reales de permiso encontrados y corregidos probando en vivo como
+Super Admin** (ninguno tenía bypass de Super Admin, a diferencia del resto
+de la épica): `fn_puede_invitar_lider` (gate de la Edge Function para
+designar por correo), el trigger `fn_validar_asignacion_rol` sobre
+`usuario_rol` (bloqueaba el INSERT aunque el gate anterior ya hubiera
+pasado), y mi propia `fn_cancelar_invitacion_lider` recién creada (mismo
+olvido). Los tres ahora agregan `fn_es_super_admin() OR` sin quitar ninguna
+vía que ya funcionaba.
+
+**Limitación real de diseño:** la cuenta huérfana de `auth.users` de una
+invitación cancelada no se puede borrar (queda referenciada por FK desde el
+soft-delete histórico de `invitacion_lider`/`usuario_rol`) — se banea
+permanentemente (`ban_duration`), que invalida el enlace igual de bien sin
+romper la integridad referencial.
+
+**Verificado en vivo con Playwright** en "Centro de Vida El Eden": designé
+Supervisor de Red por correo, corregí el correo (el nuevo aparece, el
+usuario viejo queda baneado), cancelé la designación (vuelve a "Sin
+asignar" sin rastro). Las 2 cuentas de prueba se borraron a mano después
+(decisión de Gonzalo) con los triggers `trg_no_delete_*` deshabilitados solo
+dentro de la transacción de limpieza.
 
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 

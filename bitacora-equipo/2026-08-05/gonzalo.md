@@ -81,3 +81,9 @@
 - [x] Comenté KAN-58 con este avance.
 - [x] Documenté en Jira (KAN-78, nuevo) y en harness la vista del lienzo por rol: Supervisor ve solo su rama (a sí mismo/Pastor en lectura); Líder/Supervisor de Red ven solo su Red (se ven entre sí en lectura). Sin código todavía, queda para que Matías haga el front.
 - [ ] Falta: campo para pegar color hexadecimal directo en el panel de Red (pedido de Gonzalo).
+- [ ] Falta: nombres de Red sin la palabra "Red" (la tarjeta la pone fija: Red: "Nombre").
+- [ ] Falta: unificar Asignar/Cambiar cargo y +Nueva CdP en PanelRedEstructura al modal AsignarCargoDialog (hoy se expande inline en el panel lateral).
+- [x] Implementé corregir/cancelar correo pendiente de Líder/Supervisor de Red (item 8).
+- [x] Encontré y corregí 3 bugs reales: Super Admin no podía designar por correo ni cancelar (sin bypass en 3 funciones de permiso).
+- [x] Probado en vivo: crear → corregir correo → cancelar, en El Eden. Cuenta huérfana banea en vez de borrar (limitación de FK); las 2 de prueba se borraron a mano.
+- [x] Comenté KAN-56.

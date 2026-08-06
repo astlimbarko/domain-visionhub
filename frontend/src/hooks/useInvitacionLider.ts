@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  cancelarInvitacionLider,
   completarMembresia,
+  corregirCorreoInvitacionLider,
   invitarLider,
   obtenerInvitacionesDepartamento,
   obtenerInvitacionesLider,
@@ -52,6 +54,27 @@ export function useInvitacionesDepartamento(iglesiaId: string | undefined) {
 
 export function useReenviarInvitacionLider() {
   return useMutation({ mutationFn: reenviarInvitacionLider });
+}
+
+export function useCancelarInvitacionLider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelarInvitacionLider,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
+    },
+  });
+}
+
+export function useCorregirCorreoInvitacionLider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ invitacionId, correoNuevo, pin }: { invitacionId: string; correoNuevo: string; pin?: string }) =>
+      corregirCorreoInvitacionLider(invitacionId, correoNuevo, pin),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
+    },
+  });
 }
 
 export function useMiInvitacionPendiente() {

@@ -52,6 +52,26 @@ export async function reenviarInvitacionLider(invitacionId: string): Promise<voi
   if (error) throw await extraerError(error);
 }
 
+export async function cancelarInvitacionLider(invitacionId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('invitar-lider', {
+    body: { accion: 'cancelar', invitacionId },
+  });
+  if (error) throw await extraerError(error);
+}
+
+export async function corregirCorreoInvitacionLider(invitacionId: string, correoNuevo: string, pin?: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('invitar-lider', {
+    body: {
+      accion: 'corregir',
+      invitacionId,
+      correo: correoNuevo,
+      pin,
+      redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
+    },
+  });
+  if (error) throw await extraerError(error);
+}
+
 export async function obtenerInvitacionesLider(iglesiaId: string): Promise<InvitacionLider[]> {
   const { data, error } = await supabase.rpc('fn_listar_invitaciones_lider', { p_iglesia_id: iglesiaId });
   if (error) throw error;
