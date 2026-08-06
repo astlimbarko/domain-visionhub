@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Mail, Search, UserRound, X } from 'lucide-react';
+import { Home, Mail, Palette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -20,7 +20,7 @@ import type {
   RedEstructura,
 } from './types';
 
-const PALETA_RED = ['#2563EB', '#0891B2', '#059669', '#F59E0B', '#EA580C', '#DC2626', '#7C3AED', '#DB2777'];
+const PALETA_RED = ['#2563EB', '#DC2626', '#059669', '#F59E0B', '#0891B2', '#EA580C', '#7C3AED', '#DB2777'];
 
 type ModoPanel = 'crear' | 'editar';
 type ModoAsignacion = 'base' | 'correo';
@@ -29,6 +29,7 @@ interface Props {
   iglesiaId: string;
   modo: ModoPanel;
   red: RedEstructura | null;
+  redesExistentes: RedEstructura[];
   otpRequerido: boolean;
   onClose: () => void;
 }
@@ -117,7 +118,7 @@ function ResumenCargo({
   );
 }
 
-export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose }: Props) {
+export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, onClose }: Props) {
   const queryClient = useQueryClient();
   const crear = useCrearRedEstructura(iglesiaId);
   const actualizar = useActualizarRedEstructura(iglesiaId);
@@ -164,6 +165,10 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
     || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending;
   const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
   const formularioValido = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color) && otpValido;
+  const esColorPersonalizado = !PALETA_RED.some((opcion) => opcion === color.toUpperCase());
+  const redConMismoColor = redesExistentes.find(
+    (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
+  );
 
   const invalidar = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -302,11 +307,25 @@ export function PanelRedEstructura({ iglesiaId, modo, red, otpRequerido, onClose
                   style={{ backgroundColor: opcion }}
                 />
               ))}
-              <label className="flex h-8 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600">
-                Personalizado
-                <input type="color" value={color} onChange={(evento) => setColor(evento.target.value.toUpperCase())} className="h-5 w-7 cursor-pointer border-0 bg-transparent p-0" />
+              <label
+                aria-label="Elegir color personalizado desde la paleta completa"
+                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 transition-transform hover:scale-105 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-slate-200 bg-white'}`}
+                style={esColorPersonalizado ? { backgroundColor: color } : undefined}
+              >
+                <Palette className="h-4 w-4" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(evento) => setColor(evento.target.value.toUpperCase())}
+                  className="sr-only"
+                />
               </label>
             </div>
+            {redConMismoColor && (
+              <p className="mt-2 text-xs font-medium text-amber-600">
+                Este color ya lo usa la Red «{redConMismoColor.nombre}». Podés continuar, pero conviene elegir uno distinto para diferenciarlas.
+              </p>
+            )}
             <div
               className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold"
               style={{ backgroundColor: color, color: textoLegibleSobre(color) }}

@@ -192,6 +192,15 @@ de Red.
 **REQ-RED-2** — THE creación de Red SHALL aceptar nombre y color hexadecimal
 válido, ofrecer paleta y vista previa, y advertir —sin bloquear— colores ya usados.
 
+> Hecho 2026-08-05: paleta reordenada (colores primarios primero: azul, rojo,
+> verde, ámbar, luego cyan, naranja, morado, rosa); el selector "Personalizado"
+> pasó de `<input type="color">` con label de texto a un botón circular con
+> ícono de paleta, mismo tamaño que las muestras (abre igual el selector nativo
+> del SO, que ya cumple el rol de "paleta completa"). Advertencia de color
+> repetido: no bloqueante, compara contra `redesExistentes` (excluyendo la Red
+> que se está editando), mensaje "Este color ya lo usa la Red «X»...". Verificado
+> en vivo con Playwright creando 2 Redes con el mismo color. Ver Jira KAN-58.
+
 **REQ-RED-3** — THE texto sobre el color de Red SHALL alcanzar contraste legible
 calculado automáticamente.
 

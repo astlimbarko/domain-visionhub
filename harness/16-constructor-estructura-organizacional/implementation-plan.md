@@ -412,7 +412,7 @@ sistema.
 2. [x] Mostrar Líder y Supervisor de Red (`SUBLIDER_RED`) dentro de la tarjeta de Red.
 3. [x] Apilar verticalmente las Casas de Paz pertenecientes a cada Red.
 4. [x] Crear una Red sin responsables mediante RPC transaccional.
-5. [ ] Paleta/hex y vista previa implementadas; falta advertir colores ya usados y validar contraste visual con capturas.
+5. [x] Paleta/hex y vista previa implementadas, colores ya usados advertidos (no bloqueante) y contraste visual validado con capturas.
 6. [x] Asignar Líder y Supervisor de Red desde base de datos o por correo.
 7. [ ] Editar nombre/color e historial de cargos implementado; falta corregir/cancelar un correo pendiente equivocado.
 8. [x] Auto-colocar una Red nueva conservando las posiciones ya guardadas.
@@ -420,6 +420,32 @@ sistema.
 **Estado 2026-08-05:** panel lateral funcional conectado a Supabase. Incluye creación/edición de Red, selección incremental por nombre o correo, designación por correo reutilizando `invitar-lider`, indicador gris/verde, reenvío y OTP exclusivo del constructor. La función `invitar-lider` versión 7 quedó `ACTIVE` con JWT obligatorio. Build y lint Docker correctos; falta la prueba visual autenticada y los casos reales de correo.
 
 **Base de datos:** migraciones `20260805160451_estructura_redes_operaciones` y `20260805170233_estructura_invitacion_supervisor_red` aplicadas. Las RPC validan usuario, permiso por iglesia, destino y OTP; no conceden acceso anónimo.
+
+### Entrega — Advertir colores de Red repetidos + reordenar paleta
+
+**Título:** Advertencia de color repetido y paleta reordenada en el panel de Red.
+
+**Descripción breve:** `PanelRedEstructura.tsx` recibe ahora `redesExistentes:
+RedEstructura[]` desde `EstructuraOrganizacional.tsx` (`data.redes`). Si el
+color elegido coincide con el de otra Red (excluyendo la propia al editar), se
+muestra un aviso ámbar no bloqueante debajo de la paleta — el botón "Crear
+Red"/"Guardar cambios" nunca se deshabilita por esto, solo por nombre/color/OTP
+inválidos (REQ-RED-2). `PALETA_RED` se reordenó con colores primarios primero
+(azul, rojo, verde, ámbar) y el resto después (cyan, naranja, morado, rosa).
+El selector "Personalizado" (antes un `<input type="color">` con texto) pasó a
+un botón circular con ícono `Palette` del mismo tamaño que las muestras —
+sigue siendo el mismo `<input type="color">` nativo por dentro (label
+envolvente), sin construir una rueda de color propia: el selector del sistema
+operativo ya cumple ese rol.
+
+**Verificado en vivo (Playwright, 2026-08-05):** en "Centro de Vida 4 Anillo"
+se creó una Red de prueba con el primer color de la paleta, se volvió a abrir
+"Nueva Red" (mismo color por defecto) y apareció el aviso "Este color ya lo
+usa la Red «Red Prueba Colores A»..."; al cambiar a otro color el aviso
+desapareció; al editar la propia Red con su color original no aparece un
+falso aviso contra sí misma. La Red de prueba se dio de baja lógica
+(`fecha_eliminacion`) al terminar, vía `supabase db query` (no existe borrado
+físico: trigger `fn_bloquear_delete` en `red`).
 
 ## Fase 7 — KAN-59 y KAN-60: Casas de Paz
 

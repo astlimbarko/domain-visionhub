@@ -498,6 +498,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             iglesiaId={iglesiaId}
             modo={panelRed.modo}
             red={redSeleccionada}
+            redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
             onClose={() => {
               setPanelRed(null);

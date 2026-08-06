@@ -51,7 +51,7 @@
 - [x] Validé el frontend (`tsc -b`, lint, build) con el nuevo panel; sin errores nuevos.
 - [x] Apliqué la migración `fn_estructura_asignar_pastor` a Supabase (`supabase db push`, confirmado con `migration list`).
 - [x] Verifiqué visualmente el fix de contraste con datos reales (Playwright + captura + estilos computados, no solo a ojo): Departamentos y Redes muestran color sólido verdadero y el texto cambia correctamente oscuro/blanco según el color de fondo.
-- [ ] Pendiente (anotado, no implementado): reordenar la paleta de sugerencias de color de Red (colores primarios primero) y cambiar el selector "Personalizado" por un botón que abra la paleta completa (más parecido a la referencia de Figma). Se suma al ítem 7 de la lista de pendientes (avisar colores repetidos).
+- [x] Reordené la paleta de sugerencias de color de Red (colores primarios primero) y cambié el selector "Personalizado" por un botón de paleta del mismo tamaño que las muestras (abre el selector nativo del SO, más parecido a la referencia de Figma).
 - [x] Verifiqué la duda de Gonzalo sobre contraste de texto en tarjetas rojas/verdes/grises con recortes a nivel de píxel (no la vista general escalada): están bien, el texto es legible en los tres casos.
 - [x] Encontré y corregí un bug real de cabecera responsiva: en celular (360-430px) se partía en 3 filas descoordinadas con el buscador flotando entre íconos sueltos; además colisionaba título/nombre de iglesia en tablet (~768px). Reescrita con Playwright probando 360/390/768/1024px reales, no solo a ojo. Comenté KAN-63.
 - [x] Implementé "Asignar/cambiar Supervisor" (ítem 2 de la lista de pendientes). Decisión de Gonzalo: solo Super Admin lo hace (no un Supervisor agregando a otro), y "cambiar" reemplaza al vigente igual que Pastor.
@@ -76,3 +76,6 @@
 - [x] Probé en vivo: agregar a Freddy Aramayo como sublíder no tocó al líder (Rosa Illanes) ni pisó nada; después confirmé que buscar a Rosa como sublíder da "Sin resultados".
 - [x] Comenté KAN-60, lo pasé a "En curso" y me lo asigné (astlimbark).
 - [x] Con esto quedaron los 6 ítems de la lista de pendientes de hoy completos: Pastor, Supervisor, Afirmación, Crear CdP, Asignar líder/anfitrión/dirección de CdP, y Sublíderes de CdP. Quedan 8 ítems más en la lista para la próxima sesión (colores repetidos de Red, corrección/cancelación de correo, caso de correo ya existente, responsividad móvil completa, cámara local, actualizar Jira restante, revisión visual autenticada, pruebas E2E/cierre integral).
+- [x] Implementé "Advertir colores de Red repetidos" (ítem 7): aviso ámbar no bloqueante en el panel de Red cuando el color elegido coincide con el de otra Red de la misma iglesia (excluyendo la que se está editando).
+- [x] Probé en vivo con Playwright en "Centro de Vida 4 Anillo": creé una Red con el color por defecto, volví a abrir "Nueva Red" y apareció el aviso correcto; cambié de color y desapareció; edité la propia Red con su color original y no hubo falso aviso. Di de baja lógica la Red de prueba al terminar (no existe borrado físico, hay un trigger que lo bloquea).
+- [x] Comenté KAN-58 con este avance.
