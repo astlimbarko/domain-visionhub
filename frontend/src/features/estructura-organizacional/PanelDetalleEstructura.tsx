@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Building2, Home, Network, ShieldCheck, UserRound, X } from 'lucide-react';
+import { Building2, Home, Network, Plus, ShieldCheck, UserRound, X } from 'lucide-react';
 import type { DatosNodoEstructura } from './types';
 
 interface Props {
@@ -15,6 +15,7 @@ const ICONOS = {
   GRUPO_REDES: Network,
   RED: Network,
   CASA_DE_PAZ: Home,
+  NUEVA_CASA_DE_PAZ: Plus,
 } as const;
 
 export function PanelDetalleEstructura({ nodo, onClose }: Props) {

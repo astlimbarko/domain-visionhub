@@ -78,6 +78,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
   const [departamentoSeleccionadoId, setDepartamentoSeleccionadoId] = useState<string | null>(null);
   const [casaDePazSeleccionadaId, setCasaDePazSeleccionadaId] = useState<string | null>(null);
+  const [abrirCrearCdpDirecto, setAbrirCrearCdpDirecto] = useState(false);
   const [cambioOtpPendiente, setCambioOtpPendiente] = useState<boolean | null>(null);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
@@ -457,6 +458,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               if (node.data.tipo === 'GRUPO_DEPARTAMENTOS' || node.data.tipo === 'GRUPO_REDES') return;
               setNodoSeleccionadoId(node.id);
               if (node.data.tipo === 'RED') {
+                setAbrirCrearCdpDirecto(false);
                 setPanelRed(node.id === 'redes-vacio'
                   ? { modo: 'crear' }
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
@@ -465,6 +467,15 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setCasaDePazSeleccionadaId(null);
                 return;
               }
+              if (node.data.tipo === 'NUEVA_CASA_DE_PAZ') {
+                setAbrirCrearCdpDirecto(true);
+                setPanelRed({ modo: 'editar', redId: node.data.redId as string });
+                setPanelPrincipal(null);
+                setDepartamentoSeleccionadoId(null);
+                setCasaDePazSeleccionadaId(null);
+                return;
+              }
+              setAbrirCrearCdpDirecto(false);
               setPanelRed(null);
               if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR') {
                 setPanelPrincipal(null);
@@ -573,8 +584,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
             esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+            abrirCrearCdpAlAbrir={abrirCrearCdpDirecto}
             onClose={() => {
               setPanelRed(null);
+              setAbrirCrearCdpDirecto(false);
               setNodoSeleccionadoId(null);
             }}
           />

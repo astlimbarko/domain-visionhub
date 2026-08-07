@@ -57,6 +57,7 @@ interface Props {
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
   esSuperAdmin: boolean;
+  abrirCrearCdpAlAbrir?: boolean;
   onClose: () => void;
 }
 
@@ -195,7 +196,7 @@ function ResumenCargo({
   );
 }
 
-export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, esSuperAdmin, onClose }: Props) {
+export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, esSuperAdmin, abrirCrearCdpAlAbrir, onClose }: Props) {
   const queryClient = useQueryClient();
   const crear = useCrearRedEstructura(iglesiaId);
   const actualizar = useActualizarRedEstructura(iglesiaId);
@@ -259,6 +260,10 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
     setMostrarCambiarNombre(false);
     setNombreConfirmando('');
   }, [red, modo]);
+
+  useEffect(() => {
+    if (abrirCrearCdpAlAbrir && modo === 'editar' && red) setCreandoCdp(true);
+  }, [abrirCrearCdpAlAbrir, red, modo]);
 
   const procesando = crear.isPending || actualizar.isPending || asignar.isPending
     || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending

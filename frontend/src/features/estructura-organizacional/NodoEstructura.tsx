@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import { Building2, Home, LayoutGrid, Mail, Network, ShieldCheck, UserRound } from 'lucide-react';
+import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
 import { textoLegibleSobre } from './contraste';
 import type { DatosNodoEstructura, PersonaEstructura } from './types';
 
@@ -13,6 +13,7 @@ const ICONOS = {
   GRUPO_REDES: Network,
   RED: Network,
   CASA_DE_PAZ: Home,
+  NUEVA_CASA_DE_PAZ: Plus,
 } as const;
 
 function inicialesPersona(persona: PersonaEstructura): string | null {
@@ -288,6 +289,20 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
             {data.subtitulo && <span className="mt-0.5 block truncate text-[11px] text-slate-500">{data.subtitulo}</span>}
           </span>
         </div>
+      </div>
+    );
+  }
+
+  if (data.tipo === 'NUEVA_CASA_DE_PAZ') {
+    return (
+      <div
+        aria-selected={selected}
+        className="flex h-11 w-[235px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-xs font-semibold transition-colors hover:bg-white/40"
+        style={{ borderColor: `color-mix(in oklab, ${color} 55%, transparent)`, color }}
+      >
+        <Handle type="target" position={Position.Top} className="!h-0 !w-0 !border-0 !bg-transparent" />
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+        {data.titulo}
       </div>
     );
   }

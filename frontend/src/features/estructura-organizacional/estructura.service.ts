@@ -178,6 +178,23 @@ export async function obtenerEstructuraOrganizacional(
     iglesia.supervisor_id,
   ].filter((id): id is string => Boolean(id)))];
 
+  const casaIds = (casasResultado.data ?? []).map((casa) => casa.id);
+  const direccionesPorCasa = new Map<string, string>();
+  if (casaIds.length > 0) {
+    const { data, error } = await supabase
+      .from('direccion_asignacion')
+      .select('casa_de_paz_id, direccion:direccion_id(zona, calle, numero)')
+      .in('casa_de_paz_id', casaIds)
+      .eq('activo', true)
+      .is('fecha_eliminacion', null);
+    if (error) throw error;
+    for (const fila of data ?? []) {
+      const d = Array.isArray(fila.direccion) ? fila.direccion[0] : fila.direccion;
+      const breve = [d?.calle, d?.numero].filter(Boolean).join(' ') || d?.zona || null;
+      if (breve) direccionesPorCasa.set(fila.casa_de_paz_id, breve);
+    }
+  }
+
   let personas = new Map<string, PersonaEstructura>();
   if (personaIds.length > 0) {
     const { data, error } = await supabase
@@ -292,6 +309,7 @@ export async function obtenerEstructuraOrganizacional(
       lideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'LIDER_CDP'),
       sublideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'SUBLIDER_CDP'),
       anfitriones: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'ANFITRION'),
+      direccionBreve: direccionesPorCasa.get(casa.id) ?? null,
     })) as CasaDePazEstructura[],
     layout: {
       disponible: !errorLayout,

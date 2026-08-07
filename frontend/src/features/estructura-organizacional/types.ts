@@ -5,7 +5,8 @@ export type TipoNodoEstructura =
   | 'DEPARTAMENTO'
   | 'GRUPO_REDES'
   | 'RED'
-  | 'CASA_DE_PAZ';
+  | 'CASA_DE_PAZ'
+  | 'NUEVA_CASA_DE_PAZ';
 
 export interface PersonaEstructura {
   id: string;
@@ -41,6 +42,7 @@ export interface CasaDePazEstructura {
   lideres: PersonaEstructura[];
   sublideres: PersonaEstructura[];
   anfitriones: PersonaEstructura[];
+  direccionBreve: string | null;
 }
 
 export interface EstructuraOrganizacionalDatos {
@@ -86,6 +88,7 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   resaltado?: boolean;
   estadoIncompleto?: boolean;
   eliminada?: boolean;
+  redId?: string;
 }
 export interface PersonaOpcionEstructura {
   id: string;

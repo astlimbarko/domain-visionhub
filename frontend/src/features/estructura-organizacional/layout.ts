@@ -50,6 +50,7 @@ function nodo(
     resaltado?: boolean;
     estadoIncompleto?: boolean;
     eliminada?: boolean;
+    redId?: string;
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -182,23 +183,35 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       casas.forEach((casa, indice) => {
           const casaId = `casa:${casa.id}`;
           const casaY = 405 + indice * 110;
-          const casaSinNombre = !casa.nombre?.trim();
           const casaSinLider = casa.lideres.length === 0;
           nodes.push(
             nodo(casaId, redX, casaY, {
               tipo: 'CASA_DE_PAZ',
-              titulo: casa.nombre?.trim() || `Casa de Paz ${String(indice + 1).padStart(2, '0')}`,
-              subtitulo: casaSinNombre && casaSinLider
-                ? 'Escribe un nombre · Asigna un líder'
-                : casaSinNombre
-                  ? `Escribe un nombre · ${resumenResponsables(casa.lideres, '')}`
-                  : resumenResponsables(casa.lideres, 'Asigna un líder'),
+              // El nombre/alias de la CdP no es lo protagonista (pedido del
+              // owner, 2026-08-07): el titulo es el lider, la direccion breve
+              // queda como subtitulo secundario.
+              titulo: resumenResponsables(casa.lideres, 'Líder sin asignar'),
+              subtitulo: casa.direccionBreve ?? 'Sin dirección asignada',
               color: colorRed,
-              estadoIncompleto: casaSinNombre && casaSinLider,
+              estadoIncompleto: casaSinLider,
             }),
           );
           edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
       });
+
+      // Boton "+" para crear una Casa de Paz directo desde el lienzo, sin
+      // pasar por el panel lateral de la Red primero (pedido del owner,
+      // 2026-08-07, ver imagen de referencia en opencode/).
+      const nuevaCasaId = `nueva-casa:${red.id}`;
+      nodes.push(
+        nodo(nuevaCasaId, redX, 405 + casas.length * 110, {
+          tipo: 'NUEVA_CASA_DE_PAZ',
+          titulo: 'Nueva Casa de Paz',
+          color: colorRed,
+          redId: red.id,
+        }),
+      );
+      edges.push(arista(`${redId}-${nuevaCasaId}`, redId, nuevaCasaId, colorRed));
     }
   }
 
