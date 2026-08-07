@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
-import { textoLegibleSobre } from './contraste';
+import { colorLegibleSobreBlanco, textoLegibleSobre } from './contraste';
 import type { DatosNodoEstructura, PersonaEstructura } from './types';
 
 type NodoVisual = Node<DatosNodoEstructura, 'estructura'>;
@@ -296,11 +296,15 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   }
 
   if (data.tipo === 'NUEVA_CASA_DE_PAZ') {
+    // Colores claros (ej. amarillo) elegidos libremente para la Red quedan
+    // casi invisibles como texto/borde sobre fondo blanco -- se oscurecen
+    // solo lo necesario para cumplir contraste (bug real 2026-08-07).
+    const colorTexto = colorLegibleSobreBlanco(color);
     return (
       <div
         aria-selected={selected}
         className="flex h-11 w-[235px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-xs font-semibold transition-colors hover:bg-white/40"
-        style={{ borderColor: `color-mix(in oklab, ${color} 55%, transparent)`, color }}
+        style={{ borderColor: `color-mix(in oklab, ${colorTexto} 55%, transparent)`, color: colorTexto }}
       >
         <Handle type="target" position={Position.Top} className="!h-0 !w-0 !border-0 !bg-transparent" />
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
@@ -311,6 +315,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
 
   const esCasaDePaz = data.tipo === 'CASA_DE_PAZ';
   const incompleto = Boolean(data.estadoIncompleto);
+  const colorIcono = colorLegibleSobreBlanco(color);
 
   return (
     <div
@@ -328,7 +333,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ color, backgroundColor: `color-mix(in oklab, ${color} 12%, white)` }}
+          style={{ color: colorIcono, backgroundColor: `color-mix(in oklab, ${color} 12%, white)` }}
         >
           <Icono className="h-4.5 w-4.5" aria-hidden="true" />
         </span>

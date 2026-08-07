@@ -91,7 +91,11 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   );
   const cantidadColumnasRed = Math.max(datos.redes.length, 1);
   const anchoGrupoRedes = Math.max(535, 50 + cantidadColumnasRed * 270);
-  const altoGrupoRedes = 300 + maximoCasasPorRed * 110;
+  // +1 fila: cada Red ahora suma un boton "+ Nueva Casa de Paz" despues de
+  // su ultima Casa de Paz real (bug real 2026-08-07, encontrado por el
+  // owner -- el cuadro contenedor quedaba corto y recortaba ese boton en la
+  // Red con mas Casas de Paz).
+  const altoGrupoRedes = 300 + (maximoCasasPorRed + 1) * 110;
 
   nodes.push(
     nodo('pastor', 0, 0, {

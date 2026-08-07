@@ -17,3 +17,29 @@ export function textoLegibleSobre(hex: string): string {
   const contrasteNegro = (luminancia + 0.05) / 0.05;
   return contrasteBlanco >= contrasteNegro ? '#ffffff' : '#0f172a';
 }
+
+function contrasteConBlanco(hex: string): number {
+  return 1.05 / (luminanciaRelativa(hex) + 0.05);
+}
+
+function mezclarHaciaNegro(hex: string, cantidad: number): string {
+  const limpio = hex.replace('#', '');
+  const canal = (indice: number) => parseInt(limpio.slice(indice, indice + 2), 16) || 0;
+  const mezclar = (valor: number) => Math.round(valor * (1 - cantidad));
+  return `#${[canal(0), canal(2), canal(4)].map((valor) => mezclar(valor).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * Un color de Red/CdP se elige libremente (paleta o hex picker) y puede ser
+ * demasiado claro para usarse como texto/borde sobre fondo blanco (ej.
+ * amarillo -- bug real encontrado 2026-08-07 en el boton "+ Nueva Casa de
+ * Paz"). Oscurece el color lo minimo necesario hasta cumplir 4.5:1 contra
+ * blanco, sin tocar colores que ya son legibles tal cual.
+ */
+export function colorLegibleSobreBlanco(hex: string): string {
+  let resultado = hex;
+  for (let intento = 1; intento <= 9 && contrasteConBlanco(resultado) < 4.5; intento++) {
+    resultado = mezclarHaciaNegro(hex, intento * 0.1);
+  }
+  return resultado;
+}
