@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Heart, LayoutGrid, Mail, RefreshCw, User, Users } from 'lucide-react';
+import { Cog, Heart, LayoutGrid, Mail, RefreshCw, User, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -91,12 +91,7 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5">
       <div className="flex items-center gap-3">
-        <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[15px] font-bold text-white"
-          style={{ backgroundColor: meta.color }}
-        >
-          {meta.verbo[0]}
-        </span>
+        <Cog className="h-9 w-9 shrink-0" strokeWidth={1.8} style={{ color: meta.color }} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{meta.verbo}</p>
           <p className="truncate text-[11px] text-muted-foreground">{departamento.nombre}</p>

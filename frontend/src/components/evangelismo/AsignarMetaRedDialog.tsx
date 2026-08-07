@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { AZUL } from '@/components/dashboard/DashboardUI';
 import { aISO } from '@/utils/calendario-fechas';
+import { esMetaAsignada } from '@/utils/evangelismo-meta';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
 interface Props {
@@ -23,6 +24,10 @@ interface Props {
   cdp: MetaCdpRed | null;
   asignando: boolean;
   onAsignar: (params: { meta: number; fechaInicio: string; fechaFin: string }) => Promise<void>;
+  /** Reusado también para asignarle una meta a una Red completa (2026-08-06, Supervisor) --
+   * el texto de vigencia por default habla de una Casa de Paz puntual, así que el llamador
+   * puede pisarlo cuando `cdp` en realidad representa una Red. */
+  nota?: string;
 }
 
 /** Rango por defecto: el mes en curso -- el líder puede ampliarlo a mano. */
@@ -33,7 +38,7 @@ function rangoMesActual() {
   return { desde, hasta };
 }
 
-export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsignar }: Props) {
+export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsignar, nota }: Props) {
   const [meta, setMeta] = useState('');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -41,7 +46,7 @@ export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsi
   useEffect(() => {
     if (!open) return;
     const { desde, hasta } = rangoMesActual();
-    setMeta(cdp?.origen === 'ASIGNADA' && cdp.meta != null ? String(cdp.meta) : '');
+    setMeta(esMetaAsignada(cdp?.origen) && cdp?.meta != null ? String(cdp.meta) : '');
     setFechaInicio(desde);
     setFechaFin(hasta);
   }, [open, cdp]);
@@ -71,7 +76,7 @@ export function AsignarMetaRedDialog({ open, onOpenChange, cdp, asignando, onAsi
           <DialogTitle className="sr-only">Asignar meta de evangelismo</DialogTitle>
           <SeccionIconHeader icon={Flag} color={AZUL} titulo="Asignar meta de evangelismo" descripcion={cdp?.etiqueta} />
           <DialogDescription className="pt-1">
-            Mientras esté vigente, esta meta manda sobre la propia que haya fijado la Casa de Paz.
+            {nota ?? 'Mientras esté vigente, esta meta manda sobre la propia que haya fijado la Casa de Paz.'}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">

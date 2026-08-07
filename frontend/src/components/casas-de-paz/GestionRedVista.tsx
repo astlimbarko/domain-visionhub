@@ -62,7 +62,6 @@ import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
 import { MultiplicarCdpDialog } from '@/components/casas-de-paz/MultiplicarCdpDialog';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
-import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import type { CargoCdpCodigo, CargoRedCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -207,15 +206,18 @@ export function GestionRedVista() {
       onError: (e) => manejarError(e, 'No se pudo cambiar el estado'),
     });
   }
-  function manejarEliminarCdp() {
+  function manejarEliminarCdp(motivo: string) {
     if (!cdpAEliminar) return;
-    eliminarCdp.mutate(cdpAEliminar.id, {
-      onSuccess: () => {
-        toast.success('Casa de Paz eliminada');
-        setCdpAEliminar(undefined);
-      },
-      onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
-    });
+    eliminarCdp.mutate(
+      { cdpId: cdpAEliminar.id, motivo },
+      {
+        onSuccess: () => {
+          toast.success('Casa de Paz eliminada');
+          setCdpAEliminar(undefined);
+        },
+        onError: (e) => manejarError(e, 'No se pudo eliminar la casa de paz'),
+      }
+    );
   }
   async function manejarAsignarRed(persona: PersonaBusqueda) {
     if (!dialogoRed || !redActiva) return;
@@ -531,19 +533,17 @@ export function GestionRedVista() {
         }}
       />
 
-      <ConfirmarQuitarDialog
+      <ConfirmarCambioDialog
         open={!!cdpAEliminar}
         onOpenChange={(open) => !open && setCdpAEliminar(undefined)}
         titulo="Eliminar Casa de Paz"
         descripcion={
           cdpAEliminar
-            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema. Esta acción no se puede deshacer.`
+            ? `¿Seguro que querés eliminar "${cdpAEliminar.etiqueta}"? Se desactiva y deja de aparecer en el sistema (queda consultable en Histórico Anual). Esta acción no se puede deshacer.`
             : undefined
         }
         procesando={eliminarCdp.isPending}
         onConfirmar={manejarEliminarCdp}
-        textoConfirmar="Sí, eliminar"
-        textoProcesando="Eliminando..."
       />
     </div>
   );

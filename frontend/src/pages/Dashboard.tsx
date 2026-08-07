@@ -70,6 +70,17 @@ export function Dashboard() {
     return <Navigate to={ROUTES.AFIRMACION} replace />;
   }
 
+  // Sublíder de CdP: no tiene panel propio (su nav ni siquiera muestra
+  // "Dashboard", RUTAS_SUBLIDER_CDP en permisos.ts) -- entra directo a
+  // "Perfil de Casa de Paz" (CasasDePaz.tsx → GestionSubliderVista), mismo
+  // patrón que Super Admin/Líder de Departamento. Antes caía igual en este
+  // Dashboard genérico vía vistaPorDefectoParaRol (mostraba DashboardLiderCdp
+  // con esSublider=true) pese a no estar en su nav -- pedido del owner
+  // (2026-08-06) para que no vea ningún dashboard de Líder de CdP.
+  if (rolUI === 'SUBLIDER_CDP') {
+    return <Navigate to={ROUTES.CASAS_DE_PAZ} replace />;
+  }
+
   if (isLoading || !roles) {
     return (
       <div className="flex flex-col gap-6">

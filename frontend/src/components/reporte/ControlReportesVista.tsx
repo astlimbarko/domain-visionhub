@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,20 +17,12 @@ import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
-import { useReportesRedRango } from '@/hooks/useReporte';
+import { useDiasPlazoReporte, useReportesRedRango } from '@/hooks/useReporte';
 import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
 
 const LOTE = 12;
 const ROJO = 'var(--destructive)';
-
-// Días de gracia desde la fecha de la reunión para considerar el reporte "a
-// tiempo" -- pedido del owner, 2026-08-02: 3 colores en vez de 2 (verde =
-// presentó a tiempo, naranja = presentó con retraso, rojo = no presentó).
-// No hay un criterio configurable para esto todavía (a diferencia de
-// EDAD_MINIMA_CREYENTE, etc.) -- si el owner pide ajustarlo, se mueve a
-// configuracion_definicion en vez de este número fijo.
-const DIAS_PLAZO_REPORTE = 2;
 
 const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
@@ -105,6 +98,9 @@ type FiltroEstado = 'TODAS' | 'VERDE' | 'NARANJA' | 'ROJO';
 
 interface Props {
   redId: string;
+  /** Selector de Red (Líder de Red / Supervisor eligiendo cuál mirar), si corresponde -- se
+   * muestra en la misma barra que la navegación de mes en vez de en una fila aparte. */
+  accionExtra?: ReactNode;
 }
 
 /**
@@ -116,10 +112,14 @@ interface Props {
  * estados -- verde (a tiempo), naranja (con retraso) o rojo (no presentó,
  * solo si ya pasó el plazo de gracia desde esa fecha).
  */
-export function ControlReportesVista({ redId }: Props) {
+export function ControlReportesVista({ redId, accionExtra }: Props) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: cdpsTodas = [], isLoading: cargandoCdps } = useCdps(iglesiaActivaId, redId);
   const cdps = useMemo(() => cdpsTodas.filter((c) => c.activo), [cdpsTodas]);
+  // KAN-31: plazo configurable por iglesia -- solo se usa acá para decidir
+  // ROJO/PENDIENTE (semanas sin reporte todavía). El VERDE/NARANJA de un
+  // reporte ya cargado viene calculado desde el servidor (estado_carga).
+  const { data: diasPlazoReporte = 2 } = useDiasPlazoReporte(iglesiaActivaId);
 
   const hoyDate = new Date();
   const [anio, setAnio] = useState(hoyDate.getFullYear());
@@ -150,12 +150,12 @@ export function ControlReportesVista({ redId }: Props) {
 
   // clave "cdpId:semanaInicio" -> reporte de esa semana. Un reporte por CdP y semana.
   const porCdpSemana = useMemo(() => {
-    const mapa = new Map<string, { total: number; fecha: string; fechaCreacion: string }>();
+    const mapa = new Map<string, { total: number; fecha: string; estadoCarga: 'VERDE' | 'NARANJA' }>();
     for (const r of reportes) {
       mapa.set(`${r.casa_de_paz_id}:${inicioSemanaISO(r.fecha_reunion)}`, {
         total: r.total_asistentes,
         fecha: r.fecha_reunion,
-        fechaCreacion: r.fecha_creacion,
+        estadoCarga: r.estado_carga,
       });
     }
     return mapa;
@@ -164,9 +164,11 @@ export function ControlReportesVista({ redId }: Props) {
   function estadoCeldaFecha(cdpId: string, fechaEsperadaISO: string): EstadoCelda {
     const celda = porCdpSemana.get(`${cdpId}:${inicioSemanaISO(fechaEsperadaISO)}`);
     if (celda) {
-      return diasDeDemora(celda.fecha, celda.fechaCreacion) <= DIAS_PLAZO_REPORTE ? 'VERDE' : 'NARANJA';
+      // Calculado server-side (v_reporte_totales.estado_carga), no se
+      // recalcula en el cliente -- ver 108_control_reportes_plazo_configurable.sql.
+      return celda.estadoCarga;
     }
-    return diasDeDemora(fechaEsperadaISO, ahoraISO) > DIAS_PLAZO_REPORTE ? 'ROJO' : 'PENDIENTE';
+    return diasDeDemora(fechaEsperadaISO, ahoraISO) > diasPlazoReporte ? 'ROJO' : 'PENDIENTE';
   }
 
   const [texto, setTexto] = useState('');
@@ -235,74 +237,71 @@ export function ControlReportesVista({ redId }: Props) {
   const cargando = cargandoCdps || cargandoReportes;
   const grid = { gridTemplateColumns: `minmax(150px, 1.4fr) repeat(${maxColumnas}, minmax(52px, 1fr))` };
 
+  const tituloEstado =
+    total === 0 ? 'Sin Casas de Paz activas' : vencidas === 0 ? 'Todavía no vence ningún reporte este mes' : todoOk ? 'Todo el mes al día' : `${rojos + naranjas} reporte${rojos + naranjas === 1 ? '' : 's'} con problema este mes`;
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── Selector de mes ───────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-muted/20 p-2 sm:justify-start sm:pl-4">
-        <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="w-40 text-center text-sm font-semibold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
-        <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+    <div className="flex flex-col gap-4">
+      {/* ── Navegación de mes + selector de Red, en una sola barra ─────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-muted/20 p-2 pl-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        {accionExtra}
       </div>
 
-      {/* ── Hero de cumplimiento del mes ──────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl px-6 py-7 sm:px-8" style={{ background: 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
-        <div className="pointer-events-none absolute -top-20 -right-12 h-64 w-64 rounded-full opacity-40 blur-3xl" style={{ background: colorHero }} />
-        <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
-          <DonutRing porcentaje={pctCumplimiento} size={112} strokeWidth={10} color={colorHero} trackColor="rgba(255,255,255,0.16)">
-            <div className="flex flex-col items-center leading-none text-white">
-              <span className="text-[28px] font-bold tracking-tight">{pctCumplimiento}%</span>
-              <span className="text-xs text-white/50">cumplimiento</span>
-            </div>
-          </DonutRing>
-          <div className="min-w-0 text-center sm:text-left">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-white/55 uppercase">Cumplimiento de reportes · {nombreMes(anio, mes)}</p>
-            <h2 className="font-heading mt-1.5 text-[26px] leading-tight font-bold tracking-tight text-white">
-              {total === 0 ? 'Sin Casas de Paz activas' : vencidas === 0 ? 'Todavía no vence ningún reporte este mes' : todoOk ? 'Todo el mes al día' : `${rojos + naranjas} reporte${rojos + naranjas === 1 ? '' : 's'} con problema este mes`}
-            </h2>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[13px] font-medium text-white"><span className="h-2 w-2 rounded-full" style={{ background: VERDE }} /> {verdes} a tiempo</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[13px] font-medium text-white"><span className="h-2 w-2 rounded-full" style={{ background: AMBAR }} /> {naranjas} con retraso</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[13px] font-medium text-white"><span className="h-2 w-2 rounded-full" style={{ background: ROJO }} /> {rojos} sin presentar</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[13px] font-medium text-white"><Users className="h-3.5 w-3.5 text-white/70" /> {asistenciaMes} asistentes en el mes</span>
+      {/* ── Todo lo demás vive en una sola card: KPIs, filtros y la matriz ──────── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={ClipboardCheck} color={colorHero} titulo={tituloEstado} descripcion={`Entrega por Casa de Paz · ${cdpsFiltradas.length} de ${total} activa(s)`} />
+        <div className="flex flex-col gap-4 p-4">
+          {/* Resumen compacto del mes: mismo banner navy + donut + chips de antes, angosto */}
+          <div className="relative overflow-hidden rounded-2xl px-4 py-3" style={{ background: 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
+            <div className="pointer-events-none absolute -top-10 -right-8 h-32 w-32 rounded-full opacity-30 blur-2xl" style={{ background: colorHero }} />
+            <div className="relative flex flex-wrap items-center gap-3">
+              <DonutRing porcentaje={pctCumplimiento} size={56} strokeWidth={6} color={colorHero} trackColor="rgba(255,255,255,0.16)">
+                <span className="text-[12px] font-bold text-white">{pctCumplimiento}%</span>
+              </DonutRing>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium text-white"><span className="h-1.5 w-1.5 rounded-full" style={{ background: VERDE }} /> {verdes} a tiempo</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium text-white"><span className="h-1.5 w-1.5 rounded-full" style={{ background: AMBAR }} /> {naranjas} con retraso</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium text-white"><span className="h-1.5 w-1.5 rounded-full" style={{ background: ROJO }} /> {rojos} sin presentar</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium text-white"><Users className="h-3 w-3 text-white/70" /> {asistenciaMes} asistentes</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Filtros ────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-          <Input className="h-11 rounded-2xl border-border bg-muted/50 pl-10 text-[14px]" placeholder="Buscar Casa de Paz o líder..." value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(LOTE); }} />
-        </div>
-        <Select value={estado} onValueChange={(v) => { setEstado(v as FiltroEstado); setVisibles(LOTE); }}>
-          <SelectTrigger className="h-11 w-full rounded-2xl sm:w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TODAS">Todas</SelectItem>
-            <SelectItem value="VERDE">Al día</SelectItem>
-            <SelectItem value="NARANJA">Con retraso</SelectItem>
-            <SelectItem value="ROJO">Sin presentar</SelectItem>
-          </SelectContent>
-        </Select>
-        {lideres.length > 0 && (
-          <Select value={lider} onValueChange={(v) => { setLider(v); setVisibles(LOTE); }}>
-            <SelectTrigger className="h-11 w-full rounded-2xl sm:w-52"><SelectValue placeholder="Líder" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="TODOS">Todos los líderes</SelectItem>
-              {lideres.map((l) => (<SelectItem key={l} value={l}>{l}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+          {/* Filtros */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input className="h-10 rounded-xl border-border bg-muted/50 pl-10 text-[14px]" placeholder="Buscar Casa de Paz o líder..." value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(LOTE); }} />
+            </div>
+            <Select value={estado} onValueChange={(v) => { setEstado(v as FiltroEstado); setVisibles(LOTE); }}>
+              <SelectTrigger className="h-10 w-full rounded-xl sm:w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODAS">Todas</SelectItem>
+                <SelectItem value="VERDE">Al día</SelectItem>
+                <SelectItem value="NARANJA">Con retraso</SelectItem>
+                <SelectItem value="ROJO">Sin presentar</SelectItem>
+              </SelectContent>
+            </Select>
+            {lideres.length > 0 && (
+              <Select value={lider} onValueChange={(v) => { setLider(v); setVisibles(LOTE); }}>
+                <SelectTrigger className="h-10 w-full rounded-xl sm:w-48"><SelectValue placeholder="Líder" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos los líderes</SelectItem>
+                  {lideres.map((l) => (<SelectItem key={l} value={l}>{l}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
-      {/* ── Matriz Casa de Paz × semana (compacta y escalable) ─────────────────── */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={ClipboardCheck} color={VERDE} titulo="Entrega por Casa de Paz" descripcion={`${nombreMes(anio, mes)} · ${cdpsFiltradas.length} de ${total} Casa(s) de Paz activa(s)`} />
-        <div className="p-4">
           {cargando ? (
             <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11 w-full rounded-xl" />)}</div>
           ) : total === 0 ? (

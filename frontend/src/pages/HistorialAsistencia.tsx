@@ -11,8 +11,10 @@ import {
 import { mosaico, AZUL, VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { HistorialAsistencia as HistorialAsistenciaSeccion } from '@/components/reporte/HistorialAsistencia';
+import { HistorialAsistenciaSupervisorVista } from '@/components/reporte/HistorialAsistenciaSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
 
@@ -65,6 +67,7 @@ function StatMini({
 }
 
 export function HistorialAsistencia() {
+  const rolUI = useRolUI();
   const personaId = useAuthStore((s) => s.personaId);
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
@@ -78,6 +81,10 @@ export function HistorialAsistencia() {
   const totalAsistencias = data ? data.miembros.reduce((acc, m) => acc + m.asistio.filter(Boolean).length, 0) : 0;
   const totalPosibles = data ? data.miembros.length * data.reuniones.length : 0;
   const participacion = totalPosibles > 0 ? Math.round((totalAsistencias / totalPosibles) * 100) : null;
+
+  // El Supervisor no lidera/sublidera ninguna Casa de Paz propia -- ve el
+  // historial agrupado por Red de toda la iglesia, no el de una sola CdP.
+  if (rolUI === 'SUPERVISOR') return <HistorialAsistenciaSupervisorVista />;
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 

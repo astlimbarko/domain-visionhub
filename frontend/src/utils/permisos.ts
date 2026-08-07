@@ -89,11 +89,15 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.VISITAS,
 ];
 
+// El Supervisor no carga reportes (igual que el Líder de Red): supervisa,
+// no reporta -- "Historial de Reportes" pasa a ser su vista de Control de
+// Reportes agrupada por Red (HistorialReportes.tsx, rama SUPERVISOR),
+// mismo criterio que ya usa el Líder de Red con Control de Reportes
+// (pedido del owner, 2026-08-04).
 const RUTAS_SUPERVISOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
-  ROUTES.REPORTES,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,
@@ -285,7 +289,8 @@ export function vistaPorDefectoParaRol(
   if (rolUI === 'SUPERVISOR' && iglesiaId) return { tipo: 'supervisor', iglesiaId };
   if (rolUI === 'LIDER_RED' && roles?.redes_lider?.length) return { tipo: 'red', redId: roles.redes_lider[0].id };
   if (rolUI === 'LIDER_CDP' && roles?.cdp_lider?.length) return { tipo: 'cdp', cdpId: roles.cdp_lider[0].id, esSublider: false };
-  if (rolUI === 'SUBLIDER_CDP' && roles?.cdp_sublider?.length) return { tipo: 'cdp', cdpId: roles.cdp_sublider[0].id, esSublider: true };
+  // SUBLIDER_CDP no pasa por acá: Dashboard.tsx lo redirige antes a
+  // ROUTES.CASAS_DE_PAZ (Perfil de Casa de Paz), sin panel de Dashboard.
   return null;
 }
 

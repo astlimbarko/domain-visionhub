@@ -24,6 +24,7 @@
 /supabase/.temp
 !/docker-compose.yml
 !/CLAUDE.md
+!/.mcp.json
 !/bitacora-equipo
 !/bitacora-equipo/**
 # Secretos: credenciales SMTP en texto plano (ya cubierto por /*, explicito por seguridad)

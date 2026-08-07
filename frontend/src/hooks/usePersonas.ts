@@ -3,10 +3,16 @@ import * as personaService from '@/services/persona.service';
 import type { DatosCensales, DatosIdentidad, MilagroCategoria, NuevaPersona } from '@/types/persona.types';
 import type { DatosDireccion } from '@/services/persona.service';
 
-export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, incluirOcultas: boolean) {
+export function useBuscarPersonas(
+  iglesiaId: string | undefined,
+  texto: string,
+  incluirOcultas: boolean,
+  excluirSemillas = false,
+  pagina = 1,
+) {
   return useQuery({
-    queryKey: ['personas', 'buscar', iglesiaId, texto, incluirOcultas],
-    queryFn: () => personaService.buscarPersonas(iglesiaId as string, texto, incluirOcultas),
+    queryKey: ['personas', 'buscar', iglesiaId, texto, incluirOcultas, excluirSemillas, pagina],
+    queryFn: () => personaService.buscarPersonas(iglesiaId as string, texto, incluirOcultas, excluirSemillas, pagina),
     enabled: !!iglesiaId,
   });
 }

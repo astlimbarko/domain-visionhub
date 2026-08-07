@@ -3,10 +3,13 @@ import {
   crearEvento,
   eliminarEvento,
   obtenerCumpleanos,
+  obtenerEventosIglesia,
   obtenerEventosMes,
   obtenerEventosRed,
+  obtenerIglesiasHijas,
   obtenerMisCasasDePaz,
   obtenerProximos,
+  obtenerProximosIglesia,
   obtenerProximosRed,
   obtenerTiposEvento,
 } from '@/services/calendario.service';
@@ -117,5 +120,54 @@ export function useEliminarEventoRed(redId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos-red', redId] });
       queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos-red', redId] });
     },
+  });
+}
+
+export function useEventosIglesia(iglesiaId: string | undefined, desde: string, hasta: string, tipoEventoId?: string) {
+  return useQuery({
+    queryKey: ['calendario', 'eventos-iglesia', iglesiaId, desde, hasta, tipoEventoId],
+    queryFn: () => obtenerEventosIglesia(iglesiaId as string, desde, hasta, tipoEventoId),
+    enabled: !!iglesiaId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProximosIglesia(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['calendario', 'proximos-iglesia', iglesiaId],
+    queryFn: () => obtenerProximosIglesia(iglesiaId as string),
+    enabled: !!iglesiaId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCrearEventoIglesia(iglesiaId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (evento: NuevoEvento) => crearEvento(evento),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos-iglesia', iglesiaId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos-iglesia', iglesiaId] });
+    },
+  });
+}
+
+export function useEliminarEventoIglesia(iglesiaId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventoId: string) => eliminarEvento(eventoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'eventos-iglesia', iglesiaId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'proximos-iglesia', iglesiaId] });
+    },
+  });
+}
+
+/** Iglesias hijas/satélite directas -- para el selector "Iglesia: [la mía / mi hija]" del Supervisor. */
+export function useIglesiasHijas(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['calendario', 'iglesias-hijas', iglesiaId],
+    queryFn: () => obtenerIglesiasHijas(iglesiaId as string),
+    enabled: !!iglesiaId,
   });
 }

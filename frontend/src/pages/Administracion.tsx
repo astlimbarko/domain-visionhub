@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, Database, IdCard, MoreVertical, Network, Plus, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Building2, ChevronDown, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { rutaEstructuraOrganizacional } from '@/utils/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,16 +65,61 @@ interface ConfirmarIglesia {
   accion: 'suspender' | 'reactivar' | 'eliminar';
 }
 
+interface GrupoIglesias {
+  raiz: IglesiaAdmin;
+  filas: { iglesia: IglesiaAdmin; nivel: number }[];
+}
+
+function agruparIglesiasJerarquicamente(iglesias: IglesiaAdmin[]): GrupoIglesias[] {
+  const porId = new Map(iglesias.map((iglesia) => [iglesia.id, iglesia]));
+  const hijasPorPadre = new Map<string, IglesiaAdmin[]>();
+  const ordenar = (a: IglesiaAdmin, b: IglesiaAdmin) => a.nombre.localeCompare(b.nombre, 'es');
+
+  for (const iglesia of iglesias) {
+    if (!iglesia.iglesia_padre_id || !porId.has(iglesia.iglesia_padre_id)) continue;
+    const hijas = hijasPorPadre.get(iglesia.iglesia_padre_id) ?? [];
+    hijas.push(iglesia);
+    hijasPorPadre.set(iglesia.iglesia_padre_id, hijas);
+  }
+  for (const hijas of hijasPorPadre.values()) hijas.sort(ordenar);
+
+  const visitadas = new Set<string>();
+  const crearGrupo = (raiz: IglesiaAdmin): GrupoIglesias => {
+    const filas: GrupoIglesias['filas'] = [];
+    const recorrer = (iglesia: IglesiaAdmin, nivel: number) => {
+      if (visitadas.has(iglesia.id)) return;
+      visitadas.add(iglesia.id);
+      filas.push({ iglesia, nivel });
+      for (const hija of hijasPorPadre.get(iglesia.id) ?? []) recorrer(hija, nivel + 1);
+    };
+    recorrer(raiz, 0);
+    return { raiz, filas };
+  };
+
+  const raices = iglesias
+    .filter((iglesia) => !iglesia.iglesia_padre_id || !porId.has(iglesia.iglesia_padre_id))
+    .sort(ordenar);
+  const grupos = raices.map(crearGrupo);
+
+  // Defensa ante datos heredados con ciclos: ninguna iglesia desaparece de la UI.
+  for (const iglesia of [...iglesias].sort(ordenar)) {
+    if (!visitadas.has(iglesia.id)) grupos.push(crearGrupo(iglesia));
+  }
+  return grupos;
+}
+
 export function Administracion() {
   const navigate = useNavigate();
   const [mostrarCrearIglesia, setMostrarCrearIglesia] = useState(false);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
   const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
+  const [iglesiasContraidas, setIglesiasContraidas] = useState<Set<string>>(() => new Set());
   const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
 
   const { data: iglesias = [], isLoading: cargandoIglesias } = useIglesiasTodas();
+  const gruposIglesias = agruparIglesiasJerarquicamente(iglesias);
   const { data: usuarios = [], isLoading: cargandoUsuarios } = useUsuarios(undefined);
   const { data: panorama, isLoading: cargandoPanorama } = useDashboardSuperAdmin();
   const crearIglesia = useCrearIglesia();
@@ -224,56 +269,104 @@ export function Administracion() {
             {!cargandoIglesias && iglesias.length === 0 && (
               <p className="text-sm text-white/50">Todavía no hay iglesias.</p>
             )}
-            {iglesias.map((i) => (
-              <div
-                key={i.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') navigate(rutaEstructuraOrganizacional(i.id));
-                }}
-                className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-3 text-left transition-colors hover:bg-white/5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-white">{i.nombre}</p>
-                  <p className="truncate text-sm text-white/50">
-                    {i.ciudad}
-                    {i.iglesia_padre_id &&
-                      ` · ${i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'} de ${iglesias.find((p) => p.id === i.iglesia_padre_id)?.nombre ?? '—'}`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Acciones"
-                        className="text-white/60 hover:bg-white/10 hover:text-white"
-                        onClick={(e) => e.stopPropagation()}
+            {gruposIglesias.map((grupo) => (
+              <div key={grupo.raiz.id} className="overflow-hidden rounded-2xl border border-white/20 bg-white/[0.02]">
+                {grupo.filas
+                  .filter(({ nivel }) => nivel === 0 || !iglesiasContraidas.has(grupo.raiz.id))
+                  .map(({ iglesia: i, nivel }, indice) => (
+                  <div key={i.id} className={`flex items-stretch ${indice > 0 ? 'border-t border-white/10' : ''}`}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
+                      className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pr-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+                      style={{ paddingLeft: `${16 + nivel * 22}px` }}
+                      aria-label={`Abrir estructura organizacional de ${i.nombre}`}
+                    >
+                      {nivel > 0 && (
+                        <span aria-hidden="true" className="shrink-0 font-mono text-sm text-white/35">└─</span>
+                      )}
+                      <span
+                        role="img"
+                        aria-label={!i.iglesia_padre_id ? 'Iglesia madre' : i.tipo === 'SATELITE' ? 'Iglesia satélite' : 'Iglesia hija'}
+                        title={!i.iglesia_padre_id ? 'Iglesia madre' : i.tipo === 'SATELITE' ? 'Iglesia satélite' : 'Iglesia hija'}
+                        className="shrink-0 text-white/30 transition-colors group-hover:text-white/70"
                       >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))} className="focus:bg-white/10 focus:text-white">
-                        <Network className="h-4 w-4" /> Estructura organizacional
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">
-                        {i.activo ? 'Suspender' : 'Reactivar'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={() => setConfirmarIglesia({ iglesia: i, accion: 'eliminar' })}
-                        className="text-destructive focus:bg-destructive/20 focus:text-destructive"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                        {!i.iglesia_padre_id ? (
+                          <Church className="h-4 w-4" aria-hidden="true" />
+                        ) : i.tipo === 'SATELITE' ? (
+                          <RadioTower className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Building2 className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium text-white">{i.nombre}</span>
+                          {nivel > 0 && (
+                            <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+                              {i.tipo === 'SATELITE' ? 'Satélite' : 'Hija'}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
+                      </span>
+                      {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
+                    </button>
+                    <div className="flex shrink-0 items-center gap-1 pr-2">
+                      {indice === 0 && grupo.filas.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${iglesiasContraidas.has(grupo.raiz.id) ? 'Expandir' : 'Contraer'} iglesias dependientes de ${grupo.raiz.nombre}`}
+                          aria-expanded={!iglesiasContraidas.has(grupo.raiz.id)}
+                          title={iglesiasContraidas.has(grupo.raiz.id) ? 'Expandir iglesias' : 'Contraer iglesias'}
+                          className="cursor-pointer text-white/50 hover:bg-white/10 hover:text-white"
+                          onClick={() => {
+                            setIglesiasContraidas((actuales) => {
+                              const siguientes = new Set(actuales);
+                              if (siguientes.has(grupo.raiz.id)) siguientes.delete(grupo.raiz.id);
+                              else siguientes.add(grupo.raiz.id);
+                              return siguientes;
+                            });
+                          }}
+                        >
+                          <ChevronDown
+                            aria-hidden="true"
+                            className={`h-4 w-4 transition-transform ${iglesiasContraidas.has(grupo.raiz.id) ? '-rotate-90' : ''}`}
+                          />
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Acciones de ${i.nombre}`}
+                            className="text-white/60 hover:bg-white/10 hover:text-white"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
+                          <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))} className="focus:bg-white/10 focus:text-white">
+                            <Network className="h-4 w-4" /> Estructura organizacional
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">
+                            {i.activo ? 'Suspender' : 'Reactivar'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => setConfirmarIglesia({ iglesia: i, accion: 'eliminar' })}
+                            className="text-destructive focus:bg-destructive/20 focus:text-destructive"
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  ))}
               </div>
             ))}
           </div>

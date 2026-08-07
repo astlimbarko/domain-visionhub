@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { CasaDePazPropia, Cumpleanos, Evento, NuevoEvento, Proximo, TipoEvento } from '@/types/calendario.types';
+import type { CasaDePazPropia, Cumpleanos, Evento, IglesiaHija, NuevoEvento, Proximo, TipoEvento } from '@/types/calendario.types';
 
 export async function obtenerMisCasasDePaz(personaId: string): Promise<CasaDePazPropia[]> {
   const { data, error } = await supabase
@@ -85,6 +85,35 @@ export async function obtenerEventosRed(
 
 export async function obtenerProximosRed(redId: string): Promise<Proximo[]> {
   const { data, error } = await supabase.rpc('fn_proximos_red', { p_red_id: redId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerEventosIglesia(
+  iglesiaId: string,
+  desde: string,
+  hasta: string,
+  tipoEventoId?: string
+): Promise<Evento[]> {
+  const { data, error } = await supabase.rpc('fn_eventos_iglesia', {
+    p_iglesia_id: iglesiaId,
+    p_desde: desde,
+    p_hasta: hasta,
+    p_tipo_evento_id: tipoEventoId ?? null,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerProximosIglesia(iglesiaId: string): Promise<Proximo[]> {
+  const { data, error } = await supabase.rpc('fn_proximos_iglesia', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Iglesias hijas/satélite directas de una iglesia -- el Pastor/Supervisor de la iglesia madre puede gestionar el calendario de cada una. */
+export async function obtenerIglesiasHijas(iglesiaId: string): Promise<IglesiaHija[]> {
+  const { data, error } = await supabase.rpc('fn_mis_iglesias_hijas', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data ?? [];
 }

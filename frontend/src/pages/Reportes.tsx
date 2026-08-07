@@ -170,6 +170,18 @@ export function Reportes() {
     });
   }
 
+  // KAN-16: checkbox "Asiste a esta CDP" por persona (inverso de esVisita).
+  // No toca casa_de_paz_membresia -- solo cambia el valor que se guarda en
+  // este registro de asistencia puntual.
+  function cambiarAsisteCdp(personaId: string, asiste: boolean) {
+    setAsistentes((prev) => {
+      const next = new Map(prev);
+      const actual = next.get(personaId);
+      if (actual) next.set(personaId, { ...actual, esVisita: !asiste });
+      return next;
+    });
+  }
+
   function agregarVisitaNueva() {
     if (!nombreVisita.trim() || !apellidoVisita.trim() || !sexoVisita) return;
     setVisitasNuevas((prev) => [
@@ -205,8 +217,10 @@ export function Reportes() {
     return !!m && m.edad !== null && m.edad < edadMinima;
   });
   const esMenorPorPersona: Record<string, boolean> = {};
+  const asisteCdpPorPersona: Record<string, boolean> = {};
   for (const [id, v] of asistentes) {
     if (v.esMenor !== undefined) esMenorPorPersona[id] = v.esMenor;
+    asisteCdpPorPersona[id] = !v.esVisita;
   }
   // Cada lista excluye a quien ya está seleccionado en otra, para que no se pueda marcar a la misma persona dos veces.
   // El corte "niño" vs. "regular" usa edadMinima (configurable por iglesia): cuando alguien
@@ -493,6 +507,8 @@ export function Reportes() {
                         onToggle={(id) => toggleAsistente(id, true)}
                         placeholder="Buscar personas..."
                         colorChip={VERDE}
+                        asisteCdpPorPersona={asisteCdpPorPersona}
+                        onAsisteCdpChange={cambiarAsisteCdp}
                       />
                     </div>
 
@@ -507,6 +523,8 @@ export function Reportes() {
                         colorChip={AZUL}
                         esMenorPorPersona={esMenorPorPersona}
                         onEsMenorChange={cambiarEsMenorAsistente}
+                        asisteCdpPorPersona={asisteCdpPorPersona}
+                        onAsisteCdpChange={cambiarAsisteCdp}
                       />
                     </div>
 
@@ -519,6 +537,8 @@ export function Reportes() {
                         onToggle={(id) => toggleAsistente(id, false)}
                         placeholder={`Buscar niños menores de ${edadMinima} años...`}
                         colorChip={AMBAR}
+                        asisteCdpPorPersona={asisteCdpPorPersona}
+                        onAsisteCdpChange={cambiarAsisteCdp}
                       />
                     </div>
 

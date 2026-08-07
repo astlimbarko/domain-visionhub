@@ -12,14 +12,17 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
+import { useRolUI } from '@/hooks/useRolUI';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import { useComparativo, useCrearIngreso, useIngresosCdp, useTiposIngreso } from '@/hooks/useFinanzas';
 import { NuevoIngresoDialog } from '@/components/finanzas/NuevoIngresoDialog';
+import { FinanzasSupervisorVista } from '@/components/finanzas/FinanzasSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, nombreMes } from '@/utils/calendario-fechas';
 
 export function Finanzas() {
+  const rolUI = useRolUI();
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
 
@@ -52,6 +55,10 @@ export function Finanzas() {
     setAnio(f.getFullYear());
     setMes(f.getMonth());
   }
+
+  // El Supervisor no lidera/sublidera ninguna Casa de Paz propia -- ve lo que
+  // genera cada Red de la iglesia y, dentro de ella, cada una de sus CdP.
+  if (rolUI === 'SUPERVISOR') return <FinanzasSupervisorVista />;
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
