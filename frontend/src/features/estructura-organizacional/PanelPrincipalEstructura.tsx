@@ -41,6 +41,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const invitar = useInvitarUsuario();
   const { etiqueta, rolInvitacion } = TEXTOS[tipo];
 
+  const [mostrarAsignar, setMostrarAsignar] = useState(false);
   const [modo, setModo] = useState<ModoAsignacion>('base');
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
@@ -48,7 +49,11 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
   const [otpQuitar, setOtpQuitar] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
-  const datosSinGuardar = busqueda.trim().length > 0 || correo.trim().length > 0 || otp.trim().length > 0;
+  const datosSinGuardar = mostrarAsignar && (busqueda.trim().length > 0 || correo.trim().length > 0 || otp.trim().length > 0);
+  // Regla del front (pedido del owner, 2026-08-07): solo se permite un Pastor
+  // a la vez -- para asignar otro hay que quitar el actual primero. Supervisor
+  // de la Vision en Accion si admite varios, el boton siempre esta disponible.
+  const puedeAsignarNuevo = tipo === 'SUPERVISOR' || !actual;
 
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
@@ -92,6 +97,14 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `No se pudo quitar al ${etiqueta}`);
     }
+  };
+
+  const cancelarAsignar = () => {
+    setMostrarAsignar(false);
+    setModo('base');
+    setBusqueda('');
+    setCorreo('');
+    setOtp('');
   };
 
   const invitarPorCorreo = async () => {
@@ -159,6 +172,18 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
             </section>
           )}
 
+          {!mostrarAsignar ? (
+            <button
+              type="button"
+              disabled={!puedeAsignarNuevo}
+              title={!puedeAsignarNuevo ? `Ya hay un ${etiqueta} asignado. Quita el cargo actual antes de asignar otro.` : undefined}
+              onClick={() => setMostrarAsignar(true)}
+              className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            >
+              Asignar {etiqueta}
+            </button>
+          ) : (
+            <>
           <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
             <button
               type="button"
@@ -234,6 +259,16 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
           )}
 
           {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
+
+          <button
+            type="button"
+            onClick={cancelarAsignar}
+            className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
+          >
+            Cancelar
+          </button>
+            </>
+          )}
         </div>
       </aside>
 
