@@ -25,6 +25,7 @@ import {
   useReenviarInvitacionLider,
 } from '@/hooks/useInvitacionLider';
 import { textoLegibleSobre } from './contraste';
+import { notificarAsignacionCargoRed } from './estructura.service';
 import {
   useActualizarRedEstructura,
   useAsignarCargoRedEstructura,
@@ -365,6 +366,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
     try {
       await asignar.mutateAsync({ redId: red.id, personaId: persona.id, codigo: cargoActivo, otp: otp || null });
       toast.success(cargoActivo === 'LIDER_RED' ? 'Líder de Red asignado' : 'Supervisor de Red asignado');
+      notificarAsignacionCargoRed(red.id, persona.id, cargoActivo).catch((error) => console.error('No se pudo avisar por correo de la designación', error));
       setCargoActivo(null);
       setBusqueda('');
       setOtp('');
@@ -416,6 +418,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         otp: otpAsignarExistente || null,
       });
       toast.success(cargoActivo === 'LIDER_RED' ? 'Líder de Red asignado' : 'Supervisor de Red asignado');
+      notificarAsignacionCargoRed(red.id, personaExistentePorCorreo.id, cargoActivo).catch((error) => console.error('No se pudo avisar por correo de la designación', error));
       setCargoActivo(null);
       setPersonaExistentePorCorreo(null);
       setOtpAsignarExistente('');
@@ -500,7 +503,10 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         onClick={() => { if (!datosSinGuardar) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
-      <aside className="absolute inset-x-0 bottom-0 z-30 flex max-h-[88%] flex-col rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
+      <aside className="absolute inset-x-0 bottom-0 z-30 flex max-h-[94%] flex-col rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
+        <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden">
+          <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+        </div>
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
             <p className="text-lg font-bold text-slate-950">{modo === 'crear' ? 'Nueva Red' : 'Gestionar Red'}</p>

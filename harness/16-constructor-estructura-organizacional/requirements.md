@@ -496,8 +496,15 @@ modo, arrastrar un nodo SHALL desplazar el lienzo y no cambiar posiciones.
 > sigue activando el botón). Los íconos de la cabecera (36×36) y las
 > muestras de color (28×28, tamaño elegido a propósito por el owner para
 > ahorrar espacio) quedan bajo el mínimo pero se dejaron así — no son parte
-> de este fix. Falta todo lo demás del ticket: bottom sheet real, tablet/
-> orientación horizontal, tooltips táctiles, pruebas en dispositivos reales.
+> de este fix. Tablet/orientación horizontal y tooltips táctiles: hechos
+> (ver abajo). Bottom sheet real (2026-08-07): los 5 paneles laterales
+> (Red, Departamento, Pastor/Supervisor, Casa de Paz, Detalle) ahora tienen
+> tirador visual (`sm:hidden`, no cambia desktop) y usan más alto en móvil
+> (78-88% → 90-94%) para que formularios largos (Casa de Paz con sus 4
+> secciones, Red con cargos + Casas de Paz) entren sin scroll excesivo.
+> Verificado con Playwright en 390×844 (móvil) y 1280×800 (desktop, sin
+> cambios). Solo queda: pruebas en dispositivos físicos reales (no se puede
+> hacer desde esta sesión).
 
 **REQ-MOB-4** — THE cambio de orientación SHALL conservar datos de formularios,
 nodo seleccionado y, cuando sea posible, cámara.

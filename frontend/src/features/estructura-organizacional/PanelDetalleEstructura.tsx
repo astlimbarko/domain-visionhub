@@ -39,8 +39,11 @@ export function PanelDetalleEstructura({ nodo, onClose }: Props) {
       />
       <aside
         aria-label={`Detalle de ${nodo.titulo}`}
-        className="absolute inset-x-0 bottom-0 z-30 max-h-[78%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-3xl"
+        className="absolute inset-x-0 bottom-0 z-30 max-h-[90%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-3xl"
       >
+        <div className="flex justify-center pt-2 pb-1 sm:hidden">
+          <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+        </div>
         <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
           <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Detalle</p>
           <button

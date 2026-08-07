@@ -380,6 +380,21 @@ export async function asignarCargoRedEstructura(
   return data as string;
 }
 
+// REQ-ASG-7: aviso por correo a quien fue designado. No bloquea el flujo
+// de asignacion si falla (ya se asigno el cargo igual) -- por eso quien
+// llama la usa "en paralelo", sin esperar el resultado para dar por hecha
+// la asignacion.
+export async function notificarAsignacionCargoRed(
+  redId: string,
+  personaId: string,
+  codigo: CargoRedEstructura,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { redId, personaId, cargo: codigo },
+  });
+  if (error) throw error;
+}
+
 export async function quitarCargoRedEstructura(
   redId: string,
   codigo: CargoRedEstructura,
