@@ -4,6 +4,7 @@ import { MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
 import {
   useAsignarCargoCdp,
@@ -12,6 +13,7 @@ import {
   useDomicilioCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
+import { useEliminarCasaDePazEstructura } from './useEstructuraOrganizacional';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { CasaDePazEstructura } from './types';
 
@@ -26,6 +28,8 @@ interface Props {
   iglesiaId: string;
   casaDePaz: CasaDePazEstructura;
   abrirAnadirSubliderAlAbrir?: boolean;
+  otpRequerido: boolean;
+  esSuperAdmin: boolean;
   onClose: () => void;
 }
 
@@ -40,10 +44,13 @@ function manejarErrorCargo(e: unknown, generico: string) {
   toast.error(mensaje || generico);
 }
 
-export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubliderAlAbrir, onClose }: Props) {
+export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
   const queryClient = useQueryClient();
   const [dialogoCargo, setDialogoCargo] = useState<DialogoCargo | null>(null);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [otpEliminar, setOtpEliminar] = useState('');
+  const eliminarCdp = useEliminarCasaDePazEstructura(iglesiaId);
 
   useEffect(() => {
     if (abrirAnadirSubliderAlAbrir) {
@@ -65,15 +72,28 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
   const anfitrion = casaDePaz.anfitriones[0];
 
   useEffect(() => {
-    if (dialogoCargo || mostrarDomicilio) return;
+    if (dialogoCargo || mostrarDomicilio || confirmandoEliminar) return;
     const cerrarConEscape = (evento: KeyboardEvent) => {
       if (evento.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', cerrarConEscape);
     return () => window.removeEventListener('keydown', cerrarConEscape);
-  }, [onClose, dialogoCargo, mostrarDomicilio]);
+  }, [onClose, dialogoCargo, mostrarDomicilio, confirmandoEliminar]);
 
   const invalidarEstructura = () => queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
+
+  async function confirmarEliminar() {
+    if (otpRequerido && !/^\d{6}$/.test(otpEliminar)) return;
+    try {
+      await eliminarCdp.mutateAsync({ cdpId: casaDePaz.id, otp: otpEliminar || null });
+      toast.success('Casa de Paz eliminada de la base de datos');
+      setConfirmandoEliminar(false);
+      setOtpEliminar('');
+      onClose();
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo eliminar la Casa de Paz');
+    }
+  }
 
   async function handleAsignar(persona: PersonaBusqueda) {
     if (!dialogoCargo) return;
@@ -214,8 +234,32 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
               </button>
             </div>
           </section>
+
+          {esSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setConfirmandoEliminar(true)}
+              className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
+            >
+              Eliminar Casa de Paz
+            </button>
+          )}
         </div>
       </aside>
+
+      <ConfirmarQuitarDialog
+        open={confirmandoEliminar}
+        onOpenChange={(abierto) => { setConfirmandoEliminar(abierto); if (!abierto) setOtpEliminar(''); }}
+        titulo={`¿Eliminar esta Casa de Paz de la base de datos?`}
+        descripcion="Se elimina por completo junto con sus cargos, membresías y reportes. No se puede deshacer."
+        procesando={eliminarCdp.isPending}
+        onConfirmar={() => void confirmarEliminar()}
+        textoConfirmar="Sí, eliminar definitivamente"
+        textoProcesando="Eliminando…"
+        otpRequerido={otpRequerido}
+        otp={otpEliminar}
+        onOtpChange={setOtpEliminar}
+      />
 
       {dialogoCargo && (
         <AsignarCargoDialog

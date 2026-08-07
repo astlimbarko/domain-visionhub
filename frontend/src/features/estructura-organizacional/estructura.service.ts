@@ -380,6 +380,11 @@ export async function deshacerBorradoDefinitivoRedEstructura(redId: string): Pro
   if (error) throw error;
 }
 
+export async function eliminarCasaDePazEstructura(cdpId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_eliminar_casa_de_paz', { p_cdp_id: cdpId, p_otp: otp ?? null });
+  if (error) throw error;
+}
+
 export async function actualizarRedEstructura(
   redId: string,
   nombre: string,

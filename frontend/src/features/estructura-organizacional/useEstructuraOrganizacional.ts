@@ -9,6 +9,7 @@ import {
   crearCasaDePazEstructura,
   crearRedEstructura,
   deshacerBorradoDefinitivoRedEstructura,
+  eliminarCasaDePazEstructura,
   eliminarRedEstructura,
   guardarPosicionesEstructura,
   obtenerEstructuraOrganizacional,
@@ -68,6 +69,14 @@ export function useEliminarRedEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
     mutationFn: ({ redId, otp }: { redId: string; otp?: string | null }) => eliminarRedEstructura(redId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useEliminarCasaDePazEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ cdpId, otp }: { cdpId: string; otp?: string | null }) => eliminarCasaDePazEstructura(cdpId, otp),
     onSuccess: invalidar,
   });
 }

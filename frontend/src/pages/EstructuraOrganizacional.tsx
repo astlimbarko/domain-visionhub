@@ -447,6 +447,8 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               iglesiaId={iglesiaId}
               casaDePaz={casaDePaz}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
+              otpRequerido={data.layout.otpRequerido}
+              esSuperAdmin={rolUI === 'SUPER_ADMIN'}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
                 setAbrirAnadirSubliderDirecto(false);
