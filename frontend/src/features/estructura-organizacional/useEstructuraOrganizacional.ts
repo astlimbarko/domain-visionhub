@@ -14,6 +14,8 @@ import {
   obtenerEstructuraOrganizacional,
   programarBorradoDefinitivoRedEstructura,
   quitarCargoRedEstructura,
+  quitarPastorEstructura,
+  quitarSupervisorEstructura,
   reactivarRedEstructura,
 } from './estructura.service';
 import type { CargoRedEstructura, CrearRedEstructuraEntrada, PosicionNodoGuardar } from './types';
@@ -144,6 +146,22 @@ export function useAsignarSupervisorEstructura(iglesiaId: string) {
   return useMutation({
     mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
       asignarSupervisorEstructura(iglesiaId, personaId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useQuitarPastorEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ otp }: { otp?: string | null }) => quitarPastorEstructura(iglesiaId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useQuitarSupervisorEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ otp }: { otp?: string | null }) => quitarSupervisorEstructura(iglesiaId, otp),
     onSuccess: invalidar,
   });
 }

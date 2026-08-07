@@ -3,11 +3,14 @@ import { Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useInvitarUsuario } from '@/hooks/useAdmin';
 import {
   useAsignarPastorEstructura,
   useAsignarSupervisorEstructura,
   useBuscarPersonasEstructura,
+  useQuitarPastorEstructura,
+  useQuitarSupervisorEstructura,
 } from './useEstructuraOrganizacional';
 import type { PersonaEstructura, PersonaOpcionEstructura } from './types';
 
@@ -32,6 +35,9 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const asignarPastor = useAsignarPastorEstructura(iglesiaId);
   const asignarSupervisor = useAsignarSupervisorEstructura(iglesiaId);
   const asignar = tipo === 'PASTOR' ? asignarPastor : asignarSupervisor;
+  const quitarPastor = useQuitarPastorEstructura(iglesiaId);
+  const quitarSupervisor = useQuitarSupervisorEstructura(iglesiaId);
+  const quitar = tipo === 'PASTOR' ? quitarPastor : quitarSupervisor;
   const invitar = useInvitarUsuario();
   const { etiqueta, rolInvitacion } = TEXTOS[tipo];
 
@@ -39,6 +45,8 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
   const [otp, setOtp] = useState('');
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
+  const [otpQuitar, setOtpQuitar] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
   const datosSinGuardar = busqueda.trim().length > 0 || correo.trim().length > 0 || otp.trim().length > 0;
 
@@ -70,6 +78,19 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
       onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `No se pudo asignar al ${etiqueta}`);
+    }
+  };
+
+  const confirmarQuitar = async () => {
+    if (otpRequerido && !/^\d{6}$/.test(otpQuitar)) return;
+    try {
+      await quitar.mutateAsync({ otp: otpQuitar || null });
+      toast.success(`${etiqueta} quitado`);
+      setConfirmandoQuitar(false);
+      setOtpQuitar('');
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `No se pudo quitar al ${etiqueta}`);
     }
   };
 
@@ -121,9 +142,20 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
         <div className="space-y-4 p-5">
           {actual && (
             <section className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{actual.nombre?.trim() || actual.correo}</p>
-              {actual.correo && actual.nombre && <p className="text-xs text-slate-500">{actual.correo}</p>}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{actual.nombre?.trim() || actual.correo}</p>
+                  {actual.correo && actual.nombre && <p className="truncate text-xs text-slate-500">{actual.correo}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoQuitar(true)}
+                  className="relative shrink-0 cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
+                >
+                  Quitar cargo
+                </button>
+              </div>
             </section>
           )}
 
@@ -204,6 +236,18 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
           {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
         </div>
       </aside>
+
+      <ConfirmarQuitarDialog
+        open={confirmandoQuitar}
+        onOpenChange={(abierto) => { setConfirmandoQuitar(abierto); if (!abierto) setOtpQuitar(''); }}
+        titulo={`¿Quitar a ${actual?.nombre?.trim() || actual?.correo || 'esta persona'} de ${etiqueta}?`}
+        descripcion="Deja de tener acceso de inmediato. El cargo queda sin asignar."
+        procesando={quitar.isPending}
+        onConfirmar={() => void confirmarQuitar()}
+        otpRequerido={otpRequerido}
+        otp={otpQuitar}
+        onOtpChange={setOtpQuitar}
+      />
     </>
   );
 }
