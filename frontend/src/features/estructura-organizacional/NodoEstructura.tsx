@@ -47,11 +47,13 @@ function NodoResponsablePrincipal({ data, selected }: { data: DatosNodoEstructur
       <span className="text-[10px] font-bold tracking-[0.16em] text-blue-700 uppercase">
         {data.etiquetaRol ?? (esPastor ? 'Pastor' : 'Supervisor')}
       </span>
-      {!esPastor && (
-        <span className="mt-1 max-w-[205px] text-[11px] font-semibold leading-4 text-slate-700">
-          Supervisor de la Visión en Acción
-        </span>
-      )}
+      {/* Reservamos el mismo alto en ambas tarjetas (con o sin esta linea)
+          para que el Handle, centrado al 50% de la altura de la tarjeta,
+          quede a la misma coordenada Y en Pastor y Supervisor -- si no,
+          la linea que los conecta sale en diagonal (bug real, 2026-08-07). */}
+      <span className={`mt-1 max-w-[205px] text-[11px] font-semibold leading-4 text-slate-700 ${esPastor ? 'invisible' : ''}`}>
+        Supervisor de la Visión en Acción
+      </span>
 
       <span className="relative mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
         {iniciales ?? (principal ? <Mail className="h-4.5 w-4.5" aria-hidden="true" /> : <UserRound className="h-4.5 w-4.5" aria-hidden="true" />)}
