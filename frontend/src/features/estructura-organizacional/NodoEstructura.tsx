@@ -40,7 +40,7 @@ function NodoResponsablePrincipal({ data, selected }: { data: DatosNodoEstructur
       className={`relative flex min-h-[166px] w-[250px] flex-col items-center rounded-2xl border bg-white px-5 py-4 text-center shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-blue-400 shadow-[0_0_0_3px_rgba(59,130,246,0.20),0_12px_30px_rgba(15,23,42,0.10)]'
-          : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+          : 'border-slate-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg'
       }`}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-slate-400" />
@@ -103,7 +103,7 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
       className={`relative flex min-h-[96px] w-[235px] flex-col items-stretch rounded-xl border px-3.5 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30),0_8px_20px_rgba(15,23,42,0.12)]'
-          : 'border-white/40 hover:border-white/75 hover:shadow-md'
+          : 'border-white/40 hover:-translate-y-0.5 hover:border-white hover:shadow-lg hover:brightness-105'
       }`}
       style={{ background: color }}
     >
@@ -198,8 +198,8 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30)]'
           : incompleto
-            ? 'border-slate-300 bg-slate-200 hover:border-slate-400 hover:shadow-md'
-            : 'border-white/35 hover:border-white/70 hover:shadow-md'
+            ? 'border-slate-300 bg-slate-200 hover:-translate-y-0.5 hover:border-slate-500 hover:shadow-lg'
+            : 'border-white/35 hover:-translate-y-0.5 hover:border-white hover:shadow-lg hover:brightness-105'
       }`}
       style={texto ? { background: color } : undefined}
     >
@@ -303,7 +303,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
     return (
       <div
         aria-selected={selected}
-        className="flex h-11 w-[235px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-xs font-semibold transition-colors hover:bg-white/40"
+        className="flex h-11 w-[235px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-xs font-semibold transition-all hover:-translate-y-0.5 hover:border-solid hover:bg-white/70 hover:shadow-md"
         style={{ borderColor: `color-mix(in oklab, ${colorTexto} 55%, transparent)`, color: colorTexto }}
       >
         <Handle type="target" position={Position.Top} className="!h-0 !w-0 !border-0 !bg-transparent" />
@@ -324,8 +324,8 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   return (
     <div
       aria-selected={selected}
-      className={`w-[235px] rounded-2xl border-2 px-4 py-3 shadow-sm transition-shadow ${
-        incompleto ? 'bg-slate-200 hover:shadow-md' : 'bg-white hover:shadow-md'
+      className={`w-[235px] rounded-2xl border-2 px-4 py-3 shadow-sm transition-all ${
+        incompleto ? 'bg-slate-200 hover:-translate-y-0.5 hover:shadow-lg' : 'bg-white hover:-translate-y-0.5 hover:shadow-lg'
       } ${selected || data.resaltado ? 'shadow-[0_0_0_3px_rgba(59,130,246,0.30)]' : ''}`}
       style={{ borderColor: incompleto ? '#94a3b8' : color }}
     >

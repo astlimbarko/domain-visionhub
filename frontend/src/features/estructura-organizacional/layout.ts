@@ -6,6 +6,7 @@ import type {
   PersonaEstructura,
 } from './types';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
+import { colorLegibleSobreBlanco } from './contraste';
 
 const PALETA_RED_PROVISIONAL = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#EA580C', '#DB2777'];
 
@@ -185,6 +186,10 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     for (const [indiceRed, red] of datos.redes.entries()) {
       const casas = datos.casasDePaz.filter((casa) => casa.redId === red.id);
       const colorRed = colorRedVisible(red.color, indiceRed);
+      // Colores claros de Red (ej. amarillo) usados tal cual como linea
+      // quedaban poco visibles sobre el fondo claro del lienzo/grupo -- se
+      // oscurece solo para la linea, sin tocar el color real de la tarjeta.
+      const colorLineaRed = colorLegibleSobreBlanco(colorRed);
       const redSinNombre = !red.nombre?.trim();
       const redSinLider = red.lideres.length === 0;
       const redX = 615 + indiceRed * 270;
@@ -220,7 +225,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               sublideres: casa.sublideres,
             }),
           );
-          edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));
+          edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorLineaRed));
       });
 
       // Boton "+" para crear una Casa de Paz directo desde el lienzo, sin
@@ -235,7 +240,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
           redId: red.id,
         }),
       );
-      edges.push(arista(`${redId}-${nuevaCasaId}`, redId, nuevaCasaId, colorRed));
+      edges.push(arista(`${redId}-${nuevaCasaId}`, redId, nuevaCasaId, colorLineaRed));
     }
   }
 
