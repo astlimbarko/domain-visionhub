@@ -10,6 +10,15 @@ const ROLES_VALIDOS = [
   "SUBLIDER_CDP",
 ];
 
+const ETIQUETA_ROL: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  PASTOR: "Pastor",
+  SUPERVISOR_VISION_ACCION: "Supervisor de la Visión en Acción",
+  LIDER_RED: "Líder de Red",
+  LIDER_CDP: "Líder de Casa de Paz",
+  SUBLIDER_CDP: "Sublíder de Casa de Paz",
+};
+
 // Crea la cuenta de auth.users (EXIGE service_role) y de una vez le asigna
 // el cargo -- las 2 escrituras en la MISMA request, con un solo codigo OTP.
 // Bug real encontrado 2026-08-01: antes el frontend hacia una segunda
@@ -56,8 +65,15 @@ export default {
       return Response.json({ error: "PIN incorrecto" }, { status: 403 });
     }
 
+    const iglesiaFila = iglesiaId
+      ? (await ctx.supabase.from("iglesia").select("nombre").eq("id", iglesiaId).single()).data
+      : null;
     const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
       redirectTo: body.redirectTo,
+      data: {
+        ...(iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre } : {}),
+        rol_etiqueta: ETIQUETA_ROL[rol],
+      },
     });
 
     if (error) {

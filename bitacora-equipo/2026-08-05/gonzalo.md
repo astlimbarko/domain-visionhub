@@ -1,0 +1,93 @@
+# Gonzalo — 2026-08-05
+
+- [x] Continué la Tarea 1 de Estructura Organizacional sin sincronizar la rama con `master` ni tocar Supabase.
+- [x] Implementé tarjetas especializadas de Pastor y Supervisor con cargo, iniciales o correo, estado gris/verde y membresía pendiente.
+- [x] Reforcé la carga de responsables principales desde `iglesia.pastor_id` y `iglesia.supervisor_id`, conservando el fallback del listado de usuarios.
+- [x] Ajusté la geometría horizontal de los nodos principales y sus conexiones hacia Departamentos y Redes de Casas de Paz.
+- [x] Validé en Docker: build de producción correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Revisé la estructura con una captura real de Gonzalo y corregí el centrado inicial, la alineación Pastor–Supervisor, el correo largo y el ruido visual del contador adicional.
+- [x] Revalidé en Docker después de los ajustes: build correcto y lint con cero errores.
+- [x] Confirmé con Gonzalo la coherencia visual de las cajas Pastor y Supervisor y cerré la Tarea 1.
+- [x] Inicié la Tarea 2 y, tras precisar el modelo conceptual, organicé los cuatro Departamentos en una sola fila horizontal sin convertir la sección en una entidad seleccionable.
+- [x] Verifiqué que Supabase no tenía columnas de color y apliqué una migración aditiva con `color_nombre` y `color`, restricciones y los valores oficiales para los 9 registros existentes.
+- [x] Registré `departamento_colores_oficiales` en el historial remoto de migraciones y alineé el archivo local con la versión aplicada.
+- [x] Conecté el organigrama a `departamento.color` y conservé la paleta institucional centralizada como fallback defensivo.
+- [x] Implementé estados tenue/activo, nombre o correo del líder y punto gris/verde de confirmación en las tarjetas de Departamento.
+- [x] Validé la Tarea 2 en Docker: build correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Documenté que el lienzo comienza en Pastor; Super Admin administra el conjunto, pero no forma parte del organigrama como nodo.
+- [x] Documenté el crecimiento horizontal de entidades hermanas y vertical de la información y descendencia propia de cada entidad.
+- [x] Restringí la asignación departamental actual a Afirmación; Evangelismo, Discipulado y Envío permanecen visibles sin acción de asignar.
+- [x] Inicié la Tarea 3 con Redes distribuidas horizontalmente y Líder, Supervisor de Red y Casas de Paz creciendo verticalmente por columna.
+- [x] Mostré en cada tarjeta de Red el Líder y el Supervisor de Red reales, con fallback a correo y estado gris/verde de confirmación.
+- [x] Apliqué colores provisionales visibles a Redes sin color persistido; no se escribió ningún color ficticio en la base de datos.
+- [x] Eliminé tarjetas ficticias de “Sin Casas de Paz”; una Red sin CdP queda vacía y lista para crecer sin simular una entidad.
+- [x] Actualicé brevemente Jira KAN-54, KAN-57 y KAN-58 con el modelo visual aprobado.
+- [x] Validé la nueva geometría en Docker: build correcto y lint con cero errores; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Gonzalo revisó en su sesión autenticada el nuevo diseño horizontal de Departamentos y Redes y confirmó que los cambios se ven bien.
+- [x] Preparé un commit de respaldo del avance exclusivamente en `feature/estructura-organizacional`, sin merge ni push a `master`.
+- [x] Apliqué y alineé con Supabase la migración base del módulo: organigrama por iglesia, posiciones de nodos, auditoría OTP, RLS y función para guardar posiciones.
+- [x] Apliqué una migración aditiva con operaciones seguras para crear, editar y asignar responsables de Redes, respetando el aislamiento por iglesia y la protección OTP del módulo.
+- [x] Dejé ambas migraciones con los mismos identificadores del historial remoto para que el repositorio pueda reproducirse correctamente en los equipos del grupo.
+- [x] Conecté las operaciones de Redes al panel lateral, ejecuté los asesores de Supabase y revalidé build/lint con Docker.
+- [x] Recuperé la referencia local de `feature/estructura-organizacional` tras el reinicio, conservando los commits y verificando la integridad del repositorio con `git fsck`.
+- [x] Implementé creación y edición de Red, paleta/color, asignación desde base de datos y designación por correo de Líder y Supervisor de Red.
+- [x] Reutilicé `invitacion_lider` y la Edge Function existente; añadí RPC seguras para Supervisor de Red, OTP condicional y listado de invitaciones pendientes.
+- [x] Desplegué `invitar-lider` versión 7 en Supabase con JWT obligatorio e import map relativo y portable.
+- [x] Verifiqué permisos, restricciones e índices de las nuevas RPC; no se concedió ejecución anónima y los avisos de `SECURITY DEFINER` son intencionales por autorización interna.
+- [x] Actualicé el harness con el estado real y los pendientes de correo/cancelación/E2E; actualicé KAN-58, lo asigné a `astlimbark` y lo moví a En curso.
+- [x] Validé el frontend con el Docker Compose compartido: build estático de Vite correcto, lint con 0 errores y localhost:5174 responde HTTP 200.
+- [ ] Falta: revisión visual autenticada; la conexión interna del navegador de Codex falló en Windows aunque el servidor local responde correctamente.
+- [ ] Falta: completar corrección/cancelación de correo, cuenta ya existente y pruebas E2E de las designaciones antes de cerrar KAN-58.
+- [x] Retomé la sesión con Claude Code: audité toda la épica 16 (harness, código, migraciones, Jira y referencias Figma) antes de seguir tocando nada.
+- [x] Detecté que KAN-54, KAN-55, KAN-57, KAN-75, KAN-76 y KAN-77 tienen avance real no reflejado en Jira (siguen "Tareas por hacer"); solo KAN-53 y KAN-58 estaban al día.
+- [x] Armé la lista de pendientes para terminar el lienzo: asignación real de Pastor/Supervisor/Afirmación, Casas de Paz completas, aviso de color de Red repetido, corrección/cancelación de correo, caso de correo ya existente, responsividad móvil, cámara local, cierre integral.
+- [x] Cambié Departamento sin líder a color sólido siempre (ya no tenue), igual que Afirmación; actualicé REQ-DEP-4 en harness/16 y comenté KAN-57.
+- [x] Quité el subtítulo redundante "4 departamentos oficiales" de la sección Departamentos.
+- [x] Oscurecí el fondo del lienzo (`#eef1f6` → `#e3e7ee`) para diferenciarlo de los paneles de Departamentos/Redes.
+- [x] Validé los 3 cambios: `npx tsc -b`, `npm run lint` (0 errores, las 5 advertencias históricas de siempre) y `npm run build` correctos.
+- [x] Encontré y corregí un bug real de color: el fondo sólido de Red/Departamento mezclaba el color elegido con azul marino para forzar texto blanco, y colores claros (amarillo) se veían mostaza. Ahora el fondo usa el color real y el texto se calcula por contraste (`contraste.ts`, REQ-RED-3). Comenté KAN-58.
+- [x] Implementé "Asignar Pastor" desde el lienzo (primer ítem de la lista de pendientes): panel con doble vía (BD/correo), solo visible para Super Admin. Reutilicé la función `invitar-usuario` existente para el correo (mismo patrón que `PastorGestion.tsx`) en vez de duplicar infraestructura.
+- [x] Escribí la migración `fn_estructura_asignar_pastor` (reemplazo atómico del Pastor, un solo OTP, respeta el switch OTP del módulo) — decidido junto con Gonzalo: RPC propia del constructor, no la ruta genérica de 2 llamadas. Falta aplicarla a Supabase (necesito autenticar la CLI en esta sesión).
+- [x] Validé el frontend (`tsc -b`, lint, build) con el nuevo panel; sin errores nuevos.
+- [x] Apliqué la migración `fn_estructura_asignar_pastor` a Supabase (`supabase db push`, confirmado con `migration list`).
+- [x] Verifiqué visualmente el fix de contraste con datos reales (Playwright + captura + estilos computados, no solo a ojo): Departamentos y Redes muestran color sólido verdadero y el texto cambia correctamente oscuro/blanco según el color de fondo.
+- [x] Reordené la paleta de sugerencias de color de Red (colores primarios primero) y cambié el selector "Personalizado" por un botón de paleta del mismo tamaño que las muestras (abre el selector nativo del SO, más parecido a la referencia de Figma).
+- [x] Verifiqué la duda de Gonzalo sobre contraste de texto en tarjetas rojas/verdes/grises con recortes a nivel de píxel (no la vista general escalada): están bien, el texto es legible en los tres casos.
+- [x] Encontré y corregí un bug real de cabecera responsiva: en celular (360-430px) se partía en 3 filas descoordinadas con el buscador flotando entre íconos sueltos; además colisionaba título/nombre de iglesia en tablet (~768px). Reescrita con Playwright probando 360/390/768/1024px reales, no solo a ojo. Comenté KAN-63.
+- [x] Implementé "Asignar/cambiar Supervisor" (ítem 2 de la lista de pendientes). Decisión de Gonzalo: solo Super Admin lo hace (no un Supervisor agregando a otro), y "cambiar" reemplaza al vigente igual que Pastor.
+- [x] Genericé el panel de Pastor a `PanelPrincipalEstructura.tsx` (parametrizado por tipo PASTOR/SUPERVISOR) en vez de duplicar el componente, ya que quedaron estructuralmente idénticos.
+- [x] Escribí y apliqué la migración `fn_estructura_asignar_supervisor` (mismo patrón atómico que Pastor).
+- [x] Corregí un bug real que encontré probando el flujo con datos reales: el campo OTP aparecía obligatorio en la vía "Desde base de datos" aunque el switch del módulo estuviera apagado (solo la vía correo debe exigirlo siempre). Ahora cada vía valida el OTP por separado.
+- [x] Probé el flujo completo en vivo con Playwright: auto-asignación bloqueada correctamente (trigger existente), y encontré un bug real más: si la persona ya tenía otro cargo de sistema en la misma iglesia (Daniel ya era Pastor), el INSERT chocaba con la restricción única de la base y tiraba un error crudo de Postgres. Corregido con una migración que valida el conflicto antes y devuelve un mensaje claro, sin auto-reemplazar el cargo existente. Apliqué las 2 migraciones nuevas a Supabase y volví a probar: ahora da el mensaje correcto.
+- [x] Comenté KAN-57 con el avance y el bug corregido.
+- [x] Implementé "Asignar Líder de Afirmación" (ítem 3 de la lista) sin escribir ninguna RPC ni migración nueva: encontré que `Departamentos.tsx` ya tenía el flujo completo construido (`fn_asignar_cargo_departamento`, `AsignarCargoDialog`) y solo hizo falta un wrapper delgado para reusarlo desde el organigrama.
+- [x] Probé en vivo: el diálogo abre con el líder vigente (Gonzalo Joaquin) precargado y doble vía visible; confirmé que Evangelismo/Discipulado/Envío siguen sin acción (solo lectura), como pide REQ-DEP-6.
+- [x] Implementé "Crear Casa de Paz" (ítem 4 de la lista): RPC propia `fn_estructura_crear_cdp` (transaccional: CdP + relación con Red + líder inicial opcional). No reusé `crearCdp()` del frontend porque `technical-design.md` ya la marcaba como no transaccional (varias llamadas sueltas).
+- [x] Agregué la acción "+ Nueva" en la sección Casas de Paz del panel de editar Red; probé en vivo creando una CdP sin líder en "Svalmar" y confirmé que aparece con tarjeta gris "Líder sin asignar" y se auto-coloca bien bajo su Red.
+- [x] Apliqué la migración a Supabase y comenté KAN-59; lo pasé a "En curso" y me lo asigné (astlimbark), igual que el resto de las tareas de esta épica.
+- [x] Implementé "Asignar líder, anfitrión y dirección de Casa de Paz" (ítem 5): otra vez sin RPC ni migración nueva, reusando el flujo completo de `GestionEstructuraVista.tsx` (líder/anfitrión) y `DomicilioAnfitrionDialog` (dirección). Nuevo panel `PanelCasaDePazEstructura.tsx`.
+- [x] Encontré y corregí un bug de integración real: los hooks reusados invalidan su propia caché pero no la del organigrama, así que el lienzo no se actualizaba solo después de asignar (ni en Afirmación ni acá). Agregué invalidación explícita en ambos wrappers.
+- [x] Probé en vivo de punta a punta: asigné a Rosa Illanes como líder de una Casa de Paz y confirmé que el nodo del lienzo cambió de "Asigna un líder" a su nombre sin recargar la página.
+- [x] Comenté KAN-59 con este avance.
+- [x] Antes de seguir con el ítem 6, verifiqué de punta a punta que Pastor/Supervisor/Afirmación/CdP funcionan realmente (no solo por código): typecheck+lint+build limpios, y detecté un cambio real en "Red Vida Nueva" (Líder de Red pasó de Roberto Fernandez a Matias Franco) que resultó ser una prueba mía propia en paralelo, no un bug — confirmé que `red_cargo` sí guarda quién modifica qué (`creado_por`/`actualizado_por`/`fecha_actualizacion`), eso fue lo que me permitió aclararlo rápido.
+- [x] De mi propia prueba real (cambiar Líder de Red por búsqueda) anoté 3 hallazgos en cola: falta correo de notificación al asignar por BD a alguien ya registrado (brecha real vs REQ-ASG-7, no plantilla faltante); confirmado que 1 solo OTP (no 2) es el diseño correcto para reemplazar Líder de Red; falta un paso de confirmación antes de quitar/asignar un cargo. Documentado en harness/16 open-questions.md y comentado en KAN-58.
+- [x] Implementé "Añadir sublíderes de Casa de Paz" (ítem 6, último de la sesión): otra vez sin RPC nueva, reusando `AsignarCargoDialog` en modo no exclusivo.
+- [x] Encontré que ni el trigger de base ni la pantalla original (`GestionEstructuraVista.tsx`) impedían que el líder vigente apareciera también como opción de sublíder — era un criterio de aceptación explícito de KAN-60, no solo un detalle mío. Lo corregí agregando una prop opcional (`excluirIdsExtra`) al diálogo compartido, sin tocar el trigger ni afectar otras pantallas, y apliqué la misma corrección en ambos lugares (el organigrama y la pantalla original).
+- [x] Probé en vivo: agregar a Freddy Aramayo como sublíder no tocó al líder (Rosa Illanes) ni pisó nada; después confirmé que buscar a Rosa como sublíder da "Sin resultados".
+- [x] Comenté KAN-60, lo pasé a "En curso" y me lo asigné (astlimbark).
+- [x] Con esto quedaron los 6 ítems de la lista de pendientes de hoy completos: Pastor, Supervisor, Afirmación, Crear CdP, Asignar líder/anfitrión/dirección de CdP, y Sublíderes de CdP. Quedan 8 ítems más en la lista para la próxima sesión (colores repetidos de Red, corrección/cancelación de correo, caso de correo ya existente, responsividad móvil completa, cámara local, actualizar Jira restante, revisión visual autenticada, pruebas E2E/cierre integral).
+- [x] Implementé "Advertir colores de Red repetidos" (ítem 7): aviso ámbar no bloqueante en el panel de Red cuando el color elegido coincide con el de otra Red de la misma iglesia (excluyendo la que se está editando).
+- [x] Probé en vivo con Playwright en "Centro de Vida 4 Anillo": creé una Red con el color por defecto, volví a abrir "Nueva Red" y apareció el aviso correcto; cambié de color y desapareció; edité la propia Red con su color original y no hubo falso aviso. Di de baja lógica la Red de prueba al terminar (no existe borrado físico, hay un trigger que lo bloquea).
+- [x] Comenté KAN-58 con este avance.
+- [x] Documenté en Jira (KAN-78, nuevo) y en harness la vista del lienzo por rol: Supervisor ve solo su rama (a sí mismo/Pastor en lectura); Líder/Supervisor de Red ven solo su Red (se ven entre sí en lectura). Sin código todavía, queda para que Matías haga el front.
+- [ ] Falta: campo para pegar color hexadecimal directo en el panel de Red (pedido de Gonzalo).
+- [x] Implementé corregir/cancelar correo pendiente de Líder/Supervisor de Red (item 8).
+- [x] Encontré y corregí 3 bugs reales: Super Admin no podía designar por correo ni cancelar (sin bypass en 3 funciones de permiso).
+- [x] Probado en vivo: crear → corregir correo → cancelar, en El Eden. Cuenta huérfana banea en vez de borrar (limitación de FK); las 2 de prueba se borraron a mano.
+- [x] Comenté KAN-56.
+- [x] Unifiqué PanelRedEstructura al patrón modal: Asignar/Cambiar cargo y +Nueva CdP ahora abren un Dialog, no se expanden inline.
+- [x] Renombré las 5 Redes existentes sin la palabra "Red"; la tarjeta y la vista previa ahora muestran el label fijo Red: "Nombre".
+- [x] Probado en vivo ambos cambios; comenté KAN-58.
+- [x] Fusioné el campo de nombre de Red y la vista previa de color en uno solo, al inicio de la tarjeta.
+- [x] Agregué botón "Cambiar nombre" + modal de confirmación (con OTP si corresponde) para renombrar una Red existente; antes se guardaba sin avisar.
+- [x] Probado en vivo: cambié y revertí el nombre de una Red real. Documenté en open-questions.md que el mismo patrón de confirmación falta en asignar/quitar cargo (pendiente, no de hoy). Comenté KAN-58.

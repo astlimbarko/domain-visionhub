@@ -75,7 +75,9 @@ no todo junto al final como un resumen escrito de memoria:
 ```
 
 - Cada ítem: una tarea real y concreta, no genérica ("mejoras varias" no
-  sirve).
+  sirve). **Breve** (2026-08-05): una frase corta por ítem, sin repetir el
+  motivo completo ni el detalle de verificación — eso vive en el commit o en
+  `harness/` si hace falta más contexto.
 - Marcar `[x]` lo que se completó, `[ ]` lo que quedó pendiente o a medias
   — así la próxima persona (o la próxima sesión de la misma persona) ve de
   un vistazo qué falta sin tener que leer todo el chat.
@@ -127,6 +129,19 @@ con que quede solo en el commit o en la bitácora local.
   por qué — nada de bloques largos, sin fragmentos de código pegados, sin
   listas de "posibles soluciones" extensas. Si hace falta explayarse, esa
   explicación va en el commit o en la conversación, no en el ticket.
+- **Excepción al assignee (2026-08-05):** si el ticket documenta algo para
+  que otra persona del equipo lo implemente más adelante (no trabajo que se
+  hizo en esta sesión), el reporter sigue siendo Gonzalo pero el **assignee
+  queda vacío**, no Gonzalo — la regla de arriba aplica solo cuando el
+  trabajo/cambio de estado lo decidió/ejecutó él en la sesión actual.
+- **Claude tiene el control de mover el estado del ticket a lo largo de todo
+  su ciclo** (`Tareas por hacer` → `En curso` → `En revisión` → `Finalizada`),
+  no solo comentarlo y dejarlo en "Tareas por hacer" (pedido explícito
+  2026-08-05, "tú tienes el control de esto"). Mover a `En curso` al empezar
+  a trabajar un ticket, a `En revisión` si el código quedó listo pero falta
+  probarlo en vivo, y a `Finalizada` recién cuando quedó verificado en vivo
+  (no solo escrito). No dejar tickets con trabajo real completado varados en
+  "Tareas por hacer" solo porque se comentaron.
 
 ## Otras convenciones del proyecto
 

@@ -252,10 +252,16 @@ pass = "env(BREVO_SMTP_PASS)"
 admin_email = "acceso@somoscdv.com"
 sender_name = "Centro de Vida 4 Anillo"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Pedido del owner (2026-08-07): el correo de invitacion generico no decia
+# para que rol/entidad fue invitada la persona, ni el nombre de SU iglesia
+# (proyecto multi-tenant, no hay una sola iglesia). Se usan las variables
+# custom que ya mandan los Edge Functions via el parametro `data` de
+# inviteUserByEmail: {{ .Data.iglesia_nombre }}, {{ .Data.rol_etiqueta }},
+# {{ .Data.entidad_nombre }} -- todas opcionales (el template no rompe si
+# alguna falta, ver supabase/templates/invite.html).
+[auth.email.template.invite]
+subject = "{{ if .Data.iglesia_nombre }}Ha sido invitado a {{ .Data.iglesia_nombre }}{{ else }}Ha sido invitado al sistema{{ end }}"
+content_path = "./supabase/templates/invite.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

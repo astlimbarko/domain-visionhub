@@ -1,0 +1,1000 @@
+import { useEffect, useState } from 'react';
+import { Mail, MoreVertical, Pipette, Search, UserRound, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { CampoOtp } from '@/components/shared/CampoOtp';
+import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  useCancelarInvitacionLider,
+  useCorregirCorreoInvitacionLider,
+  useInvitarLider,
+  useReenviarInvitacionLider,
+} from '@/hooks/useInvitacionLider';
+import { textoLegibleSobre } from './contraste';
+import { notificarAsignacionCargoRed } from './estructura.service';
+import {
+  useActualizarRedEstructura,
+  useAsignarCargoRedEstructura,
+  useBuscarPersonasEstructura,
+  useCrearCasaDePazEstructura,
+  useCrearRedEstructura,
+  useDeshacerBorradoDefinitivoRedEstructura,
+  useEliminarRedEstructura,
+  useProgramarBorradoDefinitivoRedEstructura,
+  useQuitarCargoRedEstructura,
+  useReactivarRedEstructura,
+} from './useEstructuraOrganizacional';
+import type {
+  CargoRedEstructura,
+  PersonaEstructura,
+  PersonaOpcionEstructura,
+  RedEstructura,
+} from './types';
+
+const PALETA_RED = ['#2563EB', '#DC2626', '#059669', '#F59E0B', '#0891B2', '#EA580C', '#7C3AED', '#DB2777'];
+
+type ModoPanel = 'crear' | 'editar';
+type ModoAsignacion = 'base' | 'correo';
+
+interface Props {
+  iglesiaId: string;
+  modo: ModoPanel;
+  red: RedEstructura | null;
+  redesExistentes: RedEstructura[];
+  otpRequerido: boolean;
+  esSuperAdmin: boolean;
+  abrirCrearCdpAlAbrir?: boolean;
+  onClose: () => void;
+}
+
+interface CargoProps {
+  titulo: string;
+  responsable?: PersonaEstructura;
+  onAbrir: () => void;
+  onQuitar: () => void;
+  onReenviar: (invitacionId: string) => void;
+  onCorregirCorreo: (invitacionId: string, correoNuevo: string) => void;
+  onCancelarInvitacion: (invitacionId: string) => void;
+  procesando: boolean;
+}
+
+function ResumenCargo({
+  titulo,
+  responsable,
+  onAbrir,
+  onQuitar,
+  onReenviar,
+  onCorregirCorreo,
+  onCancelarInvitacion,
+  procesando,
+}: CargoProps) {
+  const pendiente = responsable?.membresiaPendiente ?? false;
+  const etiqueta = responsable?.nombre?.trim() || responsable?.correo || 'Sin asignar';
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const [correoNuevo, setCorreoNuevo] = useState('');
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{titulo}</p>
+          <div className="mt-2 flex min-w-0 items-center gap-2.5">
+            <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              {responsable?.nombre ? responsable.nombre.trim().slice(0, 1).toUpperCase() : <Mail className="h-4 w-4" />}
+              {responsable && (
+                <span
+                  className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white"
+                  style={{ backgroundColor: pendiente ? '#94a3b8' : '#22c55e' }}
+                />
+              )}
+            </span>
+            <span className="min-w-0">
+              <span title={etiqueta} className="block truncate text-sm font-semibold text-slate-900">{etiqueta}</span>
+              {responsable?.correo && responsable.nombre && (
+                <span title={responsable.correo} className="block truncate text-xs text-slate-500">{responsable.correo}</span>
+              )}
+              {responsable && (
+                <span className="block text-[11px] text-slate-500">
+                  {pendiente ? 'Confirmación pendiente' : 'Cuenta confirmada'}
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onAbrir}
+          disabled={procesando}
+          className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {responsable ? 'Cambiar' : 'Asignar'}
+        </button>
+      </div>
+      {responsable && responsable.invitacionId && corrigiendo && (
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+          <input
+            type="email"
+            autoFocus
+            value={correoNuevo}
+            onChange={(evento) => setCorreoNuevo(evento.target.value)}
+            placeholder="Correo correcto"
+            className="h-9 flex-1 rounded-lg border border-slate-200 px-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+          <button
+            type="button"
+            disabled={procesando || !correoNuevo.trim().includes('@')}
+            onClick={() => {
+              onCorregirCorreo(responsable.invitacionId as string, correoNuevo.trim());
+              setCorrigiendo(false);
+              setCorreoNuevo('');
+            }}
+            className="h-9 shrink-0 cursor-pointer rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Guardar
+          </button>
+          <button type="button" onClick={() => setCorrigiendo(false)} className="relative shrink-0 cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-slate-700">
+            Cancelar
+          </button>
+        </div>
+      )}
+      {responsable && (
+        <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-3">
+          {responsable.invitacionId ? (
+            <>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => onReenviar(responsable.invitacionId as string)}
+                className="relative cursor-pointer text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-blue-900 disabled:opacity-50"
+              >
+                Reenviar
+              </button>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => setCorrigiendo((valor) => !valor)}
+                className="relative cursor-pointer text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-blue-900 disabled:opacity-50"
+              >
+                Corregir correo
+              </button>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => onCancelarInvitacion(responsable.invitacionId as string)}
+                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
+              >
+                Cancelar designación
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={procesando}
+              onClick={onQuitar}
+              className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
+            >
+              Quitar cargo
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, esSuperAdmin, abrirCrearCdpAlAbrir, onClose }: Props) {
+  const queryClient = useQueryClient();
+  const crear = useCrearRedEstructura(iglesiaId);
+  const actualizar = useActualizarRedEstructura(iglesiaId);
+  const asignar = useAsignarCargoRedEstructura(iglesiaId);
+  const quitar = useQuitarCargoRedEstructura(iglesiaId);
+  const invitar = useInvitarLider();
+  const reenviar = useReenviarInvitacionLider();
+  const cancelarInvitacion = useCancelarInvitacionLider();
+  const corregirCorreo = useCorregirCorreoInvitacionLider();
+  const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
+  const eliminarRed = useEliminarRedEstructura(iglesiaId);
+  const reactivarRed = useReactivarRedEstructura(iglesiaId);
+  const programarBorradoDefinitivo = useProgramarBorradoDefinitivoRedEstructura(iglesiaId);
+  const deshacerBorradoDefinitivo = useDeshacerBorradoDefinitivoRedEstructura(iglesiaId);
+
+  const [nombre, setNombre] = useState(red?.nombre ?? '');
+  const [color, setColor] = useState(red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0]);
+  const [otp, setOtp] = useState('');
+  const [cargoActivo, setCargoActivo] = useState<CargoRedEstructura | null>(null);
+  const [modoAsignacion, setModoAsignacion] = useState<ModoAsignacion>('base');
+  const [busqueda, setBusqueda] = useState('');
+  const [correo, setCorreo] = useState('');
+  const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [confirmandoGuardarCambios, setConfirmandoGuardarCambios] = useState(false);
+  const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
+  const [confirmandoBorradoDefinitivo, setConfirmandoBorradoDefinitivo] = useState(false);
+  const [otpBorradoDefinitivo, setOtpBorradoDefinitivo] = useState('');
+  const [personaExistentePorCorreo, setPersonaExistentePorCorreo] = useState<{ id: string; nombre: string } | null>(null);
+  const [otpAsignarExistente, setOtpAsignarExistente] = useState('');
+  const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
+  const [nombreConfirmando, setNombreConfirmando] = useState('');
+  const [creandoCdp, setCreandoCdp] = useState(false);
+  const [busquedaLiderCdp, setBusquedaLiderCdp] = useState('');
+  const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
+  const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
+
+  const colorInicialCierre = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
+  const datosSinGuardar = modo === 'crear'
+    ? nombre.trim().length > 0 || color.toUpperCase() !== PALETA_RED[0].toUpperCase()
+    : color.toUpperCase() !== colorInicialCierre.toUpperCase();
+
+  useEffect(() => {
+    const cerrarConEscape = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape' && !datosSinGuardar) onClose();
+    };
+    window.addEventListener('keydown', cerrarConEscape);
+    return () => window.removeEventListener('keydown', cerrarConEscape);
+  }, [onClose, datosSinGuardar]);
+
+  useEffect(() => {
+    setNombre(red?.nombre ?? '');
+    setColor(red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0]);
+    setCargoActivo(null);
+    setBusqueda('');
+    setCorreo('');
+    setOtp('');
+    setCreandoCdp(false);
+    setBusquedaLiderCdp('');
+    setLiderCdpElegido(null);
+    setMostrarCambiarNombre(false);
+    setNombreConfirmando('');
+  }, [red, modo]);
+
+  useEffect(() => {
+    if (abrirCrearCdpAlAbrir && modo === 'editar' && red) setCreandoCdp(true);
+  }, [abrirCrearCdpAlAbrir, red, modo]);
+
+  const procesando = crear.isPending || actualizar.isPending || asignar.isPending
+    || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending
+    || cancelarInvitacion.isPending || corregirCorreo.isPending;
+  const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
+  const formularioValidoSinOtp = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color);
+  const formularioValido = formularioValidoSinOtp && otpValido;
+  const esColorPersonalizado = !PALETA_RED.some((opcion) => opcion === color.toUpperCase());
+  const colorInicial = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
+  const hayCambios = modo === 'crear' || color.toUpperCase() !== colorInicial.toUpperCase();
+  const redConMismoColor = redesExistentes.find(
+    (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
+  );
+  const responsableAQuitar = confirmandoQuitar === 'LIDER_RED' ? red?.lideres[0] : red?.supervisores[0];
+  const etiquetaAQuitar = responsableAQuitar?.nombre?.trim() || responsableAQuitar?.correo || 'esta persona';
+
+  const invalidar = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
+  };
+
+  const guardarRed = async () => {
+    if (!formularioValido) return;
+    try {
+      if (modo === 'crear') {
+        await crear.mutateAsync({ nombre: nombre.trim(), color, otp: otp || null });
+        toast.success('Red creada');
+        onClose();
+      } else if (red) {
+        await actualizar.mutateAsync({ redId: red.id, nombre: nombre.trim(), color, otp: otp || null });
+        toast.success('Red actualizada');
+        setConfirmandoGuardarCambios(false);
+        setOtp('');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo guardar la Red');
+    }
+  };
+
+  const confirmarCambioNombre = async () => {
+    if (!red || nombreConfirmando.trim().length < 2 || !otpValido) return;
+    try {
+      await actualizar.mutateAsync({ redId: red.id, nombre: nombreConfirmando.trim(), color, otp: otp || null });
+      toast.success('Nombre de la Red actualizado');
+      setMostrarCambiarNombre(false);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el nombre');
+    }
+  };
+
+  const confirmarEliminarRed = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await eliminarRed.mutateAsync({ redId: red.id, otp: otp || null });
+      toast.success('Red eliminada');
+      setConfirmandoEliminar(false);
+      setOtp('');
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red');
+    }
+  };
+
+  const confirmarReactivarRed = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await reactivarRed.mutateAsync({ redId: red.id, otp: otp || null });
+      toast.success('Red reactivada');
+      setConfirmandoReactivar(false);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo reactivar la Red');
+    }
+  };
+
+  const confirmarBorradoDefinitivoRed = async () => {
+    if (!red || !/^\d{6}$/.test(otpBorradoDefinitivo)) return;
+    const redId = red.id;
+    const nombreRed = red.nombre;
+    try {
+      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo });
+      setConfirmandoBorradoDefinitivo(false);
+      setOtpBorradoDefinitivo('');
+      onClose();
+      toast(`Red "${nombreRed}" eliminada de la base de datos`, {
+        description: 'Se borrará de verdad en 60 segundos. Podés deshacerlo hasta entonces.',
+        duration: 60_000,
+        action: {
+          label: 'Deshacer',
+          onClick: () => {
+            deshacerBorradoDefinitivo.mutate(
+              { redId },
+              {
+                onSuccess: () => toast.success(`Red "${nombreRed}" recuperada (sigue agrisada como eliminada)`),
+                onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudo deshacer'),
+              },
+            );
+          },
+        },
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red de la base de datos');
+    }
+  };
+
+  const seleccionarPersona = async (persona: PersonaOpcionEstructura) => {
+    if (!red || !cargoActivo || !otpValido) return;
+    try {
+      await asignar.mutateAsync({ redId: red.id, personaId: persona.id, codigo: cargoActivo, otp: otp || null });
+      toast.success(cargoActivo === 'LIDER_RED' ? 'Líder de Red asignado' : 'Supervisor de Red asignado');
+      notificarAsignacionCargoRed(red.id, persona.id, cargoActivo).catch((error) => console.error('No se pudo avisar por correo de la designación', error));
+      setCargoActivo(null);
+      setBusqueda('');
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo asignar el cargo');
+    }
+  };
+
+  const invitarPorCorreo = async () => {
+    if (!red || !cargoActivo || !correo.trim().includes('@') || !otpValido) return;
+    try {
+      await invitar.mutateAsync({
+        correo: correo.trim().toLowerCase(),
+        rol: cargoActivo === 'LIDER_RED' ? 'LIDER_RED' : 'SUPERVISOR_RED',
+        redId: red.id,
+        casaDePazId: null,
+        pin: otp || undefined,
+      });
+      await invalidar();
+      toast.success('Designación enviada por correo');
+      setCargoActivo(null);
+      setCorreo('');
+      setOtp('');
+    } catch (error) {
+      const personaId = error instanceof Error ? (error as { personaId?: string }).personaId : undefined;
+      const personaNombre = error instanceof Error ? (error as { personaNombre?: string }).personaNombre : undefined;
+      if (personaId && personaNombre) {
+        // El OTP que se acaba de usar para el intento de invitar ya quedo
+        // consumido (se valida antes de llamar a inviteUserByEmail) -- no se
+        // puede reutilizar para esta segunda accion, hace falta uno nuevo
+        // (patron "un solo OTP por accion" ya documentado en esta epica).
+        setPersonaExistentePorCorreo({ id: personaId, nombre: personaNombre });
+        setOtp('');
+        setOtpAsignarExistente('');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'No se pudo enviar la designación');
+      }
+    }
+  };
+
+  const asignarPersonaExistentePorCorreo = async () => {
+    if (!red || !cargoActivo || !personaExistentePorCorreo) return;
+    if (otpRequerido && !/^\d{6}$/.test(otpAsignarExistente)) return;
+    try {
+      await asignar.mutateAsync({
+        redId: red.id,
+        personaId: personaExistentePorCorreo.id,
+        codigo: cargoActivo,
+        otp: otpAsignarExistente || null,
+      });
+      toast.success(cargoActivo === 'LIDER_RED' ? 'Líder de Red asignado' : 'Supervisor de Red asignado');
+      notificarAsignacionCargoRed(red.id, personaExistentePorCorreo.id, cargoActivo).catch((error) => console.error('No se pudo avisar por correo de la designación', error));
+      setCargoActivo(null);
+      setPersonaExistentePorCorreo(null);
+      setOtpAsignarExistente('');
+      setCorreo('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo asignar el cargo');
+    }
+  };
+
+  const quitarCargo = async (codigo: CargoRedEstructura) => {
+    if (!red || !otpValido) return;
+    try {
+      await quitar.mutateAsync({ redId: red.id, codigo, otp: otp || null });
+      toast.success('Cargo retirado');
+      setOtp('');
+      setConfirmandoQuitar(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo retirar el cargo');
+    }
+  };
+
+  const reenviarInvitacion = async (invitacionId: string) => {
+    try {
+      await reenviar.mutateAsync(invitacionId);
+      toast.success('Invitación reenviada');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo reenviar la invitación');
+    }
+  };
+
+  const cancelarDesignacion = async (invitacionId: string) => {
+    try {
+      await cancelarInvitacion.mutateAsync(invitacionId);
+      await invalidar();
+      toast.success('Designación cancelada');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo cancelar la designación');
+    }
+  };
+
+  const corregirCorreoDesignacion = async (invitacionId: string, correoNuevo: string) => {
+    if (!otpValido) {
+      toast.error('Ingresá el código de confirmación antes de corregir el correo');
+      return;
+    }
+    try {
+      await corregirCorreo.mutateAsync({ invitacionId, correoNuevo, pin: otp || undefined });
+      await invalidar();
+      toast.success('Correo corregido, invitación reenviada');
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo corregir el correo');
+    }
+  };
+
+  const abrirCargo = (codigo: CargoRedEstructura) => {
+    setCargoActivo(codigo);
+    setModoAsignacion('base');
+    setBusqueda('');
+    setCorreo('');
+  };
+
+  const crearNuevaCasaDePaz = async () => {
+    if (!red || !otpValido) return;
+    try {
+      await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      toast.success('Casa de Paz creada');
+      setCreandoCdp(false);
+      setBusquedaLiderCdp('');
+      setLiderCdpElegido(null);
+      setOtp('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo crear la Casa de Paz');
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Cerrar panel de Red"
+        onClick={() => { if (!datosSinGuardar) onClose(); }}
+        className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
+      />
+      <aside className="absolute inset-x-0 bottom-0 z-30 flex max-h-[94%] flex-col rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
+        <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden">
+          <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+        </div>
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div>
+            <p className="text-lg font-bold text-slate-950">{modo === 'crear' ? 'Nueva Red' : 'Gestionar Red'}</p>
+            <p className="text-xs text-slate-500">
+              {modo === 'crear' ? 'Define su nombre y color identificativo.' : 'Edita la Red y designa responsables.'}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+        {modo === 'editar' && red?.eliminada ? (
+        <div className="space-y-4 p-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">Esta Red fue eliminada</p>
+            <p className="mt-1 text-xs text-amber-700">
+              Sigue visible (agrisada) durante 1 año. Nada se puede modificar hasta reactivarla.
+            </p>
+          </div>
+          <div
+            className="rounded-xl px-4 py-3 text-sm font-semibold"
+            style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+          >
+            Red: &quot;{red.nombre}&quot;
+          </div>
+          {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+        </div>
+        ) : (
+        <div className="space-y-4 p-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            {modo === 'crear' ? (
+              <div
+                className="flex items-center gap-1 rounded-xl px-4 py-3 text-sm font-semibold"
+                style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+              >
+                <span className="shrink-0">Red: &quot;</span>
+                <input
+                  aria-label="Nombre de la Red"
+                  value={nombre}
+                  onChange={(evento) => setNombre(evento.target.value)}
+                  placeholder="Sion"
+                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:opacity-60"
+                  style={{ color: textoLegibleSobre(color) }}
+                />
+                <span className="shrink-0">&quot;</span>
+              </div>
+            ) : (
+              <div
+                className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
+                style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
+              >
+                <span className="truncate">Red: &quot;{nombre}&quot;</span>
+                <button
+                  type="button"
+                  onClick={() => { setNombreConfirmando(nombre); setMostrarCambiarNombre(true); }}
+                  className="shrink-0 cursor-pointer rounded-lg bg-white/20 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/30"
+                >
+                  Cambiar nombre
+                </button>
+              </div>
+            )}
+            <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
+            <div className="mt-2 flex items-center gap-1">
+              {PALETA_RED.map((opcion) => (
+                <button
+                  key={opcion}
+                  type="button"
+                  aria-label={`Usar color ${opcion}`}
+                  onClick={() => setColor(opcion)}
+                  className={`h-7 w-7 shrink-0 cursor-pointer rounded-full border-2 ${color.toUpperCase() === opcion ? 'border-slate-900 ring-2 ring-slate-200' : 'border-white hover:border-slate-300'}`}
+                  style={{ backgroundColor: opcion }}
+                />
+              ))}
+              <label
+                aria-label="Elegir color personalizado o escribir un código hexadecimal"
+                title="Color personalizado (hexadecimal)"
+                className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-dashed border-slate-400 bg-white hover:border-slate-500'}`}
+                style={esColorPersonalizado ? { backgroundColor: color } : undefined}
+              >
+                <Pipette className="h-3.5 w-3.5" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(evento) => setColor(evento.target.value.toUpperCase())}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+            {redConMismoColor && (
+              <p className="mt-2 text-xs font-medium text-amber-600">
+                Este color ya lo usa la Red «{redConMismoColor.nombre}». Podés continuar, pero conviene elegir uno distinto para diferenciarlas.
+              </p>
+            )}
+          </div>
+
+          {modo === 'editar' && red && (
+            <>
+              <ResumenCargo
+                titulo="Líder de Red"
+                responsable={red.lideres[0]}
+                onAbrir={() => abrirCargo('LIDER_RED')}
+                onQuitar={() => setConfirmandoQuitar('LIDER_RED')}
+                onReenviar={(id) => void reenviarInvitacion(id)}
+                onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
+                procesando={procesando}
+              />
+              <ResumenCargo
+                titulo="Supervisor de Red"
+                responsable={red.supervisores[0]}
+                onAbrir={() => abrirCargo('SUBLIDER_RED')}
+                onQuitar={() => setConfirmandoQuitar('SUBLIDER_RED')}
+                onReenviar={(id) => void reenviarInvitacion(id)}
+                onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
+                procesando={procesando}
+              />
+            </>
+          )}
+
+          {otpRequerido && modo === 'crear' && <CampoOtp value={otp} onChange={setOtp} />}
+        </div>
+        )}
+        </div>
+
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div>
+            {modo === 'editar' && red && !red.eliminada && (
+              <button
+                type="button"
+                onClick={() => setConfirmandoEliminar(true)}
+                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
+              >
+                Eliminar Red
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
+            {modo === 'editar' && red?.eliminada ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    title="Opciones"
+                    aria-label="Opciones"
+                    disabled={reactivarRed.isPending || programarBorradoDefinitivo.isPending}
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setConfirmandoReactivar(true)}>Reactivar</DropdownMenuItem>
+                  {esSuperAdmin && (
+                    <DropdownMenuItem
+                      onSelect={() => setConfirmandoBorradoDefinitivo(true)}
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    >
+                      Eliminar de base de datos
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                type="button"
+                disabled={procesando || !hayCambios || (modo === 'crear' ? !formularioValido : !formularioValidoSinOtp)}
+                onClick={() => {
+                  if (modo === 'editar' && otpRequerido) setConfirmandoGuardarCambios(true);
+                  else void guardarRed();
+                }}
+                className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      <Dialog open={!!cargoActivo} onOpenChange={(abierto) => { if (!abierto) { setCargoActivo(null); setPersonaExistentePorCorreo(null); setOtpAsignarExistente(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{cargoActivo === 'LIDER_RED' ? 'Designar Líder de Red' : 'Designar Supervisor de Red'}</DialogTitle>
+            <DialogDescription>El cargo aparece de inmediato; el punto será gris hasta confirmar la cuenta.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setModoAsignacion('base')}
+              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              Desde base de datos
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoAsignacion('correo')}
+              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              Por correo electrónico
+            </button>
+          </div>
+
+          {modoAsignacion === 'base' ? (
+            <div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={busqueda}
+                  onChange={(evento) => setBusqueda(evento.target.value)}
+                  placeholder="Escribe nombre, apellido o correo"
+                  className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              {busqueda.trim().length >= 2 && (
+                <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                  {isFetching && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                  {!isFetching && personas.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                  {personas.map((persona) => (
+                    <button
+                      key={persona.id}
+                      type="button"
+                      disabled={procesando || !otpValido}
+                      onClick={() => void seleccionarPersona(persona)}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                        <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {otpRequerido && <div className="mt-3"><CampoOtp value={otp} onChange={setOtp} /></div>}
+            </div>
+          ) : personaExistentePorCorreo ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Ya existe una cuenta con ese correo, asociada a <strong>{personaExistentePorCorreo.nombre}</strong>.
+                ¿Deseás asignarla de todas formas?
+              </div>
+              {otpRequerido && (
+                <div>
+                  <CampoOtp value={otpAsignarExistente} onChange={setOtpAsignarExistente} />
+                  <p className="mt-1 text-[11px] text-slate-500">El código anterior ya se usó; este es uno nuevo.</p>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setPersonaExistentePorCorreo(null); setOtpAsignarExistente(''); }}
+                  className="h-10 flex-1 cursor-pointer rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={asignar.isPending || (otpRequerido && !/^\d{6}$/.test(otpAsignarExistente))}
+                  onClick={() => void asignarPersonaExistentePorCorreo()}
+                  className="h-10 flex-1 cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {asignar.isPending ? 'Asignando…' : 'Sí, asignar de todas formas'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="estructura-red-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
+                <input
+                  id="estructura-red-correo"
+                  type="email"
+                  value={correo}
+                  onChange={(evento) => setCorreo(evento.target.value)}
+                  placeholder="persona@correo.com"
+                  className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+              <button
+                type="button"
+                disabled={procesando || !correo.trim().includes('@') || !otpValido}
+                onClick={() => void invitarPorCorreo()}
+                className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {invitar.isPending ? 'Enviando…' : 'Designar y enviar correo'}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nueva Casa de Paz</DialogTitle>
+            <DialogDescription>Se crea sin nombre propio. El líder es opcional y se puede asignar después.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {liderCdpElegido ? (
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                <span className="truncate text-slate-900">{liderCdpElegido.nombre}</span>
+                <button type="button" onClick={() => setLiderCdpElegido(null)} className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={busquedaLiderCdp}
+                  onChange={(evento) => setBusquedaLiderCdp(evento.target.value)}
+                  placeholder="Líder (opcional): nombre, apellido o correo"
+                  className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            )}
+            {!liderCdpElegido && busquedaLiderCdp.trim().length >= 2 && (
+              <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                {buscandoLiderCdp && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                {!buscandoLiderCdp && personasCdp.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                {personasCdp.map((persona) => (
+                  <button
+                    key={persona.id}
+                    type="button"
+                    onClick={() => { setLiderCdpElegido(persona); setBusquedaLiderCdp(''); }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                      <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
+                className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={procesando || !otpValido}
+                onClick={() => void crearNuevaCasaDePaz()}
+                className="h-9 cursor-pointer rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {crearCdp.isPending ? 'Creando…' : 'Crear Casa de Paz'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmandoGuardarCambios} onOpenChange={(abierto) => { if (!abierto) { setConfirmandoGuardarCambios(false); setOtp(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar cambios de la Red</DialogTitle>
+            <DialogDescription>
+              Ingresá el código de confirmación para guardar los cambios.
+            </DialogDescription>
+          </DialogHeader>
+          <CampoOtp value={otp} onChange={setOtp} />
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => { setConfirmandoGuardarCambios(false); setOtp(''); }}
+              className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={actualizar.isPending || !/^\d{6}$/.test(otp)}
+              onClick={() => void guardarRed()}
+              className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {actualizar.isPending ? 'Guardando…' : 'Confirmar'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mostrarCambiarNombre} onOpenChange={(abierto) => { if (!abierto) { setMostrarCambiarNombre(false); setOtp(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cambiar nombre de la Red</DialogTitle>
+            <DialogDescription>
+              Vas a cambiar el nombre de «{nombre}» a lo que escribas abajo. Es visible para todos de inmediato.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <input
+              aria-label="Nuevo nombre de la Red"
+              autoFocus
+              value={nombreConfirmando}
+              onChange={(evento) => setNombreConfirmando(evento.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+            {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              disabled={actualizar.isPending || nombreConfirmando.trim().length < 2 || !otpValido}
+              onClick={() => void confirmarCambioNombre()}
+              className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {actualizar.isPending ? 'Confirmando…' : 'Confirmar cambio'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmarQuitarDialog
+        open={!!confirmandoQuitar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoQuitar(null); }}
+        titulo={`¿Quitar a ${etiquetaAQuitar} de ${confirmandoQuitar === 'LIDER_RED' ? 'Líder de Red' : 'Supervisor de Red'}?`}
+        descripcion="Deja de tener acceso de inmediato."
+        procesando={quitar.isPending}
+        onConfirmar={() => { if (confirmandoQuitar) void quitarCargo(confirmandoQuitar); }}
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoEliminar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoEliminar(false); }}
+        titulo={`¿Eliminar la Red "${red?.nombre}"?`}
+        descripcion="Queda agrisada en el lienzo durante 1 año; se puede reactivar en cualquier momento."
+        procesando={eliminarRed.isPending}
+        onConfirmar={() => void confirmarEliminarRed()}
+        textoConfirmar="Sí, eliminar"
+        textoProcesando="Eliminando…"
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoReactivar}
+        onOpenChange={(abierto) => { if (!abierto) setConfirmandoReactivar(false); }}
+        titulo={`¿Reactivar la Red "${red?.nombre}"?`}
+        descripcion="Vuelve a mostrarse normal y se puede editar de nuevo."
+        procesando={reactivarRed.isPending}
+        onConfirmar={() => void confirmarReactivarRed()}
+        textoConfirmar="Sí, reactivar"
+        textoProcesando="Reactivando…"
+        otpRequerido={otpRequerido}
+        otp={otp}
+        onOtpChange={setOtp}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoBorradoDefinitivo}
+        onOpenChange={(abierto) => { setConfirmandoBorradoDefinitivo(abierto); if (!abierto) setOtpBorradoDefinitivo(''); }}
+        titulo={`¿Eliminar definitivamente la Red "${red?.nombre}"?`}
+        descripcion="Se eliminará definitivamente de la base de datos, junto con sus Casas de Paz. Tenés 60 segundos para deshacerlo después de confirmar."
+        procesando={programarBorradoDefinitivo.isPending}
+        onConfirmar={() => void confirmarBorradoDefinitivoRed()}
+        textoConfirmar="Sí, eliminar definitivamente"
+        textoProcesando="Eliminando…"
+        otpRequerido
+        otp={otpBorradoDefinitivo}
+        onOtpChange={setOtpBorradoDefinitivo}
+      />
+    </>
+  );
+}

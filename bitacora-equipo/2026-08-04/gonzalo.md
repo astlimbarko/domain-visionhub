@@ -1,0 +1,46 @@
+# Gonzalo — 2026-08-04
+
+- [x] Sincronicé y verifiqué `master` contra `origin/master`; quedó limpio y actualizado en `232ecd5`.
+- [x] Creé la rama local `EstrcturaOrganizacional` desde `master` para preparar el trabajo de Estructura Organizacional.
+- [x] Revisé la épica KAN-52 y sus tareas KAN-53 a KAN-63; confirmé KAN-53 finalizada y el resto pendiente.
+- [x] Aclaré con Codex el funcionamiento del constructor: organigrama horizontal independiente por iglesia, layout compartido, N redes/CdP, asignación dual, confirmación gris/verde y OTP local.
+- [x] Audité en solo lectura el código, `harness/03-estructura`, `harness/15-gestion-administrativa` y el esquema activo de Supabase.
+- [x] Creé el paquete de especificación `harness/16-constructor-estructura-organizacional/` con requisitos, diseño técnico, impacto de base, preguntas y plan de implementación.
+- [x] Revisé y aprobé técnicamente el harness 16; corregí trazabilidad, estados documentales y consistencia interna antes de implementar.
+- [x] Renombré la rama local `EstrcturaOrganizacional` a `feature/estructura-organizacional`, conservando todos los cambios del harness.
+- [x] Instalé `@xyflow/react@12.11.2` en el frontend mediante Docker y validé correctamente `npm run build` dentro del contenedor.
+- [x] Confirmé que el constructor mantiene el despliegue estático de VisionHub en HostGator: Node.js se usa solo para compilar y a producción se sube `frontend/dist/`.
+- [x] Preparé `migration-draft.sql` para revisión, con configuración/versionado del organigrama, posiciones, colores institucionales, auditoría OTP, RLS y regla especial de administración para iglesias satélite; no lo apliqué a Supabase.
+- [x] Gonzalo aprobó el contrato SQL y generé con Supabase CLI la migración ejecutable local `20260804235508_estructura_organigrama_cimientos.sql`; continúa sin aplicarse.
+- [x] Descarté la rama temporal pagada de Supabase por decisión del owner: VisionHub utilizará únicamente funcionalidades y alternativas gratuitas.
+- [x] Ajusté el acceso KAN-53: la lista de Iglesias del Super Admin ahora agrupa jerárquicamente madre, hijas y satélites; cada entidad abre su propio organigrama y se retiró el acceso ambiguo del navbar.
+- [x] Separé el ajuste visual del Super Admin en `feature/navegacion-iglesias-super-admin` (`c4560ff`) y regresé a `feature/estructura-organizacional` sin mezclar esos dos archivos de interfaz.
+- [x] Establecí la regla de trazabilidad: todo alcance nuevo de la épica KAN-52 se documentará con título, descripción breve, vínculo Jira, rama, estado y commit.
+- [x] Añadí `└─` como indicador visual de dependencia para iglesias hijas y satélites en `feature/navegacion-iglesias-super-admin` (`d365f83`); build Docker y lint correctos.
+- [x] Corregí el indicador para que `└─` reemplace al punto —sin cambiar agrupamiento ni sangría— en `feature/navegacion-iglesias-super-admin` (`f51f7db`); build Docker correcto.
+- [x] Quité la viñeta circular de las iglesias principales y conservé `└─` solo en hijas/satélites en `feature/navegacion-iglesias-super-admin` (`0281e8a`); build Docker correcto.
+- [x] Reemplacé el icono genérico final por iconos automáticos de iglesia madre, hija y satélite en `feature/navegacion-iglesias-super-admin` (`9ae10f4`); build Docker y lint correctos.
+- [x] Moví los iconos de tipo de iglesia al inicio de cada fila, después de `└─` cuando corresponde, en `feature/navegacion-iglesias-super-admin` (`29d8271`); build Docker correcto.
+- [x] Añadí cursor de mano y acordeón accesible por iglesia madre para expandir/contraer descendientes en `feature/navegacion-iglesias-super-admin` (`2896d58`); build Docker y lint correctos.
+- [x] Implementé la primera entrega KAN-54 del lienzo organizacional en `feature/estructura-organizacional`: lectura por iglesia, nodos horizontales, estados vacíos, N redes/Casas de Paz, cuadrícula, pan, zoom, búsqueda, resaltado, centrado y minimapa para estructuras grandes.
+- [x] Validé KAN-54 dentro del Docker compartido: build de producción correcto (3.380 módulos) y lint con cero errores nuevos; permanecen cinco advertencias históricas ajenas al módulo.
+- [x] Implementé localmente el Modo organizar: arrastre condicionado, snap de 16 px, guardado agrupado a 400 ms, reorganización automática con confirmación y detección de conflicto de versión.
+- [x] Añadí a la migración local la RPC transaccional `fn_estructura_guardar_posiciones`; conserva escrituras directas revocadas, autoriza por iglesia, bloquea la fila de versión y realiza upsert por lote.
+- [ ] Falta: validar la RPC y la persistencia compartida mediante una alternativa gratuita/local; no se aplicó ningún cambio a producción ni se generó costo.
+- [x] Implementé el shell KAN-55 de detalle contextual: selección de nodos, scrim, panel lateral desktop, sheet inferior móvil y cierre accesible por botón, fondo o Escape; build Docker y lint correctos.
+- [x] Ajusté la identidad de la cabecera del organigrama: `Iglesia` en negrita y nombre de la iglesia en peso normal donde antes aparecía `VisionHub`, sin duplicar el nombre debajo del título.
+- [x] Rediseñé `Departamentos` y `Redes de Casas de Paz` como encabezados no seleccionables; las entidades reales usan relleno completo por color, texto blanco y un layout más compacto.
+- [ ] Falta: tomar capturas de la estructura de cada iglesia al cierre y revisar contraste, agrupación, espaciado y estados vacíos con datos reales.
+- [x] Oculté el menú lateral del Super Admin en web, tablet y móvil dentro de `feature/navegacion-iglesias-super-admin` (`7f7e10a`); Administración usa todo el ancho y Estructura Organizacional se abre únicamente desde cada iglesia.
+- [x] Audité en solo lectura las entidades reales: 6 redes y 4 Casas de Paz vigentes, sin huérfanas ni cruces de iglesia; detecté responsables existentes que el lienzo todavía no cargaba.
+- [x] Incorporé la lectura de Pastor, Supervisor y cargos vigentes de departamentos, redes y Casas de Paz; se muestra nombre cuando existe y correo con `membresía pendiente` cuando falta la persona vinculada.
+- [x] Corregí la representación para mostrar siempre los cuatro departamentos oficiales y referencias estables para Casas de Paz sin líder; build Docker y lint correctos.
+- [x] Definí estados visuales para entidades incompletas: Redes sin nombre/líder y Casas de Paz sin líder usan gris con texto negro; las redes blancas reciben paleta provisional de desarrollo.
+- [x] Aclaré que el color identificativo pertenece solo a la Red: las Casas de Paz usan fondo blanco, texto negro y únicamente heredan conexión, icono y acento; documenté el backlog derivado de las referencias visuales.
+- [x] Alineé harness y Jira antes de continuar: corregí KAN-53, KAN-54, KAN-58, KAN-59, KAN-61 y KAN-62 con descripciones breves y decisiones vigentes.
+- [x] Documenté la regla definitiva de Casa de Paz: no tiene nombre propio; se identifica por el líder y debajo muestra la dirección breve del anfitrión o lugar de reunión.
+- [x] Creé bajo KAN-52 las tareas técnicas KAN-75 (persistencia/organización), KAN-76 (base segura/RLS/RPC) y KAN-77 (OTP exclusivo).
+- [x] Asigné a `astlimbark` la tarea finalizada KAN-53 y las nuevas tareas pendientes KAN-75, KAN-76 y KAN-77; verifiqué la asignación en Jira.
+- [x] Subí a GitHub `feature/navegacion-iglesias-super-admin` con la jerarquía, iconos y acordeón de iglesias; quedó siguiendo a `origin/feature/navegacion-iglesias-super-admin`.
+- [x] Creé y fusioné el PR #15 hacia `master` con la navegación jerárquica del Super Admin; GitHub confirmó el merge `7d2b2aa` sin conflictos.
+- [ ] Falta: continuar mañana con la planificación detallada y luego ejecutar las fases pendientes; no se programaron funcionalidades nuevas durante esta alineación.
