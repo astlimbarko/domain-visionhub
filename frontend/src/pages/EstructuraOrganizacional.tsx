@@ -78,7 +78,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
   const [departamentoSeleccionadoId, setDepartamentoSeleccionadoId] = useState<string | null>(null);
   const [casaDePazSeleccionadaId, setCasaDePazSeleccionadaId] = useState<string | null>(null);
-  const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
+  const [cambioOtpPendiente, setCambioOtpPendiente] = useState<boolean | null>(null);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const [etiquetaTactil, setEtiquetaTactil] = useState<string | null>(null);
@@ -203,7 +203,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     try {
       await configurarOtp.mutateAsync({ requerido, otp: codigo || null });
       toast.success(requerido ? 'Protección OTP activada' : 'Protección OTP desactivada');
-      setConfirmarDesactivarOtp(false);
+      setCambioOtpPendiente(null);
       setOtpConfiguracion('');
     } catch (fallo) {
       toast.error(fallo instanceof Error ? fallo.message : 'No se pudo cambiar la protección OTP');
@@ -434,10 +434,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               <Switch
                 checked={data.layout.otpRequerido}
                 disabled={configurarOtp.isPending}
-                onCheckedChange={(activo) => {
-                  if (activo) void cambiarProteccionOtp(true);
-                  else setConfirmarDesactivarOtp(true);
-                }}
+                onCheckedChange={(activo) => setCambioOtpPendiente(activo)}
               />
             </label>
           </div>
@@ -560,6 +557,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <PanelDepartamentoEstructura
               iglesiaId={iglesiaId}
               departamento={departamento}
+              otpRequerido={data.layout.otpRequerido}
               onClose={() => {
                 setDepartamentoSeleccionadoId(null);
                 setNodoSeleccionadoId(null);
@@ -582,10 +580,13 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           />
         )}
       </main>
-      <Dialog open={confirmarDesactivarOtp} onOpenChange={setConfirmarDesactivarOtp}>
+      <Dialog
+        open={cambioOtpPendiente !== null}
+        onOpenChange={(abierto) => { if (!abierto) { setCambioOtpPendiente(null); setOtpConfiguracion(''); } }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Desactivar protección OTP</DialogTitle>
+            <DialogTitle>{cambioOtpPendiente ? 'Activar' : 'Desactivar'} protección OTP</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600">
             Esta protección aplica solamente a los cambios del constructor organizacional.
@@ -594,7 +595,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           <DialogFooter>
             <button
               type="button"
-              onClick={() => setConfirmarDesactivarOtp(false)}
+              onClick={() => { setCambioOtpPendiente(null); setOtpConfiguracion(''); }}
               className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700"
             >
               Cancelar
@@ -602,7 +603,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <button
               type="button"
               disabled={configurarOtp.isPending || !/^\d{6}$/.test(otpConfiguracion)}
-              onClick={() => void cambiarProteccionOtp(false, otpConfiguracion)}
+              onClick={() => void cambiarProteccionOtp(!!cambioOtpPendiente, otpConfiguracion)}
               className="h-10 cursor-pointer rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Confirmar

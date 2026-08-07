@@ -11,6 +11,7 @@ import type { DepartamentoEstructura } from './types';
 interface Props {
   iglesiaId: string;
   departamento: DepartamentoEstructura;
+  otpRequerido: boolean;
   onClose: () => void;
 }
 
@@ -21,7 +22,7 @@ interface Props {
  * líder, pero es el lugar donde van a vivir más opciones a futuro que
  * todavía no existen (mismo patrón que Red y Casa de Paz).
  */
-export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }: Props) {
+export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequerido, onClose }: Props) {
   const queryClient = useQueryClient();
   const [asignando, setAsignando] = useState(false);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
@@ -151,7 +152,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, onClose }
         descripcion="Deja de tener acceso al panel del departamento de inmediato."
         procesando={quitarCargo.isPending}
         onConfirmar={() => void confirmarQuitarLider()}
-        otpRequerido
+        otpRequerido={otpRequerido}
         otp={otpQuitar}
         onOtpChange={setOtpQuitar}
       />
