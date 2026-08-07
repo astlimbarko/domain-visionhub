@@ -466,8 +466,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         onClick={() => { if (!datosSinGuardar) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/20 backdrop-blur-[1px]"
       />
-      <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[88%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+      <aside className="absolute inset-x-0 bottom-0 z-30 flex max-h-[88%] flex-col rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[430px] sm:max-h-none sm:rounded-3xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
             <p className="text-lg font-bold text-slate-950">{modo === 'crear' ? 'Nueva Red' : 'Gestionar Red'}</p>
             <p className="text-xs text-slate-500">
@@ -479,6 +479,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto">
         {modo === 'editar' && red?.eliminada ? (
         <div className="space-y-4 p-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -609,8 +610,9 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
           {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
         </div>
         )}
+        </div>
 
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
             {modo === 'editar' && red && !red.eliminada && (
               <button
