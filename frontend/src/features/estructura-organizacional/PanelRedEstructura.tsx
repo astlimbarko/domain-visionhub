@@ -223,6 +223,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
   const [confirmandoBorradoDefinitivo, setConfirmandoBorradoDefinitivo] = useState(false);
   const [otpBorradoDefinitivo, setOtpBorradoDefinitivo] = useState('');
+  const [personaExistentePorCorreo, setPersonaExistentePorCorreo] = useState<{ id: string; nombre: string } | null>(null);
+  const [otpAsignarExistente, setOtpAsignarExistente] = useState('');
   const [mostrarCambiarNombre, setMostrarCambiarNombre] = useState(false);
   const [nombreConfirmando, setNombreConfirmando] = useState('');
   const [creandoCdp, setCreandoCdp] = useState(false);
@@ -387,7 +389,39 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       setCorreo('');
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo enviar la designación');
+      const personaId = error instanceof Error ? (error as { personaId?: string }).personaId : undefined;
+      const personaNombre = error instanceof Error ? (error as { personaNombre?: string }).personaNombre : undefined;
+      if (personaId && personaNombre) {
+        // El OTP que se acaba de usar para el intento de invitar ya quedo
+        // consumido (se valida antes de llamar a inviteUserByEmail) -- no se
+        // puede reutilizar para esta segunda accion, hace falta uno nuevo
+        // (patron "un solo OTP por accion" ya documentado en esta epica).
+        setPersonaExistentePorCorreo({ id: personaId, nombre: personaNombre });
+        setOtp('');
+        setOtpAsignarExistente('');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'No se pudo enviar la designación');
+      }
+    }
+  };
+
+  const asignarPersonaExistentePorCorreo = async () => {
+    if (!red || !cargoActivo || !personaExistentePorCorreo) return;
+    if (otpRequerido && !/^\d{6}$/.test(otpAsignarExistente)) return;
+    try {
+      await asignar.mutateAsync({
+        redId: red.id,
+        personaId: personaExistentePorCorreo.id,
+        codigo: cargoActivo,
+        otp: otpAsignarExistente || null,
+      });
+      toast.success(cargoActivo === 'LIDER_RED' ? 'Líder de Red asignado' : 'Supervisor de Red asignado');
+      setCargoActivo(null);
+      setPersonaExistentePorCorreo(null);
+      setOtpAsignarExistente('');
+      setCorreo('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo asignar el cargo');
     }
   };
 
@@ -665,7 +699,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
         </div>
       </aside>
 
-      <Dialog open={!!cargoActivo} onOpenChange={(abierto) => { if (!abierto) setCargoActivo(null); }}>
+      <Dialog open={!!cargoActivo} onOpenChange={(abierto) => { if (!abierto) { setCargoActivo(null); setPersonaExistentePorCorreo(null); setOtpAsignarExistente(''); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{cargoActivo === 'LIDER_RED' ? 'Designar Líder de Red' : 'Designar Supervisor de Red'}</DialogTitle>
@@ -722,6 +756,36 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 </div>
               )}
               {otpRequerido && <div className="mt-3"><CampoOtp value={otp} onChange={setOtp} /></div>}
+            </div>
+          ) : personaExistentePorCorreo ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Ya existe una cuenta con ese correo, asociada a <strong>{personaExistentePorCorreo.nombre}</strong>.
+                ¿Deseás asignarla de todas formas?
+              </div>
+              {otpRequerido && (
+                <div>
+                  <CampoOtp value={otpAsignarExistente} onChange={setOtpAsignarExistente} />
+                  <p className="mt-1 text-[11px] text-slate-500">El código anterior ya se usó; este es uno nuevo.</p>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setPersonaExistentePorCorreo(null); setOtpAsignarExistente(''); }}
+                  className="h-10 flex-1 cursor-pointer rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={asignar.isPending || (otpRequerido && !/^\d{6}$/.test(otpAsignarExistente))}
+                  onClick={() => void asignarPersonaExistentePorCorreo()}
+                  className="h-10 flex-1 cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {asignar.isPending ? 'Asignando…' : 'Sí, asignar de todas formas'}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">

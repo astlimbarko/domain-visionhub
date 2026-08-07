@@ -148,13 +148,23 @@ export default {
         // una Persona (alta vieja que quedo a medias), "buscala por nombre"
         // es un callejon sin salida -- no hay nada que buscar. Se distingue
         // el caso para no dejar al admin sin ninguna pista de que hacer.
-        const { data: tienePersona } = await ctx.supabase.rpc("fn_correo_tiene_persona", { p_correo: correo });
+        //
+        // Pedido explicito del owner (2026-08-06): si SI tiene Persona
+        // vinculada, devolver directamente quien es (personaId/personaNombre)
+        // para que el frontend pueda ofrecer "asignarla de todas formas" sin
+        // que el admin tenga que ir a buscarla a mano en otra pestaña.
+        const { data: filas } = await ctx.supabase.rpc("fn_persona_por_correo_cuenta", { p_correo: correo });
+        const persona = filas?.[0] as { id: string; nombre: string } | undefined;
         return Response.json(
-          {
-            error: tienePersona
-              ? "Ya existe una cuenta con ese correo. Si esa persona ya tiene una Persona en el sistema, asignale el cargo buscandola por nombre en vez de invitarla de nuevo."
-              : "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
-          },
+          persona
+            ? {
+                error: `Ya existe una cuenta con ese correo, asociada a ${persona.nombre}.`,
+                personaId: persona.id,
+                personaNombre: persona.nombre,
+              }
+            : {
+                error: "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
+              },
           { status: 409 }
         );
       }

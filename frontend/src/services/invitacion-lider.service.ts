@@ -2,11 +2,21 @@ import { supabase } from './supabase';
 import { obtenerUrlBase } from '@/utils/app-url';
 import type { InvitacionDepartamento, InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
 
-async function extraerError(error: unknown): Promise<Error> {
+export interface ErrorPersonaExistente extends Error {
+  personaId?: string;
+  personaNombre?: string;
+}
+
+async function extraerError(error: unknown): Promise<ErrorPersonaExistente> {
   const contexto = (error as { context?: Response }).context;
   if (contexto) {
     const cuerpo = await contexto.json().catch(() => null);
-    return new Error(cuerpo?.error || (error as Error).message);
+    const resultado: ErrorPersonaExistente = new Error(cuerpo?.error || (error as Error).message);
+    if (cuerpo?.personaId) {
+      resultado.personaId = cuerpo.personaId;
+      resultado.personaNombre = cuerpo.personaNombre;
+    }
+    return resultado;
   }
   return error as Error;
 }
