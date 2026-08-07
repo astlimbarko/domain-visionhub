@@ -782,14 +782,6 @@ export function GestionEstructuraVista() {
           asignando={asignarCargoCdp.isPending}
           onAsignar={manejarAsignarCdp}
           onQuitar={(id) => quitarCargoCdp.mutate(id, { onError: (e) => manejarError(e, 'No se pudo quitar el cargo') })}
-          excluirIdsExtra={
-            dialogoCdp.codigo === 'SUBLIDER_CDP'
-              ? (() => {
-                  const liderId = cdps.find((c) => c.id === dialogoCdp.cdpId)?.lider_id;
-                  return liderId ? [liderId] : undefined;
-                })()
-              : undefined
-          }
           invitable={dialogoCdp.codigo === 'LIDER_CDP' || dialogoCdp.codigo === 'SUBLIDER_CDP'}
           excluirIdsExtra={
             dialogoCdp.codigo === 'SUBLIDER_CDP'

@@ -31,10 +31,6 @@ interface Props {
    * presente -- ver nota de `pin`/`onPinChange` más abajo. */
   onQuitar: (cargoAsignacionId: string, pin?: string) => void;
   quitando?: boolean;
-  /** IDs adicionales a excluir del buscador además de los ya vigentes -- p.
-   * ej. el líder principal de la Casa de Paz, que no puede duplicarse como
-   * sublíder. */
-  excluirIdsExtra?: string[];
   invitable?: boolean;
   invitando?: boolean;
   onInvitar?: (correo: string) => void;
@@ -65,7 +61,6 @@ export function AsignarCargoDialog({
   onAsignar,
   onQuitar,
   quitando = false,
-  excluirIdsExtra,
   invitable = false,
   invitando = false,
   onInvitar,
