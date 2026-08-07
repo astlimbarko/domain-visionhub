@@ -210,12 +210,12 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               <span className="truncate font-normal text-white/75">{nombreIglesia}</span>
             </span>
           </div>
-          <div className="hidden h-8 w-px shrink-0 bg-white/15 lg:block" />
-          <div className="hidden min-w-0 lg:block">
+          <div className="hidden h-8 w-px shrink-0 bg-white/15 lg:block corto:block" />
+          <div className="hidden min-w-0 lg:block corto:block">
             <h1 className="truncate text-base font-bold text-white">Estructura Organizacional</h1>
             <p className="truncate text-left text-xs font-medium text-white/55">Vista general de la iglesia</p>
           </div>
-          <div className="ml-auto hidden flex-1 items-center justify-end gap-2 lg:flex">
+          <div className="ml-auto hidden flex-1 items-center justify-end gap-2 lg:flex corto:flex">
             <form
               className="relative"
               onSubmit={(evento) => {
@@ -299,7 +299,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
 
         {/* Móvil: buscador y controles en filas propias, sin desbordar el título. */}
         <form
-          className="relative mt-3 lg:hidden"
+          className="relative mt-3 lg:hidden corto:hidden"
           onSubmit={(evento) => {
             evento.preventDefault();
             centrarBusqueda();
@@ -314,7 +314,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-[13px] text-white placeholder:text-white/40 outline-none focus-visible:border-white/30"
           />
         </form>
-        <div className="mt-2 flex items-center gap-2 lg:hidden">
+        <div className="mt-2 flex items-center gap-2 lg:hidden corto:hidden">
           <button
             type="button"
             aria-label="Centrar estructura"

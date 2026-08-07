@@ -4,6 +4,12 @@
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
+/* Fila unica de header cuando hay poco alto disponible (celular en
+   horizontal) -- se usa JUNTO a lg: (no en lugar de) para lograr un OR:
+   Tailwind no soporta listas con coma dentro de @custom-variant, asi que
+   en vez de una sola condicion combinada se aplican dos variantes
+   independientes al mismo elemento. Ver EstructuraOrganizacional.tsx. */
+@custom-variant corto (@media (max-height: 500px));
 
 @theme inline {
     --font-heading: var(--font-sans);
