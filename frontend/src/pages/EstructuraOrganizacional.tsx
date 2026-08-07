@@ -429,7 +429,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           <PanelPrincipalEstructura
             tipo={panelPrincipal}
             iglesiaId={iglesiaId}
-            actual={panelPrincipal === 'PASTOR' ? data.pastores[0] : data.supervisores[0]}
+            actuales={panelPrincipal === 'PASTOR' ? data.pastores : data.supervisores}
             otpRequerido={data.layout.otpRequerido}
             onClose={() => {
               setPanelPrincipal(null);

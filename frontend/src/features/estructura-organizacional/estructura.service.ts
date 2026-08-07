@@ -469,13 +469,21 @@ export async function asignarPastorEstructura(
   return data as string;
 }
 
-export async function quitarPastorEstructura(iglesiaId: string, otp?: string | null): Promise<void> {
-  const { error } = await supabase.rpc('fn_estructura_quitar_pastor', { p_iglesia_id: iglesiaId, p_otp: otp ?? null });
+export async function quitarPastorEstructura(iglesiaId: string, personaId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_quitar_pastor', {
+    p_iglesia_id: iglesiaId,
+    p_persona_id: personaId,
+    p_otp: otp ?? null,
+  });
   if (error) throw error;
 }
 
-export async function quitarSupervisorEstructura(iglesiaId: string, otp?: string | null): Promise<void> {
-  const { error } = await supabase.rpc('fn_estructura_quitar_supervisor', { p_iglesia_id: iglesiaId, p_otp: otp ?? null });
+export async function quitarSupervisorEstructura(iglesiaId: string, personaId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_quitar_supervisor', {
+    p_iglesia_id: iglesiaId,
+    p_persona_id: personaId,
+    p_otp: otp ?? null,
+  });
   if (error) throw error;
 }
 

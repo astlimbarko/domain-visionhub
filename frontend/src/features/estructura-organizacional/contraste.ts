@@ -10,12 +10,23 @@ function luminanciaRelativa(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** REQ-RED-3: contraste legible calculado sobre el color real, sin ensuciarlo. */
+/**
+ * REQ-RED-3: texto legible sobre un fondo de color (Red/Departamento).
+ *
+ * Antes comparaba matematicamente el contraste de blanco vs negro y elegia
+ * el mayor -- eso hacia que colores medios-saturados (verde esmeralda, rojo,
+ * gris medio) eligieran texto negro solo porque ganaba por un margen chico,
+ * aunque visualmente lean como una tarjeta de color "solida" que en el resto
+ * del sistema (badges, chips) siempre lleva texto blanco (bug real reportado
+ * por el owner, 2026-08-07: "Vida Nueva", Discipulado y Envio se veian con
+ * texto oscuro sobre su color, no contrastaba bien igual que pintan las
+ * demas tarjetas). Criterio mas simple y consistente: texto blanco salvo que
+ * el fondo sea realmente claro (umbral de luminancia 0.4 -- separa colores
+ * pasteles/amarillos, que si necesitan texto oscuro, del resto).
+ */
 export function textoLegibleSobre(hex: string): string {
   const luminancia = luminanciaRelativa(hex);
-  const contrasteBlanco = 1.05 / (luminancia + 0.05);
-  const contrasteNegro = (luminancia + 0.05) / 0.05;
-  return contrasteBlanco >= contrasteNegro ? '#ffffff' : '#0f172a';
+  return luminancia > 0.4 ? '#0f172a' : '#ffffff';
 }
 
 function contrasteConBlanco(hex: string): number {

@@ -153,7 +153,8 @@ export function useAsignarSupervisorEstructura(iglesiaId: string) {
 export function useQuitarPastorEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
-    mutationFn: ({ otp }: { otp?: string | null }) => quitarPastorEstructura(iglesiaId, otp),
+    mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
+      quitarPastorEstructura(iglesiaId, personaId, otp),
     onSuccess: invalidar,
   });
 }
@@ -161,7 +162,8 @@ export function useQuitarPastorEstructura(iglesiaId: string) {
 export function useQuitarSupervisorEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
-    mutationFn: ({ otp }: { otp?: string | null }) => quitarSupervisorEstructura(iglesiaId, otp),
+    mutationFn: ({ personaId, otp }: { personaId: string; otp?: string | null }) =>
+      quitarSupervisorEstructura(iglesiaId, personaId, otp),
     onSuccess: invalidar,
   });
 }

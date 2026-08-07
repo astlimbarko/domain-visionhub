@@ -25,12 +25,12 @@ const TEXTOS: Record<TipoPrincipalEstructura, { etiqueta: string; rolInvitacion:
 interface Props {
   tipo: TipoPrincipalEstructura;
   iglesiaId: string;
-  actual?: PersonaEstructura;
+  actuales: PersonaEstructura[];
   otpRequerido: boolean;
   onClose: () => void;
 }
 
-export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido, onClose }: Props) {
+export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequerido, onClose }: Props) {
   const queryClient = useQueryClient();
   const asignarPastor = useAsignarPastorEstructura(iglesiaId);
   const asignarSupervisor = useAsignarSupervisorEstructura(iglesiaId);
@@ -46,14 +46,19 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
   const [otp, setOtp] = useState('');
-  const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState<PersonaEstructura | null>(null);
   const [otpQuitar, setOtpQuitar] = useState('');
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
   const datosSinGuardar = mostrarAsignar && (busqueda.trim().length > 0 || correo.trim().length > 0 || otp.trim().length > 0);
-  // Regla del front (pedido del owner, 2026-08-07): solo se permite un Pastor
-  // a la vez -- para asignar otro hay que quitar el actual primero. Supervisor
-  // de la Vision en Accion si admite varios, el boton siempre esta disponible.
-  const puedeAsignarNuevo = tipo === 'SUPERVISOR' || !actual;
+  // Pastor admite hasta 2 (pareja pastoral: "Pastor" y "Pastora", mismo
+  // cargo del sistema) -- el boton se deshabilita al llegar a 2. Supervisor
+  // de la Vision en Accion admite varios, siempre disponible (pedido del
+  // owner, 2026-08-07).
+  const puedeAsignarNuevo = tipo === 'SUPERVISOR' || actuales.length < 2;
+  const textoBotonAsignar =
+    tipo === 'SUPERVISOR'
+      ? actuales.length === 0 ? 'Asignar Supervisor' : 'Designar otro Supervisor'
+      : actuales.length === 0 ? 'Asignar Pastor' : 'Asignar Pastora';
 
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
@@ -87,11 +92,12 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
   };
 
   const confirmarQuitar = async () => {
+    if (!confirmandoQuitar) return;
     if (otpRequerido && !/^\d{6}$/.test(otpQuitar)) return;
     try {
-      await quitar.mutateAsync({ otp: otpQuitar || null });
+      await quitar.mutateAsync({ personaId: confirmandoQuitar.id, otp: otpQuitar || null });
       toast.success(`${etiqueta} quitado`);
-      setConfirmandoQuitar(false);
+      setConfirmandoQuitar(null);
       setOtpQuitar('');
       onClose();
     } catch (error) {
@@ -144,7 +150,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
         </div>
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
-            <p className="text-lg font-bold text-slate-950">{actual ? `Cambiar ${etiqueta}` : `Asignar ${etiqueta}`}</p>
+            <p className="text-lg font-bold text-slate-950">{etiqueta}</p>
             <p className="text-xs text-slate-500">Solo Super Admin puede modificar al {etiqueta}.</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100">
@@ -153,129 +159,129 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actual, otpRequerido
         </div>
 
         <div className="space-y-4 p-5">
-          {actual && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          {actuales.map((persona) => (
+            <section key={persona.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{actual.nombre?.trim() || actual.correo}</p>
-                  {actual.correo && actual.nombre && <p className="truncate text-xs text-slate-500">{actual.correo}</p>}
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.nombre?.trim() || persona.correo}</p>
+                  {persona.correo && persona.nombre && <p className="truncate text-xs text-slate-500">{persona.correo}</p>}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setConfirmandoQuitar(true)}
+                  onClick={() => setConfirmandoQuitar(persona)}
                   className="relative shrink-0 cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
                 >
                   Quitar cargo
                 </button>
               </div>
             </section>
-          )}
+          ))}
 
           {!mostrarAsignar ? (
             <button
               type="button"
               disabled={!puedeAsignarNuevo}
-              title={!puedeAsignarNuevo ? `Ya hay un ${etiqueta} asignado. Quita el cargo actual antes de asignar otro.` : undefined}
+              title={!puedeAsignarNuevo ? 'Ya hay 2 personas asignadas como Pastor. Quita un cargo actual antes de asignar otro.' : undefined}
               onClick={() => setMostrarAsignar(true)}
               className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             >
-              Asignar {etiqueta}
+              {textoBotonAsignar}
             </button>
           ) : (
             <>
-          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setModo('base')}
-              className={`cursor-pointer rounded-lg px-2 py-2 ${modo === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              Desde base de datos
-            </button>
-            <button
-              type="button"
-              onClick={() => setModo('correo')}
-              className={`cursor-pointer rounded-lg px-2 py-2 ${modo === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              Por correo electrónico
-            </button>
-          </div>
-
-          {modo === 'base' ? (
-            <div>
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={busqueda}
-                  onChange={(evento) => setBusqueda(evento.target.value)}
-                  placeholder="Escribe nombre, apellido o correo"
-                  className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                />
+              <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setModo('base')}
+                  className={`cursor-pointer rounded-lg px-2 py-2 ${modo === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                >
+                  Desde base de datos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModo('correo')}
+                  className={`cursor-pointer rounded-lg px-2 py-2 ${modo === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                >
+                  Por correo electrónico
+                </button>
               </div>
-              {busqueda.trim().length >= 2 && (
-                <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
-                  {isFetching && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
-                  {!isFetching && personas.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
-                  {personas.map((persona) => (
-                    <button
-                      key={persona.id}
-                      type="button"
-                      disabled={procesando || !otpValidoBase}
-                      onClick={() => void seleccionarPersona(persona)}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
-                        <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
-                      </span>
-                    </button>
-                  ))}
+
+              {modo === 'base' ? (
+                <div>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={busqueda}
+                      onChange={(evento) => setBusqueda(evento.target.value)}
+                      placeholder="Escribe nombre, apellido o correo"
+                      className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  {busqueda.trim().length >= 2 && (
+                    <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-1.5">
+                      {isFetching && <p className="px-2 py-2 text-xs text-slate-500">Buscando…</p>}
+                      {!isFetching && personas.length === 0 && <p className="px-2 py-2 text-xs text-slate-500">No se encontraron personas.</p>}
+                      {personas.map((persona) => (
+                        <button
+                          key={persona.id}
+                          type="button"
+                          disabled={procesando || !otpValidoBase}
+                          onClick={() => void seleccionarPersona(persona)}
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700"><UserRound className="h-4 w-4" /></span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
+                            <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="estructura-principal-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
+                    <input
+                      id="estructura-principal-correo"
+                      type="email"
+                      value={correo}
+                      onChange={(evento) => setCorreo(evento.target.value)}
+                      placeholder={`${etiqueta.toLowerCase()}@correo.com`}
+                      className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={procesando || !correo.trim().includes('@') || !otpValidoCorreo}
+                    onClick={() => void invitarPorCorreo()}
+                    className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {invitar.isPending ? 'Enviando…' : 'Invitar y asignar'}
+                  </button>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label htmlFor="estructura-principal-correo" className="text-xs font-semibold text-slate-700">Correo electrónico</label>
-                <input
-                  id="estructura-principal-correo"
-                  type="email"
-                  value={correo}
-                  onChange={(evento) => setCorreo(evento.target.value)}
-                  placeholder={`${etiqueta.toLowerCase()}@correo.com`}
-                  className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+
+              {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
+
               <button
                 type="button"
-                disabled={procesando || !correo.trim().includes('@') || !otpValidoCorreo}
-                onClick={() => void invitarPorCorreo()}
-                className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={cancelarAsignar}
+                className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
               >
-                {invitar.isPending ? 'Enviando…' : 'Invitar y asignar'}
+                Cancelar
               </button>
-            </div>
-          )}
-
-          {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
-
-          <button
-            type="button"
-            onClick={cancelarAsignar}
-            className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
-          >
-            Cancelar
-          </button>
             </>
           )}
         </div>
       </aside>
 
       <ConfirmarQuitarDialog
-        open={confirmandoQuitar}
-        onOpenChange={(abierto) => { setConfirmandoQuitar(abierto); if (!abierto) setOtpQuitar(''); }}
-        titulo={`¿Quitar a ${actual?.nombre?.trim() || actual?.correo || 'esta persona'} de ${etiqueta}?`}
+        open={!!confirmandoQuitar}
+        onOpenChange={(abierto) => { if (!abierto) { setConfirmandoQuitar(null); setOtpQuitar(''); } }}
+        titulo={`¿Quitar a ${confirmandoQuitar?.nombre?.trim() || confirmandoQuitar?.correo || 'esta persona'} de ${etiqueta}?`}
         descripcion="Deja de tener acceso de inmediato. El cargo queda sin asignar."
         procesando={quitar.isPending}
         onConfirmar={() => void confirmarQuitar()}
