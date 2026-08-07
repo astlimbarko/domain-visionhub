@@ -67,8 +67,10 @@ export default {
       );
     }
 
+    const { data: iglesiaFila } = await ctx.supabase.from("iglesia").select("nombre").eq("id", iglesiaId).single();
     const { data: invitado, error: errorInvitar } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correoNuevo, {
       redirectTo: body.redirectTo,
+      data: iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre, rol_etiqueta: "Pastor" } : {},
     });
 
     if (errorInvitar) {
