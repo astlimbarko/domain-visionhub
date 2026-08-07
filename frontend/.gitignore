@@ -17,6 +17,11 @@ dist-ssr
 .env.*
 !.env.example
 
+# E2E: sesion real de Supabase, nunca versionar (contiene refresh_token)
+e2e/.auth/
+playwright-report/
+test-results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
