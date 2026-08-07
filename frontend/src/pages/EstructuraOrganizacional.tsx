@@ -81,10 +81,27 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [confirmarDesactivarOtp, setConfirmarDesactivarOtp] = useState(false);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
+  const [etiquetaTactil, setEtiquetaTactil] = useState<string | null>(null);
   const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iglesiaCentradaRef = useRef<string | null>(null);
   const temporizadorCamaraRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const temporizadorEtiquetaTactilRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Alternativa por toque a los tooltips (REQ-UI-5): title no aparece al
+  // tocar en celulares, asi que al mantener presionado un icono se muestra
+  // esta misma etiqueta como una burbuja breve, sin bloquear el tap normal.
+  const eventosTactiles = (etiqueta: string) => ({
+    onTouchStart: () => {
+      if (temporizadorEtiquetaTactilRef.current) clearTimeout(temporizadorEtiquetaTactilRef.current);
+      setEtiquetaTactil(etiqueta);
+      temporizadorEtiquetaTactilRef.current = setTimeout(() => setEtiquetaTactil(null), 1500);
+    },
+    onTouchEnd: () => {
+      if (temporizadorEtiquetaTactilRef.current) clearTimeout(temporizadorEtiquetaTactilRef.current);
+      setEtiquetaTactil(null);
+    },
+  });
   useOnViewportChange({
     onChange: (viewport) => {
       setZoom(viewport.zoom);
@@ -122,6 +139,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   useEffect(() => () => {
     if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
     if (temporizadorCamaraRef.current) clearTimeout(temporizadorCamaraRef.current);
+    if (temporizadorEtiquetaTactilRef.current) clearTimeout(temporizadorEtiquetaTactilRef.current);
   }, []);
 
   const nodesVisibles = useMemo(() => {
@@ -235,6 +253,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <button
               type="button"
               title="Centrar estructura"
+              {...eventosTactiles('Centrar estructura')}
               onClick={() => void fitView({ padding: 0.16, duration: 500 })}
               className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
             >
@@ -244,6 +263,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               type="button"
               disabled={!data?.layout.disponible || guardarPosiciones.isPending}
               title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
+              {...eventosTactiles(modoOrganizar ? 'Organizando' : 'Modo organizar')}
               onClick={() => setModoOrganizar((actual) => !actual)}
               className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
                 modoOrganizar
@@ -258,6 +278,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               <button
                 type="button"
                 title="Organizar automáticamente"
+                {...eventosTactiles('Organizar automáticamente')}
                 onClick={() => {
                   if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
                   const automatico = crearGrafoEstructura({
@@ -278,6 +299,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 type="button"
                 aria-label="Alejar"
                 title="Alejar"
+                {...eventosTactiles('Alejar')}
                 onClick={() => void zoomOut({ duration: 200 })}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
               >
@@ -288,6 +310,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 type="button"
                 aria-label="Acercar"
                 title="Acercar"
+                {...eventosTactiles('Acercar')}
                 onClick={() => void zoomIn({ duration: 200 })}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
               >
@@ -319,6 +342,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             type="button"
             aria-label="Centrar estructura"
             title="Centrar estructura"
+            {...eventosTactiles('Centrar estructura')}
             onClick={() => void fitView({ padding: 0.16, duration: 500 })}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5"
           >
@@ -329,6 +353,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             aria-label="Modo organizar"
             disabled={!data?.layout.disponible || guardarPosiciones.isPending}
             title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
+            {...eventosTactiles(modoOrganizar ? 'Organizando' : 'Modo organizar')}
             onClick={() => setModoOrganizar((actual) => !actual)}
             className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               modoOrganizar
@@ -343,6 +368,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               type="button"
               aria-label="Organizar automáticamente"
               title="Organizar automáticamente"
+              {...eventosTactiles('Organizar automáticamente')}
               onClick={() => {
                 if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
                 const automatico = crearGrafoEstructura({
@@ -362,6 +388,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               type="button"
               aria-label="Alejar"
               title="Alejar"
+              {...eventosTactiles('Alejar')}
               onClick={() => void zoomOut({ duration: 200 })}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             >
@@ -372,6 +399,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               type="button"
               aria-label="Acercar"
               title="Acercar"
+              {...eventosTactiles('Acercar')}
               onClick={() => void zoomIn({ duration: 200 })}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             >
@@ -380,6 +408,12 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           </div>
         </div>
       </header>
+
+      {etiquetaTactil && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/15">
+          {etiquetaTactil}
+        </div>
+      )}
 
       <main className="relative min-h-0 flex-1">
         {!isLoading && !error && data && (
