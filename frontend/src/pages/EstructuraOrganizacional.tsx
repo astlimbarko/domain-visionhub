@@ -12,7 +12,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Crosshair, Grip, Minus, Network, Plus, Search, ShieldCheck, WandSparkles } from 'lucide-react';
+import { ArrowLeft, Crosshair, Minus, Network, Plus, Search, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -31,12 +31,8 @@ import { PanelRedEstructura } from '@/features/estructura-organizacional/PanelRe
 import {
   useConfigurarOtpEstructura,
   useEstructuraOrganizacional,
-  useGuardarPosicionesEstructura,
 } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
-import type {
-  DatosNodoEstructura,
-  PosicionNodoGuardar,
-} from '@/features/estructura-organizacional/types';
+import type { DatosNodoEstructura } from '@/features/estructura-organizacional/types';
 import type { RolUI } from '@/utils/permisos';
 
 const nodeTypes = { estructura: NodoEstructura };
@@ -67,12 +63,10 @@ function leerCamaraGuardada(iglesiaId: string): { x: number; y: number; zoom: nu
 
 function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
-  const guardarPosiciones = useGuardarPosicionesEstructura(iglesiaId);
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
-  const [modoOrganizar, setModoOrganizar] = useState(false);
   const [nodoSeleccionadoId, setNodoSeleccionadoId] = useState<string | null>(null);
   const [panelRed, setPanelRed] = useState<{ modo: 'crear' } | { modo: 'editar'; redId: string } | null>(null);
   const [panelPrincipal, setPanelPrincipal] = useState<TipoPrincipalEstructura | null>(null);
@@ -84,8 +78,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const [etiquetaTactil, setEtiquetaTactil] = useState<string | null>(null);
-  const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
-  const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iglesiaCentradaRef = useRef<string | null>(null);
   const temporizadorCamaraRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temporizadorEtiquetaTactilRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,7 +131,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   }, [fitView, setViewport, grafoBase.nodes, iglesiaId, setNodes]);
 
   useEffect(() => () => {
-    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
     if (temporizadorCamaraRef.current) clearTimeout(temporizadorCamaraRef.current);
     if (temporizadorEtiquetaTactilRef.current) clearTimeout(temporizadorEtiquetaTactilRef.current);
   }, []);
@@ -152,39 +143,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
         data: { ...node.data, resaltado: node.data.buscable.includes(termino) },
       }));
   }, [busqueda, nodes]);
-
-  const persistirPendientes = () => {
-    if (!data || pendientesRef.current.size === 0) return;
-    const nodos = [...pendientesRef.current.values()];
-    pendientesRef.current.clear();
-    guardarPosiciones.mutate(
-      { nodos, version: data.layout.version },
-      {
-        onSuccess: () => toast.success('Organización guardada'),
-        onError: (fallo) => {
-          toast.error(
-            fallo.message.includes('ESTRUCTURA_LAYOUT_DESACTUALIZADO')
-              ? 'La estructura cambió en otra sesión; se recargará.'
-              : 'No se pudo guardar la organización.',
-          );
-        },
-      },
-    );
-  };
-
-  const programarGuardado = (node: Node<DatosNodoEstructura>) => {
-    const partes = node.id.split(':');
-    const entidadId = partes.length === 2 && !node.id.startsWith('casa-vacia:') ? partes[1] : null;
-    pendientesRef.current.set(node.id, {
-      nodo_clave: node.id,
-      tipo_nodo: node.data.tipo,
-      entidad_id: entidadId,
-      posicion_x: Math.round(node.position.x / 16) * 16,
-      posicion_y: Math.round(node.position.y / 16) * 16,
-    });
-    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
-    temporizadorRef.current = setTimeout(persistirPendientes, 400);
-  };
 
   const centrarBusqueda = () => {
     const coincidencia = nodesVisibles.find((node) => node.data.resaltado);
@@ -261,41 +219,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             >
               <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
             </button>
-            <button
-              type="button"
-              disabled={!data?.layout.disponible || guardarPosiciones.isPending}
-              title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
-              {...eventosTactiles(modoOrganizar ? 'Organizando' : 'Modo organizar')}
-              onClick={() => setModoOrganizar((actual) => !actual)}
-              className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-                modoOrganizar
-                  ? 'border-blue-400 bg-blue-500/20 text-blue-100'
-                  : 'border-white/15 text-white hover:bg-white/5'
-              }`}
-            >
-              <Grip className="h-4 w-4" />
-              <span className="hidden lg:inline">{modoOrganizar ? 'Organizando' : 'Modo organizar'}</span>
-            </button>
-            {modoOrganizar && (
-              <button
-                type="button"
-                title="Organizar automáticamente"
-                {...eventosTactiles('Organizar automáticamente')}
-                onClick={() => {
-                  if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
-                  const automatico = crearGrafoEstructura({
-                    ...data,
-                    layout: { ...data.layout, posiciones: [] },
-                  });
-                  setNodes(automatico.nodes);
-                  automatico.nodes.forEach(programarGuardado);
-                }}
-                className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3 text-[13px] font-medium text-white hover:bg-white/5"
-              >
-                <WandSparkles className="h-4 w-4" />
-                <span className="hidden xl:inline">Organizar automáticamente</span>
-              </button>
-            )}
             <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
               <button
                 type="button"
@@ -350,41 +273,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           >
             <Crosshair className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            aria-label="Modo organizar"
-            disabled={!data?.layout.disponible || guardarPosiciones.isPending}
-            title={data?.layout.disponible ? 'Mover y guardar nodos' : 'Disponible al aplicar los cimientos de base'}
-            {...eventosTactiles(modoOrganizar ? 'Organizando' : 'Modo organizar')}
-            onClick={() => setModoOrganizar((actual) => !actual)}
-            className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-              modoOrganizar
-                ? 'border-blue-400 bg-blue-500/20 text-blue-100'
-                : 'border-white/15 text-white hover:bg-white/5'
-            }`}
-          >
-            <Grip className="h-4 w-4" />
-          </button>
-          {modoOrganizar && (
-            <button
-              type="button"
-              aria-label="Organizar automáticamente"
-              title="Organizar automáticamente"
-              {...eventosTactiles('Organizar automáticamente')}
-              onClick={() => {
-                if (!data || !window.confirm('¿Reorganizar automáticamente todos los nodos?')) return;
-                const automatico = crearGrafoEstructura({
-                  ...data,
-                  layout: { ...data.layout, posiciones: [] },
-                });
-                setNodes(automatico.nodes);
-                automatico.nodes.forEach(programarGuardado);
-              }}
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white hover:bg-white/5"
-            >
-              <WandSparkles className="h-4 w-4" />
-            </button>
-          )}
           <div className="ml-auto flex h-9 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
             <button
               type="button"
@@ -514,9 +402,8 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               setDepartamentoSeleccionadoId(null);
               setCasaDePazSeleccionadaId(null);
             }}
-            onNodeDragStop={(_evento, node) => programarGuardado(node)}
             nodeTypes={nodeTypes}
-            nodesDraggable={modoOrganizar && !guardarPosiciones.isPending}
+            nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable
             minZoom={0.25}

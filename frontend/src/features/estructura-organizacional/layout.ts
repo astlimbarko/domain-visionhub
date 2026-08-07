@@ -76,14 +76,19 @@ function nodo(
   };
 }
 
-function arista(id: string, source: string, target: string, color = '#94a3b8'): Edge {
+// Antes gris claro (#94a3b8) a 1.5px: se perdia contra el fondo blanco del
+// lienzo y de los grupos (bug real reportado por el owner, 2026-08-07). Mas
+// grueso y mas oscuro por defecto para las lineas estructurales (Pastor,
+// Supervisor, Departamentos); las de Red->CdP ya reciben el color real de la
+// Red como parametro, solo necesitaban el mismo grosor.
+function arista(id: string, source: string, target: string, color = '#64748b'): Edge {
   return {
     id,
     source,
     target,
     type: 'smoothstep',
     selectable: false,
-    style: { stroke: color, strokeWidth: 1.5 },
+    style: { stroke: color, strokeWidth: 2.5 },
   };
 }
 
