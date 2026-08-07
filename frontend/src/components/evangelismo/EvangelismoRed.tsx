@@ -8,6 +8,7 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
 import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
@@ -40,6 +41,13 @@ interface Props {
  * CdP (fn_tasa_evangelismo_red.meta_total). No hay un segundo número que
  * mantener sincronizado; se define asignando/cambiando las metas de abajo,
  * ya sea una por una o de a todas juntas con "Asignar a todas".
+ *
+ * Esta pantalla no cambia para el Supervisor (2026-08-06): la "Meta de Red"
+ * que el Supervisor puede asignar (a UNA Red o a TODAS de una vez, con
+ * prioridad por sobre las metas CdP-específicas de acá -- `fn_meta_efectiva`,
+ * origen `ASIGNADA_RED`) vive en `EvangelismoSupervisorVista.tsx`, la
+ * pantalla de arriba -- acá abajo solo se ve el detalle de una Red puntual,
+ * igual que ya lo ve el Líder de Red.
  */
 export function EvangelismoRed({ redId }: Props) {
   const personaId = useAuthStore((s) => s.personaId);
@@ -256,14 +264,14 @@ export function EvangelismoRed({ redId }: Props) {
                           >
                             {pctCumplido}% cumplido
                           </span>
-                          <span className="text-xs text-muted-foreground">{c.origen === 'ASIGNADA' ? '(asignada)' : '(propia)'}</span>
+                          <span className="text-xs text-muted-foreground">{esMetaAsignada(c.origen) ? `(asignada por ${quienAsignoMeta(c.origen)})` : '(propia)'}</span>
                         </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">Sin meta</span>
                       )}
                       <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCdpParaMeta(c)}>
                         <Pencil className="h-3.5 w-3.5" />
-                        {c.origen === 'ASIGNADA' ? 'Cambiar' : 'Asignar'}
+                        {esMetaAsignada(c.origen) ? 'Cambiar' : 'Asignar'}
                       </Button>
                     </div>
                   </div>

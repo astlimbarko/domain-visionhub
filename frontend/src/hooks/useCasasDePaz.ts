@@ -15,6 +15,7 @@ import {
   obtenerCdps,
   obtenerCiudades,
   obtenerDomicilioCdp,
+  obtenerHistoricoCdpEliminadas,
   obtenerRedes,
   quitarCargoCdp,
   quitarCargoRed,
@@ -40,6 +41,18 @@ export function useCdps(iglesiaId: string | undefined, redId: string | undefined
     queryKey: ['estructura', 'cdps', iglesiaId, redId],
     queryFn: () => obtenerCdps(iglesiaId as string, redId),
     enabled: !!iglesiaId && !!redId,
+  });
+}
+
+/** Todas las Casas de Paz de la iglesia, de cualquier Red -- `fn_listar_cdp` ya
+ * soporta `p_red_id` nulo para esto (no filtra), pero `useCdps` de arriba exige
+ * un redId a propósito (varios llamadores lo usan para no disparar la consulta
+ * hasta que se elija una Red puntual) -- este hook aparte no tiene esa traba. */
+export function useCdpsIglesia(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'cdps', iglesiaId, undefined],
+    queryFn: () => obtenerCdps(iglesiaId as string, undefined),
+    enabled: !!iglesiaId,
   });
 }
 
@@ -115,14 +128,24 @@ export function useToggleActivoCdp() {
 export function useEliminarCdp() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (cdpId: string) => eliminarCdp(cdpId),
+    mutationFn: ({ cdpId, motivo }: { cdpId: string; motivo?: string }) => eliminarCdp(cdpId, motivo),
     // Igual que useToggleActivoCdp: una CdP eliminada deja de aparecer en
     // Dashboard y Control de Reportes, así que hay que invalidar también esas.
+    // También el Histórico Anual (KAN-34), donde pasa a aparecer.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['reporte'] });
     },
+  });
+}
+
+/** KAN-34: Histórico Anual de Casas de Paz eliminadas. */
+export function useHistoricoCdpEliminadas(iglesiaId: string | undefined, anio: number | undefined, redId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'historico-cdp-eliminadas', iglesiaId, anio, redId],
+    queryFn: () => obtenerHistoricoCdpEliminadas(iglesiaId as string, anio, redId),
+    enabled: !!iglesiaId,
   });
 }
 

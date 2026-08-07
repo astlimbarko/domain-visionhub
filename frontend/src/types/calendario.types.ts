@@ -36,6 +36,13 @@ export interface Proximo {
   dias_faltantes: number;
 }
 
+/** Iglesia hija/satélite directa de la iglesia activa (fn_mis_iglesias_hijas) -- el Padre puede ver/crear su calendario. */
+export interface IglesiaHija {
+  id: string;
+  nombre: string;
+  tipo: 'HIJA' | 'SATELITE';
+}
+
 /** `casa_de_paz_id` xor `red_id` -- mismo par mutuamente excluyente que la
  * constraint `chk_evento_ambito` en la tabla `evento` (13_calendario.sql). Un
  * evento "de la Red" (creado por su Líder) no cuelga de ninguna CdP puntual;

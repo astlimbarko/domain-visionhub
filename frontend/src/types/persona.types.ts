@@ -90,6 +90,13 @@ export interface PersonaResultadoBusqueda {
   casa_de_paz_id: string | null;
   casa_de_paz_etiqueta: string | null;
   telefono_principal: string | null;
+  /** Total de filas que matchean el filtro (sin paginar) -- igual en cada fila, `count(*) OVER()`. */
+  total: number;
+}
+
+export interface ResultadoBusquedaPersonas {
+  resultados: PersonaResultadoBusqueda[];
+  total: number;
 }
 
 export interface ProcedenciaItem {

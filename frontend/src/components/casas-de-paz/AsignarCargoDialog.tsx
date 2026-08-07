@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
+import { AvatarPersona, COLORES_AVATAR } from '@/components/shared/AvatarIniciales';
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -30,6 +31,10 @@ interface Props {
    * presente -- ver nota de `pin`/`onPinChange` más abajo. */
   onQuitar: (cargoAsignacionId: string, pin?: string) => void;
   quitando?: boolean;
+  /** IDs adicionales a excluir del buscador además de los ya vigentes -- p.
+   * ej. el líder principal de la Casa de Paz, que no puede duplicarse como
+   * sublíder. */
+  excluirIdsExtra?: string[];
   invitable?: boolean;
   invitando?: boolean;
   onInvitar?: (correo: string) => void;
@@ -60,6 +65,7 @@ export function AsignarCargoDialog({
   onAsignar,
   onQuitar,
   quitando = false,
+  excluirIdsExtra,
   invitable = false,
   invitando = false,
   onInvitar,
@@ -126,9 +132,12 @@ export function AsignarCargoDialog({
             <Skeleton className="h-8 w-full" />
           ) : vigentes.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              {vigentes.map((v) => (
+              {vigentes.map((v, i) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
-                  {v.nombre_completo}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <AvatarPersona nombre={v.nombre_completo} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
+                    <span className="truncate">{v.nombre_completo}</span>
+                  </span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -197,7 +206,7 @@ export function AsignarCargoDialog({
             ) : (
               <BuscadorPersona
                 iglesiaId={iglesiaId}
-                excluirIds={[...vigentes.map((v) => v.persona_id), ...excluirIdsExtra]}
+                excluirIds={[...vigentes.map((v) => v.persona_id), ...(excluirIdsExtra ?? [])]}
                 onSeleccionar={manejarSeleccionPersona}
               />
             )

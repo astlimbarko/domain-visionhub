@@ -5,6 +5,7 @@ import type {
   CargoCdpCodigo,
   CargoRedCodigo,
   CargoVigente,
+  CdpHistoricoEliminada,
   CdpPerfil,
   CdpResumen,
   Ciudad,
@@ -154,9 +155,24 @@ export async function actualizarReunionCdp(cdpId: string, diaReunion: number | n
  * membresías activas de la CdP escribe en `casa_de_paz_membresia`, tabla cuya
  * política RLS no incluye a un Líder de Red -- mismo patrón que
  * fn_fusionar_cdp/fn_multiplicar_cdp. */
-export async function eliminarCdp(cdpId: string) {
-  const { error } = await supabase.rpc('fn_eliminar_cdp', { p_casa_de_paz_id: cdpId });
+export async function eliminarCdp(cdpId: string, motivo?: string) {
+  const { error } = await supabase.rpc('fn_eliminar_cdp', { p_casa_de_paz_id: cdpId, p_motivo: motivo ?? null });
   if (error) throw error;
+}
+
+/** KAN-34: Histórico Anual de Casas de Paz eliminadas, filtrable por año y por Red. */
+export async function obtenerHistoricoCdpEliminadas(
+  iglesiaId: string,
+  anio?: number,
+  redId?: string
+): Promise<CdpHistoricoEliminada[]> {
+  const { data, error } = await supabase.rpc('fn_historico_cdp_eliminadas', {
+    p_iglesia_id: iglesiaId,
+    p_anio: anio ?? null,
+    p_red_id: redId ?? null,
+  });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number): Promise<PersonaBusqueda[]> {

@@ -2,16 +2,18 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   actualizarMetaPropia,
   asignarMetaEvangelismo,
+  asignarMetaRedEvangelismo,
   crearEvangelizado,
   obtenerEvangelismoRed,
   obtenerEvangelizados,
   obtenerMetaPropia,
+  obtenerMetaRedAsignada,
   obtenerMetasCdpRed,
   obtenerTasaEvangelismo,
   obtenerTasaEvangelismoRed,
   obtenerTiposEvangelismo,
 } from '@/services/evangelismo.service';
-import type { NuevaMetaAsignada, NuevoEvangelizado } from '@/types/evangelismo.types';
+import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado } from '@/types/evangelismo.types';
 
 export function useTiposEvangelismo(iglesiaId: string | undefined) {
   return useQuery({
@@ -103,6 +105,30 @@ export function useAsignarMetaEvangelismo(redId: string | undefined) {
   return useMutation({
     mutationFn: (datos: NuevaMetaAsignada) => asignarMetaEvangelismo(datos),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-metas', redId] });
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-tasa', redId] });
+    },
+  });
+}
+
+/** Meta que el Supervisor le asignó a una Red completa, vigente hoy (o null). */
+export function useMetaRedAsignada(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'red-meta-asignada', redId],
+    queryFn: () => obtenerMetaRedAsignada(redId as string),
+    enabled: !!redId,
+  });
+}
+
+export function useAsignarMetaRedEvangelismo(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: NuevaMetaAsignadaRed) => asignarMetaRedEvangelismo(datos),
+    onSuccess: () => {
+      // Se hereda hacia las CdP sin meta propia (fn_meta_efectiva) -- hay que
+      // refrescar la lista por CdP y la tasa de la Red, no solo el número
+      // nuevo de la Red misma.
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-meta-asignada', redId] });
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-metas', redId] });
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-tasa', redId] });
     },

@@ -69,7 +69,7 @@ export function SeleccionarRol() {
             <img src="/logo.png" alt="Centro de Vida" className="h-6 w-6 object-contain brightness-0 invert" />
           </div>
           <h1 className="mt-1.5 text-xl font-extrabold tracking-tight text-foreground">
-            {primerNombre ? `Bienvenido, ${primerNombre} 👋` : 'Bienvenido 👋'}
+            {primerNombre ? `Bienvenido, ${primerNombre}` : 'Bienvenido'}
           </h1>
           {opcionesContextuales !== undefined && (
             <p className="text-[13px] text-muted-foreground">

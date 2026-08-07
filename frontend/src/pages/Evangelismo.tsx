@@ -27,6 +27,7 @@ import {
 import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -44,6 +45,7 @@ import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { EvangelismoTrendChart } from '@/components/evangelismo/EvangelismoTrendChart';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
+import { EvangelismoSupervisorVista } from '@/components/evangelismo/EvangelismoSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 
@@ -175,8 +177,8 @@ export function Evangelismo() {
   // la meta propia queda bloqueada (pedido del owner, 2026-08-03) -- el
   // backend ya lo hace cumplir (trg_bloquear_meta_propia_bajo_asignada,
   // migración 93), esto solo refleja la misma regla en la UI.
-  const metaAsignadaCumplida = tasa?.origen === 'ASIGNADA' && tasa.meta != null && evangelizadosActual >= tasa.meta;
-  const metaAsignadaBloqueando = tasa?.origen === 'ASIGNADA' && !metaAsignadaCumplida;
+  const metaAsignadaCumplida = esMetaAsignada(tasa?.origen) && tasa?.meta != null && evangelizadosActual >= tasa.meta;
+  const metaAsignadaBloqueando = esMetaAsignada(tasa?.origen) && !metaAsignadaCumplida;
 
   async function guardarMeta() {
     const valor = metaLocal.trim() === '' ? null : Number(metaLocal);
@@ -204,6 +206,12 @@ export function Evangelismo() {
     }
     return <EvangelismoRed redId={redActiva.id} />;
   }
+
+  // El Supervisor no lidera/sublidera ninguna Casa de Paz ni Red propia --
+  // ve el mismo diseño que el Líder de Red pero pudiendo elegir cualquier
+  // Red de la iglesia, y con el poder extra de asignarle una meta propia a
+  // la Red (pedido del owner, 2026-08-06, ver EvangelismoRed.tsx).
+  if (rolUI === 'SUPERVISOR') return <EvangelismoSupervisorVista />;
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
@@ -264,9 +272,9 @@ export function Evangelismo() {
                     {/* Antes esto solo se distinguía en una nota chica más abajo -- el
                         owner reportó que a simple vista no se notaba que la meta no era
                         propia (2026-08-03). Este badge la hace visible de un vistazo. */}
-                    {tasa.origen === 'ASIGNADA' && (
+                    {esMetaAsignada(tasa.origen) && (
                       <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/90 uppercase backdrop-blur-sm">
-                        Red
+                        {quienAsignoMeta(tasa.origen)}
                       </span>
                     )}
                   </span>
@@ -316,7 +324,7 @@ export function Evangelismo() {
             icon={Target}
             color={AMARILLO}
             titulo="Tasa de evangelismo"
-            descripcion={tasa?.origen ? `Meta ${tasa.origen === 'ASIGNADA' ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
+            descripcion={tasa?.origen ? `Meta ${esMetaAsignada(tasa.origen) ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
           />
           <div className="flex flex-col gap-4 p-6">
             {cargandoTasa ? (
@@ -393,7 +401,7 @@ export function Evangelismo() {
                   <div
                     className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
                     style={
-                      tasa?.origen === 'ASIGNADA'
+                      esMetaAsignada(tasa?.origen)
                         ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
                         : undefined
                     }
@@ -402,16 +410,16 @@ export function Evangelismo() {
                       <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
                         <Network className="h-3.5 w-3.5 shrink-0" /> Meta de la Red
                       </span>
-                      {tasa?.origen === 'ASIGNADA' && (
+                      {esMetaAsignada(tasa?.origen) && (
                         <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
                           Vigente
                         </span>
                       )}
                     </div>
                     <p className="text-2xl font-bold tracking-tight text-foreground">
-                      {tasa?.origen === 'ASIGNADA' ? tasa.meta : '—'}
+                      {esMetaAsignada(tasa?.origen) ? tasa?.meta : '—'}
                     </p>
-                    {tasa?.origen === 'ASIGNADA' && tasa.meta != null ? (
+                    {esMetaAsignada(tasa?.origen) && tasa?.meta != null ? (
                       <>
                         {/* Barra + "faltan N": el nuevo candado de la meta propia depende
                             de esto, así que la card tiene que explicar por sí sola qué
