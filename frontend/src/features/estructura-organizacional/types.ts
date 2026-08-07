@@ -89,6 +89,7 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   estadoIncompleto?: boolean;
   eliminada?: boolean;
   redId?: string;
+  sublideres?: PersonaEstructura[];
 }
 export interface PersonaOpcionEstructura {
   id: string;

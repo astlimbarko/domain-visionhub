@@ -51,6 +51,7 @@ function nodo(
     estadoIncompleto?: boolean;
     eliminada?: boolean;
     redId?: string;
+    sublideres?: PersonaEstructura[];
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -194,6 +195,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               subtitulo: casa.direccionBreve ?? 'Sin dirección asignada',
               color: colorRed,
               estadoIncompleto: casaSinLider,
+              sublideres: casa.sublideres,
             }),
           );
           edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorRed));

@@ -79,6 +79,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [departamentoSeleccionadoId, setDepartamentoSeleccionadoId] = useState<string | null>(null);
   const [casaDePazSeleccionadaId, setCasaDePazSeleccionadaId] = useState<string | null>(null);
   const [abrirCrearCdpDirecto, setAbrirCrearCdpDirecto] = useState(false);
+  const [abrirAnadirSubliderDirecto, setAbrirAnadirSubliderDirecto] = useState(false);
   const [cambioOtpPendiente, setCambioOtpPendiente] = useState<boolean | null>(null);
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
@@ -459,6 +460,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               setNodoSeleccionadoId(node.id);
               if (node.data.tipo === 'RED') {
                 setAbrirCrearCdpDirecto(false);
+                setAbrirAnadirSubliderDirecto(false);
                 setPanelRed(node.id === 'redes-vacio'
                   ? { modo: 'crear' }
                   : { modo: 'editar', redId: node.id.replace('red:', '') });
@@ -497,6 +499,8 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(node.id.replace('casa:', ''));
+                const objetivo = _evento.target as HTMLElement;
+                setAbrirAnadirSubliderDirecto(Boolean(objetivo.closest('[data-accion="anadir-sublider"]')));
               } else {
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(null);
@@ -555,8 +559,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <PanelCasaDePazEstructura
               iglesiaId={iglesiaId}
               casaDePaz={casaDePaz}
+              abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
+                setAbrirAnadirSubliderDirecto(false);
                 setNodoSeleccionadoId(null);
               }}
             />

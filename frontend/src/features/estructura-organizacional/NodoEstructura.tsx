@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
 import { textoLegibleSobre } from './contraste';
@@ -241,6 +242,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   const Icono = ICONOS[data.tipo];
   const esGrupo = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
   const color = data.color ?? (esGrupo ? '#334155' : '#2563eb');
+  const [subliderVisible, setSubliderVisible] = useState<string | null>(null);
 
   if (data.tipo === 'PASTOR_SLOT' || data.tipo === 'SUPERVISOR_SLOT') {
     return <NodoResponsablePrincipal data={data} selected={selected} />;
@@ -337,6 +339,39 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
           )}
         </span>
       </div>
+      {esCasaDePaz && (
+        <div className="mt-2.5 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
+          {(data.sublideres ?? []).map((sublider) => {
+            const iniciales = inicialesPersona(sublider);
+            return (
+              <span key={sublider.id} className="relative">
+                <button
+                  type="button"
+                  onClick={(evento) => {
+                    evento.stopPropagation();
+                    setSubliderVisible((actual) => (actual === sublider.id ? null : sublider.id));
+                  }}
+                  title={sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
+                  className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-blue-50 text-[9px] font-bold text-blue-700 ring-2 ring-white hover:bg-blue-100"
+                >
+                  {iniciales ?? '?'}
+                </button>
+                {subliderVisible === sublider.id && (
+                  <span className="absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-medium whitespace-nowrap text-white shadow-lg">
+                    {sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
+                  </span>
+                )}
+              </span>
+            );
+          })}
+          <span
+            data-accion="anadir-sublider"
+            className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:text-blue-900"
+          >
+            + Añadir sublíder
+          </span>
+        </div>
+      )}
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>
   );

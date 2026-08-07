@@ -25,6 +25,7 @@ import type { CasaDePazEstructura } from './types';
 interface Props {
   iglesiaId: string;
   casaDePaz: CasaDePazEstructura;
+  abrirAnadirSubliderAlAbrir?: boolean;
   onClose: () => void;
 }
 
@@ -39,10 +40,16 @@ function manejarErrorCargo(e: unknown, generico: string) {
   toast.error(mensaje || generico);
 }
 
-export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, onClose }: Props) {
+export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubliderAlAbrir, onClose }: Props) {
   const queryClient = useQueryClient();
   const [dialogoCargo, setDialogoCargo] = useState<DialogoCargo | null>(null);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
+
+  useEffect(() => {
+    if (abrirAnadirSubliderAlAbrir) {
+      setDialogoCargo({ codigo: 'SUBLIDER_CDP', titulo: 'Sublíderes de Casa de Paz', exclusivo: false });
+    }
+  }, [abrirAnadirSubliderAlAbrir, casaDePaz.id]);
 
   const { data: cargos = [] } = useCargos();
   const { data: vigentes = [], isLoading: cargandoVigentes } = useCargoVigenteCdp(
