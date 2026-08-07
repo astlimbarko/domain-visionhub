@@ -30,4 +30,5 @@
 - [x] KAN-63: arreglé el hallazgo de landscape — el header ahora pasa a la fila compacta también cuando hay poco alto disponible (celular horizontal), no solo por ancho ≥1024px. Custom variant de Tailwind por altura (`@media max-height:500px`) aplicado junto al `lg:` existente. Verificado en 844×390, 390×844 y 1280×800.
 - [x] KAN-63: agregué `aria-selected` a las 4 tarjetas del lienzo (ya tenían borde+sombra, faltaba el estado accesible). Verifiqué también que Tab+Enter para enfocar/abrir un nodo ya funciona de fábrica con React Flow, sin código nuevo.
 - [ ] KAN-63 sigue en curso: falta bottom sheet real para formularios largos, tooltips táctiles, pruebas en dispositivo físico real.
-- [ ] Pendiente: terminar KAN-63 (resto), revisión visual autenticada, pruebas E2E de cierre (KAN-62).
+- [x] Le expliqué al owner qué es una prueba E2E (no conocía el término) porque preguntó antes de decidir. Decisión de orden acordada: KAN-62 (pruebas E2E de cierre) se hace DESPUÉS de terminar KAN-63, no en paralelo — para no escribir tests que haya que reescribir si KAN-63 cambia el comportamiento en móvil.
+- [ ] Pendiente: terminar KAN-63 (resto), y recién después KAN-62 (E2E de cierre) — en ese orden.
