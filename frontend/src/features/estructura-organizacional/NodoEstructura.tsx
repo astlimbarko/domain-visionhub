@@ -35,6 +35,7 @@ function NodoResponsablePrincipal({ data, selected }: { data: DatosNodoEstructur
 
   return (
     <div
+      aria-selected={selected}
       className={`relative flex min-h-[166px] w-[250px] flex-col items-center rounded-2xl border bg-white px-5 py-4 text-center shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-blue-400 shadow-[0_0_0_3px_rgba(59,130,246,0.20),0_12px_30px_rgba(15,23,42,0.10)]'
@@ -95,6 +96,7 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
 
   return (
     <div
+      aria-selected={selected}
       className={`relative flex min-h-[96px] w-[235px] flex-col items-stretch rounded-xl border px-3.5 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30),0_8px_20px_rgba(15,23,42,0.12)]'
@@ -188,6 +190,7 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
 
   return (
     <div
+      aria-selected={selected}
       className={`relative min-h-[190px] w-[235px] rounded-2xl border px-4 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30)]'
@@ -294,6 +297,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
 
   return (
     <div
+      aria-selected={selected}
       className={`w-[235px] rounded-2xl border px-4 py-3 shadow-sm transition-all ${
         selected || data.resaltado
           ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30)]'
