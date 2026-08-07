@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Mail, MoreVertical, Pipette, Search, UserRound, X } from 'lucide-react';
+import { Mail, MoreVertical, Pipette, Search, UserRound, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -635,24 +635,6 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
                 onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
                 procesando={procesando}
               />
-
-              <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                      <Home className="h-4 w-4" />
-                    </span>
-                    <p className="text-sm font-semibold text-slate-900">Casas de Paz</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCreandoCdp(true)}
-                    className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                  >
-                    + Nueva
-                  </button>
-                </div>
-              </section>
             </>
           )}
 

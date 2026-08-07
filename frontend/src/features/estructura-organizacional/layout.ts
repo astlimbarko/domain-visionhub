@@ -146,11 +146,9 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       alto: altoGrupoRedes,
     }),
   );
-  // Sin linea Supervisor->Departamentos (pedido del owner, 2026-08-07): estar
-  // dentro del recuadro "Departamentos" ya deja clara la relacion, la linea
-  // sumaba una entidad conectora sin aportar informacion nueva.
   edges.push(
     arista('pastor-supervisor', 'pastor', 'supervisor'),
+    arista('supervisor-departamentos', 'supervisor', 'grupo-departamentos'),
     arista('supervisor-redes', 'supervisor', 'grupo-redes'),
   );
 
