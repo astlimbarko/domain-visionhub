@@ -47,11 +47,29 @@ interface ContenidoProps {
   rolUI: RolUI;
 }
 
+function claveCamara(iglesiaId: string) {
+  return `estructura-camara:${iglesiaId}`;
+}
+
+function leerCamaraGuardada(iglesiaId: string): { x: number; y: number; zoom: number } | null {
+  try {
+    const crudo = window.localStorage.getItem(claveCamara(iglesiaId));
+    if (!crudo) return null;
+    const valor = JSON.parse(crudo);
+    if (typeof valor?.x === 'number' && typeof valor?.y === 'number' && typeof valor?.zoom === 'number') {
+      return valor;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
   const guardarPosiciones = useGuardarPosicionesEstructura(iglesiaId);
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
-  const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow<Node<DatosNodoEstructura>>();
+  const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
   const [modoOrganizar, setModoOrganizar] = useState(false);
@@ -66,7 +84,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const pendientesRef = useRef(new Map<string, PosicionNodoGuardar>());
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iglesiaCentradaRef = useRef<string | null>(null);
-  useOnViewportChange({ onChange: (viewport) => setZoom(viewport.zoom) });
+  const temporizadorCamaraRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useOnViewportChange({
+    onChange: (viewport) => {
+      setZoom(viewport.zoom);
+      if (temporizadorCamaraRef.current) clearTimeout(temporizadorCamaraRef.current);
+      temporizadorCamaraRef.current = setTimeout(() => {
+        try {
+          window.localStorage.setItem(claveCamara(iglesiaId), JSON.stringify(viewport));
+        } catch {
+          // localStorage puede fallar (modo privado, cuota llena); no es critico, se ignora.
+        }
+      }, 400);
+    },
+  });
 
   const grafoBase = useMemo(() => {
     if (!data) return { nodes: [], edges: [] };
@@ -77,14 +108,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     setNodes(grafoBase.nodes);
     if (grafoBase.nodes.length === 0 || iglesiaCentradaRef.current === iglesiaId) return;
     iglesiaCentradaRef.current = iglesiaId;
+    const camaraGuardada = leerCamaraGuardada(iglesiaId);
     const frame = window.requestAnimationFrame(() => {
-      void fitView({ padding: 0.16, duration: 500 });
+      if (camaraGuardada) {
+        void setViewport(camaraGuardada, { duration: 0 });
+      } else {
+        void fitView({ padding: 0.16, duration: 500 });
+      }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [fitView, grafoBase.nodes, iglesiaId, setNodes]);
+  }, [fitView, setViewport, grafoBase.nodes, iglesiaId, setNodes]);
 
   useEffect(() => () => {
     if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+    if (temporizadorCamaraRef.current) clearTimeout(temporizadorCamaraRef.current);
   }, []);
 
   const nodesVisibles = useMemo(() => {
@@ -436,8 +473,6 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             nodesDraggable={modoOrganizar && !guardarPosiciones.isPending}
             nodesConnectable={false}
             elementsSelectable
-            fitView
-            fitViewOptions={{ padding: 0.16 }}
             minZoom={0.25}
             maxZoom={1.8}
             snapToGrid
