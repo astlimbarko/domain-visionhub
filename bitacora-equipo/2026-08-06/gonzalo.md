@@ -37,4 +37,4 @@
 - [x] Bug real encontrado en el camino: la búsqueda "Desde base de datos" estaba rota (función `fn_buscar_personas` duplicada sin versionar, PostgREST no podía elegir cuál usar — mismo patrón que KAN-84). Corregido, verificado y finalizado KAN-90.
 - [x] Creé KAN-88 (backlog, sin asignado): agregar el logo (`logo_64x64.png`, 64×64) a los correos de acceso@somoscdv.com. No pude adjuntar la imagen al ticket (sin herramienta para eso), solo la referencia de ruta.
 - [ ] Pendiente: terminar KAN-63 (resto), y recién después KAN-62 (E2E de cierre) — en ese orden.
-- [ ] Pendiente: evaluar si vale agregar el nombre del rol asignado al correo de invitación genérico de Supabase (el que dice "Aceptar invitación") — hoy no incluye esa info; es una plantilla distinta (GoTrue) a la que se agregó hoy.
+- [x] Agregué el rol asignado al invitar por correo: no se pudo tocar la plantilla de Supabase (dashboard bloqueado por captcha), así que se manda un segundo correo propio con el rol y la entidad. Probado en vivo. Finalicé KAN-91.

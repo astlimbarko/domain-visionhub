@@ -1,7 +1,48 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
+import nodemailer from "nodemailer";
 
 const ROLES_VALIDOS = ["LIDER_RED", "SUPERVISOR_RED", "LIDER_CDP", "SUBLIDER_CDP"];
+
+// Pedido del owner (2026-08-07): el correo de invitacion de Supabase Auth
+// ("Aceptar invitacion") no dice para que rol fue invitada la persona, y
+// esa plantilla no se puede tocar desde esta sesion (dashboard, protegido
+// con hCaptcha). Se manda un segundo correo propio, mismo patron Brevo que
+// notificar-asignacion-cargo, aclarando el rol y la entidad. Nunca bloquea
+// la respuesta de la invitacion si falla -- es un aviso extra, no el alta.
+const ETIQUETA_CARGO_INVITACION: Record<string, string> = {
+  LIDER_RED: "Líder de Red",
+  SUPERVISOR_RED: "Supervisor de Red",
+  LIDER_CDP: "Líder de Casa de Paz",
+  SUBLIDER_CDP: "Sublíder de Casa de Paz",
+};
+
+function armarHtmlInvitacion(cargoEtiqueta: string, entidadNombre: string, iglesiaNombre: string): string {
+  return `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fb;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;padding:36px 32px;">
+            <tr><td style="text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.04em;color:#6b7280;text-transform:uppercase;">${iglesiaNombre}</p>
+              <h1 style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1f2937;">Detalle de su invitación</h1>
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#374151;">
+                Fue invitado como <strong>${cargoEtiqueta}</strong> en <strong>${entidadNombre}</strong>. Revise también el otro correo ("Aceptar invitación") para crear su contraseña y acceder al sistema.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
+                Si no esperaba esta invitación, puede ignorar este mensaje.
+              </p>
+            </td></tr>
+          </table>
+          <p style="margin:20px 0 0;font-size:11px;color:#9ca3af;">Este es un mensaje automático. No responda a este correo.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
 
 // Separado de invitar-usuario a proposito: ese es el camino de Super
 // Admin/Pastor/Supervisor para dar de alta cuentas de sistema (correo +
@@ -187,6 +228,35 @@ export default {
         });
     if (errorInvitar) {
       return Response.json({ error: errorInvitar.message }, { status: 500 });
+    }
+
+    try {
+      const cargoEtiqueta = rol ? ETIQUETA_CARGO_INVITACION[rol] : undefined;
+      const { data: filasDatos } = await ctx.supabase.rpc("fn_estructura_datos_invitacion", {
+        p_red_id: redId,
+        p_casa_de_paz_id: casaDePazId,
+        p_departamento_id: departamentoId,
+      });
+      const datos = filasDatos?.[0] as { entidad_nombre: string; iglesia_nombre: string } | undefined;
+      if (datos) {
+        const transporte = nodemailer.createTransport({
+          host: "smtp-relay.brevo.com",
+          port: 587,
+          secure: false,
+          auth: {
+            user: Deno.env.get("BREVO_SMTP_USER"),
+            pass: Deno.env.get("BREVO_SMTP_PASS"),
+          },
+        });
+        await transporte.sendMail({
+          from: `"${datos.iglesia_nombre}" <acceso@somoscdv.com>`,
+          to: correo,
+          subject: `Detalle de su invitación en ${datos.iglesia_nombre}`,
+          html: armarHtmlInvitacion(cargoEtiqueta ?? `Líder de ${datos.entidad_nombre}`, datos.entidad_nombre, datos.iglesia_nombre),
+        });
+      }
+    } catch (e) {
+      console.error("invitar-lider: fallo el correo de detalle de invitacion (no bloquea el alta)", e);
     }
 
     return Response.json({ id: data.user.id, correo: data.user.email });
