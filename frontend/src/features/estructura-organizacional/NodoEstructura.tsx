@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
 import { colorLegibleSobreBlanco, textoLegibleSobre } from './contraste';
@@ -242,7 +241,6 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   const Icono = ICONOS[data.tipo];
   const esGrupo = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
   const color = data.color ?? (esGrupo ? '#334155' : '#2563eb');
-  const [subliderVisible, setSubliderVisible] = useState<string | null>(null);
 
   if (data.tipo === 'PASTOR_SLOT' || data.tipo === 'SUPERVISOR_SLOT') {
     return <NodoResponsablePrincipal data={data} selected={selected} />;
@@ -260,7 +258,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
     if (data.tipo === 'GRUPO_DEPARTAMENTOS') {
       return (
         <div
-          className="pointer-events-none rounded-2xl border border-slate-300/80 bg-white/35 p-5 shadow-sm backdrop-blur-[1px]"
+          className="pointer-events-none rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
           style={{ width: data.ancho ?? 1035, height: data.alto ?? 190 }}
         >
           <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-slate-400" />
@@ -278,7 +276,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
     }
     return (
       <div
-        className="pointer-events-none rounded-2xl border border-slate-300/80 bg-white/25 p-5 shadow-sm backdrop-blur-[1px]"
+        className="pointer-events-none rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
         style={{ width: data.ancho ?? 535, height: data.alto ?? 300 }}
       >
         <Handle type="target" position={Position.Left} className="!h-0 !w-0 !border-0 !bg-transparent" />
@@ -313,21 +311,21 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
     );
   }
 
-  const esCasaDePaz = data.tipo === 'CASA_DE_PAZ';
   const incompleto = Boolean(data.estadoIncompleto);
   const colorIcono = colorLegibleSobreBlanco(color);
 
+  // Pedido del owner (2026-08-07): el borde-izquierdo de color quedaba "feo"
+  // (patron muy visto). Reemplazado por un borde completo, un poco mas
+  // grueso de lo normal, con el color real de la Red -- la seleccion se
+  // marca con un anillo azul ADEMAS del borde (nunca lo reemplaza, para que
+  // el fondo blanco nunca desaparezca y deje ver la linea de atras).
   return (
     <div
       aria-selected={selected}
-      className={`w-[235px] rounded-2xl border px-4 py-3 shadow-sm transition-all ${
-        selected || data.resaltado
-          ? 'border-white shadow-[0_0_0_3px_rgba(59,130,246,0.30)]'
-          : incompleto
-            ? 'border-slate-300 bg-slate-200 hover:border-slate-400 hover:shadow-md'
-            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-      }`}
-      style={{ borderLeftWidth: esCasaDePaz || incompleto ? 5 : undefined, borderLeftColor: incompleto ? '#94a3b8' : color }}
+      className={`w-[235px] rounded-2xl border-2 px-4 py-3 shadow-sm transition-shadow ${
+        incompleto ? 'bg-slate-200 hover:shadow-md' : 'bg-white hover:shadow-md'
+      } ${selected || data.resaltado ? 'shadow-[0_0_0_3px_rgba(59,130,246,0.30)]' : ''}`}
+      style={{ borderColor: incompleto ? '#94a3b8' : color }}
     >
       <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-white/65" />
       <div className="flex min-w-0 items-center gap-3">
@@ -344,39 +342,30 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
           )}
         </span>
       </div>
-      {esCasaDePaz && (
-        <div className="mt-2.5 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
-          {(data.sublideres ?? []).map((sublider) => {
-            const iniciales = inicialesPersona(sublider);
-            return (
-              <span key={sublider.id} className="relative">
-                <button
-                  type="button"
-                  onClick={(evento) => {
-                    evento.stopPropagation();
-                    setSubliderVisible((actual) => (actual === sublider.id ? null : sublider.id));
-                  }}
-                  title={sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
-                  className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-blue-50 text-[9px] font-bold text-blue-700 ring-2 ring-white hover:bg-blue-100"
-                >
-                  {iniciales ?? '?'}
-                </button>
-                {subliderVisible === sublider.id && (
-                  <span className="absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-medium whitespace-nowrap text-white shadow-lg">
-                    {sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
-                  </span>
-                )}
+      <div className="mt-2.5 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
+        {(data.sublideres ?? []).map((sublider) => {
+          const iniciales = inicialesPersona(sublider);
+          return (
+            <span key={sublider.id} className="group/sublider relative">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[9px] font-bold text-blue-700 ring-2 ring-white">
+                {iniciales ?? '?'}
               </span>
-            );
-          })}
-          <span
-            data-accion="anadir-sublider"
-            className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:text-blue-900"
-          >
-            + Añadir sublíder
-          </span>
-        </div>
-      )}
+              {/* Solo hover muestra el nombre (arriba); un clic hace lo mismo
+                  que clickear la tarjeta -- abre su panel lateral, sin
+                  burbuja aparte que quede pegada (bug real 2026-08-07). */}
+              <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover/sublider:opacity-100">
+                {sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
+              </span>
+            </span>
+          );
+        })}
+        <span
+          data-accion="anadir-sublider"
+          className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:text-blue-900"
+        >
+          + Añadir sublíder
+        </span>
+      </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>
   );

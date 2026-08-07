@@ -32,6 +32,14 @@ function resumenResponsables(responsables: { etiqueta: string; membresiaPendient
   return `${principal.etiqueta}${adicionales}${pendiente}`;
 }
 
+// Titulo de la tarjeta de Casa de Paz (pedido del owner, 2026-08-07): solo
+// el nombre, en formato corto -- sin "· membresia pendiente" ni "+N", que
+// no entraban en el ancho de la tarjeta y quedaban truncados ("· membr...").
+function nombreLiderCorto(responsables: PersonaEstructura[], vacio: string): string {
+  const principal = responsables[0];
+  return principal?.nombreAbreviado || principal?.etiqueta || vacio;
+}
+
 function nodo(
   id: string,
   x: number,
@@ -85,6 +93,11 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
 } {
   const nodes: Node<DatosNodoEstructura>[] = [];
   const edges: Edge[] = [];
+  // Alto de cada fila de Casa de Paz en el lienzo. Antes 110 alcanzaba,
+  // pero con los chips de sublider + "Anadir sublider" agregados hoy las
+  // tarjetas crecieron y quedaban casi pegadas entre si (bug real
+  // reportado por el owner, 2026-08-07).
+  const ALTO_FILA_CDP = 135;
   const maximoCasasPorRed = Math.max(
     0,
     ...datos.redes.map((red) => datos.casasDePaz.filter((casa) => casa.redId === red.id).length),
@@ -95,7 +108,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   // su ultima Casa de Paz real (bug real 2026-08-07, encontrado por el
   // owner -- el cuadro contenedor quedaba corto y recortaba ese boton en la
   // Red con mas Casas de Paz).
-  const altoGrupoRedes = 300 + (maximoCasasPorRed + 1) * 110;
+  const altoGrupoRedes = 300 + (maximoCasasPorRed + 1) * ALTO_FILA_CDP;
 
   nodes.push(
     nodo('pastor', 0, 0, {
@@ -187,7 +200,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
 
       casas.forEach((casa, indice) => {
           const casaId = `casa:${casa.id}`;
-          const casaY = 405 + indice * 110;
+          const casaY = 405 + indice * ALTO_FILA_CDP;
           const casaSinLider = casa.lideres.length === 0;
           nodes.push(
             nodo(casaId, redX, casaY, {
@@ -195,7 +208,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               // El nombre/alias de la CdP no es lo protagonista (pedido del
               // owner, 2026-08-07): el titulo es el lider, la direccion breve
               // queda como subtitulo secundario.
-              titulo: resumenResponsables(casa.lideres, 'Líder sin asignar'),
+              titulo: nombreLiderCorto(casa.lideres, 'Líder sin asignar'),
               subtitulo: casa.direccionBreve ?? 'Sin dirección asignada',
               color: colorRed,
               estadoIncompleto: casaSinLider,
@@ -210,7 +223,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       // 2026-08-07, ver imagen de referencia en opencode/).
       const nuevaCasaId = `nueva-casa:${red.id}`;
       nodes.push(
-        nodo(nuevaCasaId, redX, 405 + casas.length * 110, {
+        nodo(nuevaCasaId, redX, 405 + casas.length * ALTO_FILA_CDP, {
           tipo: 'NUEVA_CASA_DE_PAZ',
           titulo: 'Nueva Casa de Paz',
           color: colorRed,

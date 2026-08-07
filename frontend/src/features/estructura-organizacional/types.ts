@@ -11,6 +11,7 @@ export type TipoNodoEstructura =
 export interface PersonaEstructura {
   id: string;
   nombre: string | null;
+  nombreAbreviado?: string;
   correo: string | null;
   etiqueta: string;
   membresiaPendiente: boolean;

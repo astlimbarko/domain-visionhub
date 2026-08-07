@@ -70,6 +70,19 @@ function nombrePersona(persona: PersonaFila): string {
     .join(' ');
 }
 
+// Formato corto pedido por el owner (2026-08-07) para tarjetas de espacio
+// reducido (ej. lider de Casa de Paz en el lienzo): primer nombre y primer
+// apellido completos, segundo nombre/apellido solo como inicial. Ejemplo:
+// "Gonzalo Joaquin Veizaga Justiniano" -> "Gonzalo J. Veizaga J.".
+function nombreAbreviado(persona: PersonaFila): string {
+  return [
+    persona.primer_nombre,
+    persona.segundo_nombre ? `${persona.segundo_nombre.charAt(0)}.` : null,
+    persona.primer_apellido,
+    persona.segundo_apellido ? `${persona.segundo_apellido.charAt(0)}.` : null,
+  ].filter(Boolean).join(' ');
+}
+
 export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
@@ -209,6 +222,7 @@ export async function obtenerEstructuraOrganizacional(
         {
           id: persona.id,
           nombre: nombrePersona(persona),
+          nombreAbreviado: nombreAbreviado(persona) || persona.correo || 'Persona sin identificar',
           correo: persona.correo,
           etiqueta: nombrePersona(persona) || persona.correo || 'Persona sin identificar',
           membresiaPendiente: !persona.usuario_id,
