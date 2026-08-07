@@ -222,6 +222,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
   const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [confirmandoGuardarCambios, setConfirmandoGuardarCambios] = useState(false);
   const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
   const [confirmandoBorradoDefinitivo, setConfirmandoBorradoDefinitivo] = useState(false);
   const [otpBorradoDefinitivo, setOtpBorradoDefinitivo] = useState('');
@@ -269,7 +270,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
     || quitar.isPending || invitar.isPending || reenviar.isPending || crearCdp.isPending
     || cancelarInvitacion.isPending || corregirCorreo.isPending;
   const otpValido = !otpRequerido || /^\d{6}$/.test(otp);
-  const formularioValido = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color) && otpValido;
+  const formularioValidoSinOtp = nombre.trim().length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(color);
+  const formularioValido = formularioValidoSinOtp && otpValido;
   const esColorPersonalizado = !PALETA_RED.some((opcion) => opcion === color.toUpperCase());
   const colorInicial = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
   const hayCambios = modo === 'crear' || color.toUpperCase() !== colorInicial.toUpperCase();
@@ -293,6 +295,8 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
       } else if (red) {
         await actualizar.mutateAsync({ redId: red.id, nombre: nombre.trim(), color, otp: otp || null });
         toast.success('Red actualizada');
+        setConfirmandoGuardarCambios(false);
+        setOtp('');
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo guardar la Red');
@@ -652,7 +656,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
             </>
           )}
 
-          {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
+          {otpRequerido && modo === 'crear' && <CampoOtp value={otp} onChange={setOtp} />}
         </div>
         )}
         </div>
@@ -699,8 +703,11 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
             ) : (
               <button
                 type="button"
-                disabled={procesando || !formularioValido || !hayCambios}
-                onClick={() => void guardarRed()}
+                disabled={procesando || !hayCambios || (modo === 'crear' ? !formularioValido : !formularioValidoSinOtp)}
+                onClick={() => {
+                  if (modo === 'editar' && otpRequerido) setConfirmandoGuardarCambios(true);
+                  else void guardarRed();
+                }}
                 className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
@@ -890,6 +897,35 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmandoGuardarCambios} onOpenChange={(abierto) => { if (!abierto) { setConfirmandoGuardarCambios(false); setOtp(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar cambios de la Red</DialogTitle>
+            <DialogDescription>
+              Ingresá el código de confirmación para guardar los cambios.
+            </DialogDescription>
+          </DialogHeader>
+          <CampoOtp value={otp} onChange={setOtp} />
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => { setConfirmandoGuardarCambios(false); setOtp(''); }}
+              className="h-10 cursor-pointer rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={actualizar.isPending || !/^\d{6}$/.test(otp)}
+              onClick={() => void guardarRed()}
+              className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {actualizar.isPending ? 'Guardando…' : 'Confirmar'}
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
