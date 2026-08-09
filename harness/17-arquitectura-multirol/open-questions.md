@@ -11,12 +11,12 @@
 - **Q-MR-05 — Afirmación.** Panel independiente con alcance de departamento + iglesia.
 - **Q-MR-06 — Jóvenes.** Panel independiente de alcance iglesia; actualmente solo lectura.
 - **Q-MR-07 — Matrimonios.** Panel independiente de alcance iglesia; actualmente solo lectura.
+- **Q-MR-08 — Selector interno.** Cada asignación de Red o CdP es un `ContextoActivo` separado. No existe selector interno para cambiar de asignación; los selectores de supervisión autorizados dentro del alcance activo permanecen.
 - **Q-MR-10 — ¿Los colores de Red definen el navbar?** No. Son dinámicos y pertenecen a la entidad Red.
 - **Q-MR-11 — Colores todavía no definidos.** Usan temporalmente blanco nieve `#FFFAFA`; el owner confirmará la paleta definitiva después.
 
 ## Pendientes del owner
 
-- **Q-MR-08 — Selector interno.** Cuando un Líder de Red tiene varias Redes, ¿el panel debe mostrar exclusivamente la Red elegida o permitir un selector interno para ver las otras Redes que lidera? Propuesta: contexto aislado por Red; selector interno solo en pantallas cuyo requisito lo justifique.
 - **Q-MR-09 — Enlaces directos.** ¿En una fase futura se podrán compartir URLs que incluyan Red/CdP? Propuesta: no es necesario para la primera entrega; cualquier URL futura exige validación de permiso equivalente.
 
 ## Regla para nuevas preguntas

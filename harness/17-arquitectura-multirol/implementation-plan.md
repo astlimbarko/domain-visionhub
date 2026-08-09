@@ -31,10 +31,10 @@ No se cambia código hasta cerrar esta fase.
 
 ## Fase 4 — Módulos y consultas (KAN-134)
 
-- [ ] Migrar Dashboard primero: no usar `vistaPorDefectoParaRol` basada en índice.
-- [ ] Migrar Calendario, Evangelismo y Visitas.
-- [ ] Migrar Personas, Gestión de Red/CdP, Reportes e Historiales.
-- [ ] Revisar query keys, caché y selectores internos.
+- [x] Migrar Dashboard primero: no usar `vistaPorDefectoParaRol` basada en índice.
+- [x] Migrar Calendario, Evangelismo y Visitas.
+- [x] Migrar Personas, Gestión de Red/CdP, Reportes e Historiales.
+- [x] Revisar query keys, caché y selectores internos.
 
 ## Fase 5 — Seguridad, pruebas y documentación (KAN-135)
 
