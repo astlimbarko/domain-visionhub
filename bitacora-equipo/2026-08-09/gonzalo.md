@@ -15,3 +15,4 @@
 - [x] Validar alcance Red/CdP en PostgreSQL local.
 - [x] Validar build Docker compartido.
 - [x] Documentar informe tecnico KAN-135.
+- [x] Reparar dependencias Docker del frontend.
