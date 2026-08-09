@@ -1,5 +1,5 @@
 import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
 import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
@@ -40,6 +41,7 @@ export function HistorialReportes() {
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -83,8 +85,8 @@ export function HistorialReportes() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {misCasas.length > 1 && (
           <Select value={cdpActiva} onValueChange={setCasaDePazId}>
             <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
@@ -99,6 +101,7 @@ export function HistorialReportes() {
             </SelectContent>
           </Select>
         )}
+        <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="historial-reportes" />
       </div>
 
       {cargandoVentana ? (

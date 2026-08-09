@@ -57,6 +57,15 @@ interface Props {
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
   esSuperAdmin: boolean;
+  /** KAN-78: false para Lider/Supervisor de Red -- eliminar una Red entera
+   * es una accion estructural que excede "mi propia Red" y el backend la
+   * sigue rechazando para ese rol (private.fn_estructura_puede_administrar). */
+  puedeEliminarRed?: boolean;
+  /** KAN-78: false para Lider/Supervisor de Red -- designar por correo a
+   * alguien SIN CUENTA registrada sigue exclusivo de Super Admin/Supervisor
+   * (fn_puede_invitar_lider). El camino "Desde base de datos" (persona ya
+   * existente) si esta disponible para ese rol sobre su propia Red. */
+  puedeInvitarPorCorreo?: boolean;
   abrirCrearCdpAlAbrir?: boolean;
   onClose: () => void;
 }
@@ -196,7 +205,18 @@ function ResumenCargo({
   );
 }
 
-export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpRequerido, esSuperAdmin, abrirCrearCdpAlAbrir, onClose }: Props) {
+export function PanelRedEstructura({
+  iglesiaId,
+  modo,
+  red,
+  redesExistentes,
+  otpRequerido,
+  esSuperAdmin,
+  puedeEliminarRed = true,
+  puedeInvitarPorCorreo = true,
+  abrirCrearCdpAlAbrir,
+  onClose,
+}: Props) {
   const queryClient = useQueryClient();
   const crear = useCrearRedEstructura(iglesiaId);
   const actualizar = useActualizarRedEstructura(iglesiaId);
@@ -523,7 +543,16 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
               {modo === 'crear' ? 'Define su nombre y color identificativo.' : 'Edita la Red y designa responsables.'}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar panel de Red"
+            // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
+            // (REQ-MOB-3) -- antes:absolute expande el area de toque real
+            // sin agrandar el icono visible, mismo patron ya usado en los
+            // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 before:absolute before:-inset-1 before:content-[''] hover:bg-slate-100"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -645,7 +674,7 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
           <div>
-            {modo === 'editar' && red && !red.eliminada && (
+            {modo === 'editar' && red && !red.eliminada && puedeEliminarRed && (
               <button
                 type="button"
                 onClick={() => setConfirmandoEliminar(true)}
@@ -706,24 +735,26 @@ export function PanelRedEstructura({ iglesiaId, modo, red, redesExistentes, otpR
             <DialogDescription>El cargo aparece de inmediato; el punto será gris hasta confirmar la cuenta.</DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setModoAsignacion('base')}
-              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              Desde base de datos
-            </button>
-            <button
-              type="button"
-              onClick={() => setModoAsignacion('correo')}
-              className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              Por correo electrónico
-            </button>
-          </div>
+          {puedeInvitarPorCorreo && (
+            <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setModoAsignacion('base')}
+                className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'base' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              >
+                Desde base de datos
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoAsignacion('correo')}
+                className={`cursor-pointer rounded-lg px-2 py-2 ${modoAsignacion === 'correo' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              >
+                Por correo electrónico
+              </button>
+            </div>
+          )}
 
-          {modoAsignacion === 'base' ? (
+          {(modoAsignacion === 'base' || !puedeInvitarPorCorreo) ? (
             <div>
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />

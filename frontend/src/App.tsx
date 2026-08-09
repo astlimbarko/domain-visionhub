@@ -45,8 +45,10 @@ const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizaci
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
+const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').then((m) => ({ default: m.AfirmacionCasasDePaz })));
 const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.Jovenes })));
 const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
+const Anuncios = lazy(() => import('@/pages/Anuncios').then((m) => ({ default: m.Anuncios })));
 
 function CargandoPagina() {
   return <ContenidoCargando />;
@@ -225,8 +227,22 @@ function App() {
             <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_FORMULARIO} element={<RutaAfirmacion><AfirmacionFormulario /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_URLS} element={<RutaAfirmacion><AfirmacionUrls /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_CASAS_DE_PAZ} element={<RutaAfirmacion><AfirmacionCasasDePaz /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
+
+            {/* Anuncios (KAN-101): sin RequiereRol/permisos.ts a propósito --
+                permisos.ts está prohibido de tocar esta sesión (KAN-129 en
+                curso en paralelo). La página se autoprotege leyendo su propia
+                capacidad vía fn_anuncio_mi_capacidad; sin ítem de nav
+                todavía, solo accesible por URL directa (mismo criterio que
+                tuvo Estructura Organizacional para Líder de Red antes de
+                KAN-78). */}
+            <Route path={ROUTES.ANUNCIOS} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <Anuncios />
+              </Suspense>
+            } />
           </Route>
 
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />

@@ -217,12 +217,19 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               tipo: 'CASA_DE_PAZ',
               // El nombre/alias de la CdP no es lo protagonista (pedido del
               // owner, 2026-08-07): el titulo es el lider, la direccion breve
-              // queda como subtitulo secundario.
+              // queda como subtitulo secundario. KAN-111: una CdP eliminada
+              // sigue visible (agrisada) mientras dure su periodo de gracia
+              // configurable -- mismo criterio que ya usa Red.
               titulo: nombreLiderCorto(casa.lideres, 'Líder sin asignar'),
-              subtitulo: casa.direccionBreve ?? 'Sin dirección asignada',
+              subtitulo: casa.eliminada ? 'Eliminada' : (casa.direccionBreve ?? 'Sin dirección asignada'),
               color: colorRed,
-              estadoIncompleto: casaSinLider,
+              estadoIncompleto: casaSinLider || casa.eliminada,
+              eliminada: casa.eliminada,
               sublideres: casa.sublideres,
+              // KAN-78: necesario para que el lienzo sepa, sin volver a
+              // buscar en datos.casasDePaz, si esta CdP pertenece a una Red
+              // editable para el rol actual (Lider/Supervisor de Red).
+              redId: casa.redId ?? undefined,
             }),
           );
           edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorLineaRed));

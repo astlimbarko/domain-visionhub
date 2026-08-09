@@ -44,6 +44,7 @@ export interface CasaDePazEstructura {
   sublideres: PersonaEstructura[];
   anfitriones: PersonaEstructura[];
   direccionBreve: string | null;
+  eliminada: boolean;
 }
 
 export interface EstructuraOrganizacionalDatos {

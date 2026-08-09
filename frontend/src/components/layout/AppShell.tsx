@@ -178,17 +178,22 @@ export function AppShell({ children }: { children: ReactNode }) {
     ? { backgroundColor: `color-mix(in oklab, ${colorNavbarRol} 10%, white)` }
     : undefined;
 
-  // El título ("Pastor", "Supervisor", etc.) es de la iglesia activa -- no
-  // tiene sentido mostrarlo mientras se actúa como Super Admin (panel
-  // global, sin iglesia asociada), confundiría con qué sombrero está puesto.
-  const tituloMostrado = esOscuro ? null : titulo;
-  const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
   // Cargo del rol activo (ej. "Líder de Red"), para la barra superior --
   // reemplaza al selector de iglesia que aparecía ahí antes (bug: salía en
   // cualquier rol, sin ser un selector oficial de nada -- pedido del owner,
   // 2026-08-04). El selector real de iglesia sigue viviendo en el drawer
   // móvil para cuentas con más de una.
   const cargoLabel = rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
+  // El título del menú de cuenta ("Pastor", "Líder de Red", etc.) tiene que
+  // reflejar el ROL ACTIVO elegido en el picker multi-rol -- no el cargo de
+  // mayor prioridad fija que devuelve fn_mi_titulo (Pastor > Supervisor >
+  // cargo), que ignoraba por completo cuál rol estaba puesto (KAN-73). Se
+  // reusa `cargoLabel`, ya calculado a partir de `rolUI`, en vez de `titulo`
+  // (ese sigue viviendo -- ver más abajo, sombrero "Panel operativo").
+  // Sin sentido mostrarlo mientras se actúa como Super Admin (panel global,
+  // sin iglesia asociada), confundiría con qué sombrero está puesto.
+  const tituloMostrado = esOscuro ? null : cargoLabel;
+  const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
 
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esLiderJovenes = useEsLiderJovenes();
@@ -199,11 +204,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   // activo (2026-08-03, pedido explícito del owner). Estructura Organizacional
   // se abre desde cada iglesia del panel Administración; no existe un acceso
   // ambiguo en el navbar que apunte a la primera iglesia (owner, 2026-08-04).
+  //
+  // NAV_ITEMS_AFIRMACION solo se agrega cuando el rol ACTIVO es justamente
+  // LIDER_DEPARTAMENTO (KAN-114). Antes se agregaba con solo `esLiderAfirmacion`
+  // -- capacidad ortogonal al RolUI -- lo que mezclaba el menú de Afirmación
+  // con el de CUALQUIER otro rol activo (ej. entrar como Líder de Red y ver
+  // igual el menú de Afirmación). Afirmación dejó de ser puramente ortogonal
+  // el 2026-08-01, cuando pasó a tener su propio RolUI seleccionable en el
+  // picker multi-rol -- este gateo lo deja consistente con eso. Jóvenes y
+  // Matrimonios siguen siendo ortogonales de verdad (no tienen RolUI propio
+  // ni aparecen en el picker), así que se quedan sin cambios.
   const navItems = esOscuro
     ? [...(rolUI ? obtenerNavItems(rolUI) : [])]
     : [
         ...(rolUI ? obtenerNavItems(rolUI) : []),
-        ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
+        ...(rolUI === 'LIDER_DEPARTAMENTO' && esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
         ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
         ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
       ];
@@ -326,17 +341,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={estiloNavbarColor}
       >
         <div className="flex min-w-0 items-center gap-3">
-          {!esOscuro && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Abrir menú"
-              className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
-              onClick={() => setMenuAbierto(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
+          {/* El botón sigue visible también para Super Admin (esOscuro) aunque
+              el sidebar de escritorio quede oculto para ese rol -- en mobile
+              es la ÚNICA puerta al drawer, y "Cambiar rol"/"Salir" viven solo
+              en su footer (no hay dropdown de cuenta en este header). Ocultarlo
+              dejaba a Super Admin sin ninguna forma de cerrar sesión o cambiar
+              de rol en mobile (KAN-128). */}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Abrir menú"
+            className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+            onClick={() => setMenuAbierto(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
@@ -382,8 +401,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* Drawer mobile */}
-      <Sheet open={!esOscuro && menuAbierto} onOpenChange={setMenuAbierto}>
+      {/* Drawer mobile -- abierto también para Super Admin (KAN-128), ver
+          comentario en el botón "Abrir menú" de arriba. */}
+      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
         <SheetContent
           side="left"
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}

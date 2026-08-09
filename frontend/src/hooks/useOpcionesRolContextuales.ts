@@ -107,7 +107,13 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
     });
   }
 
-  for (const red of roles.redes_lider ?? []) {
+  // Supervisor de Red (cargo SUBLIDER_RED, es_sublider=true) va arriba de
+  // Líder de Red dentro de este grupo (KAN-116) -- antes el orden dependía
+  // tal cual del array que devuelve el backend (fn_mis_roles_dashboard), sin
+  // ningún criterio fijo. Ordenamiento estable: no reordena entre sí a dos
+  // redes del mismo tipo de cargo, solo antepone las de es_sublider.
+  const redesOrdenadas = [...(roles.redes_lider ?? [])].sort((a, b) => Number(b.es_sublider) - Number(a.es_sublider));
+  for (const red of redesOrdenadas) {
     const v = FILA_ROL_VISUAL.LIDER_RED;
     // El Supervisor de la Red en Acción es el mismo RolUI/nav/dashboard que
     // el Líder de Red (paridad completa, pedido del owner 2026-08-02) -- solo

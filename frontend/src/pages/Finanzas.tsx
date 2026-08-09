@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -29,6 +30,7 @@ export function Finanzas() {
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -72,7 +74,7 @@ export function Finanzas() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           {misCasas.length > 1 && (
@@ -97,10 +99,13 @@ export function Finanzas() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" disabled={monedas.length === 0}>
-          <Plus className="h-4 w-4" />
-          Nuevo ingreso
-        </Button>
+        <div className="flex items-center gap-2">
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="finanzas" />
+          <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" disabled={monedas.length === 0}>
+            <Plus className="h-4 w-4" />
+            Nuevo ingreso
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

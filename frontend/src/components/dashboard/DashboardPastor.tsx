@@ -1,8 +1,12 @@
+import { useRef } from 'react';
 import { Building2, Home, Network, Users, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, MARINO, TEAL, DashboardHero, KpiMosaico } from './DashboardUI';
 import { useDashboardPastor } from '@/hooks/useDashboard';
+
+const ACCION_PDF_HERO = 'h-9 shrink-0 gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white';
 
 interface Props {
   onSeleccionarIglesia: (iglesiaId: string) => void;
@@ -10,6 +14,7 @@ interface Props {
 
 export function DashboardPastor({ onSeleccionarIglesia }: Props) {
   const { data, isLoading, isError } = useDashboardPastor(true);
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   if (isError) {
     return <p className="text-sm text-muted-foreground">Todavía no tenés ningún panel asignado en esta iglesia.</p>;
@@ -33,8 +38,13 @@ export function DashboardPastor({ onSeleccionarIglesia }: Props) {
   const totalFamilias = (iglesias ?? []).reduce((acc, i) => acc + i.familias, 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <DashboardHero icon={Building2} eyebrow="Pastoral" title="Mis Iglesias" />
+    <div ref={contenedorRef} className="flex flex-col gap-6">
+      <DashboardHero
+        icon={Building2}
+        eyebrow="Pastoral"
+        title="Mis Iglesias"
+        actions={<DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="dashboard-pastor" variant="ghost" className={ACCION_PDF_HERO} />}
+      />
 
       {/* ── Indicadores ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

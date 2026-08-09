@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCrearPersona } from '@/hooks/usePersonas';
+import { useAgregarParticipante, useMinisterios } from '@/hooks/useMinisterios';
 import type { Sexo } from '@/types/persona.types';
 
 interface Props {
@@ -24,11 +25,15 @@ const VACIO = {
   fechaNacimiento: '',
   ci: '',
   correo: '',
+  ministerioId: '',
 };
 
 export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: Props) {
   const [form, setForm] = useState(VACIO);
   const crear = useCrearPersona();
+  const { data: ministerios } = useMinisterios(iglesiaId);
+  const agregarMinisterio = useAgregarParticipante(iglesiaId);
+  const ministeriosActivos = (ministerios ?? []).filter((m) => m.activo);
 
   const valido = form.primerNombre.trim() !== '' && form.primerApellido.trim() !== '' && form.sexo !== '';
 
@@ -54,6 +59,12 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: 
       {
         onSuccess: (persona) => {
           toast.success('Persona creada.');
+          if (form.ministerioId) {
+            agregarMinisterio.mutate(
+              { ministerioId: form.ministerioId, personaId: persona.id },
+              { onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo asignar el ministerio') },
+            );
+          }
           cerrar(false);
           onCreada(persona.id);
         },
@@ -135,6 +146,21 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: 
               value={form.correo}
               onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))}
             />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor="ministerio">Ministerio</Label>
+            <Select value={form.ministerioId} onValueChange={(v) => setForm((f) => ({ ...f, ministerioId: v }))}>
+              <SelectTrigger id="ministerio">
+                <SelectValue placeholder="Sin Ministerio asignado" />
+              </SelectTrigger>
+              <SelectContent>
+                {ministeriosActivos.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
