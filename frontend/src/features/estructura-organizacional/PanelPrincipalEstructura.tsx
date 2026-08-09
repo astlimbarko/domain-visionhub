@@ -12,6 +12,7 @@ import {
   useQuitarPastorEstructura,
   useQuitarSupervisorEstructura,
 } from './useEstructuraOrganizacional';
+import { notificarAsignacionCargoPrincipal } from './estructura.service';
 import type { PersonaEstructura, PersonaOpcionEstructura } from './types';
 
 type ModoAsignacion = 'base' | 'correo';
@@ -84,6 +85,12 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
     try {
       await asignar.mutateAsync({ personaId: persona.id, otp });
       toast.success(`${etiqueta} asignado`);
+      // KAN-117: aviso por correo, igual que ya hace el mismo flujo para Red
+      // (notificarAsignacionCargoRed) -- no bloquea si falla, el cargo ya
+      // quedo asignado.
+      notificarAsignacionCargoPrincipal(iglesiaId, persona.id, tipo).catch((error) =>
+        console.error('No se pudo avisar por correo de la designación', error),
+      );
       setOtp('');
       onClose();
     } catch (error) {

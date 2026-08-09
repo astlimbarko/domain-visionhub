@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase';
+import type { CargoCdpCodigo } from '@/types/casas-de-paz.types';
 import type {
   CargoRedEstructura,
   CasaDePazEstructura,
@@ -428,6 +429,33 @@ export async function notificarAsignacionCargoRed(
 ): Promise<void> {
   const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
     body: { redId, personaId, cargo: codigo },
+  });
+  if (error) throw error;
+}
+
+// KAN-117: mismo hueco que REQ-ASG-7 pero para Lider/Sublider de Casa de Paz
+// y para Pastor/Supervisor de la Vision en Accion -- ver notas en la Edge
+// Function y en las migraciones fn_estructura_datos_notificacion_cargo_cdp /
+// _principal. No bloquea el flujo de asignacion si falla, mismo criterio
+// que notificarAsignacionCargoRed de arriba.
+export async function notificarAsignacionCargoCdp(
+  cdpId: string,
+  personaId: string,
+  codigo: CargoCdpCodigo,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { cdpId, personaId, cargo: codigo },
+  });
+  if (error) throw error;
+}
+
+export async function notificarAsignacionCargoPrincipal(
+  iglesiaId: string,
+  personaId: string,
+  tipo: 'PASTOR' | 'SUPERVISOR',
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { iglesiaId, personaId, cargo: tipo },
   });
   if (error) throw error;
 }

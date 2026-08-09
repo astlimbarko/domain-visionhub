@@ -7,12 +7,25 @@ import nodemailer from "nodemailer";
 // Mismo patron SMTP de solicitar-otp, pero la identidad de remitente/firma
 // es dinamica por iglesia (REQ-IG-5: nunca "VisionHub" como sustituto del
 // nombre de la iglesia) -- por eso no se reutiliza la constante fija de ahi.
+//
+// KAN-117: la version original solo cubria Red. El mismo hueco (asignar a
+// una persona ya registrada nunca avisaba por correo) existia igual para
+// Lider/Sublider de Casa de Paz y para Pastor/Supervisor de la Vision en
+// Accion -- se agrega soporte a los 3 sin tocar el contrato ya usado por
+// PanelRedEstructura.tsx (sigue mandando { redId, personaId, cargo }).
 const ETIQUETA_CARGO: Record<string, string> = {
   LIDER_RED: "Líder de Red",
   SUBLIDER_RED: "Supervisor de Red",
+  LIDER_CDP: "Líder de Casa de Paz",
+  SUBLIDER_CDP: "Sublíder de Casa de Paz",
+  PASTOR: "Pastor",
+  SUPERVISOR: "Supervisor de la Visión en Acción",
 };
 
-function armarHtml(personaNombre: string, cargoEtiqueta: string, redNombre: string, iglesiaNombre: string): string {
+function armarHtml(personaNombre: string, cargoEtiqueta: string, contexto: string | null, iglesiaNombre: string): string {
+  const linea = contexto
+    ? `Hola ${personaNombre}, se le asignó el cargo de <strong>${cargoEtiqueta}</strong> en ${contexto}.`
+    : `Hola ${personaNombre}, se le asignó el cargo de <strong>${cargoEtiqueta}</strong> en ${iglesiaNombre}.`;
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#f4f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -24,7 +37,7 @@ function armarHtml(personaNombre: string, cargoEtiqueta: string, redNombre: stri
               <p style="margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.04em;color:#6b7280;text-transform:uppercase;">${iglesiaNombre}</p>
               <h1 style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1f2937;">Nueva designación</h1>
               <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#374151;">
-                Hola ${personaNombre}, se le asignó el cargo de <strong>${cargoEtiqueta}</strong> en la red <strong>${redNombre}</strong>.
+                ${linea}
               </p>
               <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
                 Si no reconoce esta acción, comuníquese con quien administra el sistema en su iglesia.
@@ -41,7 +54,7 @@ function armarHtml(personaNombre: string, cargoEtiqueta: string, redNombre: stri
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    let body: { redId?: string; personaId?: string; cargo?: string };
+    let body: { redId?: string; cdpId?: string; iglesiaId?: string; personaId?: string; cargo?: string };
     try {
       body = await req.json();
     } catch {
@@ -49,24 +62,50 @@ export default {
     }
 
     const cargoEtiqueta = body.cargo ? ETIQUETA_CARGO[body.cargo] : undefined;
-    if (!body.redId || !body.personaId || !cargoEtiqueta) {
+    const entidades = [body.redId, body.cdpId, body.iglesiaId].filter(Boolean);
+    if (entidades.length !== 1 || !body.personaId || !cargoEtiqueta) {
       return Response.json({ error: "Faltan datos" }, { status: 400 });
     }
 
     // El mismo chequeo de permiso que usa la asignacion (private.fn_estructura_puede_administrar)
-    // vive dentro de esta RPC -- si quien llama no administra esa red, tira SIN_PERMISO.
-    const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_red", {
-      p_red_id: body.redId,
-      p_persona_id: body.personaId,
-    });
-    if (errorDatos) {
-      return Response.json({ error: "No tenes permiso, o la persona/red no existe" }, { status: 403 });
+    // vive dentro de cada RPC -- si quien llama no administra esa red/CdP/iglesia, tira SIN_PERMISO.
+    let persona_nombre: string, correo: string | null, contexto: string | null, contextoSubject: string, iglesia_nombre: string;
+    if (body.redId) {
+      const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_red", {
+        p_red_id: body.redId,
+        p_persona_id: body.personaId,
+      });
+      if (errorDatos) return Response.json({ error: "No tenes permiso, o la persona/red no existe" }, { status: 403 });
+      const fila = filas?.[0] as { persona_nombre: string; correo: string | null; red_nombre: string; iglesia_nombre: string } | undefined;
+      if (!fila) return Response.json({ error: "No se encontro la persona en esa red" }, { status: 404 });
+      ({ persona_nombre, correo, iglesia_nombre } = fila);
+      contexto = `la red <strong>${fila.red_nombre}</strong>`;
+      contextoSubject = ` en ${fila.red_nombre}`;
+    } else if (body.cdpId) {
+      const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_cdp", {
+        p_cdp_id: body.cdpId,
+        p_persona_id: body.personaId,
+      });
+      if (errorDatos) return Response.json({ error: "No tenes permiso, o la persona/CdP no existe" }, { status: 403 });
+      const fila = filas?.[0] as { persona_nombre: string; correo: string | null; cdp_nombre: string; iglesia_nombre: string } | undefined;
+      if (!fila) return Response.json({ error: "No se encontro la persona en esa Casa de Paz" }, { status: 404 });
+      ({ persona_nombre, correo, iglesia_nombre } = fila);
+      contexto = `la Casa de Paz <strong>${fila.cdp_nombre}</strong>`;
+      contextoSubject = ` en ${fila.cdp_nombre}`;
+    } else {
+      const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_principal", {
+        p_iglesia_id: body.iglesiaId,
+        p_persona_id: body.personaId,
+      });
+      if (errorDatos) return Response.json({ error: "No tenes permiso, o la persona/iglesia no existe" }, { status: 403 });
+      const fila = filas?.[0] as { persona_nombre: string; correo: string | null; iglesia_nombre: string } | undefined;
+      if (!fila) return Response.json({ error: "No se encontro la persona en esa iglesia" }, { status: 404 });
+      ({ persona_nombre, correo, iglesia_nombre } = fila);
+      contexto = null;
+      contextoSubject = ` en ${iglesia_nombre}`;
     }
-    const fila = filas?.[0] as { persona_nombre: string; correo: string | null; red_nombre: string; iglesia_nombre: string } | undefined;
-    if (!fila) {
-      return Response.json({ error: "No se encontro la persona en esa red" }, { status: 404 });
-    }
-    if (!fila.correo) {
+
+    if (!correo) {
       // No es un error de la asignacion (que ya se hizo) -- la persona
       // simplemente no tiene ningun correo conocido (ni persona.correo ni
       // cuenta vinculada). No hay a quien avisar.
@@ -85,10 +124,10 @@ export default {
 
     try {
       await transporte.sendMail({
-        from: `"${fila.iglesia_nombre}" <acceso@somoscdv.com>`,
-        to: fila.correo,
-        subject: `Fuiste designado como ${cargoEtiqueta} en ${fila.red_nombre}`,
-        html: armarHtml(fila.persona_nombre, cargoEtiqueta, fila.red_nombre, fila.iglesia_nombre),
+        from: `"${iglesia_nombre}" <acceso@somoscdv.com>`,
+        to: correo,
+        subject: `Fuiste designado como ${cargoEtiqueta}${contextoSubject}`,
+        html: armarHtml(persona_nombre, cargoEtiqueta, contexto, iglesia_nombre),
       });
     } catch (e) {
       console.error("notificar-asignacion-cargo: fallo el envio por Brevo SMTP", e);

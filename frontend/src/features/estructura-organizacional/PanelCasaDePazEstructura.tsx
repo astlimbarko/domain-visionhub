@@ -14,6 +14,7 @@ import {
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { notificarAsignacionCargoCdp } from './estructura.service';
 import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { CasaDePazEstructura } from './types';
@@ -121,6 +122,16 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
         cargoId: cargo.id,
       });
       toast.success(pendiente ? 'Solicitud enviada' : `${persona.nombre_completo} asignado`);
+      // KAN-117: aviso por correo a Lider/Sublider de CdP recien designado,
+      // mismo mecanismo que ya usa Red (notificarAsignacionCargoRed). No
+      // aplica a Anfitrion (no es un cargo de liderazgo) ni cuando la
+      // asignacion quedo "pendiente" (solicitud de cambio de Lider sin
+      // resolver todavia -- ahi todavia no hay nadie designado a quien avisar).
+      if (!pendiente && (dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP')) {
+        notificarAsignacionCargoCdp(casaDePaz.id, persona.id, dialogoCargo.codigo).catch((e) =>
+          console.error('No se pudo avisar por correo de la designación', e),
+        );
+      }
       void invalidarEstructura();
     } catch (e) {
       manejarErrorCargo(e, 'No se pudo asignar el cargo');
