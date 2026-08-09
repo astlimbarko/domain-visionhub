@@ -33,3 +33,35 @@ Si no existe forma estable de identificar una asignación vigente, se podrá pro
 - prueba de regresión de todos los roles antes de aplicarla.
 
 No se debe crear una tabla para “roles activos”: el contexto activo es una preferencia de sesión de frontend, validada contra el dominio; no es un permiso que deba persistirse como fuente de verdad en la BD.
+
+## Resultado de auditoría KAN-135
+
+La Fase 5 demostró que sí hacen falta migraciones de seguridad. La base viva
+tenía RPC `SECURITY DEFINER` que validaban solo pertenencia a la iglesia y no la
+Red/CdP exacta, además de políticas `SELECT` con el mismo alcance amplio.
+
+Migraciones preparadas localmente, todavía no aplicadas a Supabase:
+
+- `20260809053351_kan_135_hardening_privilegios_y_coherencia.sql`: cierra
+  ejecución pública, evita cruces de iglesia en notificaciones, valida la
+  coherencia Iglesia/Red de anuncios y convierte `v_reporte_totales` en
+  `security_invoker`.
+- `20260809054456_kan_135_alcance_exacto_red_cdp.sql`: introduce
+  `fn_puede_ver_red`/`fn_puede_ver_cdp`, acota listados y RPC de CdP y endurece
+  las políticas de lectura de estructura, reportes, evangelismo y calendario.
+
+Hallazgos que no se deben resolver por intuición:
+
+1. `Personas.tsx` permite deliberadamente búsqueda de toda la iglesia a
+   Líder/Sublíder CdP, mientras el contexto nuevo declara alcance CdP. Requiere
+   decisión funcional del owner antes de cambiar UI, RPC o RLS de `persona`.
+2. `fn_aprobar_solicitud_estructura` delega la ejecución al RPC original.
+   `FUSIONAR_RED` y `MULTIPLICAR_RED` vuelven a exigir Supervisor, por lo que el
+   Líder de Red llamado a aprobar no puede completar esas dos acciones. Debe
+   corregirse como flujo funcional separado, con validación explícita del
+   `payload` contra la solicitud.
+
+La segunda migración pasó revisión estática (`git diff --check`, bloques y
+delimitadores balanceados). La compilación local no pudo ejecutarse porque
+`supabase start` quedó bloqueado sin crear contenedores. No aplicar a la base
+viva hasta compilarla y ejecutar la matriz multirol con cuentas de prueba.

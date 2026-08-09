@@ -104,3 +104,20 @@ Las políticas RLS y RPC existentes permanecen como autoridad. Si una vista requ
 6. Eliminar compatibilidad temporal tras pruebas completas.
 
 No se deben refactorizar todos los módulos en un único commit sin pruebas por rol; el orden está detallado en `implementation-plan.md`.
+
+### Resultado real de seguridad (KAN-135)
+
+La auditoría reemplaza la hipótesis inicial de esta sección: pertenecer a una
+iglesia no basta para autorizar una Red o CdP. La regla de backend es:
+
+- Supervisor/Pastor/Super Admin pueden leer el alcance superior autorizado.
+- Líder/Supervisor de Red solo puede leer su Red y sus CdP.
+- Líder/Sublíder CdP solo puede leer su CdP y la Red padre necesaria para
+  presentar el contexto.
+- Finanzas conserva su regla más restrictiva mediante
+  `fn_puede_ver_ingresos_cdp`; visibilidad estructural no concede visibilidad
+  financiera.
+
+Los helpers `fn_puede_ver_red` y `fn_puede_ver_cdp` son `STABLE SECURITY
+DEFINER`, usan `search_path = ''`, nombres cualificados y ejecución exclusiva
+de `authenticated`. Las RPC no confían en IDs enviados por el cliente.

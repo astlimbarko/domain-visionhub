@@ -59,3 +59,11 @@ No se cambia código hasta cerrar esta fase.
 ## Terminación
 
 La épica no se considera terminada hasta que la matriz de pruebas pase en vivo con cuentas de prueba multirol, las rutas directas sean seguras y el usuario verifique visualmente que no hay sidebars ni colores mezclados.
+
+### Avance real de KAN-135
+
+- [x] Auditar en lectura RPC, ACL y RLS de iglesia, Red, CdP y departamento.
+- [x] Preparar migraciones trazables según la evidencia encontrada.
+- [ ] Compilar y aplicar las migraciones pendientes con aprobación del owner.
+- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
+- [ ] Resolver Q-MR-12 y Q-MR-13 antes de cerrar la épica.

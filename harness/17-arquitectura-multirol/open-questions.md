@@ -22,3 +22,13 @@
 ## Regla para nuevas preguntas
 
 Todo cargo nuevo debe responder antes de implementarse: ¿tiene panel propio?, ¿cuál es su alcance?, ¿puede tener múltiples asignaciones?, ¿qué rutas y datos ve?, ¿qué color e identidad visual usa? Sin esas respuestas no se agrega al selector ni al sidebar.
+
+## Pendientes descubiertos en KAN-135
+
+- **Q-MR-12 — Personas para cargos CdP.** ¿Líder y Sublíder de Casa de Paz
+  pueden buscar/crear personas de toda la iglesia o únicamente ver miembros de
+  su CdP? El frontend actual dice “toda la iglesia”, pero el contexto canónico
+  es CdP. No cambiar `persona`/`fn_buscar_personas` hasta decisión del owner.
+- **Q-MR-13 — Aprobaciones de Red.** Definir el mecanismo interno para que el
+  Líder de Red apruebe `FUSIONAR_RED`/`MULTIPLICAR_RED` sin recibir permisos de
+  Supervisor y sin confiar en IDs del `payload`.
