@@ -13,7 +13,7 @@ import {
   useDomicilioCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
-import { useEliminarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
 import { notificarAsignacionCargoCdp } from './estructura.service';
 import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -66,6 +66,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [otpEliminar, setOtpEliminar] = useState('');
   const eliminarCdp = useEliminarCasaDePazEstructura(iglesiaId);
+  // KAN-111: reactivar una CdP eliminada por la vía normal (fn_eliminar_cdp)
+  // mientras siga dentro del período de gracia configurable.
+  const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
+  const [otpReactivar, setOtpReactivar] = useState('');
+  const reactivarCdp = useReactivarCasaDePazEstructura(iglesiaId);
 
   useEffect(() => {
     if (abrirAnadirSubliderAlAbrir) {
@@ -107,6 +112,18 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
       onClose();
     } catch (e) {
       manejarErrorCargo(e, 'No se pudo eliminar la Casa de Paz');
+    }
+  }
+
+  async function confirmarReactivar() {
+    if (otpRequerido && !/^\d{6}$/.test(otpReactivar)) return;
+    try {
+      await reactivarCdp.mutateAsync({ cdpId: casaDePaz.id, otp: otpReactivar || null });
+      toast.success('Casa de Paz reactivada');
+      setConfirmandoReactivar(false);
+      setOtpReactivar('');
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo reactivar la Casa de Paz');
     }
   }
 
@@ -189,6 +206,23 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           </button>
         </div>
 
+        {casaDePaz.eliminada ? (
+        <div className="space-y-4 p-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue eliminada</p>
+            <p className="mt-1 text-xs text-amber-700">
+              Sigue visible (agrisada) mientras dure su período de gracia configurable. Nada se puede modificar hasta reactivarla.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmandoReactivar(true)}
+            className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Reactivar Casa de Paz
+          </button>
+        </div>
+        ) : (
         <div className="space-y-4 p-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
@@ -281,6 +315,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
             </button>
           )}
         </div>
+        )}
       </aside>
 
       <ConfirmarQuitarDialog
@@ -295,6 +330,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
         otpRequerido={otpRequerido}
         otp={otpEliminar}
         onOtpChange={setOtpEliminar}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoReactivar}
+        onOpenChange={(abierto) => { setConfirmandoReactivar(abierto); if (!abierto) setOtpReactivar(''); }}
+        titulo="¿Reactivar esta Casa de Paz?"
+        descripcion="Vuelve a estar activa como antes de eliminarla."
+        procesando={reactivarCdp.isPending}
+        onConfirmar={() => void confirmarReactivar()}
+        textoConfirmar="Sí, reactivar"
+        textoProcesando="Reactivando…"
+        otpRequerido={otpRequerido}
+        otp={otpReactivar}
+        onOtpChange={setOtpReactivar}
       />
 
       {dialogoCargo && (
