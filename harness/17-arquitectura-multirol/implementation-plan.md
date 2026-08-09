@@ -65,6 +65,6 @@ La épica no se considera terminada hasta que la matriz de pruebas pase en vivo 
 - [x] Auditar en lectura RPC, ACL y RLS de iglesia, Red, CdP y departamento.
 - [x] Preparar migraciones trazables según la evidencia encontrada.
 - [x] Corregir y probar localmente las aprobaciones de Red (Q-MR-13).
-- [ ] Compilar y aplicar las migraciones pendientes con aprobación del owner.
-- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
+- [x] Compilar las tres migraciones KAN-135 en PostgreSQL 17.
+- [ ] Aplicar las migraciones pendientes con aprobaciÃ³n del owner.- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
 - [ ] Resolver Q-MR-12 antes de cerrar la épica.

@@ -63,10 +63,11 @@ La migración de aprobaciones compiló en PostgreSQL 17 y pasó pruebas locales 
 fusión válida, multiplicación válida y rechazo de payload manipulado. El
 contenedor temporal fue eliminado después de las pruebas.
 
-La migración de alcance exacto compiló en PostgreSQL 17 y pasó la matriz local:
-Red propia visible, CdP propia visible, Red padre visible para cargo CdP, CdP
-hermana bloqueada y Supervisor con alcance completo. La prueba detectó y
-corrigió el alias faltante `lider_nombre` antes de llegar a Supabase.
+Las tres migraciones KAN-135 compilaron en PostgreSQL 17 y pasaron pruebas
+locales. Se verificaron ACL, cruce de iglesia, coherencia Iglesia/Red,
+`security_invoker`, alcance exacto Red/CdP, Supervisor, aprobaciones válidas y
+rechazo de payload manipulado. Todos los contenedores temporales fueron
+eliminados después de las pruebas.
 
-Las migraciones siguen sin aplicarse a la base viva. Falta validar el primer
-bloque de privilegios y ejecutar la matriz con cuentas multirol reales.
+Las migraciones siguen sin aplicarse a la base viva. Falta la aprobación del
+owner y la matriz final con cuentas multirol reales.

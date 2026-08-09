@@ -9,6 +9,7 @@
 - [x] Integrar PR #22 sin perder contexto multirol.
 - [x] Auditar seguridad RPC/RLS (KAN-135).
 - [x] Preparar migraciones de alcance Red/CdP.
-- [ ] Validar y aplicar migraciones KAN-135.
+- [x] Validar migraciones KAN-135 en PostgreSQL local.
+- [ ] Aplicar migraciones KAN-135 a Supabase.
 - [x] Corregir aprobaciones de Red (KAN-135).
 - [x] Validar alcance Red/CdP en PostgreSQL local.
