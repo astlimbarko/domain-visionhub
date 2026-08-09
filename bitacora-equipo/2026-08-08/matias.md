@@ -261,3 +261,45 @@ el tiempo que quedaba.
 - [ ] Falta: probar la descarga en vivo (desktop y móvil real, con datos
   reales de Supabase) antes de pasar a "Finalizada" -- no pude correr la app
   contra el backend real desde acá.
+
+## Sesión 7 — cierre de dos gaps abiertos: KAN-115 y KAN-96
+
+- [x] **KAN-115** (gap del guard `RequiereCapacidad` en /afirmacion,
+  /jovenes, /matrimonios): investigué a fondo cómo funciona hoy
+  (`RequiereCapacidad.tsx`, `App.tsx`, `useEsLiderAfirmacion`/
+  `useRolesGlobales.ts`). El guard en sí es correcto (`Navigate` si
+  `permitido=false`), pero lo importante es que **no es la única barrera**:
+  las tres RPC que realmente traen los datos (`fn_jovenes_iglesia`,
+  `fn_matrimonios_iglesia`, `fn_listar_lideres_cdp_afirmacion` y el resto
+  del módulo Afirmación) son `SECURITY DEFINER` y validan server-side, con
+  `fn_es_lider_jovenes_en`/`fn_es_encargado_matrimonios_en`/
+  `fn_es_lider_afirmacion_en` (más `fn_es_operativo_en` para Pastor/
+  Supervisor) contra `auth.uid()` -- no confían en nada que mande el
+  cliente. Alguien que fuerce la navegación (localStorage stale, etc.)
+  entra a un shell de página vacío pero cualquier RPC le tira
+  `SIN_ACCESO`/`AFIRMACION_SIN_PERMISO`: no hay forma de ver datos ajenos.
+  Conclusión: el "gap" era una preocupación teórica sin bug real. No toqué
+  código. Comentado en Jira, se queda "En revisión" (sin cambio de estado).
+- [x] **KAN-96** (limpieza `estructura_nodo_posicion`): al preparar la
+  migración de DROP encontré que el ticket original (y el pedido de esta
+  sesión) asumían que la tabla entera estaba muerta -- **no es así**. Confirmé
+  en `estructura.service.ts` que la tabla se sigue LEYENDO activamente
+  (`select nodo_clave, posicion_x, posicion_y ...` para `layout.posiciones`,
+  consumido por el lienzo para respetar posiciones históricas). Coincide con
+  el título real del ticket ("quitar guardado", no "quitar tabla") y con mi
+  propio comentario anterior en Jira (id 10094). Lo único 100% confirmado
+  muerto es el RPC de escritura `fn_estructura_guardar_posiciones` y su
+  contraparte de frontend (`useGuardarPosicionesEstructura`/
+  `guardarPosicionesEstructura`) -- ambos viven en
+  `frontend/src/features/estructura-organizacional/`, carpeta que esta
+  sesión tenía prohibido tocar (otro agente trabajando ahí en paralelo,
+  KAN-78/KAN-63), así que el frontend queda sin cambios.
+  - Migración nueva `supabase/migrations/20260808270000_estructura_eliminar_guardado_posiciones.sql`
+    -- **solo** `drop function fn_estructura_guardar_posiciones(uuid, jsonb, bigint)`,
+    NO toca la tabla. Pendiente de aplicar contra Supabase real, no
+    ejecutado ningún cambio de BD.
+  - Jira: comentado con el detalle completo (por qué no se dropea la
+    tabla, por qué no se tocó el frontend), pasado a "En revisión".
+- [x] Sin cambios de código frontend en esta sesión (solo el archivo SQL
+  nuevo) -- no corresponde `npm run build`.
+- [x] Commit local (sin push).
