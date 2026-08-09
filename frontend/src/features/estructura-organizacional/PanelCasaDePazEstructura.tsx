@@ -199,7 +199,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
             type="button"
             onClick={onClose}
             aria-label="Cerrar panel"
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl transition-colors hover:bg-black/10"
+            // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
+            // (REQ-MOB-3) -- antes:absolute expande el area de toque real
+            // sin agrandar el icono visible, mismo patron ya usado en los
+            // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
+            className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-black/10"
             style={{ color: colorTexto }}
           >
             <X className="h-4 w-4" />

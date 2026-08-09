@@ -226,6 +226,10 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               estadoIncompleto: casaSinLider || casa.eliminada,
               eliminada: casa.eliminada,
               sublideres: casa.sublideres,
+              // KAN-78: necesario para que el lienzo sepa, sin volver a
+              // buscar en datos.casasDePaz, si esta CdP pertenece a una Red
+              // editable para el rol actual (Lider/Supervisor de Red).
+              redId: casa.redId ?? undefined,
             }),
           );
           edges.push(arista(`${redId}-${casaId}`, redId, casaId, colorLineaRed));
