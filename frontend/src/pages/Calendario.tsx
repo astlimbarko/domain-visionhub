@@ -4,19 +4,11 @@ import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Globe2, P
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import {
   useCrearEvento,
   useCumpleanosMes,
@@ -45,15 +37,14 @@ export function Calendario() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesias = useAuthStore((s) => s.iglesias);
   const nombreIglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Mi iglesia';
-  const rolUI = useRolUI();
-  const { data: roles } = useMisRoles(iglesiaActivaId);
+  const { contextoActivo } = useContextoActivo();
+  const rolUI = contextoActivo?.rolUI ?? null;
 
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   // El Supervisor puede administrar el calendario de su iglesia, o el de una
   // hija/satélite directa (Padre -> Hija, ver 101_calendario_padre_satelite.sql).
   const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' ? iglesiaActivaId : undefined);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -133,8 +124,7 @@ export function Calendario() {
   // Red -- eventos que fija se ven en todas las CdP de su Red (fn_eventos_cdp
   // ya los mezclaba; ver CalendarioRed).
   if (rolUI === 'LIDER_RED') {
-    if (!roles) return <Skeleton className="h-96 w-full rounded-2xl" />;
-    const redId = roles.redes_lider?.[0]?.id;
+    const redId = contextoActivo?.alcance === 'RED' ? contextoActivo.redId : undefined;
     if (!redId) {
       return (
         <ProximamentePlaceholder
@@ -168,7 +158,7 @@ export function Calendario() {
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
-  if (!misCasas || misCasas.length === 0) {
+  if (!cdpActiva || !misCasas?.some((c) => c.casa_de_paz_id === cdpActiva)) {
     return (
       <ProximamentePlaceholder
         titulo="Calendario"
@@ -188,20 +178,6 @@ export function Calendario() {
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-2 sm:pl-4">
         <div className="flex flex-wrap items-center gap-2">
-          {misCasas.length > 1 && (
-            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
-                <SelectValue placeholder="Casa de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                {misCasas.map((c) => (
-                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                    {c.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>

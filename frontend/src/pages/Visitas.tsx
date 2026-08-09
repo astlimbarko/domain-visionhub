@@ -8,6 +8,7 @@ import { AMBAR, MARINO } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useCdps } from '@/hooks/useCasasDePaz';
 import { useVisitasRed } from '@/hooks/useVisitas';
 import { VisitaFormDialog } from '@/components/visitas/VisitaFormDialog';
@@ -25,10 +26,12 @@ const LOTE = 10;
 export function Visitas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: roles, isLoading: cargandoRoles } = useMisRoles(iglesiaActivaId);
+  const { contextoActivo } = useContextoActivo();
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [visibles, setVisibles] = useState(LOTE);
 
-  const red = roles?.redes_lider?.[0];
+  const redId = contextoActivo?.alcance === 'RED' ? contextoActivo.redId : undefined;
+  const red = roles?.redes_lider?.find((item) => item.id === redId);
   const { data: cdps = [] } = useCdps(iglesiaActivaId, red?.id);
   const { data: visitas = [], isLoading: cargandoVisitas } = useVisitasRed(red?.id);
   const visitasVisibles = visitas.slice(0, visibles);
