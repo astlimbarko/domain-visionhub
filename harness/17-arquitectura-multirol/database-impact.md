@@ -49,19 +49,21 @@ Migraciones preparadas localmente, todavía no aplicadas a Supabase:
 - `20260809054456_kan_135_alcance_exacto_red_cdp.sql`: introduce
   `fn_puede_ver_red`/`fn_puede_ver_cdp`, acota listados y RPC de CdP y endurece
   las políticas de lectura de estructura, reportes, evangelismo y calendario.
+- `20260809060533_kan_135_aprobaciones_red_transaccionales.sql`: valida que
+  solicitud, iglesia, Red, payload y aprobador coincidan; permite ejecutar
+  fusión/multiplicación aprobadas sin elevar al Líder a Supervisor.
 
-Hallazgos que no se deben resolver por intuición:
+Hallazgo pendiente que no se debe resolver por intuición:
 
 1. `Personas.tsx` permite deliberadamente búsqueda de toda la iglesia a
    Líder/Sublíder CdP, mientras el contexto nuevo declara alcance CdP. Requiere
    decisión funcional del owner antes de cambiar UI, RPC o RLS de `persona`.
-2. `fn_aprobar_solicitud_estructura` delega la ejecución al RPC original.
-   `FUSIONAR_RED` y `MULTIPLICAR_RED` vuelven a exigir Supervisor, por lo que el
-   Líder de Red llamado a aprobar no puede completar esas dos acciones. Debe
-   corregirse como flujo funcional separado, con validación explícita del
-   `payload` contra la solicitud.
 
-La segunda migración pasó revisión estática (`git diff --check`, bloques y
-delimitadores balanceados). La compilación local no pudo ejecutarse porque
-`supabase start` quedó bloqueado sin crear contenedores. No aplicar a la base
-viva hasta compilarla y ejecutar la matriz multirol con cuentas de prueba.
+La migración de aprobaciones compiló en PostgreSQL 17 y pasó pruebas locales de
+fusión válida, multiplicación válida y rechazo de payload manipulado. El
+contenedor temporal fue eliminado después de las pruebas.
+
+La migración de alcance exacto pasó revisión estática, pero no pudo compilarse
+con el stack completo porque `supabase start` quedó bloqueado sin crear
+contenedores. No aplicar las migraciones a la base viva hasta ejecutar la matriz
+multirol con cuentas de prueba.

@@ -29,6 +29,9 @@ Todo cargo nuevo debe responder antes de implementarse: ¿tiene panel propio?, �
   pueden buscar/crear personas de toda la iglesia o únicamente ver miembros de
   su CdP? El frontend actual dice “toda la iglesia”, pero el contexto canónico
   es CdP. No cambiar `persona`/`fn_buscar_personas` hasta decisión del owner.
-- **Q-MR-13 — Aprobaciones de Red.** Definir el mecanismo interno para que el
-  Líder de Red apruebe `FUSIONAR_RED`/`MULTIPLICAR_RED` sin recibir permisos de
-  Supervisor y sin confiar en IDs del `payload`.
+
+## Cerrado durante KAN-135
+
+- **Q-MR-13 — Aprobaciones de Red.** Resuelta mediante autorización
+  transaccional ligada a la solicitud pendiente y coincidencia exacta del
+  payload. El Líder aprobador no recibe permisos de Supervisor.
