@@ -67,5 +67,10 @@ La épica no se considera terminada hasta que la matriz de pruebas pase en vivo 
 - [x] Corregir y probar localmente las aprobaciones de Red (Q-MR-13).
 - [x] Compilar las tres migraciones KAN-135 en PostgreSQL 17.
 - [x] Validar tipos, lint, build Vite y build del Docker Compose compartido.
-- [ ] Aplicar las migraciones pendientes con aprobaciÃ³n del owner.- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
+- [ ] Aplicar las migraciones pendientes con aprobación del owner.
+- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
 - [ ] Resolver Q-MR-12 antes de cerrar la épica.
+
+## Informe tecnico de auditoria
+
+El detalle verificable de KAN-135 esta en [informe-auditoria-2026-08-09.md](./informe-auditoria-2026-08-09.md).

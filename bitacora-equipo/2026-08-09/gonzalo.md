@@ -14,3 +14,4 @@
 - [x] Corregir aprobaciones de Red (KAN-135).
 - [x] Validar alcance Red/CdP en PostgreSQL local.
 - [x] Validar build Docker compartido.
+- [x] Documentar informe tecnico KAN-135.
