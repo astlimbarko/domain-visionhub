@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
+import type { ContextoActivo } from '../types/contexto-activo.types';
 import type { InvitacionPendiente } from '../types/invitacion-lider.types';
 import type { RolUI } from '../utils/permisos';
 
@@ -13,8 +14,9 @@ interface AuthState {
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
   membresiaPendiente: InvitacionPendiente | null;
-  /** Rol elegido en /seleccionar-rol cuando el usuario tiene más de un sombrero en la iglesia activa. */
+  /** Compatibilidad temporal; la fuente canónica nueva es contextoActivo. */
   rolActivo: RolUI | null;
+  contextoActivo: ContextoActivo | null;
   setSesion: (data: {
     personaId: string | null;
     nombreCompleto: string | null;
@@ -25,6 +27,7 @@ interface AuthState {
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
+  setContextoActivo: (contexto: ContextoActivo | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
   logout: () => void;
@@ -54,9 +57,19 @@ export const useAuthStore = create<AuthState>()(
       esSuperAdmin: false,
       membresiaPendiente: null,
       rolActivo: null,
+      contextoActivo: null,
 
       setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null }) => {
-        const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
+        const estadoActual = get();
+        const iglesiaActualSigueValida = iglesias.some((i) => i.id === estadoActual.iglesiaActivaId);
+        const iglesiaActivaId = iglesiaActualSigueValida
+          ? estadoActual.iglesiaActivaId
+          : elegirIglesiaPorDefecto(iglesias);
+        const contextoAnterior = estadoActual.personaId === personaId ? estadoActual.contextoActivo : null;
+        const contextoPerteneceALaSesion = contextoAnterior?.alcance === 'GLOBAL'
+          ? esSuperAdmin
+          : contextoAnterior?.iglesiaId === iglesiaActivaId;
+        const contextoActivo = contextoPerteneceALaSesion ? contextoAnterior : null;
         set({
           isAuthenticated: true,
           personaId,
@@ -65,15 +78,20 @@ export const useAuthStore = create<AuthState>()(
           iglesias,
           esSuperAdmin,
           membresiaPendiente,
-          iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : elegirIglesiaPorDefecto(iglesias),
-          // Cada login nuevo re-obliga a elegir rol si hay ambigüedad.
-          rolActivo: null,
+          iglesiaActivaId,
+          contextoActivo,
+          rolActivo: contextoActivo?.rolUI ?? null,
         });
       },
 
-      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId, rolActivo: null }),
+      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId, rolActivo: null, contextoActivo: null }),
 
-      setRolActivo: (rol) => set({ rolActivo: rol }),
+      setRolActivo: (rol) => set({ rolActivo: rol, contextoActivo: null }),
+
+      setContextoActivo: (contexto) => set({
+        contextoActivo: contexto,
+        rolActivo: contexto?.rolUI ?? null,
+      }),
 
       renombrarIglesiaLocal: (iglesiaId, nombre) =>
         set({
@@ -94,6 +112,7 @@ export const useAuthStore = create<AuthState>()(
           esSuperAdmin: false,
           membresiaPendiente: null,
           rolActivo: null,
+          contextoActivo: null,
         }),
     }),
     {
@@ -108,6 +127,7 @@ export const useAuthStore = create<AuthState>()(
         esSuperAdmin: state.esSuperAdmin,
         membresiaPendiente: state.membresiaPendiente,
         rolActivo: state.rolActivo,
+        contextoActivo: state.contextoActivo,
       }),
     }
   )

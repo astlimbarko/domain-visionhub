@@ -34,7 +34,17 @@ import type { LucideIcon } from 'lucide-react';
 // Líder de Afirmación puro, sin cargo de Casas de Paz). No debe heredar
 // nav ni rutas de ningún otro rol -- ver NAV_ITEM_AFIRMACION para cómo se
 // agrega su propio acceso, ortogonal a este tipo.
-export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'LIDER_DEPARTAMENTO' | 'SIN_ROL';
+export type RolUI =
+  | 'SUPER_ADMIN'
+  | 'PASTOR'
+  | 'SUPERVISOR'
+  | 'LIDER_RED'
+  | 'LIDER_CDP'
+  | 'SUBLIDER_CDP'
+  | 'LIDER_DEPARTAMENTO'
+  | 'LIDER_JOVENES'
+  | 'ENCARGADO_MATRIMONIOS'
+  | 'SIN_ROL';
 
 export interface NavItem {
   icon: LucideIcon;
@@ -134,6 +144,8 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_FORMULARIO,
   ROUTES.AFIRMACION_URLS,
 ];
+const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
+const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
 
 const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   LIDER_CDP: RUTAS_LIDER_CDP,
@@ -143,6 +155,8 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   PASTOR: RUTAS_PASTOR,
   SUPER_ADMIN: RUTAS_SUPER_ADMIN,
   LIDER_DEPARTAMENTO: RUTAS_LIDER_DEPARTAMENTO,
+  LIDER_JOVENES: RUTAS_LIDER_JOVENES,
+  ENCARGADO_MATRIMONIOS: RUTAS_ENCARGADO_MATRIMONIOS,
   // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
   // una capacidad ortogonal (Afirmación) o /cuenta.
   SIN_ROL: [],
@@ -248,6 +262,8 @@ export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIco
   // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL) -- el label
   // genérico alcanza porque es la única variante real que puede aparecer.
   LIDER_DEPARTAMENTO: { label: 'Líder de Departamento', icon: UserPlus, color: '#0071e3' },
+  LIDER_JOVENES: { label: 'Líder de Jóvenes', icon: Users, color: '#ff9500' },
+  ENCARGADO_MATRIMONIOS: { label: 'Encargado de Matrimonios', icon: Heart, color: '#ff375f' },
 };
 
 /**

@@ -10,10 +10,10 @@ No se cambia código hasta cerrar esta fase.
 
 ## Fase 1 — Modelo y validación de contexto (KAN-131)
 
-- [ ] Crear `ContextoActivo` y un adaptador desde `useMisRoles`.
-- [ ] Extender `auth.store.ts` para persistirlo y limpiarlo al cambiar iglesia o cerrar sesión.
-- [ ] Reemplazar la resolución de `useRolUI` por la derivación del contexto.
-- [ ] Añadir validación ante recarga e invalidación de contexto obsoleto.
+- [x] Crear `ContextoActivo` y un adaptador desde `useMisRoles`.
+- [x] Extender `auth.store.ts` para persistirlo y limpiarlo al cambiar iglesia o cerrar sesión.
+- [x] Reemplazar la resolución de `useRolUI` por la derivación del contexto.
+- [x] Añadir validación ante recarga e invalidación de contexto obsoleto.
 
 ## Fase 2 — Selector y rutas (KAN-132)
 
