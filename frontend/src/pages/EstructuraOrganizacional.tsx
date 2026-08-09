@@ -12,7 +12,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Crosshair, Minus, Network, Plus, Search, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Crosshair, Download, Minus, Network, Plus, Search, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
+import { descargarLienzoComoPng } from '@/features/estructura-organizacional/exportarLienzo';
 import { PanelCasaDePazEstructura } from '@/features/estructura-organizacional/PanelCasaDePazEstructura';
 import { PanelDepartamentoEstructura } from '@/features/estructura-organizacional/PanelDepartamentoEstructura';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
@@ -78,9 +79,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const [etiquetaTactil, setEtiquetaTactil] = useState<string | null>(null);
+  const [descargando, setDescargando] = useState(false);
   const iglesiaCentradaRef = useRef<string | null>(null);
   const temporizadorCamaraRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temporizadorEtiquetaTactilRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lienzoRef = useRef<HTMLDivElement>(null);
 
   // Alternativa por toque a los tooltips (REQ-UI-5): title no aparece al
   // tocar en celulares, asi que al mantener presionado un icono se muestra
@@ -159,6 +162,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     ? data?.redes.find((red) => red.id === panelRed.redId) ?? null
     : null;
 
+  // KAN-100: descarga el lienzo completo (todos los nodos, no solo lo
+  // visible en pantalla) como PNG horizontal.
+  const descargarLienzo = async () => {
+    if (!lienzoRef.current || descargando) return;
+    setDescargando(true);
+    try {
+      await descargarLienzoComoPng(lienzoRef.current, nodes, nombreIglesia);
+    } catch (fallo) {
+      toast.error(fallo instanceof Error ? fallo.message : 'No se pudo descargar el lienzo');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   const cambiarProteccionOtp = async (requerido: boolean, codigo?: string) => {
     try {
       await configurarOtp.mutateAsync({ requerido, otp: codigo || null });
@@ -215,18 +232,22 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Centrar estructura"
               {...eventosTactiles('Centrar estructura')}
               onClick={() => void fitView({ padding: 0.16, duration: 500 })}
-              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
+              className="relative flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors before:absolute before:-inset-y-1 before:content-[''] hover:bg-white/5"
             >
               <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
             </button>
             <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
+              {/* h-7 w-7 (28px) es mas chico que el minimo tactil de 44x44
+                  (REQ-MOB-3, KAN-63) -- antes:absolute expande el area de
+                  toque real sin agrandar el icono visible, mismo patron ya
+                  usado en los botones-texto de los paneles laterales. */}
               <button
                 type="button"
                 aria-label="Alejar"
                 title="Alejar"
                 {...eventosTactiles('Alejar')}
                 onClick={() => void zoomOut({ duration: 200 })}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -237,11 +258,22 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 title="Acercar"
                 {...eventosTactiles('Acercar')}
                 onClick={() => void zoomIn({ duration: 200 })}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+            {/* KAN-100: descargar el lienzo completo como PNG horizontal. */}
+            <button
+              type="button"
+              title="Descargar como imagen"
+              {...eventosTactiles('Descargar como imagen')}
+              onClick={() => void descargarLienzo()}
+              disabled={descargando || nodes.length === 0}
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" /> <span className="hidden sm:inline">{descargando ? 'Descargando…' : 'Descargar'}</span>
+            </button>
           </div>
         </div>
 
@@ -269,9 +301,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             title="Centrar estructura"
             {...eventosTactiles('Centrar estructura')}
             onClick={() => void fitView({ padding: 0.16, duration: 500 })}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5"
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-white/5"
           >
             <Crosshair className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Descargar como imagen"
+            title="Descargar como imagen"
+            {...eventosTactiles('Descargar como imagen')}
+            onClick={() => void descargarLienzo()}
+            disabled={descargando || nodes.length === 0}
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
           </button>
           <div className="ml-auto flex h-9 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
             <button
@@ -280,7 +323,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Alejar"
               {...eventosTactiles('Alejar')}
               onClick={() => void zoomOut({ duration: 200 })}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -291,7 +334,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Acercar"
               {...eventosTactiles('Acercar')}
               onClick={() => void zoomIn({ duration: 200 })}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -340,6 +383,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
         )}
         {!isLoading && !error && (
           <ReactFlow
+            ref={lienzoRef}
             nodes={nodesVisibles}
             edges={grafoBase.edges}
             onNodesChange={onNodesChange}
