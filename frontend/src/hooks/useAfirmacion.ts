@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
   listarUrlsAfirmacion,
   registrarPersonaAfirmacion,
@@ -37,5 +38,14 @@ export function useSetEstadoUrlsAfirmacion(iglesiaId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['afirmacion', 'urls', iglesiaId] });
     },
+  });
+}
+
+// KAN-127: todas las Casas de Paz de la iglesia (con o sin líder vigente).
+export function useCasasDePazAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'casas-de-paz', iglesiaId],
+    queryFn: () => listarCasasDePazAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
   });
 }

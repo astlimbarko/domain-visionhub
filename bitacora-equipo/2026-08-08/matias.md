@@ -20,3 +20,53 @@ Contexto: en una sesión anterior (con una rama vieja, sin el lienzo mergeado) c
 - [x] KAN-120 (error al asignar Supervisor): re-investigué el flujo completo, no encontré ningún bug de código. Documenté las dos validaciones legítimas que un usuario puede confundir con un bug (`ESTRUCTURA_PERSONA_SIN_CUENTA`, `ESTRUCTURA_PERSONA_YA_TIENE_ROL`). "En revisión".
 - [x] Commits locales (sin push): `60881f8` (KAN-100 + touch targets KAN-63/119). El commit de KAN-95 (`14e2e71`) ya estaba hecho por la sesión anterior, solo lo verifiqué.
 - [ ] Falta: probar todo en vivo contra la app corriendo (ninguno de los 8 se puede pasar a "Finalizada" sin eso); decidir con Gonzalo el alcance de KAN-78 (Líder/Supervisor de Red) antes de implementarlo.
+
+## Sesión 3 — cluster de Membresía (KAN-123 a KAN-127)
+
+Contexto: 5 tickets sobre el flujo de auto-registro/completar datos de una
+persona vía URL de Casa de Paz y sobre permisos de Afirmación. Traje la
+descripción completa de los 5 con Jira antes de tocar nada.
+
+- [x] Investigué el flujo real completo antes de asumir qué faltaba:
+  registro público (`RegistroPublico.tsx`/`fn_registrar_persona_via_url`),
+  Membresía obligatoria por invitación (`MembresiaObligatoria.tsx`/
+  `fn_completar_membresia`), registro interno de Afirmación
+  (`RegistrarPersonaAfirmacion.tsx`), y el modelo de relaciones familiares
+  ya existente (`relacion_familiar`/`referencia_familiar`,
+  `harness/02-persona-parentela`).
+- [x] **KAN-123/124/125/126** (ampliar campos, paginar, URL de CdP,
+  completar al ingresar): son un mismo flujo con dependencia real entre
+  sí. Encontré que KAN-123 tiene 5 decisiones de producto sin cerrar que
+  cambian el modelo de datos (catálogo de discipulados global/por
+  iglesia, repetición de discipulados, diseño de Seminario/Universidad,
+  y sobre todo qué define un "mentor disponible") y que KAN-126 tiene el
+  mayor radio de impacto del cluster (afecta el login de usuarios ya
+  existentes, no solo un flujo nuevo). En vez de implementar a ciegas
+  contra un alcance que iba a cambiar, escribí la especificación completa
+  en `harness/17-membresia-ampliada/` (requirements, technical-design,
+  database-impact, open-questions, implementation-plan) documentando qué
+  ya existe y se reutiliza, el diseño propuesto para lo que falta, y las
+  8 preguntas concretas que bloquean la implementación. Los 4 tickets
+  quedaron en Jira "En curso" con comentario, sin assignee (es
+  documentación, no código).
+- [x] **KAN-127** (Afirmación debe ver todas las CdP de su iglesia): sí
+  tenía alcance claro, lo implementé. Encontré que Afirmación solo veía
+  Casas de Paz con líder de CdP vigente (`fn_listar_casa_paz_url_afirmacion`/
+  `fn_listar_lideres_cdp_afirmacion`, acotadas a su caso de uso puntual de
+  administrar URLs/elegir líder) — las CdP vacantes nunca aparecían en
+  ningún lado. Agregué `fn_listar_casas_de_paz_afirmacion` (RPC nuevo,
+  solo lectura, mismo guard `fn_es_lider_afirmacion_en OR
+  fn_es_operativo_en`, aislado por iglesia) + pestaña nueva "Casas de Paz"
+  en el frontend de Afirmación (`PanelCasasDePazAfirmacion.tsx`,
+  agrupada por Red, igual que el panel de URLs), ruta
+  `/afirmacion-casas-de-paz`.
+- [x] Migración `supabase/migrations/20260808250000_fn_listar_casas_de_paz_afirmacion.sql`
+  (nueva, pendiente de aplicar contra Supabase real). `tsc -b --force` y
+  `vite build` del frontend limpios.
+- [x] Jira: KAN-127 comentado y pasado a "En revisión", assignee Gonzalo.
+  KAN-123/124/125/126 comentados y pasados a "En curso", sin assignee.
+- [ ] Falta: que Gonzalo responda las 8 preguntas de
+  `harness/17-membresia-ampliada/open-questions.md` para poder
+  implementar el cluster de Membresía; aplicar la migración de KAN-127
+  contra Supabase real y probar en vivo con un Líder de Afirmación real
+  antes de pasar KAN-127 a "Finalizada".

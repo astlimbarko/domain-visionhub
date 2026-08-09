@@ -45,6 +45,7 @@ const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizaci
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
+const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').then((m) => ({ default: m.AfirmacionCasasDePaz })));
 const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.Jovenes })));
 const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
 
@@ -225,6 +226,7 @@ function App() {
             <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_FORMULARIO} element={<RutaAfirmacion><AfirmacionFormulario /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_URLS} element={<RutaAfirmacion><AfirmacionUrls /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_CASAS_DE_PAZ} element={<RutaAfirmacion><AfirmacionCasasDePaz /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
           </Route>

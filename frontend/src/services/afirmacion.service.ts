@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type {
+  CasaDePazAfirmacion,
   CasaPazUrlAfirmacion,
   DatosPersonaAfirmacion,
   EstadoUrl,
@@ -60,4 +61,11 @@ export async function setEstadoUrlsAfirmacion(ids: string[], estado: EstadoUrl):
   const { data, error } = await supabase.rpc('fn_set_estado_casa_paz_url', { p_ids: ids, p_estado: estado });
   if (error) throw error;
   return data as SetEstadoUrlResponse;
+}
+
+// KAN-127: todas las Casas de Paz de la iglesia, con o sin líder vigente.
+export async function listarCasasDePazAfirmacion(iglesiaId: string): Promise<CasaDePazAfirmacion[]> {
+  const { data, error } = await supabase.rpc('fn_listar_casas_de_paz_afirmacion', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data ?? [];
 }

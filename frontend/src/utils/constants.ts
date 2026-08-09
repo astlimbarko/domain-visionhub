@@ -34,6 +34,10 @@ export const ROUTES = {
   AFIRMACION: '/afirmacion',
   AFIRMACION_FORMULARIO: '/afirmacion-formulario',
   AFIRMACION_URLS: '/afirmacion-urls',
+  // KAN-127: Casas de Paz de toda la iglesia (todas las Redes), no solo las
+  // que tienen lider vigente + URL (eso ya lo cubren AFIRMACION_URLS y el
+  // selector del formulario).
+  AFIRMACION_CASAS_DE_PAZ: '/afirmacion-casas-de-paz',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',
