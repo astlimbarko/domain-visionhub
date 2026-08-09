@@ -70,3 +70,81 @@ descripción completa de los 5 con Jira antes de tocar nada.
   implementar el cluster de Membresía; aplicar la migración de KAN-127
   contra Supabase real y probar en vivo con un Líder de Afirmación real
   antes de pasar KAN-127 a "Finalizada".
+
+## Sesión 4 — bloque de 9 tickets (KAN-5, 16, 27, 29, 30, 32, 35, 38, 40)
+
+Traje descripción + comentarios completos de los 9 con Jira antes de tocar
+nada. Varios ya tenían contexto previo del commit `0935324` (2026-08-06),
+escrito ANTES del merge grande de Estructura Organizacional -- volví a
+investigar cada uno contra el código real de hoy en vez de asumir que
+seguían igual de bloqueados.
+
+- [x] **KAN-5** (Ministerio en el formulario de personas): implementado.
+  En vez de un campo nuevo `ministerio_id` en `persona` (que hubiera
+  duplicado la fuente de verdad), reusé el modelo de participación ya
+  existente (`ministerio_persona`) -- ahora se puede asignar un
+  Ministerio al crear una persona (`CrearPersonaDialog.tsx`) y
+  agregar/quitar desde su ficha (`FichaMinisterios.tsx`, antes de
+  solo-lectura pasa a editable). Migración nueva para exponer el id de
+  participación (necesario para poder quitar sin afectar el catálogo).
+  Jira: "En revisión", assignee Gonzalo.
+- [x] **KAN-16**: re-auditado contra el código real -- los 7 criterios de
+  aceptación ya estaban cubiertos por el trabajo del 2026-08-06 (checkbox
+  "Asiste a esta CDP", migración 107 ya aplicada y verificada). El
+  pendiente de "visitante de otra CdP" es una ampliación de alcance, no
+  un criterio del ticket. Se queda "En revisión" (sin cambios de código).
+- [x] **KAN-27/29/30** (rol Soporte de Red / restringir finanzas a
+  Supervisor de Red): investigué a fondo el modelo de roles real.
+  Encontré que "Supervisor de Red" (cargo `SUBLIDER_RED`) YA existe pero
+  comparte el 100% de los permisos de Líder de Red por una decisión
+  explícita del owner (`91_fn_es_lider_de_red_incluye_sublider.sql`,
+  2026-08-02: "paridad completa, ya que es de apoyo") -- incluye ver
+  montos (`fn_dashboard_lider_red.ofrendas_mes/ingresos`). Restringir
+  finanzas (KAN-29/30) revierte esa decisión reciente; crear un rol
+  "Soporte" realmente acotado (KAN-27) implica sumar un valor a
+  `rol_sistema_enum` o ramificar por `cargo_codigo` en ~17
+  funciones/políticas RLS. No improvisé ninguna de las tres -- las 3
+  quedaron documentadas en Jira con el hallazgo concreto, "En curso",
+  pendientes de que el owner confirme el alcance real de permisos.
+- [x] **KAN-32** (Cambiar de Red): no existe hoy. Confirmé que es una
+  feature real y no chica (una persona pertenece a una CdP, no a una Red
+  directamente; mover implica reasignar membresía, advertir cargos no
+  mantenibles, preservar histórico/auditoría). Documentado en Jira sin
+  implementar, "En curso".
+- [x] **KAN-35** (Supervisor de la Visión ve CdP eliminadas): ya estaba
+  resuelto como parte de KAN-34 (Histórico Anual) -- confirmé que
+  `fn_historico_cdp_eliminadas` escopa solo por iglesia (no depende de
+  que la Red/líder sigan activos) y que el tab ya es accesible para el
+  Supervisor. Jira: "En revisión", sin cambios de código.
+- [x] **KAN-38** ("Seleccionar Todo"): implementado en dos selectores
+  múltiples reales -- el buscador de personas de la toma de asistencia
+  (`BuscadorPersonaMultiple.tsx`) y el filtro multi-sede del Calendario
+  General (`CalendarioMultiIglesia.tsx`), con estado indeterminado y
+  contador, actuando solo sobre lo filtrado/visible. No toqué cada
+  selector múltiple de la app -- el patrón queda reusable para el resto.
+  Jira: "En revisión", assignee Gonzalo.
+- [x] **KAN-40** (Pastor ve calendario consolidado): re-confirmé la misma
+  conclusión de la sesión del 2026-08-06 -- `RUTAS_PASTOR` sigue sin
+  Calendario a propósito (decisión de alcance del owner). El filtro
+  multi-sede ya está construido (`CalendarioMultiIglesia.tsx`) y ahora
+  además tiene "Seleccionar Todo" (KAN-38) -- si el owner confirma que el
+  Pastor debe tener Calendario, conectarlo es inmediato. Sigue "En curso".
+- [x] Commit local (sin push): `00611b0` (KAN-5 + KAN-38). Migración
+  nueva `supabase/migrations/20260808260000_fn_persona_ficha_ministerio_participante_id.sql`,
+  pendiente de aplicar contra Supabase real.
+- [x] `tsc -b` limpio para todos mis archivos tocados -- hay un error
+  preexistente en `useEstructuraOrganizacional.ts` (import sin usar) que
+  viene de otra sesión trabajando en paralelo en el mismo repo, no es mío
+  y no lo toqué.
+- [x] Nota: sesión compartida con al menos otra sesión en paralelo
+  (cluster de Afirmación/Membresía, `PanelCasasDePazAfirmacion.tsx` y
+  otros archivos de `estructura-organizacional`/`afirmacion` aparecen
+  modificados sin ser míos) -- tuve cuidado de solo `git add` mis propios
+  archivos al commitear. También encontré y resolví una colisión de
+  nombre de migración (dos archivos con el mismo timestamp
+  `20260808240000`) renombrando la mía a `20260808260000`.
+- [ ] Falta: aplicar la migración de KAN-5 contra Supabase real y probar
+  en vivo (crear persona con Ministerio, agregar/quitar desde la ficha);
+  probar "Seleccionar Todo" en vivo antes de pasar KAN-5/KAN-38 a
+  "Finalizada"; que el owner defina el alcance de permisos de
+  KAN-27/29/30 y decida si prioriza KAN-32 como feature aparte.
