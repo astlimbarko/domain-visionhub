@@ -1,12 +1,13 @@
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowRightLeft, Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
-import { usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
+import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
 import { FichaIdentidad } from './FichaIdentidad';
 import { FichaDirecciones } from './FichaDirecciones';
 import { FichaTelefonos } from './FichaTelefonos';
@@ -15,20 +16,55 @@ import { FichaFamilia } from './FichaFamilia';
 import { FichaEvangelismo } from './FichaEvangelismo';
 import { FichaMinisterios } from './FichaMinisterios';
 import { FichaMilagros } from './FichaMilagros';
+import { MoverPersonaRedDialog } from './MoverPersonaRedDialog';
 
 interface Props {
   personaId: string | undefined;
   onOpenChange: (open: boolean) => void;
 }
 
+/** El código de regla va antes de ": " en el mensaje del backend (RAISE
+ * EXCEPTION 'CODIGO: texto legible'). El texto que sigue ya es español
+ * legible para el usuario -- no hace falta mapear cada código a mano. */
+function mensajeAmigable(e: unknown, generico: string): string {
+  const mensaje = (e as { message?: string } | null)?.message ?? '';
+  const partes = mensaje.split(': ');
+  if (partes.length > 1 && /^[A-Z_]+$/.test(partes[0])) return partes.slice(1).join(': ');
+  if (mensaje.includes('permission denied') || mensaje.includes('row-level security')) return 'No tenés permiso para hacer este cambio';
+  return generico;
+}
+
 export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const iglesias = useAuthStore((s) => s.iglesias);
   const { data: ficha, isLoading } = usePersonaFicha(personaId);
   const toggleOculto = useToggleOculto(personaId ?? '');
+  const moverRed = useMoverPersonaRed(personaId ?? '');
+  const [mostrarMoverRed, setMostrarMoverRed] = useState(false);
 
   const puedeEditar = ficha ? (iglesias.find((i) => i.id === ficha.persona.iglesia_id)?.es_operativo ?? false) : false;
 
+  // Cargos vigentes que quedan atados a la Red/Casa de Paz que la persona
+  // deja si se traslada -- no se "llevan" a la Red nueva (ver fn_mover_persona_red).
+  const cargosOrigen = ficha
+    ? ficha.cargos.filter(
+        (c) =>
+          (c.ambito === 'RED' && c.entidad === ficha.casa_de_paz?.red_nombre) ||
+          (c.ambito === 'CDP' && c.entidad === ficha.casa_de_paz?.etiqueta)
+      )
+    : [];
+
+  function manejarMover(params: { casaDePazDestinoId: string; motivo: string; confirmarCierreCargos: boolean; pin?: string }) {
+    moverRed.mutate(params, {
+      onSuccess: ({ pendiente }) => {
+        toast.success(pendiente ? 'Quedó pendiente de autorización del Líder de Red' : 'Persona trasladada de Red');
+        setMostrarMoverRed(false);
+      },
+      onError: (e) => toast.error(mensajeAmigable(e, 'No se pudo trasladar a la persona')),
+    });
+  }
+
   return (
+    <>
     <Sheet open={!!personaId} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
         {isLoading || !ficha ? (
@@ -72,6 +108,19 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                 >
                   {ficha.persona.oculto ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   {ficha.persona.oculto ? 'Quitar de ocultas' : 'Ocultar de búsquedas normales'}
+                </Button>
+              )}
+
+              {puedeEditar && ficha.casa_de_paz && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit gap-1.5"
+                  onClick={() => setMostrarMoverRed(true)}
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                  Cambiar de Red
                 </Button>
               )}
 
@@ -188,5 +237,19 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
         )}
       </SheetContent>
     </Sheet>
+
+    {ficha && (
+      <MoverPersonaRedDialog
+        open={mostrarMoverRed}
+        onOpenChange={setMostrarMoverRed}
+        iglesiaId={ficha.persona.iglesia_id}
+        personaNombre={ficha.persona.nombre_completo}
+        redOrigenId={ficha.casa_de_paz?.red_id ?? null}
+        cargosOrigen={cargosOrigen}
+        procesando={moverRed.isPending}
+        onMover={manejarMover}
+      />
+    )}
+    </>
   );
 }

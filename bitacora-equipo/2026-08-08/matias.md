@@ -386,3 +386,61 @@ sí tienen alcance claro -- implementados en esta sesión.
 - [x] A partir de ahora: no se toca autenticación, selector multirol,
   AppShell, PrivateLayout, permisos ni dashboards en esta sesión sin
   coordinar antes con Gonzalo, para no pisarse con KAN-130 a KAN-135.
+
+## Sesión 8 — KAN-32 ("Cambiar de Red"), implementado
+
+Traje descripción completa + mi comentario anterior con Jira (ya había
+investigado antes y confirmado que no existía nada -- quedó "En curso" sin
+implementar). Investigué el modelo real (`harness/03-estructura/design.md`,
+`08_estructura.sql`, `30_fusiones_y_pin.sql`, `34_multiplicacion.sql`,
+`58_solicitudes_estructura.sql`) antes de diseñar.
+
+- [x] Una Persona no pertenece a una Red directamente (pertenece a una CdP,
+  que pertenece a una Red), así que "mover de Red" es reasignar la
+  membresía principal (`casa_de_paz_membresia`) a una CdP que ya esté en la
+  Red de destino -- mismo patrón append-only que fusión/multiplicación
+  (nunca se borra, se cierra `fecha_fin` y se abre una fila nueva).
+- [x] **Decisión sobre cargos de liderazgo** (el caso límite que pedía
+  criterio): un Líder/Sublíder de Red, Encargado de Red, o Líder/Sublíder/
+  Anfitrión de la CdP que deja NO se "lleva" el cargo a la Red nueva -- el
+  cargo queda atado a la Red/CdP de origen, no a la persona. Si tiene
+  alguno vigente, la RPC nueva (`fn_mover_persona_red`) rechaza con
+  `MOVIMIENTO_CARGOS_VIGENTES` a menos que el administrador confirme
+  explícitamente (`p_confirmar_cierre_cargos`) -- recién ahí los cierra.
+  Cargos de Iglesia (`persona_cargo`: Pastor, Supervisor de Visión,
+  cargos ministeriales) quedan fuera a propósito, no dependen de la Red.
+- [x] Reusé el mismo gate de `58_solicitudes_estructura.sql`: si el
+  Supervisor (no el Pastor, no el propio Líder de Red) mueve a alguien
+  fuera de una Red que ya tiene Líder vigente, no se aplica al instante --
+  genera una solicitud pendiente que ese Líder de Red aprueba o rechaza
+  (agregué el tipo `MOVER_PERSONA_RED` al catálogo y a
+  `fn_aprobar_solicitud_estructura`).
+- [x] Backend: tabla nueva `movimiento_red_persona` (auditoría append-only,
+  con los cargos cerrados guardados en `cargos_finalizados` para que el
+  registro se explique solo -- Requisito 10), `fn_mover_persona_red` (la
+  acción), `fn_listar_movimientos_red_persona` (historial por iglesia, sin
+  UI dedicada todavía -- documentado como pendiente si se prioriza un panel
+  de auditoría). Migración
+  `supabase/migrations/20260808300000_estructura_mover_persona_red.sql`,
+  nueva, pendiente de aplicar contra Supabase real.
+- [x] Frontend: botón "Cambiar de Red" en `FichaPersonaSheet.tsx` (visible
+  para Pastor/Supervisor, junto a "Ocultar de búsquedas") que abre
+  `MoverPersonaRedDialog.tsx` (nuevo) -- Red de destino → Casa de Paz de
+  destino (reusa `useRedes`/`useCdps` ya existentes), muestra los cargos
+  que se van a cerrar con checkbox de confirmación obligatoria, motivo
+  obligatorio, PIN si es Super Admin. Reusé `fn_persona_ficha` (ya cargado
+  por la ficha) para los cargos vigentes en vez de crear un RPC de
+  "preview" aparte.
+- [x] `tsc -b && vite build` y `oxlint` de los archivos tocados, limpios.
+- [x] Commit local (sin push) -- solo mis archivos (`git add` puntual, hay
+  otras 2 sesiones en paralelo con cambios sin commitear de Anuncios y
+  Membresía en el mismo working directory que no toqué).
+- [x] Jira: KAN-32 comentado con el diseño y las decisiones, pasado a "En
+  revisión", assignee Gonzalo.
+- [ ] Falta: aplicar la migración `20260808300000` contra Supabase real y
+  probar en vivo (mover a una persona común, y por separado a alguien con
+  un cargo vigente para confirmar que avisa y cierra el cargo; probar el
+  camino de solicitud pendiente con un Supervisor sobre una Red con Líder
+  vigente) antes de pasar a "Finalizada"; evaluar si vale la pena un panel
+  de "Movimientos entre Redes" para `fn_listar_movimientos_red_persona`
+  (hoy solo existe el RPC, sin UI).
