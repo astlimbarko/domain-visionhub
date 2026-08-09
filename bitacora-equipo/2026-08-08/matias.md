@@ -148,3 +148,68 @@ seguían igual de bloqueados.
   probar "Seleccionar Todo" en vivo antes de pasar KAN-5/KAN-38 a
   "Finalizada"; que el owner defina el alcance de permisos de
   KAN-27/29/30 y decida si prioriza KAN-32 como feature aparte.
+
+## Sesión 5 — KAN-87, KAN-111, KAN-88
+
+Traje descripción + comentarios completos de los 3 con Jira antes de tocar
+nada.
+
+- [x] **KAN-87**: la propia descripción del ticket dice textualmente "Para
+  que lo implemente el equipo, no es trabajo de esta sesión" -- no lo
+  implementé, respeté esa nota. Investigué igual la relación con KAN-111 y
+  dejé comentado en Jira que queda resuelto como subconjunto de KAN-111, sin
+  cambio de estado (sigue "Tareas por hacer").
+- [x] **KAN-111** (días de retención configurables, Red y CdP):
+  implementado. Nuevos criterios `DIAS_RETENCION_RED`/`DIAS_RETENCION_CDP`
+  en el motor de configuración ya existente (`configuracion_definicion` +
+  `fn_criterio`, mismo patrón que Control de Reportes), configurables desde
+  el Panel del Supervisor sin tocar frontend genérico. Encontré que Red ya
+  tenía el período de gracia pero fijo en el código (`interval '1 year'`) y
+  que Casa de Paz **no tenía ninguno** -- al eliminarse desaparecía de
+  inmediato (política RLS genérica `fecha_eliminacion IS NULL`). Agregué
+  política de gracia nueva para `casa_de_paz` (mismo patrón que `red`) +
+  `fn_estructura_reactivar_casa_de_paz` (no existía forma de deshacer
+  `fn_eliminar_cdp`) + wiring de frontend (banner "fue eliminada" + botón
+  "Reactivar" en `PanelCasaDePazEstructura.tsx`, tarjeta agrisada en el
+  lienzo). Saqué el corte de gracia hardcodeado en JS
+  (`estructura.service.ts`) que quedaba redundante con la RLS ahora
+  configurable.
+  - Fuera de alcance a propósito: la ventana de "borrado definitivo" con
+    cron + deshacer de 60s que Red ya tiene (KAN-85/52) no se replicó para
+    CdP -- documentado en el comentario de Jira como pendiente real.
+  - Migración `supabase/migrations/20260808240000_estructura_retencion_configurable.sql`
+    (nueva, pendiente de aplicar contra Supabase real).
+  - Jira: comentado, pasado a "En revisión", assignee Gonzalo.
+- [x] **KAN-88** (logo en correos de acceso@somoscdv.com): implementado.
+  `logo_64x64.png` que menciona el ticket no existía en el repo -- generé
+  `frontend/public/logo-correo.png` (128×128, para verse nítido a 64×64 en
+  pantallas retina, con `System.Drawing` de PowerShell ya que no había
+  Python/ImageMagick disponibles) a partir del logo real
+  (`frontend/public/logo.png`). Agregué el header con el logo a los 3
+  puntos que arman HTML de correo en el repo: `supabase/templates/invite.html`
+  (usado por `invitar-usuario`/`invitar-lider`/`crear-iglesia` vía
+  `inviteUserByEmail`) y las Edge Functions `solicitar-otp` y
+  `notificar-asignacion-cargo` (HTML propio por Brevo SMTP). Mismo logo para
+  ambas iglesias de prueba, como indicó el owner en el comentario del
+  ticket.
+  - Nota: las otras 4 plantillas de Supabase Auth (recovery, magic link,
+    etc.) no están versionadas en este repo -- se aplicaron directo en el
+    dashboard en una sesión anterior (bitácora 2026-07-30/gonzalo.md);
+    agregarles el logo ahí queda fuera del alcance de esta sesión.
+  - Jira: comentado, pasado a "En revisión" (ya tenía assignee Gonzalo).
+- [x] `tsc -b` y `vite build` del frontend limpios después de KAN-111
+  (KAN-88 no toca frontend TS, solo Edge Functions Deno + un asset).
+- [x] Commits locales (sin push): `5288d7e` (KAN-111), `052537f` (KAN-88),
+  ambos en `feature/supervisor-vision-accion`.
+- [x] Nota: encontré en el checkout entradas de otras sesiones en paralelo
+  ya committeadas (Sesión 4 de este mismo archivo, hasta `0edd646`) --
+  hice `git add` solo de mis propios archivos, sin colisión de timestamp de
+  migración (`20260808240000` ya estaba libre para mí cuando empecé).
+- [ ] Falta: aplicar la migración de KAN-111 contra Supabase real y probar
+  en vivo (eliminar/reactivar una Casa de Paz, cambiar los días de
+  retención desde el Panel del Supervisor y confirmar que el corte se
+  respeta) antes de pasar a "Finalizada"; confirmar que el logo se ve bien
+  en un correo real de Brevo (algunos clientes de correo bloquean imágenes
+  por default) antes de pasar KAN-88 a "Finalizada"; decidir con el equipo
+  si vale la pena replicar el borrado definitivo con cron para CdP
+  (gap documentado en KAN-111).
