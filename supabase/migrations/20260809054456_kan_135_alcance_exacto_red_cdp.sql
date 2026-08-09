@@ -1,4 +1,4 @@
--- VisionHub â€” KAN-135: autorizaciÃ³n exacta por Red y Casa de Paz.
+-- VisionHub Ã¢â‚¬â€ KAN-135: autorizaciÃƒÂ³n exacta por Red y Casa de Paz.
 -- No modifica datos. Evita lecturas de entidades hermanas mediante IDs manipulados.
 
 begin;
@@ -133,7 +133,7 @@ as $$
      join public.casa_de_paz_cargo cc on cc.persona_id = p.id
      join public.cargo ca on ca.id = cc.cargo_id
      where cc.casa_de_paz_id = c.id and ca.codigo = 'LIDER_CDP'
-       and cc.fecha_fin is null and cc.fecha_eliminacion is null limit 1),
+       and cc.fecha_fin is null and cc.fecha_eliminacion is null limit 1) as lider_nombre,
     (select p.id from public.persona p
      join public.casa_de_paz_cargo cc on cc.persona_id = p.id
      join public.cargo ca on ca.id = cc.cargo_id

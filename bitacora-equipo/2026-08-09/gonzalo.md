@@ -11,3 +11,4 @@
 - [x] Preparar migraciones de alcance Red/CdP.
 - [ ] Validar y aplicar migraciones KAN-135.
 - [x] Corregir aprobaciones de Red (KAN-135).
+- [x] Validar alcance Red/CdP en PostgreSQL local.
