@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
-import type { InvitacionPendiente } from '../types/invitacion-lider.types';
+import type { MembresiaIncompleta } from '../types/membresia-extendida.types';
 import type { RolUI } from '../utils/permisos';
 
 interface AuthState {
@@ -12,7 +12,11 @@ interface AuthState {
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
-  membresiaPendiente: InvitacionPendiente | null;
+  // KAN-126 (autorizado explícitamente por Matías en chat, 2026-08-09):
+  // MembresiaIncompleta es superset de la vieja InvitacionPendiente --
+  // fn_mi_membresia_incompleta delega en fn_mi_invitacion_pendiente primero,
+  // así que el caso de invitación sigue funcionando igual que antes.
+  membresiaPendiente: MembresiaIncompleta | null;
   /** Rol elegido en /seleccionar-rol cuando el usuario tiene más de un sombrero en la iglesia activa. */
   rolActivo: RolUI | null;
   setSesion: (data: {
@@ -21,12 +25,18 @@ interface AuthState {
     correo: string | null;
     iglesias: IglesiaAccesible[];
     esSuperAdmin: boolean;
-    membresiaPendiente?: InvitacionPendiente | null;
+    membresiaPendiente?: MembresiaIncompleta | null;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
+  /** KAN-126: botón "Saltar" del caso general (sin invitación asociada) --
+   * entra al sistema sin completar, pero solo por esta sesión: el próximo
+   * login vuelve a pedirlo (setSesion repuebla membresiaPendiente desde el
+   * servidor). No se usa para el caso de invitación, que sigue siendo
+   * obligatorio como hasta ahora. */
+  saltarMembresiaLocal: () => void;
   logout: () => void;
 }
 
@@ -82,6 +92,8 @@ export const useAuthStore = create<AuthState>()(
 
       completarMembresiaLocal: (personaId, nombreCompleto) =>
         set({ personaId, nombreCompleto, membresiaPendiente: null }),
+
+      saltarMembresiaLocal: () => set({ membresiaPendiente: null }),
 
       logout: () =>
         set({
