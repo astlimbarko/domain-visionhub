@@ -1,12 +1,6 @@
 /**
- * Datos para la pantalla "Seleccionar rol" (rediseño 2026-08-01,
- * login_multi_rol.jpeg). A diferencia de `useOpcionesRol` (una entrada por
- * TIPO de rol, usada por PrivateLayout/AppShell para decidir permisos y
- * ambigüedad -- sin tocar), acá cada asignación real es su propia fila: si
- * la persona lidera 2 Redes o 2 Casas de Paz, son 2 entradas separadas con
- * sus propios datos, no una sola agrupada por tipo. No reemplaza ni compite
- * con `useOpcionesRol` -- viven en paralelo, misma fuente de datos
- * (useMisRoles), esta solo la presenta con más detalle para esta pantalla.
+ * Opciones visuales del selector multirol. Cada fila representa una
+ * asignacion real y conserva su ContextoActivo completo.
  */
 import type { LucideIcon } from 'lucide-react';
 import { MapPin, User } from 'lucide-react';
@@ -15,9 +9,8 @@ import { useMisRoles } from '@/hooks/useDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import type { RolUI } from '@/utils/permisos';
-import type { Vista, CargoCdpDashboard } from '@/types/dashboard.types';
+import type { CargoCdpDashboard } from '@/types/dashboard.types';
 import { COLOR_RED_NEUTRO, FILA_ROL_VISUAL } from '@/utils/seleccionar-rol-visual';
-import { ROUTES } from '@/utils/constants';
 
 export interface LineaSecundaria {
   icon?: LucideIcon;
@@ -35,10 +28,6 @@ export interface OpcionRolContextual {
   lineas: LineaSecundaria[];
   /** Solo Líder de Red: color real de la red para el punto junto a la flecha. */
   colorRed?: string;
-  /** Contexto específico a abrir (mismo mecanismo de `location.state.vista` que ya usa Dashboard.tsx). Sin vista = atajo genérico (ej. Super Admin). */
-  vista?: Vista;
-  /** Ruta directa fuera del Dashboard genérico (ej. Afirmación, su propia sección). Si está, `vista` se ignora. */
-  ruta?: string;
 }
 
 function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesiaId: string): OpcionRolContextual {
@@ -64,7 +53,6 @@ function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesia
     bgIcono: v.bgIcono,
     colorIcono: v.colorIcono,
     lineas,
-    vista: { tipo: 'cdp', cdpId: cdp.id, esSublider },
   };
 }
 
@@ -79,7 +67,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   const esLiderAfirmacion = iglesiaActiva?.es_lider_afirmacion ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId ?? undefined);
 
-  // Mismo caso límite que useOpcionesRol: Super Admin sin iglesia activa no
+  // Caso límite del Super Admin: Super Admin sin iglesia activa no
   // tiene nada que desambiguar vía useMisRoles (la query queda deshabilitada).
   if (esSuperAdmin && !iglesiaActivaId && contextosDisponibles) {
     const v = FILA_ROL_VISUAL.SUPER_ADMIN;
@@ -109,7 +97,6 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
       key: `PASTOR:${iglesiaActivaId}`, rolUI: 'PASTOR', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `PASTOR:${iglesiaActivaId}`, rolUI: 'PASTOR', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId as string },
       lineas: iglesiaActiva?.nombre ? [{ texto: iglesiaActiva.nombre }] : [],
-      vista: { tipo: 'pastor' },
     });
   }
 
@@ -119,7 +106,6 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
       key: `SUPERVISOR:${iglesiaActivaId}`, rolUI: 'SUPERVISOR', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `SUPERVISOR:${iglesiaActivaId}`, rolUI: 'SUPERVISOR', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId },
       lineas: iglesiaActiva?.nombre ? [{ texto: iglesiaActiva.nombre }] : [],
-      vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId },
     });
   }
 
@@ -141,7 +127,6 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
       icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       lineas: [{ texto: red.nombre }],
       colorRed: red.color && red.color.toUpperCase() !== '#FFFFFF' ? red.color : COLOR_RED_NEUTRO,
-      vista: { tipo: 'red', redId: red.id },
     });
   }
 
@@ -154,18 +139,17 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
       key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'AFIRMACION' },
       lineas: [],
-      ruta: ROUTES.AFIRMACION,
     });
   }
 
   if (iglesiaActiva?.es_lider_jovenes && iglesiaActivaId) {
     const v = FILA_ROL_VISUAL.LIDER_JOVENES;
-    opciones.push({ key: `LIDER_JOVENES:${iglesiaActivaId}`, rolUI: 'LIDER_JOVENES', contexto: { clave: `LIDER_JOVENES:${iglesiaActivaId}`, rolUI: 'LIDER_JOVENES', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: iglesiaActiva.nombre ? [{ texto: iglesiaActiva.nombre }] : [], ruta: ROUTES.JOVENES });
+    opciones.push({ key: `LIDER_JOVENES:${iglesiaActivaId}`, rolUI: 'LIDER_JOVENES', contexto: { clave: `LIDER_JOVENES:${iglesiaActivaId}`, rolUI: 'LIDER_JOVENES', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: iglesiaActiva.nombre ? [{ texto: iglesiaActiva.nombre }] : [] });
   }
 
   if (iglesiaActiva?.es_encargado_matrimonios && iglesiaActivaId) {
     const v = FILA_ROL_VISUAL.ENCARGADO_MATRIMONIOS;
-    opciones.push({ key: `ENCARGADO_MATRIMONIOS:${iglesiaActivaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', contexto: { clave: `ENCARGADO_MATRIMONIOS:${iglesiaActivaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: iglesiaActiva.nombre ? [{ texto: iglesiaActiva.nombre }] : [], ruta: ROUTES.MATRIMONIOS });
+    opciones.push({ key: `ENCARGADO_MATRIMONIOS:${iglesiaActivaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', contexto: { clave: `ENCARGADO_MATRIMONIOS:${iglesiaActivaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', alcance: 'IGLESIA', iglesiaId: iglesiaActivaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: iglesiaActiva.nombre ? [{ texto: iglesiaActiva.nombre }] : [] });
   }
 
   return opciones
