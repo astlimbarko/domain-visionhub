@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
@@ -54,6 +55,7 @@ interface Props {
 export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp }: Props) {
   const nombreLider = useAuthStore((s) => s.nombreCompleto);
   const { data, isLoading } = useDashboardLiderRed(redId);
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
   const [rango, setRango] = useState<RangoFechas | null>(null);
@@ -100,7 +102,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
   const reportadas = Math.max(0, kpi.cdp_activas - sinReporte.length);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <DashboardHero
         icon={Network}
         eyebrow="Red"
@@ -119,6 +121,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
             </SelectContent>
           </Select>
           <RangoFechasPopover value={rango} onChange={setRango} />
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo={`dashboard-red-${red.nombre}`} />
         </div>
       </div>
 

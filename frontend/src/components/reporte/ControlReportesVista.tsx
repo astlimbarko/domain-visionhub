@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
@@ -120,6 +121,8 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   // ROJO/PENDIENTE (semanas sin reporte todavía). El VERDE/NARANJA de un
   // reporte ya cargado viene calculado desde el servidor (estado_carga).
   const { data: diasPlazoReporte = 2 } = useDiasPlazoReporte(iglesiaActivaId);
+
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoyDate = new Date();
   const [anio, setAnio] = useState(hoyDate.getFullYear());
@@ -241,7 +244,7 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
     total === 0 ? 'Sin Casas de Paz activas' : vencidas === 0 ? 'Todavía no vence ningún reporte este mes' : todoOk ? 'Todo el mes al día' : `${rojos + naranjas} reporte${rojos + naranjas === 1 ? '' : 's'} con problema este mes`;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={contenedorRef} className="flex flex-col gap-4">
       {/* ── Navegación de mes + selector de Red, en una sola barra ─────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-muted/20 p-2 pl-4">
         <div className="flex items-center gap-2">
@@ -253,7 +256,10 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        {accionExtra}
+        <div className="flex flex-wrap items-center gap-2">
+          {accionExtra}
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="control-reportes" />
+        </div>
       </div>
 
       {/* ── Todo lo demás vive en una sola card: KPIs, filtros y la matriz ──────── */}

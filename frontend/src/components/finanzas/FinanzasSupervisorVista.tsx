@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Home, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
@@ -33,6 +34,7 @@ export function FinanzasSupervisorVista() {
 
   const [redId, setRedId] = useState<string>();
   const redActiva = redId ?? redes[0]?.id;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -86,7 +88,7 @@ export function FinanzasSupervisorVista() {
   const cdpsConDatos = Array.from(porCdp.entries());
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {redes.length > 1 && (
           <Select value={redActiva} onValueChange={setRedId}>
@@ -108,6 +110,7 @@ export function FinanzasSupervisorVista() {
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="finanzas-supervisor" />
         </div>
       </div>
 
