@@ -13,3 +13,4 @@
 - [ ] Aplicar migraciones KAN-135 a Supabase.
 - [x] Corregir aprobaciones de Red (KAN-135).
 - [x] Validar alcance Red/CdP en PostgreSQL local.
+- [x] Validar build Docker compartido.
