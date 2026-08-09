@@ -34,6 +34,10 @@
 
 **REQ-MR-12 — Cambio de contexto.** WHEN el usuario elija otro contexto, THEN la aplicación SHALL actualizar navegación y tema, invalidar caché sensible del contexto anterior y llevarlo a la ruta inicial del nuevo panel.
 
+**REQ-MR-13 — Colores fijos de panel.** El color del navbar SHALL ser una configuración fija por Rol UI dentro del catálogo central. Los roles todavía sin color oficial SHALL usar temporalmente blanco nieve `#FFFAFA`.
+
+**REQ-MR-14 — Colores dinámicos de Red.** El color identificativo de cada Red SHALL continuar como dato dinámico almacenado en Supabase. SHALL NOT definir ni reemplazar el color fijo del navbar del Líder de Red.
+
 ## Matriz inicial de alcance
 
 | Panel / Rol UI | Alcance obligatorio | Estado de decisión |
@@ -45,9 +49,9 @@
 | Líder de Red | Red + iglesia | Cerrado |
 | Líder de Casa de Paz | CdP + Red + iglesia | Cerrado |
 | Sublíder de Casa de Paz | CdP + Red + iglesia | Cerrado |
-| Afirmación | Pendiente: panel propio o capacidad | Requiere decisión |
-| Jóvenes | Pendiente: panel propio o capacidad | Requiere decisión |
-| Matrimonios | Pendiente: panel propio o capacidad | Requiere decisión |
+| Afirmación | Departamento + iglesia | Panel independiente |
+| Jóvenes | Iglesia | Panel independiente, solo lectura actualmente |
+| Matrimonios | Iglesia | Panel independiente, solo lectura actualmente |
 
 ## Criterios globales de aceptación
 

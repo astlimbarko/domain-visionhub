@@ -2,9 +2,9 @@
 
 ## Fase 0 — Cierre funcional (KAN-130)
 
-- [ ] Confirmar la matriz de `requirements.md` con el owner.
-- [ ] Resolver Afirmación, Jóvenes y Matrimonios: panel independiente o capacidad sin navegación.
-- [ ] Definir ejemplos reales de usuarios para la matriz de pruebas.
+- [x] Confirmar la matriz de `requirements.md` con el owner.
+- [x] Resolver Afirmación, Jóvenes y Matrimonios como paneles independientes.
+- [x] Definir ejemplos reales de usuarios para la matriz de pruebas.
 
 No se cambia código hasta cerrar esta fase.
 

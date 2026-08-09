@@ -59,7 +59,16 @@ Crear un catálogo único, por ejemplo `frontend/src/utils/paneles-contexto.ts`.
 
 `AppShell.tsx` consume exclusivamente ese catálogo. Se elimina el patrón de añadir `NAV_ITEMS_AFIRMACION`, Jóvenes o Matrimonios sobre el menú de otro rol.
 
-Antes de codificar Afirmación/Jóvenes/Matrimonios se decide si cada uno será un panel/contexto independiente, o una capacidad sin panel propio que no debe aportar navegación. No se permite mantener un tercer estado ambiguo.
+### Separación de sistemas de color
+
+- Los colores del navbar son fijos por Rol UI y viven en el catálogo central.
+- Super Admin conserva su tema oscuro; Líder de Red conserva `#4E73B7`.
+- Sublíder de CdP usa blanco nieve `#FFFAFA` como color definido.
+- Los roles todavía sin color oficial usan temporalmente `#FFFAFA` hasta que el owner confirme su paleta.
+- Los colores de Red son datos dinámicos de Supabase y no reemplazan el color del navbar.
+- Los colores de departamentos, chips del selector e íconos de navegación son sistemas visuales separados.
+
+Afirmación, Jóvenes y Matrimonios se modelan como paneles/contextos independientes. Sus accesos dejan de añadirse sobre el sidebar de otro rol.
 
 ## 5. Consumo de datos y caché
 

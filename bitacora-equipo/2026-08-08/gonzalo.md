@@ -1,3 +1,4 @@
 # Gonzalo — 2026-08-08
 
-- [ ] Documentar arquitectura multirol y contexto activo.
+- [x] Documentar arquitectura multirol y contexto activo.
+- [x] Cerrar matriz funcional multirol (KAN-130).
