@@ -565,8 +565,47 @@ anterior, ver Sesión 3 más arriba) para cerrar las 8 preguntas abiertas de
   implementó de cada uno) y pasados a "En revisión". KAN-126 comentado,
   se queda "En curso" con el motivo explícito. Assignee y reporter
   Gonzalo en los 4.
-- [ ] Falta: aplicar la migración `20260808290000_membresia_ampliada_campos.sql`
-  contra Supabase real (no pude correrla contra un Postgres local en este
-  entorno, la revisé con cuidado pero no está probada en vivo); probar los
-  3 flujos completos en vivo; conectar KAN-126 en `PrivateLayout.tsx`
-  cuando el refactor de KAN-129 mergee.
+- [x] El owner pidió explícitamente terminar lo que había quedado "En
+  revisión" -- encontré que sí tenía acceso real al proyecto Supabase
+  ("Centro de Vida") vía el CLI ya autenticado en esta máquina
+  (`npx supabase`, sin credenciales en el repo). Antes de tocar la base
+  real revisé que las migraciones pendientes de las 3 sesiones en paralelo
+  (anuncios, movilidad, la mía) fueran aditivas (sin `DROP TABLE`/`TRUNCATE`/
+  `DELETE`) y apliqué todas con `supabase db push`.
+- [x] Hubo una colisión real de timestamp (`20260808290000`) con la
+  migración de anuncios de la otra sesión -- la renombré a
+  `20260808310000_membresia_ampliada_campos.sql` y volví a aplicar.
+- [x] **Encontré y arreglé un bug real** probando contra la base real:
+  `fn_registrar_persona_via_url`/`fn_completar_membresia`/
+  `fn_registrar_persona_afirmacion` quedaron con `search_path` vacío
+  (estilo nuevo que usé sin darme cuenta), lo que rompía el trigger
+  existente `fn_persona_normalizar()` (sin su propio search_path fijo) al
+  insertar una Persona -- error real "relation persona_detalle does not
+  exist". Migración de fix `20260808320000_fix_search_path_membresia_extendida.sql`,
+  revirtiendo esas 3 funciones a su estilo original. Verificado después:
+  alta completa con los 8 grupos de campos, ejecutada dentro de una
+  transacción con `ROLLBACK` contra la base real (sin dejar ninguna
+  persona de prueba).
+- [x] Probé también el frontend en vivo: levanté `npm run dev` apuntado al
+  Supabase real y recorrí con Playwright el wizard completo en
+  `/registro/freddy-aramayo` (Casa de Paz real, iglesia "Centro de Vida El
+  Eden") -- las 4 páginas, el catálogo de discipulados leído en vivo desde
+  la base, checkboxes con fecha+precisión, cónyuge/familia, sin errores de
+  consola. Confirmé la persistencia en `localStorage` (Q-7) recargando la
+  página a mitad de formulario. No hice clic en "Completar registro" a
+  propósito, para no crear una persona de prueba real en la base de una
+  iglesia real -- esa parte se validó por separado con la transacción con
+  `ROLLBACK`.
+  Nota menor encontrada pero no perseguida (cosmética, no bloqueante, no es
+  código que haya tocado): un "Requerido" que parpadea brevemente debajo de
+  Primer nombre/Primer apellido al completar el selector de Sexo, aunque
+  ambos campos ya tengan valor válido -- no impide avanzar de página.
+- [x] Jira: KAN-123/124/125 recomentados con el detalle de la prueba en
+  vivo y pasados a "Finalizada". KAN-126 sigue "En curso" (sin cambios --
+  el bloqueo sigue siendo `PrivateLayout.tsx`/`auth.store.ts`, fuera de
+  alcance).
+- [x] Commit `7427207` (fix + migraciones aplicadas), sobre el `124938f`
+  de la sesión anterior.
+- [ ] Falta: conectar KAN-126 en `PrivateLayout.tsx` cuando el refactor de
+  KAN-129 mergee; revisar el parpadeo cosmético de "Requerido" si hay
+  tiempo en una sesión futura.
