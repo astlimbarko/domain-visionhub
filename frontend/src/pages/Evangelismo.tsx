@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   CalendarRange,
@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
@@ -58,6 +59,7 @@ export function Evangelismo() {
   const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const misCasas = misCasasCrudo;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -208,7 +210,7 @@ export function Evangelismo() {
   const cdpNombreActiva = misCasas.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       {/* Mismo encabezado "Hero" que Perfil de Casa de Paz (GestionSubliderVista.tsx)
           -- pedido del owner, 2026-08-02: las páginas de la vista de Sublíder/Líder
           de CdP deben verse como parte de la misma sección, no como pantallas sueltas. */}
@@ -282,6 +284,7 @@ export function Evangelismo() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+        <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="evangelismo" className="ml-auto" />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DashboardHero, KpiMosaico } from './DashboardUI';
 import { IndiceFidelidadRing } from './IndiceFidelidadRing';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
@@ -73,6 +74,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const liderQuery = useDashboardLiderCdp(esSublider ? undefined : casaDePazId);
   const subliderQuery = useDashboardSubliderCdp(esSublider ? casaDePazId : undefined);
   const { data, isLoading } = esSublider ? subliderQuery : liderQuery;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
   const [cantidad, setCantidad] = useState<number>(() => cantidadPorDefecto('MES'));
@@ -114,7 +116,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const asistenciaPromedio = asistenciaPromedioPeriodo ?? kpi.asistencia_ultima.valor ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <DashboardHero
         icon={Users}
         eyebrow="Casa de Paz"
@@ -134,6 +136,12 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               </SelectContent>
             </Select>
             <RangoFechasPopover value={rango} onChange={setRango} />
+            <DescargarPdfButton
+              contenedorRef={contenedorRef}
+              nombreArchivo={`dashboard-cdp-${casa_de_paz.nombre ?? 'casa-de-paz'}`}
+              variant="ghost"
+              className="h-9 shrink-0 gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+            />
           </div>
         }
       />

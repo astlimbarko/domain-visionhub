@@ -17,6 +17,7 @@ import {
   quitarCargoRedEstructura,
   quitarPastorEstructura,
   quitarSupervisorEstructura,
+  reactivarCasaDePazEstructura,
   reactivarRedEstructura,
 } from './estructura.service';
 import type { CargoRedEstructura, CrearRedEstructuraEntrada, PosicionNodoGuardar } from './types';
@@ -85,6 +86,14 @@ export function useReactivarRedEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
     mutationFn: ({ redId, otp }: { redId: string; otp?: string | null }) => reactivarRedEstructura(redId, otp),
+    onSuccess: invalidar,
+  });
+}
+
+export function useReactivarCasaDePazEstructura(iglesiaId: string) {
+  const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
+  return useMutation({
+    mutationFn: ({ cdpId, otp }: { cdpId: string; otp?: string | null }) => reactivarCasaDePazEstructura(cdpId, otp),
     onSuccess: invalidar,
   });
 }

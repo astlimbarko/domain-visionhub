@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase';
+import type { CargoCdpCodigo } from '@/types/casas-de-paz.types';
 import type {
   CargoRedEstructura,
   CasaDePazEstructura,
@@ -86,10 +87,13 @@ function nombreAbreviado(persona: PersonaFila): string {
 export async function obtenerEstructuraOrganizacional(
   iglesiaId: string,
 ): Promise<EstructuraOrganizacionalDatos> {
-  // Una Red eliminada sigue visible (agrisada) durante 1 año antes de
-  // desaparecer del panel -- pedido explícito del owner, mismo criterio de
-  // "nunca borrado físico" que ya usa toda la app.
-  const cortePeriodoGracia = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  // Una Red/Casa de Paz eliminada sigue visible (agrisada) un numero de dias
+  // configurable (Panel del Supervisor, KAN-111) antes de desaparecer del
+  // panel -- pedido explícito del owner, mismo criterio de "nunca borrado
+  // físico" que ya usa toda la app. El corte real lo aplica la política RLS
+  // (pol_red_select / pol_casa_de_paz_select, fn_criterio) del lado del
+  // servidor -- acá no se duplica ese cálculo, solo se deja de filtrar de
+  // más del lado del cliente para no ocultar filas que la RLS sí permite ver.
   const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
     configuracionResultado, posicionesResultado, invitacionesRedResultado, usuariosResultado, cargosResultado,
     cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado] =
@@ -110,13 +114,11 @@ export async function obtenerEstructuraOrganizacional(
         .from('red')
         .select('id, nombre, color, fecha_eliminacion')
         .eq('iglesia_id', iglesiaId)
-        .or(`fecha_eliminacion.is.null,fecha_eliminacion.gte.${cortePeriodoGracia}`)
         .order('nombre'),
       supabase
         .from('casa_de_paz')
-        .select('id, nombre')
+        .select('id, nombre, fecha_eliminacion')
         .eq('iglesia_id', iglesiaId)
-        .is('fecha_eliminacion', null)
         .order('nombre'),
       supabase
         .from('casa_de_paz_red')
@@ -324,6 +326,7 @@ export async function obtenerEstructuraOrganizacional(
       sublideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'SUBLIDER_CDP'),
       anfitriones: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'ANFITRION'),
       direccionBreve: direccionesPorCasa.get(casa.id) ?? null,
+      eliminada: casa.fecha_eliminacion !== null,
     })) as CasaDePazEstructura[],
     layout: {
       disponible: !errorLayout,
@@ -385,6 +388,15 @@ export async function eliminarCasaDePazEstructura(cdpId: string, otp?: string | 
   if (error) throw error;
 }
 
+// KAN-111: contraparte de eliminarCasaDePazEstructura (que es el borrado
+// permanente de Super Admin) -- esta reactiva una CdP dada de baja por la vía
+// normal (fn_eliminar_cdp) mientras siga dentro del período de gracia
+// configurable (DIAS_RETENCION_CDP). Mismo patrón que reactivarRedEstructura.
+export async function reactivarCasaDePazEstructura(cdpId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_reactivar_casa_de_paz', { p_cdp_id: cdpId, p_otp: otp ?? null });
+  if (error) throw error;
+}
+
 export async function actualizarRedEstructura(
   redId: string,
   nombre: string,
@@ -428,6 +440,33 @@ export async function notificarAsignacionCargoRed(
 ): Promise<void> {
   const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
     body: { redId, personaId, cargo: codigo },
+  });
+  if (error) throw error;
+}
+
+// KAN-117: mismo hueco que REQ-ASG-7 pero para Lider/Sublider de Casa de Paz
+// y para Pastor/Supervisor de la Vision en Accion -- ver notas en la Edge
+// Function y en las migraciones fn_estructura_datos_notificacion_cargo_cdp /
+// _principal. No bloquea el flujo de asignacion si falla, mismo criterio
+// que notificarAsignacionCargoRed de arriba.
+export async function notificarAsignacionCargoCdp(
+  cdpId: string,
+  personaId: string,
+  codigo: CargoCdpCodigo,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { cdpId, personaId, cargo: codigo },
+  });
+  if (error) throw error;
+}
+
+export async function notificarAsignacionCargoPrincipal(
+  iglesiaId: string,
+  personaId: string,
+  tipo: 'PASTOR' | 'SUPERVISOR',
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { iglesiaId, personaId, cargo: tipo },
   });
   if (error) throw error;
 }

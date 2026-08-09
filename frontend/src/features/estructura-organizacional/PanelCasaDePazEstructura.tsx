@@ -13,9 +13,14 @@ import {
   useDomicilioCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
-import { useEliminarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { notificarAsignacionCargoCdp } from './estructura.service';
+import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { CasaDePazEstructura } from './types';
+
+/** Color de respaldo cuando la Red de la CdP no tiene un color propio configurado (sigue en '#FFFFFF' o no se pudo resolver). */
+const COLOR_BANNER_POR_DEFECTO = '#64748b';
 
 /**
  * Reusa el mismo flujo ya construido en GestionEstructuraVista.tsx
@@ -27,6 +32,11 @@ import type { CasaDePazEstructura } from './types';
 interface Props {
   iglesiaId: string;
   casaDePaz: CasaDePazEstructura;
+  /** Color real de la Red a la que pertenece esta Casa de Paz (la CdP no tiene
+   * color propio en la base de datos -- hereda el de su Red, mismo criterio
+   * que ya usa el lienzo en layout.ts/NodoEstructura para las tarjetas y
+   * líneas conectoras). `null`/`undefined`/blanco cae al gris neutro. */
+  colorRed?: string | null;
   abrirAnadirSubliderAlAbrir?: boolean;
   otpRequerido: boolean;
   esSuperAdmin: boolean;
@@ -44,13 +54,23 @@ function manejarErrorCargo(e: unknown, generico: string) {
   toast.error(mensaje || generico);
 }
 
-export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
+export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
   const queryClient = useQueryClient();
+  // KAN-95: banner superior pintado con el color real de la Red (la CdP no
+  // tiene color propio), con el mismo criterio de contraste de texto que ya
+  // usa el resto del lienzo (contraste.ts) en vez de un estilo fijo.
+  const color = colorRed && colorRed.toUpperCase() !== '#FFFFFF' ? colorRed : COLOR_BANNER_POR_DEFECTO;
+  const colorTexto = textoLegibleSobre(color);
   const [dialogoCargo, setDialogoCargo] = useState<DialogoCargo | null>(null);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [otpEliminar, setOtpEliminar] = useState('');
   const eliminarCdp = useEliminarCasaDePazEstructura(iglesiaId);
+  // KAN-111: reactivar una CdP eliminada por la vía normal (fn_eliminar_cdp)
+  // mientras siga dentro del período de gracia configurable.
+  const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
+  const [otpReactivar, setOtpReactivar] = useState('');
+  const reactivarCdp = useReactivarCasaDePazEstructura(iglesiaId);
 
   useEffect(() => {
     if (abrirAnadirSubliderAlAbrir) {
@@ -95,6 +115,18 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
     }
   }
 
+  async function confirmarReactivar() {
+    if (otpRequerido && !/^\d{6}$/.test(otpReactivar)) return;
+    try {
+      await reactivarCdp.mutateAsync({ cdpId: casaDePaz.id, otp: otpReactivar || null });
+      toast.success('Casa de Paz reactivada');
+      setConfirmandoReactivar(false);
+      setOtpReactivar('');
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo reactivar la Casa de Paz');
+    }
+  }
+
   async function handleAsignar(persona: PersonaBusqueda) {
     if (!dialogoCargo) return;
     const cargo = cargos.find((c) => c.codigo === dialogoCargo.codigo);
@@ -107,6 +139,16 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
         cargoId: cargo.id,
       });
       toast.success(pendiente ? 'Solicitud enviada' : `${persona.nombre_completo} asignado`);
+      // KAN-117: aviso por correo a Lider/Sublider de CdP recien designado,
+      // mismo mecanismo que ya usa Red (notificarAsignacionCargoRed). No
+      // aplica a Anfitrion (no es un cargo de liderazgo) ni cuando la
+      // asignacion quedo "pendiente" (solicitud de cambio de Lider sin
+      // resolver todavia -- ahi todavia no hay nadie designado a quien avisar).
+      if (!pendiente && (dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP')) {
+        notificarAsignacionCargoCdp(casaDePaz.id, persona.id, dialogoCargo.codigo).catch((e) =>
+          console.error('No se pudo avisar por correo de la designación', e),
+        );
+      }
       void invalidarEstructura();
     } catch (e) {
       manejarErrorCargo(e, 'No se pudo asignar el cargo');
@@ -146,13 +188,45 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
         <div className="flex justify-center pt-2 pb-1 sm:hidden">
           <div className="h-1.5 w-10 rounded-full bg-slate-300" />
         </div>
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
-          <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Casa de Paz</p>
-          <button type="button" onClick={onClose} aria-label="Cerrar panel" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4" style={{ backgroundColor: color }}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide uppercase opacity-70" style={{ color: colorTexto }}>Casa de Paz</p>
+            {casaDePaz.nombre?.trim() && (
+              <p className="truncate text-sm font-bold" style={{ color: colorTexto }}>{casaDePaz.nombre.trim()}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar panel"
+            // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
+            // (REQ-MOB-3) -- antes:absolute expande el area de toque real
+            // sin agrandar el icono visible, mismo patron ya usado en los
+            // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
+            className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-black/10"
+            style={{ color: colorTexto }}
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
+        {casaDePaz.eliminada ? (
+        <div className="space-y-4 p-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue eliminada</p>
+            <p className="mt-1 text-xs text-amber-700">
+              Sigue visible (agrisada) mientras dure su período de gracia configurable. Nada se puede modificar hasta reactivarla.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmandoReactivar(true)}
+            className="h-10 w-full cursor-pointer rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Reactivar Casa de Paz
+          </button>
+        </div>
+        ) : (
         <div className="space-y-4 p-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
@@ -245,6 +319,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
             </button>
           )}
         </div>
+        )}
       </aside>
 
       <ConfirmarQuitarDialog
@@ -259,6 +334,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
         otpRequerido={otpRequerido}
         otp={otpEliminar}
         onOtpChange={setOtpEliminar}
+      />
+
+      <ConfirmarQuitarDialog
+        open={confirmandoReactivar}
+        onOpenChange={(abierto) => { setConfirmandoReactivar(abierto); if (!abierto) setOtpReactivar(''); }}
+        titulo="¿Reactivar esta Casa de Paz?"
+        descripcion="Vuelve a estar activa como antes de eliminarla."
+        procesando={reactivarCdp.isPending}
+        onConfirmar={() => void confirmarReactivar()}
+        textoConfirmar="Sí, reactivar"
+        textoProcesando="Reactivando…"
+        otpRequerido={otpRequerido}
+        otp={otpReactivar}
+        onOtpChange={setOtpReactivar}
       />
 
       {dialogoCargo && (

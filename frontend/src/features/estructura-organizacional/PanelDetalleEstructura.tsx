@@ -51,7 +51,11 @@ export function PanelDetalleEstructura({ nodo, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Cerrar panel"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
+            // (REQ-MOB-3) -- antes:absolute expande el area de toque real
+            // sin agrandar el icono visible, mismo patron ya usado en los
+            // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 before:absolute before:-inset-1 before:content-[''] hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="h-4 w-4" />
           </button>

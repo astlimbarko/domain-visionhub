@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
@@ -17,6 +18,7 @@ export function Finanzas() {
   const rolUI = contextoActivo?.rolUI;
   const iglesiaActivaId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : undefined;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -58,7 +60,7 @@ export function Finanzas() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
@@ -69,10 +71,13 @@ export function Finanzas() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" disabled={monedas.length === 0}>
-          <Plus className="h-4 w-4" />
-          Nuevo ingreso
-        </Button>
+        <div className="flex items-center gap-2">
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="finanzas" />
+          <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]" disabled={monedas.length === 0}>
+            <Plus className="h-4 w-4" />
+            Nuevo ingreso
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Globe2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
@@ -45,6 +46,7 @@ export function Calendario() {
   // hija/satélite directa (Padre -> Hija, ver 101_calendario_padre_satelite.sql).
   const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' ? iglesiaActivaId : undefined);
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -168,8 +170,9 @@ export function Calendario() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
+      <div className="flex justify-end gap-2">
+        <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="calendario" />
         <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
           <Plus className="h-4 w-4" />
           Nuevo evento

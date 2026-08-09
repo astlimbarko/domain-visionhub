@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Activity, AlertTriangle, Home, Layers, Network, Users, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, AMBAR, MORADO, TEAL, DashboardHero, KpiMosaico } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { useDashboardSupervisor, useIngresosSupervisorPeriodo } from '@/hooks/useDashboard';
@@ -25,6 +26,7 @@ const ALERTAS_LABELS: Record<string, string> = {
 
 export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
   const { data, isLoading } = useDashboardSupervisor(iglesiaId);
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
   const [rango, setRango] = useState<RangoFechas | null>(null);
@@ -50,7 +52,7 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
   const ingresos = ingresosPeriodo ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
       <DashboardHero icon={Network} eyebrow="Supervisión" title="Redes y Casas de Paz" />
 
       {/* ── Barra de período ──────────────────────────────────────────────────── */}
@@ -64,6 +66,7 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
             </SelectContent>
           </Select>
           <RangoFechasPopover value={rango} onChange={setRango} />
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="dashboard-supervisor" />
         </div>
       </div>
 

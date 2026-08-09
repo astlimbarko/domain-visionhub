@@ -1,6 +1,8 @@
 import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
+import { useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
 import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
@@ -28,6 +30,7 @@ export function HistorialReportes() {
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -69,7 +72,10 @@ export function HistorialReportes() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={contenedorRef} className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="historial-reportes" />
+      </div>
 
       {cargandoVentana ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

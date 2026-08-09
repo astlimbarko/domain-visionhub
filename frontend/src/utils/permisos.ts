@@ -142,6 +142,7 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION,
   ROUTES.AFIRMACION_FORMULARIO,
   ROUTES.AFIRMACION_URLS,
+  ROUTES.AFIRMACION_CASAS_DE_PAZ,
 ];
 const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
 const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
@@ -199,6 +200,8 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
   { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
   { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
+  // KAN-127: todas las Casas de Paz de la iglesia, organizadas por Red.
+  { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,

@@ -1,0 +1,487 @@
+/**
+ * KAN-123: los 8 grupos de campos nuevos del formulario de Membresía
+ * (Discipulados, Seminario, Universidad del Rey Jesús, Mentor, Bautismo,
+ * Cónyuge, Familia, Ministerios), organizados en 3 secciones para el wizard
+ * de KAN-124 (Formación / Mentor+Bautismo / Familia+Ministerios).
+ *
+ * Componente 100% controlado (value/onChange) y desacoplado de
+ * react-hook-form a propósito: los 3 formularios que lo usan
+ * (FormularioMembresiaPublico, MembresiaObligatoria, RegistrarPersonaAfirmacion)
+ * tienen cada uno su propio esquema zod distinto para los campos censales
+ * base -- estos campos son todos opcionales y se mandan tal cual al backend
+ * (fn_guardar_membresia_extendida), así que no hace falta que compartan
+ * resolver de validación.
+ */
+import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
+import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
+import {
+  OPCIONES_PRECISION_FECHA,
+  TIPOS_RELACION_FAMILIA,
+  type DatosMembresiaExtendida,
+  type FamiliarInput,
+  type FechaConPrecision,
+  type PrecisionFecha,
+} from '@/types/membresia-extendida.types';
+
+interface MinisterioOpcion {
+  id: string;
+  nombre: string;
+}
+
+function actualizarValor<K extends keyof DatosMembresiaExtendida>(
+  valor: DatosMembresiaExtendida,
+  onChange: (v: DatosMembresiaExtendida) => void,
+  campo: K,
+  dato: DatosMembresiaExtendida[K]
+) {
+  onChange({ ...valor, [campo]: dato });
+}
+
+// Fecha + precisión: solo pide los campos que la precisión elegida permite
+// contestar (regla de negocio heredada, technical-design.md §2.1 -- nunca
+// obligar a inventar un día o mes que la persona no recuerda).
+function CampoFechaConPrecision({
+  valor,
+  onChange,
+}: {
+  valor: FechaConPrecision;
+  onChange: (v: FechaConPrecision) => void;
+}) {
+  const precision = valor.precision_fecha;
+  return (
+    <div className="flex flex-wrap items-end gap-2 rounded-lg bg-muted/40 p-2">
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs text-muted-foreground">Precisión de la fecha</Label>
+        <Select
+          value={precision ?? ''}
+          onValueChange={(v) => onChange({ ...valor, precision_fecha: v as PrecisionFecha })}
+        >
+          <SelectTrigger className={cn('h-8 w-44 text-xs', CAMPO_ESTILO)}>
+            <SelectValue placeholder="No recuerdo / prefiero no decir" />
+          </SelectTrigger>
+          <SelectContent>
+            {OPCIONES_PRECISION_FECHA.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {precision && (
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Año</Label>
+          <Input
+            type="number"
+            className={cn('h-8 w-20 text-xs', CAMPO_ESTILO)}
+            value={valor.anio ?? ''}
+            onChange={(e) => onChange({ ...valor, anio: e.target.value ? Number(e.target.value) : undefined })}
+          />
+        </div>
+      )}
+      {(precision === 'EXACTA' || precision === 'APROXIMADA' || precision === 'SOLO_MES_ANIO') && (
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Mes</Label>
+          <Input
+            type="number"
+            min={1}
+            max={12}
+            className={cn('h-8 w-16 text-xs', CAMPO_ESTILO)}
+            value={valor.mes ?? ''}
+            onChange={(e) => onChange({ ...valor, mes: e.target.value ? Number(e.target.value) : undefined })}
+          />
+        </div>
+      )}
+      {(precision === 'EXACTA' || precision === 'APROXIMADA') && (
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Día</Label>
+          <Input
+            type="number"
+            min={1}
+            max={31}
+            className={cn('h-8 w-16 text-xs', CAMPO_ESTILO)}
+            value={valor.dia ?? ''}
+            onChange={(e) => onChange({ ...valor, dia: e.target.value ? Number(e.target.value) : undefined })}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SeccionProps {
+  value: DatosMembresiaExtendida;
+  onChange: (v: DatosMembresiaExtendida) => void;
+}
+
+// Página 1: Discipulados + Seminario + Universidad del Rey Jesús.
+export function SeccionFormacionMembresia({ value, onChange }: SeccionProps) {
+  const { data: tiposDiscipulado = [], isLoading } = useTiposDiscipulado();
+  const seleccionados = value.discipulados ?? [];
+
+  function estaSeleccionado(tipoId: string) {
+    return seleccionados.some((d) => d.tipo_discipulado_id === tipoId);
+  }
+
+  function alternarDiscipulado(tipoId: string, marcado: boolean) {
+    if (marcado) {
+      actualizarValor(value, onChange, 'discipulados', [...seleccionados, { tipo_discipulado_id: tipoId }]);
+    } else {
+      actualizarValor(
+        value,
+        onChange,
+        'discipulados',
+        seleccionados.filter((d) => d.tipo_discipulado_id !== tipoId)
+      );
+    }
+  }
+
+  function actualizarFechaDiscipulado(tipoId: string, fecha: FechaConPrecision) {
+    actualizarValor(
+      value,
+      onChange,
+      'discipulados',
+      seleccionados.map((d) => (d.tipo_discipulado_id === tipoId ? { ...d, ...fecha } : d))
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Label>Discipulados realizados</Label>
+        {isLoading ? (
+          <Skeleton className="h-24 w-full rounded-lg" />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {tiposDiscipulado.map((tipo) => (
+              <div key={tipo.id} className="flex flex-col gap-2 rounded-lg border border-border p-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={estaSeleccionado(tipo.id)}
+                    onCheckedChange={(v) => alternarDiscipulado(tipo.id, v === true)}
+                  />
+                  {tipo.nombre}
+                </label>
+                {estaSeleccionado(tipo.id) && (
+                  <CampoFechaConPrecision
+                    valor={seleccionados.find((d) => d.tipo_discipulado_id === tipo.id) ?? {}}
+                    onChange={(fecha) => actualizarFechaDiscipulado(tipo.id, fecha)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={value.seminario ?? false}
+            onCheckedChange={(v) => actualizarValor(value, onChange, 'seminario', v === true)}
+          />
+          ¿Está o estuvo en el Seminario?
+        </label>
+        {value.seminario && (
+          <CampoFechaConPrecision
+            valor={{
+              anio: value.seminario_anio,
+              mes: value.seminario_mes,
+              dia: value.seminario_dia,
+              precision_fecha: value.seminario_precision_fecha,
+            }}
+            onChange={(f) =>
+              onChange({
+                ...value,
+                seminario_anio: f.anio,
+                seminario_mes: f.mes,
+                seminario_dia: f.dia,
+                seminario_precision_fecha: f.precision_fecha,
+              })
+            }
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={value.universidad ?? false}
+            onCheckedChange={(v) => actualizarValor(value, onChange, 'universidad', v === true)}
+          />
+          ¿Cursó la Universidad del Rey Jesús?
+        </label>
+        {value.universidad && (
+          <CampoFechaConPrecision
+            valor={{
+              anio: value.universidad_anio,
+              mes: value.universidad_mes,
+              dia: value.universidad_dia,
+              precision_fecha: value.universidad_precision_fecha,
+            }}
+            onChange={(f) =>
+              onChange({
+                ...value,
+                universidad_anio: f.anio,
+                universidad_mes: f.mes,
+                universidad_dia: f.dia,
+                universidad_precision_fecha: f.precision_fecha,
+              })
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Página 2: Mentor + Bautismo.
+export function SeccionMentorBautismoMembresia({ value, onChange }: SeccionProps) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={value.mentor ?? false}
+            onCheckedChange={(v) => actualizarValor(value, onChange, 'mentor', v === true)}
+          />
+          ¿Tenés un mentor?
+        </label>
+        {value.mentor && (
+          <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2 sm:flex-row sm:items-end">
+            <div className="flex flex-1 flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Nombre del mentor</Label>
+              <Input
+                className={CAMPO_ESTILO}
+                value={value.mentor_nombre_txt ?? ''}
+                onChange={(e) => actualizarValor(value, onChange, 'mentor_nombre_txt', e.target.value)}
+              />
+            </div>
+            <label className="flex items-center gap-2 pb-1.5 text-sm">
+              <Checkbox
+                checked={value.mentor_es_miembro ?? false}
+                onCheckedChange={(v) => actualizarValor(value, onChange, 'mentor_es_miembro', v === true)}
+              />
+              Es miembro de la iglesia
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={value.bautizado ?? false}
+            onCheckedChange={(v) => actualizarValor(value, onChange, 'bautizado', v === true)}
+          />
+          ¿Está bautizado/a en agua?
+        </label>
+        {value.bautizado && (
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={value.bautizado_en_nuestra_iglesia ?? false}
+                onCheckedChange={(v) => actualizarValor(value, onChange, 'bautizado_en_nuestra_iglesia', v === true)}
+              />
+              Fue bautizado/a en esta iglesia
+            </label>
+            <CampoFechaConPrecision
+              valor={{
+                anio: value.bautismo_anio,
+                mes: value.bautismo_mes,
+                dia: value.bautismo_dia,
+                precision_fecha: value.bautismo_precision_fecha,
+              }}
+              onChange={(f) =>
+                onChange({
+                  ...value,
+                  bautismo_anio: f.anio,
+                  bautismo_mes: f.mes,
+                  bautismo_dia: f.dia,
+                  bautismo_precision_fecha: f.precision_fecha,
+                })
+              }
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilaFamiliar({
+  familiar,
+  onChange,
+  onQuitar,
+  etiquetaTipoFija,
+}: {
+  familiar: FamiliarInput;
+  onChange: (f: FamiliarInput) => void;
+  onQuitar?: () => void;
+  etiquetaTipoFija?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border p-2 sm:flex-row sm:items-end">
+      {etiquetaTipoFija ? (
+        <div className="flex flex-1 flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Parentesco</Label>
+          <Input className={CAMPO_ESTILO} value={etiquetaTipoFija} disabled />
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col gap-1">
+          <Label className="text-xs text-muted-foreground">Parentesco</Label>
+          <Select
+            value={familiar.tipo_relacion_codigo}
+            onValueChange={(v) => onChange({ ...familiar, tipo_relacion_codigo: v })}
+          >
+            <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIPOS_RELACION_FAMILIA.map((t) => (
+                <SelectItem key={t.codigo} value={t.codigo}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="flex flex-1 flex-col gap-1">
+        <Label className="text-xs text-muted-foreground">Nombre</Label>
+        <Input
+          className={CAMPO_ESTILO}
+          value={familiar.nombre_familiar}
+          onChange={(e) => onChange({ ...familiar, nombre_familiar: e.target.value })}
+        />
+      </div>
+      <label className="flex items-center gap-2 pb-1.5 text-sm">
+        <Checkbox
+          checked={familiar.es_miembro}
+          onCheckedChange={(v) => onChange({ ...familiar, es_miembro: v === true })}
+        />
+        Es miembro
+      </label>
+      {onQuitar && (
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onQuitar} aria-label="Quitar familiar">
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// Página 3: Cónyuge + Familia + Ministerios (Ministerios es opcional --
+// null/undefined en el flujo público, ver KAN-125).
+export function SeccionFamiliaMinisteriosMembresia({
+  value,
+  onChange,
+  ministerios,
+}: SeccionProps & { ministerios?: MinisterioOpcion[] }) {
+  const [tieneConyuge, setTieneConyuge] = useState(
+    (value.familiares ?? []).some((f) => f.tipo_relacion_codigo === 'CONYUGE')
+  );
+
+  const conyuge = (value.familiares ?? []).find((f) => f.tipo_relacion_codigo === 'CONYUGE');
+  const otrosFamiliares = (value.familiares ?? []).filter((f) => f.tipo_relacion_codigo !== 'CONYUGE');
+
+  function setConyuge(f: FamiliarInput | null) {
+    const resto = (value.familiares ?? []).filter((x) => x.tipo_relacion_codigo !== 'CONYUGE');
+    actualizarValor(value, onChange, 'familiares', f ? [f, ...resto] : resto);
+  }
+
+  function actualizarFamiliares(nuevos: FamiliarInput[]) {
+    actualizarValor(value, onChange, 'familiares', conyuge ? [conyuge, ...nuevos] : nuevos);
+  }
+
+  function agregarFamiliar() {
+    actualizarFamiliares([...otrosFamiliares, { tipo_relacion_codigo: 'HIJO', nombre_familiar: '', es_miembro: false }]);
+  }
+
+  const idsMinisterios = value.ministerios ?? [];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={tieneConyuge}
+            onCheckedChange={(v) => {
+              const marcado = v === true;
+              setTieneConyuge(marcado);
+              if (!marcado) setConyuge(null);
+              else setConyuge({ tipo_relacion_codigo: 'CONYUGE', nombre_familiar: '', es_miembro: false });
+            }}
+          />
+          ¿Tiene cónyuge?
+        </label>
+        {tieneConyuge && conyuge && (
+          <FilaFamiliar familiar={conyuge} onChange={setConyuge} etiquetaTipoFija="Cónyuge" />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <Label>Familia</Label>
+          <Button type="button" variant="outline" size="sm" onClick={agregarFamiliar} className="gap-1">
+            <Plus className="h-3.5 w-3.5" />
+            Agregar familiar
+          </Button>
+        </div>
+        {otrosFamiliares.length === 0 && (
+          <p className="text-sm text-muted-foreground">Sin familiares agregados.</p>
+        )}
+        {otrosFamiliares.map((f, i) => (
+          <FilaFamiliar
+            // eslint-disable-next-line react/no-array-index-key
+            key={i}
+            familiar={f}
+            onChange={(nuevo) =>
+              actualizarFamiliares(otrosFamiliares.map((x, idx) => (idx === i ? nuevo : x)))
+            }
+            onQuitar={() => actualizarFamiliares(otrosFamiliares.filter((_, idx) => idx !== i))}
+          />
+        ))}
+      </div>
+
+      {ministerios && ministerios.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <Label>Ministerios</Label>
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {ministerios.map((m) => (
+              <label key={m.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={idsMinisterios.includes(m.id)}
+                  onCheckedChange={(v) =>
+                    actualizarValor(
+                      value,
+                      onChange,
+                      'ministerios',
+                      v === true ? [...idsMinisterios, m.id] : idsMinisterios.filter((id) => id !== m.id)
+                    )
+                  }
+                />
+                {m.nombre}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

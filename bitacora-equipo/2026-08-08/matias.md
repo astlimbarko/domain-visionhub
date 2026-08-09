@@ -1,0 +1,611 @@
+# Matías — 2026-08-08
+
+- [x] KAN-117 ("No llega el correo al asignar un liderazgo"): investigué a fondo. No era plantilla faltante en Supabase (como se sospechaba en el ticket) — el aviso por correo (REQ-ASG-7/KAN-89) solo estaba conectado para Líder/Supervisor de Red, nunca para Líder/Sublíder de CdP ni Pastor/Supervisor de la Visión en Acción vía "persona ya registrada".
+- [x] Fix: 2 funciones SQL nuevas (`fn_estructura_datos_notificacion_cargo_cdp`/`_principal`) + extendí la Edge Function `notificar-asignacion-cargo` + conecté las llamadas en `PanelCasaDePazEstructura.tsx` y `PanelPrincipalEstructura.tsx`, reusando el mismo patrón SMTP (Brevo) ya verificado en vivo para Red.
+- [x] Build (`tsc -b && vite build`) limpio. Commit local `79facd6` en `feature/supervisor-vision-accion` (sin push).
+- [x] KAN-117 actualizado en Jira: comentado, pasado a "En revisión" (no "Finalizada" — falta probarlo en vivo), assignee Gonzalo.
+- [ ] Falta: verificar en vivo el envío real (asignar Líder de CdP y Pastor/Supervisor a alguien ya registrado, confirmar que llega el correo) antes de pasar KAN-117 a Finalizada.
+- [x] Nota: en paralelo hubo otra sesión trabajando en el mismo repo que comiteó directo (`14e2e71` KAN-95 banner de color en panel de CdP, `ba6e759` KAN-73/114/116/128 — rol activo en menú de cuenta, menú de Afirmación, orden del selector de Supervisor de Red, sesión móvil de Super Admin). No es trabajo mío, lo dejo anotado para que quede claro de dónde salen esos commits.
+
+## Sesión 2 — re-auditoría de los 8 tickets "bloqueados" (KAN-52)
+
+Contexto: en una sesión anterior (con una rama vieja, sin el lienzo mergeado) comenté 8 tickets de Jira diciendo que estaban bloqueados porque "Estructura Organizacional" era un placeholder. Era incorrecto — después de traer el merge de `origin/master` (121 commits), el lienzo real y completo ya está en esta rama. Re-audité los 8 contra el código real y corregí cada comentario en Jira (sin borrar el anterior, agregando uno nuevo).
+
+- [x] KAN-112 (línea entre Departamentos): ya resuelto de por sí — `layout.ts` nunca genera esa arista. Comentario + "En revisión".
+- [x] KAN-96 (limpieza posiciones del lienzo): confirmado código muerto real (`useGuardarPosicionesEstructura` no se llama desde ningún componente, `nodesDraggable={false}`). No toqué la BD real ni el código — documentado con recomendación en el comentario, "En curso".
+- [x] KAN-100 (descargar PNG/PDF horizontal): no existía. Implementado: botón "Descargar" (desktop y móvil) con `html-to-image` + `getNodesBounds`/`getViewportForBounds` de React Flow, nuevo archivo `exportarLienzo.ts`. Compila y pasa lint. "En revisión".
+- [x] KAN-119 / KAN-63 (responsividad): confirmé que el trabajo real de Gonzalo (bottom sheets, tooltips táctiles, aria-selected, breakpoint por altura) ya está en el código. Encontré y corregí un gap real: los botones de zoom/centrar tenían área táctil de 28-36px (bajo el mínimo de 44×44, REQ-MOB-3) — ampliada con el mismo truco de pseudo-elemento ya usado en los paneles. KAN-119 a "En revisión"; KAN-63 se queda "En curso" (faltan botones "Cerrar panel" en 36px y pruebas en dispositivo físico real, que no puedo hacer desde acá).
+- [x] KAN-78 (vista del lienzo por rol): confirmé un gap real — Líder/Supervisor de Red quedan bloqueados de la página entera (el guard solo deja pasar a SUPER_ADMIN/SUPERVISOR). Es una decisión de alcance real (guard de ruta + query scoping), no lo implementé sin confirmarlo. Documentado con precisión, "En curso".
+- [x] KAN-62 (pruebas integrales): `tsc -b` y `oxlint` limpios. No pude correr la suite E2E (`frontend/e2e/estructura-red.spec.ts`) — necesita `.auth/storageState.json` con sesión real de Google OAuth que no existe en este entorno y corre contra Supabase real. "En curso".
+- [x] KAN-120 (error al asignar Supervisor): re-investigué el flujo completo, no encontré ningún bug de código. Documenté las dos validaciones legítimas que un usuario puede confundir con un bug (`ESTRUCTURA_PERSONA_SIN_CUENTA`, `ESTRUCTURA_PERSONA_YA_TIENE_ROL`). "En revisión".
+- [x] Commits locales (sin push): `60881f8` (KAN-100 + touch targets KAN-63/119). El commit de KAN-95 (`14e2e71`) ya estaba hecho por la sesión anterior, solo lo verifiqué.
+- [ ] Falta: probar todo en vivo contra la app corriendo (ninguno de los 8 se puede pasar a "Finalizada" sin eso); decidir con Gonzalo el alcance de KAN-78 (Líder/Supervisor de Red) antes de implementarlo.
+
+## Sesión 3 — cluster de Membresía (KAN-123 a KAN-127)
+
+Contexto: 5 tickets sobre el flujo de auto-registro/completar datos de una
+persona vía URL de Casa de Paz y sobre permisos de Afirmación. Traje la
+descripción completa de los 5 con Jira antes de tocar nada.
+
+- [x] Investigué el flujo real completo antes de asumir qué faltaba:
+  registro público (`RegistroPublico.tsx`/`fn_registrar_persona_via_url`),
+  Membresía obligatoria por invitación (`MembresiaObligatoria.tsx`/
+  `fn_completar_membresia`), registro interno de Afirmación
+  (`RegistrarPersonaAfirmacion.tsx`), y el modelo de relaciones familiares
+  ya existente (`relacion_familiar`/`referencia_familiar`,
+  `harness/02-persona-parentela`).
+- [x] **KAN-123/124/125/126** (ampliar campos, paginar, URL de CdP,
+  completar al ingresar): son un mismo flujo con dependencia real entre
+  sí. Encontré que KAN-123 tiene 5 decisiones de producto sin cerrar que
+  cambian el modelo de datos (catálogo de discipulados global/por
+  iglesia, repetición de discipulados, diseño de Seminario/Universidad,
+  y sobre todo qué define un "mentor disponible") y que KAN-126 tiene el
+  mayor radio de impacto del cluster (afecta el login de usuarios ya
+  existentes, no solo un flujo nuevo). En vez de implementar a ciegas
+  contra un alcance que iba a cambiar, escribí la especificación completa
+  en `harness/17-membresia-ampliada/` (requirements, technical-design,
+  database-impact, open-questions, implementation-plan) documentando qué
+  ya existe y se reutiliza, el diseño propuesto para lo que falta, y las
+  8 preguntas concretas que bloquean la implementación. Los 4 tickets
+  quedaron en Jira "En curso" con comentario, sin assignee (es
+  documentación, no código).
+- [x] **KAN-127** (Afirmación debe ver todas las CdP de su iglesia): sí
+  tenía alcance claro, lo implementé. Encontré que Afirmación solo veía
+  Casas de Paz con líder de CdP vigente (`fn_listar_casa_paz_url_afirmacion`/
+  `fn_listar_lideres_cdp_afirmacion`, acotadas a su caso de uso puntual de
+  administrar URLs/elegir líder) — las CdP vacantes nunca aparecían en
+  ningún lado. Agregué `fn_listar_casas_de_paz_afirmacion` (RPC nuevo,
+  solo lectura, mismo guard `fn_es_lider_afirmacion_en OR
+  fn_es_operativo_en`, aislado por iglesia) + pestaña nueva "Casas de Paz"
+  en el frontend de Afirmación (`PanelCasasDePazAfirmacion.tsx`,
+  agrupada por Red, igual que el panel de URLs), ruta
+  `/afirmacion-casas-de-paz`.
+- [x] Migración `supabase/migrations/20260808250000_fn_listar_casas_de_paz_afirmacion.sql`
+  (nueva, pendiente de aplicar contra Supabase real). `tsc -b --force` y
+  `vite build` del frontend limpios.
+- [x] Jira: KAN-127 comentado y pasado a "En revisión", assignee Gonzalo.
+  KAN-123/124/125/126 comentados y pasados a "En curso", sin assignee.
+- [ ] Falta: que Gonzalo responda las 8 preguntas de
+  `harness/17-membresia-ampliada/open-questions.md` para poder
+  implementar el cluster de Membresía; aplicar la migración de KAN-127
+  contra Supabase real y probar en vivo con un Líder de Afirmación real
+  antes de pasar KAN-127 a "Finalizada".
+
+## Sesión 4 — bloque de 9 tickets (KAN-5, 16, 27, 29, 30, 32, 35, 38, 40)
+
+Traje descripción + comentarios completos de los 9 con Jira antes de tocar
+nada. Varios ya tenían contexto previo del commit `0935324` (2026-08-06),
+escrito ANTES del merge grande de Estructura Organizacional -- volví a
+investigar cada uno contra el código real de hoy en vez de asumir que
+seguían igual de bloqueados.
+
+- [x] **KAN-5** (Ministerio en el formulario de personas): implementado.
+  En vez de un campo nuevo `ministerio_id` en `persona` (que hubiera
+  duplicado la fuente de verdad), reusé el modelo de participación ya
+  existente (`ministerio_persona`) -- ahora se puede asignar un
+  Ministerio al crear una persona (`CrearPersonaDialog.tsx`) y
+  agregar/quitar desde su ficha (`FichaMinisterios.tsx`, antes de
+  solo-lectura pasa a editable). Migración nueva para exponer el id de
+  participación (necesario para poder quitar sin afectar el catálogo).
+  Jira: "En revisión", assignee Gonzalo.
+- [x] **KAN-16**: re-auditado contra el código real -- los 7 criterios de
+  aceptación ya estaban cubiertos por el trabajo del 2026-08-06 (checkbox
+  "Asiste a esta CDP", migración 107 ya aplicada y verificada). El
+  pendiente de "visitante de otra CdP" es una ampliación de alcance, no
+  un criterio del ticket. Se queda "En revisión" (sin cambios de código).
+- [x] **KAN-27/29/30** (rol Soporte de Red / restringir finanzas a
+  Supervisor de Red): investigué a fondo el modelo de roles real.
+  Encontré que "Supervisor de Red" (cargo `SUBLIDER_RED`) YA existe pero
+  comparte el 100% de los permisos de Líder de Red por una decisión
+  explícita del owner (`91_fn_es_lider_de_red_incluye_sublider.sql`,
+  2026-08-02: "paridad completa, ya que es de apoyo") -- incluye ver
+  montos (`fn_dashboard_lider_red.ofrendas_mes/ingresos`). Restringir
+  finanzas (KAN-29/30) revierte esa decisión reciente; crear un rol
+  "Soporte" realmente acotado (KAN-27) implica sumar un valor a
+  `rol_sistema_enum` o ramificar por `cargo_codigo` en ~17
+  funciones/políticas RLS. No improvisé ninguna de las tres -- las 3
+  quedaron documentadas en Jira con el hallazgo concreto, "En curso",
+  pendientes de que el owner confirme el alcance real de permisos.
+- [x] **KAN-32** (Cambiar de Red): no existe hoy. Confirmé que es una
+  feature real y no chica (una persona pertenece a una CdP, no a una Red
+  directamente; mover implica reasignar membresía, advertir cargos no
+  mantenibles, preservar histórico/auditoría). Documentado en Jira sin
+  implementar, "En curso".
+- [x] **KAN-35** (Supervisor de la Visión ve CdP eliminadas): ya estaba
+  resuelto como parte de KAN-34 (Histórico Anual) -- confirmé que
+  `fn_historico_cdp_eliminadas` escopa solo por iglesia (no depende de
+  que la Red/líder sigan activos) y que el tab ya es accesible para el
+  Supervisor. Jira: "En revisión", sin cambios de código.
+- [x] **KAN-38** ("Seleccionar Todo"): implementado en dos selectores
+  múltiples reales -- el buscador de personas de la toma de asistencia
+  (`BuscadorPersonaMultiple.tsx`) y el filtro multi-sede del Calendario
+  General (`CalendarioMultiIglesia.tsx`), con estado indeterminado y
+  contador, actuando solo sobre lo filtrado/visible. No toqué cada
+  selector múltiple de la app -- el patrón queda reusable para el resto.
+  Jira: "En revisión", assignee Gonzalo.
+- [x] **KAN-40** (Pastor ve calendario consolidado): re-confirmé la misma
+  conclusión de la sesión del 2026-08-06 -- `RUTAS_PASTOR` sigue sin
+  Calendario a propósito (decisión de alcance del owner). El filtro
+  multi-sede ya está construido (`CalendarioMultiIglesia.tsx`) y ahora
+  además tiene "Seleccionar Todo" (KAN-38) -- si el owner confirma que el
+  Pastor debe tener Calendario, conectarlo es inmediato. Sigue "En curso".
+- [x] Commit local (sin push): `00611b0` (KAN-5 + KAN-38). Migración
+  nueva `supabase/migrations/20260808260000_fn_persona_ficha_ministerio_participante_id.sql`,
+  pendiente de aplicar contra Supabase real.
+- [x] `tsc -b` limpio para todos mis archivos tocados -- hay un error
+  preexistente en `useEstructuraOrganizacional.ts` (import sin usar) que
+  viene de otra sesión trabajando en paralelo en el mismo repo, no es mío
+  y no lo toqué.
+- [x] Nota: sesión compartida con al menos otra sesión en paralelo
+  (cluster de Afirmación/Membresía, `PanelCasasDePazAfirmacion.tsx` y
+  otros archivos de `estructura-organizacional`/`afirmacion` aparecen
+  modificados sin ser míos) -- tuve cuidado de solo `git add` mis propios
+  archivos al commitear. También encontré y resolví una colisión de
+  nombre de migración (dos archivos con el mismo timestamp
+  `20260808240000`) renombrando la mía a `20260808260000`.
+- [ ] Falta: aplicar la migración de KAN-5 contra Supabase real y probar
+  en vivo (crear persona con Ministerio, agregar/quitar desde la ficha);
+  probar "Seleccionar Todo" en vivo antes de pasar KAN-5/KAN-38 a
+  "Finalizada"; que el owner defina el alcance de permisos de
+  KAN-27/29/30 y decida si prioriza KAN-32 como feature aparte.
+
+## Sesión 5 — KAN-87, KAN-111, KAN-88
+
+Traje descripción + comentarios completos de los 3 con Jira antes de tocar
+nada.
+
+- [x] **KAN-87**: la propia descripción del ticket dice textualmente "Para
+  que lo implemente el equipo, no es trabajo de esta sesión" -- no lo
+  implementé, respeté esa nota. Investigué igual la relación con KAN-111 y
+  dejé comentado en Jira que queda resuelto como subconjunto de KAN-111, sin
+  cambio de estado (sigue "Tareas por hacer").
+- [x] **KAN-111** (días de retención configurables, Red y CdP):
+  implementado. Nuevos criterios `DIAS_RETENCION_RED`/`DIAS_RETENCION_CDP`
+  en el motor de configuración ya existente (`configuracion_definicion` +
+  `fn_criterio`, mismo patrón que Control de Reportes), configurables desde
+  el Panel del Supervisor sin tocar frontend genérico. Encontré que Red ya
+  tenía el período de gracia pero fijo en el código (`interval '1 year'`) y
+  que Casa de Paz **no tenía ninguno** -- al eliminarse desaparecía de
+  inmediato (política RLS genérica `fecha_eliminacion IS NULL`). Agregué
+  política de gracia nueva para `casa_de_paz` (mismo patrón que `red`) +
+  `fn_estructura_reactivar_casa_de_paz` (no existía forma de deshacer
+  `fn_eliminar_cdp`) + wiring de frontend (banner "fue eliminada" + botón
+  "Reactivar" en `PanelCasaDePazEstructura.tsx`, tarjeta agrisada en el
+  lienzo). Saqué el corte de gracia hardcodeado en JS
+  (`estructura.service.ts`) que quedaba redundante con la RLS ahora
+  configurable.
+  - Fuera de alcance a propósito: la ventana de "borrado definitivo" con
+    cron + deshacer de 60s que Red ya tiene (KAN-85/52) no se replicó para
+    CdP -- documentado en el comentario de Jira como pendiente real.
+  - Migración `supabase/migrations/20260808240000_estructura_retencion_configurable.sql`
+    (nueva, pendiente de aplicar contra Supabase real).
+  - Jira: comentado, pasado a "En revisión", assignee Gonzalo.
+- [x] **KAN-88** (logo en correos de acceso@somoscdv.com): implementado.
+  `logo_64x64.png` que menciona el ticket no existía en el repo -- generé
+  `frontend/public/logo-correo.png` (128×128, para verse nítido a 64×64 en
+  pantallas retina, con `System.Drawing` de PowerShell ya que no había
+  Python/ImageMagick disponibles) a partir del logo real
+  (`frontend/public/logo.png`). Agregué el header con el logo a los 3
+  puntos que arman HTML de correo en el repo: `supabase/templates/invite.html`
+  (usado por `invitar-usuario`/`invitar-lider`/`crear-iglesia` vía
+  `inviteUserByEmail`) y las Edge Functions `solicitar-otp` y
+  `notificar-asignacion-cargo` (HTML propio por Brevo SMTP). Mismo logo para
+  ambas iglesias de prueba, como indicó el owner en el comentario del
+  ticket.
+  - Nota: las otras 4 plantillas de Supabase Auth (recovery, magic link,
+    etc.) no están versionadas en este repo -- se aplicaron directo en el
+    dashboard en una sesión anterior (bitácora 2026-07-30/gonzalo.md);
+    agregarles el logo ahí queda fuera del alcance de esta sesión.
+  - Jira: comentado, pasado a "En revisión" (ya tenía assignee Gonzalo).
+- [x] `tsc -b` y `vite build` del frontend limpios después de KAN-111
+  (KAN-88 no toca frontend TS, solo Edge Functions Deno + un asset).
+- [x] Commits locales (sin push): `5288d7e` (KAN-111), `052537f` (KAN-88),
+  ambos en `feature/supervisor-vision-accion`.
+- [x] Nota: encontré en el checkout entradas de otras sesiones en paralelo
+  ya committeadas (Sesión 4 de este mismo archivo, hasta `0edd646`) --
+  hice `git add` solo de mis propios archivos, sin colisión de timestamp de
+  migración (`20260808240000` ya estaba libre para mí cuando empecé).
+- [ ] Falta: aplicar la migración de KAN-111 contra Supabase real y probar
+  en vivo (eliminar/reactivar una Casa de Paz, cambiar los días de
+  retención desde el Panel del Supervisor y confirmar que el corte se
+  respeta) antes de pasar a "Finalizada"; confirmar que el logo se ve bien
+  en un correo real de Brevo (algunos clientes de correo bloquean imágenes
+  por default) antes de pasar KAN-88 a "Finalizada"; decidir con el equipo
+  si vale la pena replicar el borrado definitivo con cron para CdP
+  (gap documentado en KAN-111).
+
+## Sesión 6 — KAN-50 (Descargar PDF en los dashboards), último ticket grande del día
+
+Traje la descripción completa con Jira antes de tocar nada. Alcance amplio
+("todos los dashboards") -- prioricé un componente reusable en vez de una
+solución ad-hoc por pantalla, y cubrí los dashboards reales con mayor uso en
+el tiempo que quedaba.
+
+- [x] Evalué `html-to-image` (ya instalado, usado en KAN-100 para el PNG del
+  lienzo) vs. sumar `jspdf`/`jspdf-autotable`. Elegí combinar ambas: reusar
+  `html-to-image` para capturar el contenedor tal cual se ve en pantalla (ya
+  filtrado por rol/permisos, porque el fetch de datos ya viene escopeado por
+  RLS -- no hace falta mecanismo de permisos nuevo) y empaquetar esa imagen
+  en un PDF real con `jspdf` (nueva dependencia, `frontend/package.json`).
+  Un PDF por-texto con `jspdf-autotable` hubiera exigido mapear a mano cada
+  dashboard (KPIs, gráficos de recharts, tablas) a filas/columnas -- no daba
+  el tiempo para hacerlo bien en todos.
+- [x] Creé `frontend/src/utils/exportarPdf.ts` (`descargarElementoComoPdf`,
+  captura con `pixelRatio: 2` para nitidez pero dimensiona la página del PDF
+  al tamaño real en pantalla del contenedor, para que no salga gigante) y
+  `frontend/src/components/shared/DescargarPdfButton.tsx` (botón reusable
+  con estado de carga, recibe una `ref` al contenedor a exportar). El propio
+  botón se auto-excluye de la captura vía `data-pdf-excluir`, igual que
+  cualquier nodo con `display:none`/`visibility:hidden`.
+- [x] Aplicado a: los 4 Dashboard por rol (`DashboardPastor`,
+  `DashboardSupervisor`, `DashboardLiderRed`, `DashboardLiderCdp`),
+  `Finanzas.tsx` (vista de CdP) + `FinanzasSupervisorVista.tsx`,
+  `ControlReportesVista.tsx` (compartido por Control de Reportes del Líder
+  de Red y el Historial de Reportes del Supervisor) + `HistorialReportes.tsx`
+  (vista de CdP), `Evangelismo.tsx` (vista de CdP) y `Calendario.tsx` (vista
+  de CdP).
+- [x] Fuera de alcance a propósito, documentado en el comentario de Jira:
+  `Reportes.tsx` (es el formulario de carga del reporte semanal, no un
+  dashboard con datos para exportar -- no tiene sentido "descargar" un
+  formulario vacío); las vistas de Evangelismo/Calendario específicas de
+  Líder de Red y Supervisor (`EvangelismoRed`, `EvangelismoSupervisorVista`,
+  `CalendarioRed`, `CalendarioMultiIglesia`); pantallas de gestión que no son
+  dashboards de indicadores (Personas, CasasDePaz, Administración, etc.).
+  El componente queda listo para sumarlas rápido si se prioriza -- no es
+  "todos" literal, pero sí la cobertura real más alta que daba el tiempo.
+- [x] Build (`tsc -b && vite build`) y `oxlint` limpios (solo warnings
+  preexistentes de otros archivos, ninguno mío).
+- [x] Commit local (sin push): `0c09daa`.
+- [x] Jira: KAN-50 comentado con el detalle de cobertura, pasado a "En
+  revisión", assignee Gonzalo.
+- [ ] Falta: probar la descarga en vivo (desktop y móvil real, con datos
+  reales de Supabase) antes de pasar a "Finalizada" -- no pude correr la app
+  contra el backend real desde acá.
+
+## Sesión 7 — cierre de dos gaps abiertos: KAN-115 y KAN-96
+
+- [x] **KAN-115** (gap del guard `RequiereCapacidad` en /afirmacion,
+  /jovenes, /matrimonios): investigué a fondo cómo funciona hoy
+  (`RequiereCapacidad.tsx`, `App.tsx`, `useEsLiderAfirmacion`/
+  `useRolesGlobales.ts`). El guard en sí es correcto (`Navigate` si
+  `permitido=false`), pero lo importante es que **no es la única barrera**:
+  las tres RPC que realmente traen los datos (`fn_jovenes_iglesia`,
+  `fn_matrimonios_iglesia`, `fn_listar_lideres_cdp_afirmacion` y el resto
+  del módulo Afirmación) son `SECURITY DEFINER` y validan server-side, con
+  `fn_es_lider_jovenes_en`/`fn_es_encargado_matrimonios_en`/
+  `fn_es_lider_afirmacion_en` (más `fn_es_operativo_en` para Pastor/
+  Supervisor) contra `auth.uid()` -- no confían en nada que mande el
+  cliente. Alguien que fuerce la navegación (localStorage stale, etc.)
+  entra a un shell de página vacío pero cualquier RPC le tira
+  `SIN_ACCESO`/`AFIRMACION_SIN_PERMISO`: no hay forma de ver datos ajenos.
+  Conclusión: el "gap" era una preocupación teórica sin bug real. No toqué
+  código. Comentado en Jira, se queda "En revisión" (sin cambio de estado).
+- [x] **KAN-96** (limpieza `estructura_nodo_posicion`): al preparar la
+  migración de DROP encontré que el ticket original (y el pedido de esta
+  sesión) asumían que la tabla entera estaba muerta -- **no es así**. Confirmé
+  en `estructura.service.ts` que la tabla se sigue LEYENDO activamente
+  (`select nodo_clave, posicion_x, posicion_y ...` para `layout.posiciones`,
+  consumido por el lienzo para respetar posiciones históricas). Coincide con
+  el título real del ticket ("quitar guardado", no "quitar tabla") y con mi
+  propio comentario anterior en Jira (id 10094). Lo único 100% confirmado
+  muerto es el RPC de escritura `fn_estructura_guardar_posiciones` y su
+  contraparte de frontend (`useGuardarPosicionesEstructura`/
+  `guardarPosicionesEstructura`) -- ambos viven en
+  `frontend/src/features/estructura-organizacional/`, carpeta que esta
+  sesión tenía prohibido tocar (otro agente trabajando ahí en paralelo,
+  KAN-78/KAN-63), así que el frontend queda sin cambios.
+  - Migración nueva `supabase/migrations/20260808270000_estructura_eliminar_guardado_posiciones.sql`
+    -- **solo** `drop function fn_estructura_guardar_posiciones(uuid, jsonb, bigint)`,
+    NO toca la tabla. Pendiente de aplicar contra Supabase real, no
+    ejecutado ningún cambio de BD.
+  - Jira: comentado con el detalle completo (por qué no se dropea la
+    tabla, por qué no se tocó el frontend), pasado a "En revisión".
+- [x] Sin cambios de código frontend en esta sesión (solo el archivo SQL
+  nuevo) -- no corresponde `npm run build`.
+- [x] Commit local (sin push).
+
+## Sesión 6 — KAN-78 y KAN-63 (los dos pendientes que quedaron "en curso" de la Sesión 2)
+
+Contexto: KAN-78 y KAN-63 habían quedado documentados sin implementar porque
+en su momento el alcance no estaba confirmado. Se confirmó con el owner que
+sí tienen alcance claro -- implementados en esta sesión.
+
+- [x] **KAN-78** (vista del lienzo por rol -- Líder/Supervisor de Red):
+  guard de `EstructuraOrganizacional.tsx` ahora admite `LIDER_RED` (antes
+  solo `SUPER_ADMIN`/`SUPERVISOR`, bloqueaba la página entera). Ven el
+  lienzo completo; `useMisRoles` + una función `puedeEditarRed` nueva
+  acotan qué clicks abren edición real (solo su propia Red y las CdP
+  dentro de ella) vs. el panel genérico de solo lectura (mismo criterio
+  que ya usa el lienzo para Pastor cuando lo ve el Supervisor -- confirmé
+  que esa parte de Supervisor ya estaba bien, sin cambios). "Nueva Red" y
+  la protección OTP global quedan ocultas para ese rol; dentro de su
+  propia Red, "Eliminar Red" y "designar por correo a alguien sin cuenta"
+  también (exceden "mi propia Red").
+  - Hallazgo real no pedido explícitamente pero necesario: el backend
+    (`private.fn_estructura_puede_administrar`) solo autorizaba a
+    `SUPER_ADMIN`/`SUPERVISOR` en las RPC del constructor de estructura --
+    sin extenderlo, mostrar la Red como "editable" en el frontend hubiera
+    sido engañoso (cada mutación real habría fallado con `SIN_PERMISO`).
+    Migración nueva agrega `private.fn_estructura_puede_administrar_red`
+    (reusa `fn_es_lider_de_red`, el mismo helper que ya usa
+    `fn_asignar_cargo_cdp` para reconocer a Líder de Red sobre las CdP de
+    su Red) y la aplica a `actualizar_red`, `asignar_cargo_red`,
+    `quitar_cargo_red`, `crear_cdp` y el aviso por correo de designación.
+    Fuera de ese alcance a propósito: crear/eliminar/reactivar Red, OTP
+    global, e invitar por correo a alguien sin cuenta (siguen exclusivas
+    de Supervisor/Super Admin).
+  - Verifiqué que el resto de acciones dentro de una CdP (asignar/quitar
+    líder, sublíder, anfitrión; reactivar una CdP eliminada) ya pasan por
+    RPC/RLS que reconocían a Líder de Red desde antes (`fn_asignar_cargo_cdp`,
+    `fn_estructura_reactivar_casa_de_paz`) -- no hizo falta tocarlas.
+  - Migración `supabase/migrations/20260808280000_estructura_lider_red_administra_su_red.sql`
+    (renombrada de `20260808270000` por colisión con la migración de otra
+    sesión en paralelo -- KAN-96), pendiente de aplicar contra Supabase real.
+  - Nota aparte, no es una regresión de este ticket: no existe ningún
+    acceso desde el navbar a Estructura Organizacional para ningún rol
+    operativo (decisión previa del owner, 2026-08-04 -- solo se abre desde
+    Administración, que es Super Admin-only). Ya era así para Supervisor
+    antes de este cambio; Líder de Red queda en la misma situación
+    (acceso por URL directa).
+  - Jira: comentado, pasado a "En revisión", assignee Gonzalo.
+- [x] **KAN-63** (pendiente puntual): los botones "Cerrar panel" (X) de
+  los 5 paneles laterales de Estructura Organizacional medían 36px de
+  área táctil, bajo el mínimo de 44×44 (REQ-MOB-3). Mismo truco de
+  pseudo-elemento ya usado en los botones de zoom/centrar del lienzo
+  (`before:absolute before:-inset-1`), sin cambiar el tamaño visible.
+  Jira: comentado, se queda "En curso" (lo único que falta de todo el
+  ticket es la prueba en dispositivo físico real, que no puedo hacer
+  desde acá).
+- [x] Archivos tocados: `EstructuraOrganizacional.tsx`, `layout.ts`,
+  `PanelRedEstructura.tsx`, `PanelCasaDePazEstructura.tsx`,
+  `PanelDepartamentoEstructura.tsx`, `PanelDetalleEstructura.tsx`,
+  `PanelPrincipalEstructura.tsx` (todos en
+  `frontend/src/features/estructura-organizacional/` y
+  `frontend/src/pages/`), migración SQL nueva.
+- [x] `tsc -b` y `npm run build` limpios.
+- [x] Commits locales (sin push): `29934c3` (KAN-78 + KAN-63) y `af32ad6`
+  (renombre de la migración por la colisión).
+- [ ] Falta: aplicar la migración `20260808280000` contra Supabase real y
+  probar en vivo con una cuenta real de Líder/Supervisor de Red (entrar al
+  lienzo por URL directa, confirmar que solo puede editar su propia Red y
+  que el resto queda en solo lectura) antes de pasar KAN-78 a "Finalizada";
+  prueba en dispositivo físico real para KAN-63.
+
+## Coordinación con KAN-129 (Gonzalo, rama `codex/refactorizacion-multirol`)
+
+- [x] Gonzalo avisó que arranca la épica KAN-129 (refactor de arquitectura
+  multirol y contexto activo: KAN-130 a KAN-135) en la rama
+  `codex/refactorizacion-multirol`.
+- [x] Aviso importante: ANTES de este mensaje, en esta sesión ya se tocaron
+  en `feature/supervisor-vision-accion` varios archivos que esa épica
+  probablemente va a rediseñar: `AppShell.tsx` (KAN-73/114/128, commit
+  `ba6e759`), `useOpcionesRolContextuales.ts` (KAN-116, mismo commit), y el
+  guard de acceso de `EstructuraOrganizacional.tsx` (KAN-78, ahora admite
+  `LIDER_RED`, commit `29934c3`). Nada de esto está pusheado a origin.
+  Comentado en KAN-129 para que quede visible.
+- [x] A partir de ahora: no se toca autenticación, selector multirol,
+  AppShell, PrivateLayout, permisos ni dashboards en esta sesión sin
+  coordinar antes con Gonzalo, para no pisarse con KAN-130 a KAN-135.
+
+## Sesión 8 — KAN-32 ("Cambiar de Red"), implementado
+
+Traje descripción completa + mi comentario anterior con Jira (ya había
+investigado antes y confirmado que no existía nada -- quedó "En curso" sin
+implementar). Investigué el modelo real (`harness/03-estructura/design.md`,
+`08_estructura.sql`, `30_fusiones_y_pin.sql`, `34_multiplicacion.sql`,
+`58_solicitudes_estructura.sql`) antes de diseñar.
+
+- [x] Una Persona no pertenece a una Red directamente (pertenece a una CdP,
+  que pertenece a una Red), así que "mover de Red" es reasignar la
+  membresía principal (`casa_de_paz_membresia`) a una CdP que ya esté en la
+  Red de destino -- mismo patrón append-only que fusión/multiplicación
+  (nunca se borra, se cierra `fecha_fin` y se abre una fila nueva).
+- [x] **Decisión sobre cargos de liderazgo** (el caso límite que pedía
+  criterio): un Líder/Sublíder de Red, Encargado de Red, o Líder/Sublíder/
+  Anfitrión de la CdP que deja NO se "lleva" el cargo a la Red nueva -- el
+  cargo queda atado a la Red/CdP de origen, no a la persona. Si tiene
+  alguno vigente, la RPC nueva (`fn_mover_persona_red`) rechaza con
+  `MOVIMIENTO_CARGOS_VIGENTES` a menos que el administrador confirme
+  explícitamente (`p_confirmar_cierre_cargos`) -- recién ahí los cierra.
+  Cargos de Iglesia (`persona_cargo`: Pastor, Supervisor de Visión,
+  cargos ministeriales) quedan fuera a propósito, no dependen de la Red.
+- [x] Reusé el mismo gate de `58_solicitudes_estructura.sql`: si el
+  Supervisor (no el Pastor, no el propio Líder de Red) mueve a alguien
+  fuera de una Red que ya tiene Líder vigente, no se aplica al instante --
+  genera una solicitud pendiente que ese Líder de Red aprueba o rechaza
+  (agregué el tipo `MOVER_PERSONA_RED` al catálogo y a
+  `fn_aprobar_solicitud_estructura`).
+- [x] Backend: tabla nueva `movimiento_red_persona` (auditoría append-only,
+  con los cargos cerrados guardados en `cargos_finalizados` para que el
+  registro se explique solo -- Requisito 10), `fn_mover_persona_red` (la
+  acción), `fn_listar_movimientos_red_persona` (historial por iglesia, sin
+  UI dedicada todavía -- documentado como pendiente si se prioriza un panel
+  de auditoría). Migración
+  `supabase/migrations/20260808300000_estructura_mover_persona_red.sql`,
+  nueva, pendiente de aplicar contra Supabase real.
+- [x] Frontend: botón "Cambiar de Red" en `FichaPersonaSheet.tsx` (visible
+  para Pastor/Supervisor, junto a "Ocultar de búsquedas") que abre
+  `MoverPersonaRedDialog.tsx` (nuevo) -- Red de destino → Casa de Paz de
+  destino (reusa `useRedes`/`useCdps` ya existentes), muestra los cargos
+  que se van a cerrar con checkbox de confirmación obligatoria, motivo
+  obligatorio, PIN si es Super Admin. Reusé `fn_persona_ficha` (ya cargado
+  por la ficha) para los cargos vigentes en vez de crear un RPC de
+  "preview" aparte.
+- [x] `tsc -b && vite build` y `oxlint` de los archivos tocados, limpios.
+- [x] Commit local (sin push) -- solo mis archivos (`git add` puntual, hay
+  otras 2 sesiones en paralelo con cambios sin commitear de Anuncios y
+  Membresía en el mismo working directory que no toqué).
+- [x] Jira: KAN-32 comentado con el diseño y las decisiones, pasado a "En
+  revisión", assignee Gonzalo.
+- [ ] Falta: aplicar la migración `20260808300000` contra Supabase real y
+  probar en vivo (mover a una persona común, y por separado a alguien con
+  un cargo vigente para confirmar que avisa y cierra el cargo; probar el
+  camino de solicitud pendiente con un Supervisor sobre una Red con Líder
+  vigente) antes de pasar a "Finalizada"; evaluar si vale la pena un panel
+  de "Movimientos entre Redes" para `fn_listar_movimientos_red_persona`
+  (hoy solo existe el RPC, sin UI).
+
+## Sesión 8 — KAN-101, base del Sistema de anuncios por roles y redes
+
+Contexto: épico con 9 subtareas ya desglosadas por el reporter (T1 a T9,
+KAN-102 a KAN-110). Esta sesión tenía prohibido tocar autenticación/sesión,
+el selector multirol, `AppShell.tsx`, `PrivateLayout.tsx` y `permisos.ts`
+(KAN-129 de Gonzalo en curso en paralelo en `codex/refactorizacion-multirol`)
+-- justo `PrivateLayout.tsx` es el enganche natural de "modal al ingresar"
+(T5), así que prioricé dejar la base completa y sólida (T1/T2/T3/T4/T7) y
+preparar T5/T6 como pieza reusable sin montar.
+
+- [x] **T1/KAN-102** (modelo de datos): tablas `anuncio` (red_id nullable =
+  toda la iglesia) y `anuncio_visto` (registro de visualización), mismo
+  patrón de auditoría/soft-delete que el resto del esquema.
+- [x] **T2/KAN-103** (permisos/RLS): helpers en schema `private`
+  (`fn_anuncio_puede_crear`, `fn_anuncio_es_destinatario`) + políticas RLS.
+  Reusé `fn_es_lider_de_red` (ya reconoce LIDER_RED y SUBLIDER_RED -- el
+  "Supervisor de Red" del épico es el cargo SUBLIDER_RED, no un rol de
+  sistema aparte, confirmado contra `90_supervisor_red_en_accion.sql`).
+- [x] **T3/KAN-104** (gestión): CRUD completo vía RPC + página nueva
+  `/anuncios` (`frontend/src/pages/Anuncios.tsx`), sin ítem de nav (no podía
+  tocar `permisos.ts`) -- accesible por URL directa, mismo criterio que tuvo
+  Estructura Organizacional para Líder de Red antes de KAN-78.
+- [x] **T4/KAN-105** (selector de destinatarios): `fn_anuncio_roles_disponibles`
+  calcula dinámicamente el set de roles según quién crea.
+- [x] **T7/KAN-108** (registro de visualización): tabla `anuncio_visto` +
+  `fn_anuncio_marcar_mostrado`/`fn_anuncio_cerrar`.
+- [x] **T5/T6 (KAN-106/107)**: toda la lógica de datos resuelta
+  (`fn_anuncios_pendientes` con cola por prioridad/fecha) y el hook
+  `useAnunciosPendientes()` + componente `<ModalAnuncios />` ya armados y
+  funcionales, pero A PROPÓSITO sin montar -- falta 1 línea en
+  `PrivateLayout.tsx` de quien pueda tocar ese archivo. Quedan "Tareas por
+  hacer" con el detalle exacto comentado en Jira.
+- [x] **T8/T9 (KAN-109/110)**: no implementados, documentados como
+  pendientes (T8 necesita `<ModalAnuncios />` montado para probarse en
+  dispositivo real; T9 ya tiene 'MIEMBRO' preparado en el modelo de datos,
+  solo falta la fuente real cuando exista acceso de Miembro).
+- [x] Decisiones de producto (documentadas en el comentario de KAN-101):
+  bucket de Storage nuevo `anuncios` (privado, 5MB, jpg/png/webp, acceso por
+  URL firmada); cola sin expiración automática más allá de `fecha_fin`,
+  orden por prioridad y luego fecha de publicación; PASTOR deliberadamente
+  fuera de "quién crea anuncios de iglesia" aunque el resto del sistema lo
+  trate como operativo (el épico es textual sobre "Supervisor de la Visión
+  en Acción"), SUPER_ADMIN mantiene el bypass universal de siempre.
+- [x] Migración nueva `supabase/migrations/20260808290000_anuncios_sistema_base.sql`,
+  pendiente de aplicar contra Supabase real.
+- [x] `tsc -b && vite build` y `oxlint` limpios (sin warnings nuevos).
+- [x] Commit local (sin push) `e59c353` -- solo mis archivos, hay otras 2
+  sesiones en paralelo (movilidad, membresía) con cambios propios sin
+  commitear en el mismo working directory que no toqué.
+- [x] Jira: KAN-102/103/104/105/108 comentados y pasados a "En revisión";
+  KAN-106/107/109/110 comentados, se quedan "Tareas por hacer" con el motivo
+  explícito; KAN-101 (épica) comentada con el resumen completo y las
+  decisiones, pasada a "En curso". Assignee Gonzalo en las 10.
+- [ ] Falta: aplicar la migración contra Supabase real; probar el flujo
+  completo en vivo (crear anuncio como Supervisor/Líder de Red/Supervisor de
+  Red, subir imagen, verificar destinatarios); montar `<ModalAnuncios />` en
+  `PrivateLayout.tsx` (quien tenga permiso) para cerrar T5/T6; T8/T9 quedan
+  para una sesión posterior.
+
+## Sesión 6 — cluster de Membresía ampliada (KAN-123 a KAN-126)
+
+Retomé `harness/17-membresia-ampliada/` (spec completa de una sesión
+anterior, ver Sesión 3 más arriba) para cerrar las 8 preguntas abiertas de
+`open-questions.md` e implementar el cluster.
+
+- [x] Respondí las 8 preguntas con mejor criterio, priorizando lo más
+  simple/menos disruptivo (formulario de auto-registro usado por miembros
+  reales). Resumen (detalle completo en el comentario de KAN-123):
+  catálogo de discipulados **global** (Q-1, mismo patrón que
+  `motivo_llegada`/`cargo`); discipulado **repetible** (Q-2); Seminario y
+  Universidad del Rey Jesús con **tablas dedicadas** (Q-3); fecha con
+  precisión modelada como **`anio`/`mes`/`dia` nullable** en vez de `DATE`
+  único (Q-4, única forma de cumplir la regla de "no inventar" del propio
+  ticket); Mentor **sin cargo/catálogo nuevo**, texto libre + casillero
+  autodeclarado (Q-5, la pregunta más abierta); Cónyuge/Familia se procesan
+  **al guardar**, reutilizando `referencia_familiar` ya existente (Q-6);
+  persistencia del wizard en **cliente/localStorage**, no servidor (Q-7);
+  KAN-126 alcanza a **cualquier `usuario_rol` vigente excluyendo
+  SUPER_ADMIN** (Q-8) -- verifiqué que `red_cargo`/`casa_de_paz_cargo`/
+  `departamento_cargo` exigen `persona_id NOT NULL` en el esquema real, así
+  que no pueden ser un vector adicional para "rol sin Persona".
+- [x] **KAN-123**: migración nueva
+  `supabase/migrations/20260808290000_membresia_ampliada_campos.sql` --
+  `precision_fecha_enum`, `tipo_discipulado` (catálogo global + seed de 6
+  valores), `persona_discipulado`, `persona_seminario`,
+  `persona_universidad_rey_jesus`, `persona_mentor`, columnas de bautismo
+  en `persona_detalle`, columna `es_miembro_iglesia` en
+  `referencia_familiar`. RLS + auditoría + `trg_bloquear_delete` en cada
+  tabla nueva. Función compartida `fn_guardar_membresia_extendida`,
+  llamada desde los 3 flujos atómicos existentes (`fn_registrar_persona_via_url`,
+  `fn_completar_membresia`, `fn_registrar_persona_afirmacion`) para no
+  triplicar lógica. UI: `CamposMembresiaExtendidaFields.tsx` (los 8 grupos,
+  componente controlado value/onChange, desacoplado de react-hook-form a
+  propósito para poder compartirse entre los 3 formularios).
+- [x] **KAN-124**: `FormularioPaginado.tsx` (wizard genérico reutilizable,
+  barra de progreso, validación por página) + `usePersistenciaLocal.ts`
+  (persistencia en localStorage, Q-7).
+- [x] **KAN-125**: `FormularioMembresiaPublico.tsx` reescrito sobre el
+  wizard, con persistencia local por slug. Ministerios queda fuera del
+  flujo público a propósito (sin forma anon-safe de listar ministerios de
+  una iglesia puntual todavía).
+- [x] **KAN-126**: solo capa de datos -- `fn_mi_membresia_incompleta()` +
+  hook `useMembresiaIncompletaGeneral`. NO conecté el gate en
+  `PrivateLayout.tsx`/`auth.store.ts`: ambos archivos estaban
+  explícitamente prohibidos en esta sesión (Gonzalo en paralelo en
+  `codex/refactorizacion-multirol`, KAN-129, tocando justo esos 2
+  archivos). Confirmé que `MembresiaObligatoria.tsx` ya está enganchado
+  desde `PrivateLayout.tsx` pero acoplado 1:1 al caso de invitación --
+  generalizarlo requiere tocar la lógica de gating de `PrivateLayout.tsx`
+  en sí, documentado y no lo hice.
+- [x] `MembresiaObligatoria.tsx` y `RegistrarPersonaAfirmacion.tsx`
+  también reescritos sobre `FormularioPaginado` (KAN-124 "reutilizable por
+  los diferentes flujos"), con los campos ampliados; `RegistrarPersonaAfirmacion`
+  sí incluye Ministerios (autenticado, con `iglesiaId`).
+- [x] `tsc -b --force` y `vite build` limpios; `oxlint` sin warnings
+  nuevos en los archivos tocados/creados.
+- [x] Jira: KAN-123/124/125 comentados (las 8 respuestas + qué se
+  implementó de cada uno) y pasados a "En revisión". KAN-126 comentado,
+  se queda "En curso" con el motivo explícito. Assignee y reporter
+  Gonzalo en los 4.
+- [x] El owner pidió explícitamente terminar lo que había quedado "En
+  revisión" -- encontré que sí tenía acceso real al proyecto Supabase
+  ("Centro de Vida") vía el CLI ya autenticado en esta máquina
+  (`npx supabase`, sin credenciales en el repo). Antes de tocar la base
+  real revisé que las migraciones pendientes de las 3 sesiones en paralelo
+  (anuncios, movilidad, la mía) fueran aditivas (sin `DROP TABLE`/`TRUNCATE`/
+  `DELETE`) y apliqué todas con `supabase db push`.
+- [x] Hubo una colisión real de timestamp (`20260808290000`) con la
+  migración de anuncios de la otra sesión -- la renombré a
+  `20260808310000_membresia_ampliada_campos.sql` y volví a aplicar.
+- [x] **Encontré y arreglé un bug real** probando contra la base real:
+  `fn_registrar_persona_via_url`/`fn_completar_membresia`/
+  `fn_registrar_persona_afirmacion` quedaron con `search_path` vacío
+  (estilo nuevo que usé sin darme cuenta), lo que rompía el trigger
+  existente `fn_persona_normalizar()` (sin su propio search_path fijo) al
+  insertar una Persona -- error real "relation persona_detalle does not
+  exist". Migración de fix `20260808320000_fix_search_path_membresia_extendida.sql`,
+  revirtiendo esas 3 funciones a su estilo original. Verificado después:
+  alta completa con los 8 grupos de campos, ejecutada dentro de una
+  transacción con `ROLLBACK` contra la base real (sin dejar ninguna
+  persona de prueba).
+- [x] Probé también el frontend en vivo: levanté `npm run dev` apuntado al
+  Supabase real y recorrí con Playwright el wizard completo en
+  `/registro/freddy-aramayo` (Casa de Paz real, iglesia "Centro de Vida El
+  Eden") -- las 4 páginas, el catálogo de discipulados leído en vivo desde
+  la base, checkboxes con fecha+precisión, cónyuge/familia, sin errores de
+  consola. Confirmé la persistencia en `localStorage` (Q-7) recargando la
+  página a mitad de formulario. No hice clic en "Completar registro" a
+  propósito, para no crear una persona de prueba real en la base de una
+  iglesia real -- esa parte se validó por separado con la transacción con
+  `ROLLBACK`.
+  Nota menor encontrada pero no perseguida (cosmética, no bloqueante, no es
+  código que haya tocado): un "Requerido" que parpadea brevemente debajo de
+  Primer nombre/Primer apellido al completar el selector de Sexo, aunque
+  ambos campos ya tengan valor válido -- no impide avanzar de página.
+- [x] Jira: KAN-123/124/125 recomentados con el detalle de la prueba en
+  vivo y pasados a "Finalizada". KAN-126 sigue "En curso" (sin cambios --
+  el bloqueo sigue siendo `PrivateLayout.tsx`/`auth.store.ts`, fuera de
+  alcance).
+- [x] Commit `7427207` (fix + migraciones aplicadas), sobre el `124938f`
+  de la sesión anterior.
+- [ ] Falta: conectar KAN-126 en `PrivateLayout.tsx` cuando el refactor de
+  KAN-129 mergee; revisar el parpadeo cosmético de "Requerido" si hay
+  tiempo en una sesión futura.

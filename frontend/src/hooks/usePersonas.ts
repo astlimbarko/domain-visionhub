@@ -34,6 +34,20 @@ export function usePersonaFicha(personaId: string | undefined) {
   });
 }
 
+/** KAN-32 -- "Cambiar de Red". Invalida ficha, búsqueda y el roster de Personas de Red
+ * (origen y destino pueden ser cualquiera de las Redes visibles). */
+export function useMoverPersonaRed(personaId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { casaDePazDestinoId: string; motivo: string; confirmarCierreCargos: boolean; pin?: string }) =>
+      personaService.moverPersonaRed({ personaId, ...params }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['personas'] });
+      qc.invalidateQueries({ queryKey: ['estructura'] });
+    },
+  });
+}
+
 export function useTiposRelacion() {
   return useQuery({ queryKey: ['personas', 'tipos-relacion'], queryFn: personaService.obtenerTiposRelacion, staleTime: Infinity });
 }

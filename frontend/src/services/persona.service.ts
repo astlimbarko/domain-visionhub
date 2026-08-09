@@ -51,6 +51,34 @@ export async function obtenerPersonasDeRed(redId: string): Promise<PersonaDeRed[
   return (data ?? []) as PersonaDeRed[];
 }
 
+/**
+ * KAN-32 -- "Cambiar de Red": traslada la membresía principal de la persona a
+ * una Casa de Paz que ya está en la Red de destino, preservando el historial
+ * (cierra la membresía vigente, abre una nueva -- nunca borra). Si tiene
+ * cargos vigentes en la Red/Casa de Paz de origen, hay que confirmar
+ * explícitamente que se van a cerrar (`confirmarCierreCargos`) o el backend
+ * rechaza con MOVIMIENTO_CARGOS_VIGENTES. `pendiente: true` significa que
+ * quedó a la espera de autorización del Líder de Red (Supervisor moviendo a
+ * alguien fuera de una Red con Líder vigente -- ver 58_solicitudes_estructura.sql).
+ */
+export async function moverPersonaRed(params: {
+  personaId: string;
+  casaDePazDestinoId: string;
+  motivo: string;
+  confirmarCierreCargos: boolean;
+  pin?: string;
+}): Promise<{ pendiente: boolean }> {
+  const { data, error } = await supabase.rpc('fn_mover_persona_red', {
+    p_persona_id: params.personaId,
+    p_casa_de_paz_destino_id: params.casaDePazDestinoId,
+    p_motivo: params.motivo,
+    p_confirmar_cierre_cargos: params.confirmarCierreCargos,
+    p_pin: params.pin ?? null,
+  });
+  if (error) throw error;
+  return { pendiente: data === null };
+}
+
 export async function crearPersona(datos: NuevaPersona): Promise<{ id: string }> {
   const { data, error } = await supabase.from('persona').insert(datos).select('id').single();
   if (error) throw error;

@@ -47,6 +47,21 @@ export function BuscadorPersonaMultiple({
 
   const seleccionadosSet = new Set(seleccionados);
 
+  // KAN-38: "Seleccionar todo" actúa sobre `filtrados` (lo visible con el
+  // texto de búsqueda activo), nunca sobre `miembros` completo -- si hay un
+  // filtro de texto puesto, solo tilda/destilda lo que coincide con él.
+  const filtradosSeleccionadosCount = filtrados.filter((m) => seleccionadosSet.has(m.persona_id)).length;
+  const todosFiltradosSeleccionados = filtrados.length > 0 && filtradosSeleccionadosCount === filtrados.length;
+  const algunoFiltradoSeleccionado = filtradosSeleccionadosCount > 0 && !todosFiltradosSeleccionados;
+
+  function toggleTodosFiltrados() {
+    if (todosFiltradosSeleccionados) {
+      filtrados.forEach((m) => { if (seleccionadosSet.has(m.persona_id)) onToggle(m.persona_id); });
+    } else {
+      filtrados.forEach((m) => { if (!seleccionadosSet.has(m.persona_id)) onToggle(m.persona_id); });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">
@@ -68,6 +83,18 @@ export function BuscadorPersonaMultiple({
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
+            {filtrados.length > 0 && (
+              <label
+                onMouseDown={(e) => e.preventDefault()}
+                className="flex cursor-pointer items-center gap-2.5 border-b border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                <Checkbox
+                  checked={todosFiltradosSeleccionados ? true : algunoFiltradoSeleccionado ? 'indeterminate' : false}
+                  onCheckedChange={toggleTodosFiltrados}
+                />
+                Seleccionar todo ({filtradosSeleccionadosCount}/{filtrados.length})
+              </label>
+            )}
             <div className="max-h-56 overflow-y-auto py-1">
               {filtrados.length === 0 ? (
                 <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>

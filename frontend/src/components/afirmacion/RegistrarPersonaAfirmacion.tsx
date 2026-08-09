@@ -5,12 +5,19 @@ import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
+import {
+  SeccionFamiliaMinisteriosMembresia,
+  SeccionFormacionMembresia,
+  SeccionMentorBautismoMembresia,
+} from '@/components/shared/CamposMembresiaExtendidaFields';
+import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { SelectorLiderCdp } from '@/components/afirmacion/SelectorLiderCdp';
 import { obtenerCamposObligatoriosMembresia } from '@/services/afirmacion.service';
 import { useRegistrarPersonaAfirmacion } from '@/hooks/useAfirmacion';
+import { useMinisterios } from '@/hooks/useMinisterios';
+import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { DatosPersonaAfirmacion } from '@/types/afirmacion.types';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
 
@@ -58,9 +65,13 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     handleSubmit,
     watch,
     setValue,
+    trigger,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(esquema) });
+
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
+  const { data: ministerios = [] } = useMinisterios(iglesiaId);
 
   const mutacion = useRegistrarPersonaAfirmacion();
 
@@ -82,12 +93,15 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       estado_civil: valores.estado_civil as DatosPersonaAfirmacion['estado_civil'],
       ocupacion: valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion as DatosPersonaAfirmacion['grado_instruccion'],
+      // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
+      ...extendido,
     };
 
     try {
       const resultado = await mutacion.mutateAsync({ datos, casaDePazCargoId });
       toast.success(`${resultado.nombre_completo} quedó registrado en ${resultado.casa_de_paz_nombre}.`);
       reset();
+      setExtendido(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
       setCasaDePazCargoId(undefined);
       setIntentoSinLider(false);
     } catch (e) {
@@ -113,8 +127,54 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     return <Skeleton className="h-80 w-full rounded-2xl" />;
   }
 
+  const pasos: PasoFormularioPaginado[] = [
+    {
+      id: 'identidad',
+      titulo: 'Identidad y censo',
+      validar: async () => {
+        if (!casaDePazCargoId) {
+          setIntentoSinLider(true);
+          return false;
+        }
+        return trigger(['primer_nombre', 'primer_apellido', 'sexo', 'fecha_nacimiento', 'ci', 'correo', 'ocupacion', 'grado_instruccion']);
+      },
+      contenido: (
+        <CamposMembresiaFields
+          register={register}
+          errors={errors}
+          camposObligatorios={obligatorios}
+          sexoActual={sexoActual}
+          estadoCivilActual={estadoCivilActual}
+          gradoActual={gradoActual}
+          setValue={setValue}
+        />
+      ),
+    },
+    {
+      id: 'formacion',
+      titulo: 'Formación',
+      contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'mentor-bautismo',
+      titulo: 'Mentor y Bautismo',
+      contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'familia',
+      titulo: 'Familia y Ministerios',
+      contenido: (
+        <SeccionFamiliaMinisteriosMembresia
+          value={extendido}
+          onChange={setExtendido}
+          ministerios={ministerios.filter((m) => m.activo)}
+        />
+      ),
+    },
+  ];
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <Label>Líder de Casa de Paz *</Label>
         <SelectorLiderCdp
@@ -128,19 +188,12 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
         {intentoSinLider && <p className="text-sm text-destructive">Elegí un líder de Casa de Paz antes de enviar.</p>}
       </div>
 
-      <CamposMembresiaFields
-        register={register}
-        errors={errors}
-        camposObligatorios={obligatorios}
-        sexoActual={sexoActual}
-        estadoCivilActual={estadoCivilActual}
-        gradoActual={gradoActual}
-        setValue={setValue}
+      <FormularioPaginado
+        pasos={pasos}
+        enviando={isSubmitting}
+        textoFinalizar="Registrar persona"
+        onFinalizar={handleSubmit(onSubmit)}
       />
-
-      <Button type="submit" disabled={isSubmitting} className="mt-2 h-12 text-base font-semibold">
-        {isSubmitting ? 'Registrando...' : 'Registrar persona'}
-      </Button>
-    </form>
+    </div>
   );
 }

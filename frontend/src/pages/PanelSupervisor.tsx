@@ -25,6 +25,7 @@ import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog
 
 const NOMBRE_CATEGORIA: Record<string, string> = {
   CDP: 'Casa de Paz',
+  ESTRUCTURA: 'Estructura organizacional',
   SSVA: 'Estados SSVA',
   DASHBOARD_LIDER: 'Dashboard del Líder de CdP',
   DASHBOARD_SUBLIDER: 'Dashboard del Sublíder',
@@ -42,7 +43,7 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
 // un grupo "Otros" al final -- así la pantalla no se rompe si se agrega una
 // categoría nueva sin actualizar este mapa.
 const GRUPOS_PESTANIA: { id: string; nombre: string; icon: LucideIcon; categorias: string[] }[] = [
-  { id: 'general', nombre: 'General', icon: SlidersHorizontal, categorias: ['__moneda', 'CDP'] },
+  { id: 'general', nombre: 'General', icon: SlidersHorizontal, categorias: ['__moneda', 'CDP', 'ESTRUCTURA'] },
   { id: 'dashboards', nombre: 'Dashboards', icon: LayoutDashboard, categorias: ['DASHBOARD_LIDER', 'DASHBOARD_SUBLIDER', 'DASHBOARD_RED'] },
   { id: 'formularios', nombre: 'Formularios', icon: ClipboardList, categorias: ['FORMULARIO_MEMBRESIA', 'FORMULARIO_REPORTE'] },
   { id: 'estados', nombre: 'Estados y familias', icon: Users, categorias: ['SSVA', 'FAMILIA'] },

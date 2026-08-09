@@ -12,16 +12,18 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Crosshair, Minus, Network, Plus, Search, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Crosshair, Download, Minus, Network, Plus, Search, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useRolUI } from '@/hooks/useRolUI';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { AppLoadingScreen } from '@/components/ui/logo-spinner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/utils/constants';
 import { crearGrafoEstructura } from '@/features/estructura-organizacional/layout';
+import { descargarLienzoComoPng } from '@/features/estructura-organizacional/exportarLienzo';
 import { PanelCasaDePazEstructura } from '@/features/estructura-organizacional/PanelCasaDePazEstructura';
 import { PanelDepartamentoEstructura } from '@/features/estructura-organizacional/PanelDepartamentoEstructura';
 import { NodoEstructura } from '@/features/estructura-organizacional/NodoEstructura';
@@ -63,6 +65,26 @@ function leerCamaraGuardada(iglesiaId: string): { x: number; y: number; zoom: nu
 
 function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
+  // KAN-78: Lider de Red y Supervisor de Red (misma paridad de siempre, ver
+  // fn_es_lider_de_red) ven el lienzo completo pero solo pueden editar su
+  // propia Red -- el resto (incluida su propia tarjeta y la de Pastor/
+  // Supervisor) se ve en modo lectura, mismo criterio que ya usa el Supervisor
+  // con Pastor. `roles.redes_lider` trae exactamente las Redes que lidera en
+  // esta iglesia puntual (no la iglesia activa del store, que puede no
+  // coincidir si esta viendo el lienzo de otra iglesia).
+  const { data: misRoles } = useMisRoles(rolUI === 'LIDER_RED' ? iglesiaId : undefined);
+  const redesEditablesIds = useMemo(
+    () => new Set((misRoles?.redes_lider ?? []).map((red) => red.id)),
+    [misRoles],
+  );
+  const puedeEditarRed = (redId: string | null | undefined): boolean => {
+    if (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR') return true;
+    if (rolUI === 'LIDER_RED' && redId) {
+      const red = data?.redes.find((item) => item.id === redId);
+      return redesEditablesIds.has(redId) && !red?.eliminada;
+    }
+    return false;
+  };
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
@@ -78,9 +100,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const [otpConfiguracion, setOtpConfiguracion] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DatosNodoEstructura>>([]);
   const [etiquetaTactil, setEtiquetaTactil] = useState<string | null>(null);
+  const [descargando, setDescargando] = useState(false);
   const iglesiaCentradaRef = useRef<string | null>(null);
   const temporizadorCamaraRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temporizadorEtiquetaTactilRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lienzoRef = useRef<HTMLDivElement>(null);
 
   // Alternativa por toque a los tooltips (REQ-UI-5): title no aparece al
   // tocar en celulares, asi que al mantener presionado un icono se muestra
@@ -159,6 +183,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     ? data?.redes.find((red) => red.id === panelRed.redId) ?? null
     : null;
 
+  // KAN-100: descarga el lienzo completo (todos los nodos, no solo lo
+  // visible en pantalla) como PNG horizontal.
+  const descargarLienzo = async () => {
+    if (!lienzoRef.current || descargando) return;
+    setDescargando(true);
+    try {
+      await descargarLienzoComoPng(lienzoRef.current, nodes, nombreIglesia);
+    } catch (fallo) {
+      toast.error(fallo instanceof Error ? fallo.message : 'No se pudo descargar el lienzo');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   const cambiarProteccionOtp = async (requerido: boolean, codigo?: string) => {
     try {
       await configurarOtp.mutateAsync({ requerido, otp: codigo || null });
@@ -215,18 +253,22 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Centrar estructura"
               {...eventosTactiles('Centrar estructura')}
               onClick={() => void fitView({ padding: 0.16, duration: 500 })}
-              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5"
+              className="relative flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors before:absolute before:-inset-y-1 before:content-[''] hover:bg-white/5"
             >
               <Crosshair className="h-4 w-4" /> <span className="hidden sm:inline">Centrar estructura</span>
             </button>
             <div className="flex h-10 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
+              {/* h-7 w-7 (28px) es mas chico que el minimo tactil de 44x44
+                  (REQ-MOB-3, KAN-63) -- antes:absolute expande el area de
+                  toque real sin agrandar el icono visible, mismo patron ya
+                  usado en los botones-texto de los paneles laterales. */}
               <button
                 type="button"
                 aria-label="Alejar"
                 title="Alejar"
                 {...eventosTactiles('Alejar')}
                 onClick={() => void zoomOut({ duration: 200 })}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -237,11 +279,22 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 title="Acercar"
                 {...eventosTactiles('Acercar')}
                 onClick={() => void zoomIn({ duration: 200 })}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+            {/* KAN-100: descargar el lienzo completo como PNG horizontal. */}
+            <button
+              type="button"
+              title="Descargar como imagen"
+              {...eventosTactiles('Descargar como imagen')}
+              onClick={() => void descargarLienzo()}
+              disabled={descargando || nodes.length === 0}
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" /> <span className="hidden sm:inline">{descargando ? 'Descargando…' : 'Descargar'}</span>
+            </button>
           </div>
         </div>
 
@@ -269,9 +322,20 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             title="Centrar estructura"
             {...eventosTactiles('Centrar estructura')}
             onClick={() => void fitView({ padding: 0.16, duration: 500 })}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5"
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-white/5"
           >
             <Crosshair className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Descargar como imagen"
+            title="Descargar como imagen"
+            {...eventosTactiles('Descargar como imagen')}
+            onClick={() => void descargarLienzo()}
+            disabled={descargando || nodes.length === 0}
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
           </button>
           <div className="ml-auto flex h-9 items-center gap-1 rounded-xl border border-white/15 px-1.5 text-white">
             <button
@@ -280,7 +344,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Alejar"
               {...eventosTactiles('Alejar')}
               onClick={() => void zoomOut({ duration: 200 })}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -291,7 +355,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               title="Acercar"
               {...eventosTactiles('Acercar')}
               onClick={() => void zoomIn({ duration: 200 })}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-white/10"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -306,7 +370,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       )}
 
       <main className="relative min-h-0 flex-1">
-        {!isLoading && !error && data && (
+        {/* KAN-78: crear una Red nueva y la proteccion OTP global de la
+            iglesia son acciones que exceden "mi propia Red" -- se quedan
+            exclusivas de Super Admin/Supervisor, igual que en el backend
+            (private.fn_estructura_puede_administrar). */}
+        {!isLoading && !error && data && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR') && (
           <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -340,26 +408,49 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
         )}
         {!isLoading && !error && (
           <ReactFlow
+            ref={lienzoRef}
             nodes={nodesVisibles}
             edges={grafoBase.edges}
             onNodesChange={onNodesChange}
             onNodeClick={(_evento, node) => {
               if (node.data.tipo === 'GRUPO_DEPARTAMENTOS' || node.data.tipo === 'GRUPO_REDES') return;
               setNodoSeleccionadoId(node.id);
+              const cerrarTodosLosPaneles = () => {
+                setPanelRed(null);
+                setPanelPrincipal(null);
+                setDepartamentoSeleccionadoId(null);
+                setCasaDePazSeleccionadaId(null);
+              };
               if (node.data.tipo === 'RED') {
+                // KAN-78: "redes-vacio" es el cartel de "crear la primera Red"
+                // (solo Super Admin/Supervisor pueden crear Redes); una Red
+                // real solo abre en modo edicion si es la propia del rol
+                // (Lider/Supervisor de Red) -- si no, queda en modo lectura
+                // (mismo panel generico que ya usa el lienzo para Pastor
+                // cuando lo ve el Supervisor).
+                const redId = node.id === 'redes-vacio' ? null : node.id.replace('red:', '');
+                const puedeCrear = rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR';
+                const editable = redId ? puedeEditarRed(redId) : puedeCrear;
+                if (!editable) {
+                  cerrarTodosLosPaneles();
+                  return;
+                }
                 setAbrirCrearCdpDirecto(false);
                 setAbrirAnadirSubliderDirecto(false);
-                setPanelRed(node.id === 'redes-vacio'
-                  ? { modo: 'crear' }
-                  : { modo: 'editar', redId: node.id.replace('red:', '') });
+                setPanelRed(redId === null ? { modo: 'crear' } : { modo: 'editar', redId });
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
                 return;
               }
               if (node.data.tipo === 'NUEVA_CASA_DE_PAZ') {
+                const redId = node.data.redId as string;
+                if (!puedeEditarRed(redId)) {
+                  cerrarTodosLosPaneles();
+                  return;
+                }
                 setAbrirCrearCdpDirecto(true);
-                setPanelRed({ modo: 'editar', redId: node.data.redId as string });
+                setPanelRed({ modo: 'editar', redId });
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
@@ -367,11 +458,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               }
               setAbrirCrearCdpDirecto(false);
               setPanelRed(null);
-              if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR') {
-                setPanelPrincipal(null);
-                setDepartamentoSeleccionadoId(null);
-                setCasaDePazSeleccionadaId(null);
-              } else if (node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN') {
+              if (node.data.tipo === 'PASTOR_SLOT' && rolUI === 'SUPER_ADMIN') {
                 setPanelPrincipal('PASTOR');
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
@@ -379,11 +466,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setPanelPrincipal('SUPERVISOR');
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
-              } else if (node.data.tipo === 'DEPARTAMENTO') {
+              } else if (node.data.tipo === 'DEPARTAMENTO' && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR')) {
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(node.id.replace('departamento:', ''));
                 setCasaDePazSeleccionadaId(null);
-              } else if (node.data.tipo === 'CASA_DE_PAZ' && node.id.startsWith('casa:')) {
+              } else if (node.data.tipo === 'CASA_DE_PAZ' && node.id.startsWith('casa:') && puedeEditarRed(node.data.redId)) {
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(node.id.replace('casa:', ''));
@@ -442,10 +529,15 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
         )}
         {casaDePazSeleccionadaId && data && (() => {
           const casaDePaz = data.casasDePaz.find((c) => c.id === casaDePazSeleccionadaId);
+          // KAN-95: la CdP no tiene color propio -- el banner de su panel
+          // hereda el color real de la Red a la que pertenece (mismo dato
+          // que ya colorea su tarjeta y la línea conectora en el lienzo).
+          const colorRed = casaDePaz ? data.redes.find((red) => red.id === casaDePaz.redId)?.color ?? null : null;
           return casaDePaz ? (
             <PanelCasaDePazEstructura
               iglesiaId={iglesiaId}
               casaDePaz={casaDePaz}
+              colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
               esSuperAdmin={rolUI === 'SUPER_ADMIN'}
@@ -479,6 +571,13 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
             esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+            // KAN-78: eliminar/reactivar una Red y designar por correo a
+            // alguien SIN CUENTA registrada siguen exclusivos de Super
+            // Admin/Supervisor -- Lider/Supervisor de Red administran su
+            // propia Red (nombre, color, cargos, nuevas CdP) pero no esas
+            // dos acciones puntuales.
+            puedeEliminarRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+            puedeInvitarPorCorreo={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
             abrirCrearCdpAlAbrir={abrirCrearCdpDirecto}
             onClose={() => {
               setPanelRed(null);
@@ -531,7 +630,12 @@ export function EstructuraOrganizacional() {
 
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
   if (rolUI === null) return <AppLoadingScreen />;
-  if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR') {
+  // KAN-78: Lider de Red y Supervisor de Red (rolUI 'LIDER_RED', cubre a
+  // ambos por la paridad de permisos ya decidida por el owner) ahora entran
+  // al lienzo -- antes quedaban totalmente bloqueados de la pagina. Ven todo
+  // el organigrama pero solo pueden editar su propia Red (ContenidoEstructura
+  // acota clicks/paneles con puedeEditarRed); el resto queda en modo lectura.
+  if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR' && rolUI !== 'LIDER_RED') {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
   if (!iglesiaId) return <Navigate to={ROUTES.ADMINISTRACION} replace />;
