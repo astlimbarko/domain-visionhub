@@ -24,10 +24,10 @@ No se cambia código hasta cerrar esta fase.
 
 ## Fase 3 — Shell visual aislado (KAN-133)
 
-- [ ] Crear catálogo de paneles por contexto.
-- [ ] Migrar `AppShell.tsx` al catálogo.
-- [ ] Retirar agregados de nav de capacidades ajenas.
-- [ ] Centralizar colores de navbar, títulos y rutas iniciales.
+- [x] Crear catálogo de paneles por contexto.
+- [x] Migrar `AppShell.tsx` al catálogo.
+- [x] Retirar agregados de nav de capacidades ajenas.
+- [x] Centralizar colores de navbar, títulos y rutas iniciales.
 
 ## Fase 4 — Módulos y consultas (KAN-134)
 

@@ -1,7 +1,6 @@
 import type { IglesiaAccesible } from '@/types/auth.types';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
-import { ROUTES } from '@/utils/constants';
 
 interface FuentesContextos {
   esSuperAdmin: boolean;
@@ -117,15 +116,6 @@ export function encontrarContextoValido(
       disponible.rolUI === contexto.rolUI &&
       disponible.alcance === contexto.alcance,
   ) ?? null;
-}
-
-export function rutaInicialParaContexto(contexto: ContextoActivo): string {
-  if (contexto.rolUI === 'SUPER_ADMIN') return ROUTES.ADMINISTRACION;
-  if (contexto.rolUI === 'SUBLIDER_CDP') return ROUTES.CASAS_DE_PAZ;
-  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return ROUTES.AFIRMACION;
-  if (contexto.rolUI === 'LIDER_JOVENES') return ROUTES.JOVENES;
-  if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return ROUTES.MATRIMONIOS;
-  return ROUTES.DASHBOARD;
 }
 
 export function vistaInicialParaContexto(contexto: ContextoActivo): Vista | null {

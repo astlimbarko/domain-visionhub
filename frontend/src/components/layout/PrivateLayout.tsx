@@ -5,8 +5,7 @@ import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
 import { ROUTES } from '@/utils/constants';
-import { puedeAcceder } from '@/utils/permisos';
-import { rutaInicialParaContexto } from '@/utils/contextos-disponibles';
+import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-contexto';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
@@ -61,7 +60,7 @@ export function PrivateLayout() {
     if (!rutaBase) return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 
-  if (contextoActivo && !puedeAcceder(contextoActivo.rolUI, location.pathname)) {
+  if (contextoActivo && !obtenerPanelContexto(contextoActivo).puedeAccederRuta(location.pathname)) {
     return <Navigate to={rutaInicialParaContexto(contextoActivo)} replace />;
   }
 

@@ -16,12 +16,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
-import { useRolUI } from '@/hooks/useRolUI';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
-import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
-import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, ROL_UI_META, obtenerNavItems, type NavItem } from '@/utils/permisos';
-import { NAVBAR_COLOR_ROL } from '@/utils/navbar-color-rol';
+import type { NavItem } from '@/utils/permisos';
+import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import { ROUTES } from '@/utils/constants';
@@ -154,60 +151,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
 
-  // Rol UI y navegación filtrada
-  const rolUI = useRolUI();
   const { contextoActivo, contextosDisponibles } = useContextoActivo();
-  // Super Admin tiene su propio "tema" oscuro en todo el shell (sidebar +
-  // barra superior + menú de cuenta) -- panel global, sin iglesia asociada,
-  // visualmente distinto a propósito. Cada rol va a tener su color más
-  // adelante; por ahora solo Super Admin usa este oscuro.
-  const esOscuro = rolUI === 'SUPER_ADMIN';
-  // Color propio de navbar por rol (hoy solo Líder de Red) -- ver
-  // navbar-color-rol.ts. `navbarClaro` decide si el texto/íconos de la
-  // barra van en blanco (Super Admin oscuro, o cualquier rol con color
-  // propio) o en el gris/negro de siempre.
-  const colorNavbarRol = rolUI ? NAVBAR_COLOR_ROL[rolUI] : undefined;
-  const navbarClaro = esOscuro || !!colorNavbarRol;
+  const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
+  const rolUI = contextoActivo?.rolUI ?? null;
+  const esOscuro = panelContexto?.temaOscuro ?? false;
+  const colorNavbarRol = panelContexto?.colorNavbar;
+  const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
-  // Tono suave del mismo color en el sidebar (desktop y drawer móvil) --
-  // acompaña al navbar sin repetir el mismo azul saturado (pedido del
-  // owner, 2026-08-04). El texto del sidebar sigue oscuro (`oscuro={false}`
-  // en NavLinks), la mezcla es lo bastante clara para eso.
   const estiloSidebarColor = colorNavbarRol
     ? { backgroundColor: `color-mix(in oklab, ${colorNavbarRol} 10%, white)` }
     : undefined;
 
-  // El título ("Pastor", "Supervisor", etc.) es de la iglesia activa -- no
-  // tiene sentido mostrarlo mientras se actúa como Super Admin (panel
-  // global, sin iglesia asociada), confundiría con qué sombrero está puesto.
   const tituloMostrado = esOscuro ? null : titulo;
   const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
-  // Cargo del rol activo (ej. "Líder de Red"), para la barra superior --
-  // reemplaza al selector de iglesia que aparecía ahí antes (bug: salía en
-  // cualquier rol, sin ser un selector oficial de nada -- pedido del owner,
-  // 2026-08-04). El selector real de iglesia sigue viviendo en el drawer
-  // móvil para cuentas con más de una.
-  const cargoLabel = contextoActivo?.alcance === 'RED' && contextoActivo.cargoRed === 'SUPERVISOR'
-    ? 'Supervisor de Red'
-    : rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
-
-  const esLiderAfirmacion = useEsLiderAfirmacion();
-  const esLiderJovenes = useEsLiderJovenes();
-  const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
-  // Super Admin no ve Afirmación/Jóvenes/Matrimonios en su menú aunque la
-  // cuenta también tenga esas capacidades en otra iglesia -- eso se elige
-  // desde el selector multi-rol, no debe aparecer mezclado con el rol
-  // activo (2026-08-03, pedido explícito del owner). Estructura Organizacional
-  // se abre desde cada iglesia del panel Administración; no existe un acceso
-  // ambiguo en el navbar que apunte a la primera iglesia (owner, 2026-08-04).
-  const navItems = esOscuro
-    ? [...(rolUI ? obtenerNavItems(rolUI) : [])]
-    : [
-        ...(rolUI ? obtenerNavItems(rolUI) : []),
-        ...(esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
-        ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
-        ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
-      ];
+  const cargoLabel = panelContexto?.titulo ?? '';
+  // El sidebar se obtiene exclusivamente del contexto elegido. Las demás
+  // capacidades permanecen en el selector y nunca se suman a este menú.
+  const navItems = panelContexto?.navItems ?? [];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
   // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
@@ -315,7 +275,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
               <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
             </div>
-            <span className="truncate text-[15px] font-bold tracking-tight text-white">{nombreMarca}</span>
+            <span className={cn('truncate text-[15px] font-bold tracking-tight', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
           </div>
         ) : (
           <div className="mb-6 flex items-center gap-3 px-3 pt-1">
@@ -390,7 +350,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 variant="ghost"
                 size="icon"
                 aria-label="Buscar"
-                className="rounded-xl text-white hover:bg-white/10"
+                className={cn('rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-black/5')}
                 onClick={() => setBusquedaAbierta(true)}
               >
                 <Search className="h-4.5 w-4.5" />

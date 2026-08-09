@@ -55,15 +55,16 @@ Si falla, limpia solo el contexto inválido y va a `/seleccionar-rol`; no intent
 
 ## 4. Catálogo único de paneles
 
-Crear un catálogo único, por ejemplo `frontend/src/utils/paneles-contexto.ts`. Cada entrada recibe el contexto y devuelve título, subtítulo, color de navbar, tokens visuales, rutas permitidas, ruta inicial, `NavItem[]` y estrategia de alcance para consultas.
+El catálogo único vive en `frontend/src/utils/paneles-contexto.ts`. Cada entrada recibe el contexto y devuelve título, color de navbar, contraste, rutas permitidas, ruta inicial y `NavItem[]`.
 
-`AppShell.tsx` consume exclusivamente ese catálogo. Se elimina el patrón de añadir `NAV_ITEMS_AFIRMACION`, Jóvenes o Matrimonios sobre el menú de otro rol.
+`AppShell.tsx` consume exclusivamente ese catálogo. Afirmación, Jóvenes y Matrimonios solo aparecen cuando su contexto está activo; nunca se añaden sobre el menú de otro rol.
 
 ### Separación de sistemas de color
 
-- Los colores del navbar son fijos por Rol UI y viven en el catálogo central.
-- Super Admin conserva su tema oscuro; Líder de Red conserva `#4E73B7`.
-- Sublíder de CdP usa blanco nieve `#FFFAFA` como color definido.
+- Los colores del navbar son fijos por contexto y viven en el catálogo central.
+- Super Admin conserva `#0A0E1A`; Líder de Red conserva `#4E73B7`.
+- Supervisor de Red comparte panel y permisos con Líder de Red, pero usa `#5B4BB7`.
+- Sublíder de CdP usa blanco nieve `#FFFAFA` con texto oscuro.
 - Los roles todavía sin color oficial usan temporalmente `#FFFAFA` hasta que el owner confirme su paleta.
 - Los colores de Red son datos dinámicos de Supabase y no reemplazan el color del navbar.
 - Los colores de departamentos, chips del selector e íconos de navegación son sistemas visuales separados.

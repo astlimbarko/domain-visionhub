@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
 import { AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ROUTES } from '@/utils/constants';
-import { rutaInicialParaContexto } from '@/utils/contextos-disponibles';
+import { rutaInicialParaContexto } from '@/utils/paneles-contexto';
 
 export function SeleccionarRol() {
   const navigate = useNavigate();
