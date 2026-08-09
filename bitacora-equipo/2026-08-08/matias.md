@@ -213,3 +213,51 @@ nada.
   por default) antes de pasar KAN-88 a "Finalizada"; decidir con el equipo
   si vale la pena replicar el borrado definitivo con cron para CdP
   (gap documentado en KAN-111).
+
+## Sesión 6 — KAN-50 (Descargar PDF en los dashboards), último ticket grande del día
+
+Traje la descripción completa con Jira antes de tocar nada. Alcance amplio
+("todos los dashboards") -- prioricé un componente reusable en vez de una
+solución ad-hoc por pantalla, y cubrí los dashboards reales con mayor uso en
+el tiempo que quedaba.
+
+- [x] Evalué `html-to-image` (ya instalado, usado en KAN-100 para el PNG del
+  lienzo) vs. sumar `jspdf`/`jspdf-autotable`. Elegí combinar ambas: reusar
+  `html-to-image` para capturar el contenedor tal cual se ve en pantalla (ya
+  filtrado por rol/permisos, porque el fetch de datos ya viene escopeado por
+  RLS -- no hace falta mecanismo de permisos nuevo) y empaquetar esa imagen
+  en un PDF real con `jspdf` (nueva dependencia, `frontend/package.json`).
+  Un PDF por-texto con `jspdf-autotable` hubiera exigido mapear a mano cada
+  dashboard (KPIs, gráficos de recharts, tablas) a filas/columnas -- no daba
+  el tiempo para hacerlo bien en todos.
+- [x] Creé `frontend/src/utils/exportarPdf.ts` (`descargarElementoComoPdf`,
+  captura con `pixelRatio: 2` para nitidez pero dimensiona la página del PDF
+  al tamaño real en pantalla del contenedor, para que no salga gigante) y
+  `frontend/src/components/shared/DescargarPdfButton.tsx` (botón reusable
+  con estado de carga, recibe una `ref` al contenedor a exportar). El propio
+  botón se auto-excluye de la captura vía `data-pdf-excluir`, igual que
+  cualquier nodo con `display:none`/`visibility:hidden`.
+- [x] Aplicado a: los 4 Dashboard por rol (`DashboardPastor`,
+  `DashboardSupervisor`, `DashboardLiderRed`, `DashboardLiderCdp`),
+  `Finanzas.tsx` (vista de CdP) + `FinanzasSupervisorVista.tsx`,
+  `ControlReportesVista.tsx` (compartido por Control de Reportes del Líder
+  de Red y el Historial de Reportes del Supervisor) + `HistorialReportes.tsx`
+  (vista de CdP), `Evangelismo.tsx` (vista de CdP) y `Calendario.tsx` (vista
+  de CdP).
+- [x] Fuera de alcance a propósito, documentado en el comentario de Jira:
+  `Reportes.tsx` (es el formulario de carga del reporte semanal, no un
+  dashboard con datos para exportar -- no tiene sentido "descargar" un
+  formulario vacío); las vistas de Evangelismo/Calendario específicas de
+  Líder de Red y Supervisor (`EvangelismoRed`, `EvangelismoSupervisorVista`,
+  `CalendarioRed`, `CalendarioMultiIglesia`); pantallas de gestión que no son
+  dashboards de indicadores (Personas, CasasDePaz, Administración, etc.).
+  El componente queda listo para sumarlas rápido si se prioriza -- no es
+  "todos" literal, pero sí la cobertura real más alta que daba el tiempo.
+- [x] Build (`tsc -b && vite build`) y `oxlint` limpios (solo warnings
+  preexistentes de otros archivos, ninguno mío).
+- [x] Commit local (sin push): `0c09daa`.
+- [x] Jira: KAN-50 comentado con el detalle de cobertura, pasado a "En
+  revisión", assignee Gonzalo.
+- [ ] Falta: probar la descarga en vivo (desktop y móvil real, con datos
+  reales de Supabase) antes de pasar a "Finalizada" -- no pude correr la app
+  contra el backend real desde acá.
