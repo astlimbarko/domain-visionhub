@@ -303,3 +303,70 @@ el tiempo que quedaba.
 - [x] Sin cambios de código frontend en esta sesión (solo el archivo SQL
   nuevo) -- no corresponde `npm run build`.
 - [x] Commit local (sin push).
+
+## Sesión 6 — KAN-78 y KAN-63 (los dos pendientes que quedaron "en curso" de la Sesión 2)
+
+Contexto: KAN-78 y KAN-63 habían quedado documentados sin implementar porque
+en su momento el alcance no estaba confirmado. Se confirmó con el owner que
+sí tienen alcance claro -- implementados en esta sesión.
+
+- [x] **KAN-78** (vista del lienzo por rol -- Líder/Supervisor de Red):
+  guard de `EstructuraOrganizacional.tsx` ahora admite `LIDER_RED` (antes
+  solo `SUPER_ADMIN`/`SUPERVISOR`, bloqueaba la página entera). Ven el
+  lienzo completo; `useMisRoles` + una función `puedeEditarRed` nueva
+  acotan qué clicks abren edición real (solo su propia Red y las CdP
+  dentro de ella) vs. el panel genérico de solo lectura (mismo criterio
+  que ya usa el lienzo para Pastor cuando lo ve el Supervisor -- confirmé
+  que esa parte de Supervisor ya estaba bien, sin cambios). "Nueva Red" y
+  la protección OTP global quedan ocultas para ese rol; dentro de su
+  propia Red, "Eliminar Red" y "designar por correo a alguien sin cuenta"
+  también (exceden "mi propia Red").
+  - Hallazgo real no pedido explícitamente pero necesario: el backend
+    (`private.fn_estructura_puede_administrar`) solo autorizaba a
+    `SUPER_ADMIN`/`SUPERVISOR` en las RPC del constructor de estructura --
+    sin extenderlo, mostrar la Red como "editable" en el frontend hubiera
+    sido engañoso (cada mutación real habría fallado con `SIN_PERMISO`).
+    Migración nueva agrega `private.fn_estructura_puede_administrar_red`
+    (reusa `fn_es_lider_de_red`, el mismo helper que ya usa
+    `fn_asignar_cargo_cdp` para reconocer a Líder de Red sobre las CdP de
+    su Red) y la aplica a `actualizar_red`, `asignar_cargo_red`,
+    `quitar_cargo_red`, `crear_cdp` y el aviso por correo de designación.
+    Fuera de ese alcance a propósito: crear/eliminar/reactivar Red, OTP
+    global, e invitar por correo a alguien sin cuenta (siguen exclusivas
+    de Supervisor/Super Admin).
+  - Verifiqué que el resto de acciones dentro de una CdP (asignar/quitar
+    líder, sublíder, anfitrión; reactivar una CdP eliminada) ya pasan por
+    RPC/RLS que reconocían a Líder de Red desde antes (`fn_asignar_cargo_cdp`,
+    `fn_estructura_reactivar_casa_de_paz`) -- no hizo falta tocarlas.
+  - Migración `supabase/migrations/20260808280000_estructura_lider_red_administra_su_red.sql`
+    (renombrada de `20260808270000` por colisión con la migración de otra
+    sesión en paralelo -- KAN-96), pendiente de aplicar contra Supabase real.
+  - Nota aparte, no es una regresión de este ticket: no existe ningún
+    acceso desde el navbar a Estructura Organizacional para ningún rol
+    operativo (decisión previa del owner, 2026-08-04 -- solo se abre desde
+    Administración, que es Super Admin-only). Ya era así para Supervisor
+    antes de este cambio; Líder de Red queda en la misma situación
+    (acceso por URL directa).
+  - Jira: comentado, pasado a "En revisión", assignee Gonzalo.
+- [x] **KAN-63** (pendiente puntual): los botones "Cerrar panel" (X) de
+  los 5 paneles laterales de Estructura Organizacional medían 36px de
+  área táctil, bajo el mínimo de 44×44 (REQ-MOB-3). Mismo truco de
+  pseudo-elemento ya usado en los botones de zoom/centrar del lienzo
+  (`before:absolute before:-inset-1`), sin cambiar el tamaño visible.
+  Jira: comentado, se queda "En curso" (lo único que falta de todo el
+  ticket es la prueba en dispositivo físico real, que no puedo hacer
+  desde acá).
+- [x] Archivos tocados: `EstructuraOrganizacional.tsx`, `layout.ts`,
+  `PanelRedEstructura.tsx`, `PanelCasaDePazEstructura.tsx`,
+  `PanelDepartamentoEstructura.tsx`, `PanelDetalleEstructura.tsx`,
+  `PanelPrincipalEstructura.tsx` (todos en
+  `frontend/src/features/estructura-organizacional/` y
+  `frontend/src/pages/`), migración SQL nueva.
+- [x] `tsc -b` y `npm run build` limpios.
+- [x] Commits locales (sin push): `29934c3` (KAN-78 + KAN-63) y `af32ad6`
+  (renombre de la migración por la colisión).
+- [ ] Falta: aplicar la migración `20260808280000` contra Supabase real y
+  probar en vivo con una cuenta real de Líder/Supervisor de Red (entrar al
+  lienzo por URL directa, confirmar que solo puede editar su propia Red y
+  que el resto queda en solo lectura) antes de pasar KAN-78 a "Finalizada";
+  prueba en dispositivo físico real para KAN-63.
