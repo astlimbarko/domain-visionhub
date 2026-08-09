@@ -442,10 +442,15 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
         )}
         {casaDePazSeleccionadaId && data && (() => {
           const casaDePaz = data.casasDePaz.find((c) => c.id === casaDePazSeleccionadaId);
+          // KAN-95: la CdP no tiene color propio -- el banner de su panel
+          // hereda el color real de la Red a la que pertenece (mismo dato
+          // que ya colorea su tarjeta y la línea conectora en el lienzo).
+          const colorRed = casaDePaz ? data.redes.find((red) => red.id === casaDePaz.redId)?.color ?? null : null;
           return casaDePaz ? (
             <PanelCasaDePazEstructura
               iglesiaId={iglesiaId}
               casaDePaz={casaDePaz}
+              colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
               esSuperAdmin={rolUI === 'SUPER_ADMIN'}

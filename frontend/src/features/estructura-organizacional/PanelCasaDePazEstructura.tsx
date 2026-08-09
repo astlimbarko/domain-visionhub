@@ -14,8 +14,12 @@ import {
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { CasaDePazEstructura } from './types';
+
+/** Color de respaldo cuando la Red de la CdP no tiene un color propio configurado (sigue en '#FFFFFF' o no se pudo resolver). */
+const COLOR_BANNER_POR_DEFECTO = '#64748b';
 
 /**
  * Reusa el mismo flujo ya construido en GestionEstructuraVista.tsx
@@ -27,6 +31,11 @@ import type { CasaDePazEstructura } from './types';
 interface Props {
   iglesiaId: string;
   casaDePaz: CasaDePazEstructura;
+  /** Color real de la Red a la que pertenece esta Casa de Paz (la CdP no tiene
+   * color propio en la base de datos -- hereda el de su Red, mismo criterio
+   * que ya usa el lienzo en layout.ts/NodoEstructura para las tarjetas y
+   * líneas conectoras). `null`/`undefined`/blanco cae al gris neutro. */
+  colorRed?: string | null;
   abrirAnadirSubliderAlAbrir?: boolean;
   otpRequerido: boolean;
   esSuperAdmin: boolean;
@@ -44,8 +53,13 @@ function manejarErrorCargo(e: unknown, generico: string) {
   toast.error(mensaje || generico);
 }
 
-export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
+export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
   const queryClient = useQueryClient();
+  // KAN-95: banner superior pintado con el color real de la Red (la CdP no
+  // tiene color propio), con el mismo criterio de contraste de texto que ya
+  // usa el resto del lienzo (contraste.ts) en vez de un estilo fijo.
+  const color = colorRed && colorRed.toUpperCase() !== '#FFFFFF' ? colorRed : COLOR_BANNER_POR_DEFECTO;
+  const colorTexto = textoLegibleSobre(color);
   const [dialogoCargo, setDialogoCargo] = useState<DialogoCargo | null>(null);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
@@ -146,9 +160,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, abrirAnadirSubl
         <div className="flex justify-center pt-2 pb-1 sm:hidden">
           <div className="h-1.5 w-10 rounded-full bg-slate-300" />
         </div>
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
-          <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Casa de Paz</p>
-          <button type="button" onClick={onClose} aria-label="Cerrar panel" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4" style={{ backgroundColor: color }}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide uppercase opacity-70" style={{ color: colorTexto }}>Casa de Paz</p>
+            {casaDePaz.nombre?.trim() && (
+              <p className="truncate text-sm font-bold" style={{ color: colorTexto }}>{casaDePaz.nombre.trim()}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar panel"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl transition-colors hover:bg-black/10"
+            style={{ color: colorTexto }}
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
