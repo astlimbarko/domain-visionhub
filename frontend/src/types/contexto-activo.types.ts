@@ -17,7 +17,12 @@ export type ContextoActivo =
       departamentoId: string | null;
       departamentoCodigo: 'AFIRMACION';
     })
-  | (ContextoBase<'LIDER_RED', 'RED'> & { iglesiaId: string; redId: string })
+  | (ContextoBase<'LIDER_RED', 'RED'> & {
+      iglesiaId: string;
+      redId: string;
+      /** Ambos cargos comparten permisos y panel, pero conservan identidad visual propia. */
+      cargoRed: 'LIDER' | 'SUPERVISOR';
+    })
   | (ContextoBase<'LIDER_CDP' | 'SUBLIDER_CDP', 'CDP'> & {
       iglesiaId: string;
       redId: string | null;

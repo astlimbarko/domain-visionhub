@@ -17,10 +17,10 @@ No se cambia código hasta cerrar esta fase.
 
 ## Fase 2 — Selector y rutas (KAN-132)
 
-- [ ] Unificar `useOpcionesRol` y `useOpcionesRolContextuales` en una fuente de opciones por asignación real.
-- [ ] Hacer que `SeleccionarRol.tsx` guarde el contexto completo.
-- [ ] Adaptar `PrivateLayout.tsx` y guards para validar contexto + ruta.
-- [ ] Eliminar dependencia funcional de `location.state` para conservar alcance.
+- [x] Unificar selector y validación sobre contextos por asignación real.
+- [x] Hacer que `SeleccionarRol.tsx` guarde el contexto completo.
+- [x] Adaptar `PrivateLayout.tsx` y guards para validar contexto + ruta.
+- [x] Eliminar dependencia funcional de `location.state` para conservar alcance.
 
 ## Fase 3 — Shell visual aislado (KAN-133)
 

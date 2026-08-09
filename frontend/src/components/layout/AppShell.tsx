@@ -17,26 +17,18 @@ import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useRolUI } from '@/hooks/useRolUI';
-import { useOpcionesRol } from '@/hooks/useOpcionesRol';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
 import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, ROL_UI_META, obtenerNavItems, type NavItem } from '@/utils/permisos';
 import { NAVBAR_COLOR_ROL } from '@/utils/navbar-color-rol';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
-import type { Vista } from '@/types/dashboard.types';
+import type { ContextoActivo } from '@/types/contexto-activo.types';
 import { ROUTES } from '@/utils/constants';
 
-interface Sombrero { key: string; label: string; vista: Vista; }
+interface Sombrero { key: string; label: string; contexto: ContextoActivo; }
 
 const CORREO_SOPORTE = 'soporte@somoscdv.com';
-
-function mismaVista(a: Vista, b: Vista): boolean {
-  if (a.tipo !== b.tipo) return false;
-  if (a.tipo === 'red' && b.tipo === 'red') return a.redId === b.redId;
-  if (a.tipo === 'cdp' && b.tipo === 'cdp') return a.cdpId === b.cdpId && a.esSublider === b.esSublider;
-  if (a.tipo === 'supervisor' && b.tipo === 'supervisor') return a.iglesiaId === b.iglesiaId;
-  return a.tipo === 'pastor';
-}
 
 // Bloque discreto de soporte institucional, al pie del menú lateral (15-gestion-
 // administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
@@ -64,10 +56,11 @@ function SoporteFooter({ href, correo, onClick, className, oscuro }: { href: str
 
 function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
   const location = useLocation();
-  const vistaActual = (location.state as { vista?: Vista } | null)?.vista;
   const queryClient = useQueryClient();
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const contextoActivo = useAuthStore((s) => s.contextoActivo);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
 
   // Al pasar el mouse (o el foco, para navegación por teclado) por un link,
   // ya se dispara la carga del módulo y del primer dato que va a pedir --
@@ -99,9 +92,15 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
                 {iconoChip}{label}
               </div>
               {sombreros.map((s) => {
-                const activoSombrero = activo && vistaActual && mismaVista(vistaActual, s.vista);
+                const activoSombrero = activo && contextoActivo?.clave === s.contexto.clave;
                 return (
-                  <Link key={s.key} to={path} state={{ vista: s.vista }} onClick={onNavigate}
+                  <Link
+                    key={s.key}
+                    to={path}
+                    onClick={() => {
+                      setContextoActivo(s.contexto);
+                      onNavigate?.();
+                    }}
                     onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
                     className={cn(
                       'truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] transition-all',
@@ -139,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const correo = useAuthStore((s) => s.correo);
   const iglesias = useAuthStore((s) => s.iglesias);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
-  const setRolActivo = useAuthStore((s) => s.setRolActivo);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
   // Buscador del navbar (KAN-74): hoy solo visual, sin funcionalidad todavia
@@ -151,13 +150,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [valorBusqueda, setValorBusqueda] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const opcionesRol = useOpcionesRol();
 
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
 
   // Rol UI y navegación filtrada
   const rolUI = useRolUI();
+  const { contextoActivo, contextosDisponibles } = useContextoActivo();
   // Super Admin tiene su propio "tema" oscuro en todo el shell (sidebar +
   // barra superior + menú de cuenta) -- panel global, sin iglesia asociada,
   // visualmente distinto a propósito. Cada rol va a tener su color más
@@ -188,7 +187,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // cualquier rol, sin ser un selector oficial de nada -- pedido del owner,
   // 2026-08-04). El selector real de iglesia sigue viviendo en el drawer
   // móvil para cuentas con más de una.
-  const cargoLabel = rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
+  const cargoLabel = contextoActivo?.alcance === 'RED' && contextoActivo.cargoRed === 'SUPERVISOR'
+    ? 'Supervisor de Red'
+    : rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
 
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esLiderJovenes = useEsLiderJovenes();
@@ -247,13 +248,31 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
   const sombreros: Sombrero[] = [];
   if (rolUI === 'SUPERVISOR') {
-    if (roles?.es_operativo && iglesiaActivaId) {
-      sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.rolUI === 'SUPERVISOR') {
+        sombreros.push({ key: contexto.clave, label: titulo ?? 'Panel operativo', contexto });
+      }
     }
   } else if (rolUI === 'LIDER_RED') {
-    for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.alcance !== 'RED') continue;
+      const red = roles?.redes_lider?.find((item) => item.id === contexto.redId);
+      sombreros.push({
+        key: contexto.clave,
+        label: `${contexto.cargoRed === 'SUPERVISOR' ? 'Supervisión' : 'Red'}: ${red?.nombre ?? 'Sin nombre'}`,
+        contexto,
+      });
+    }
   } else if (rolUI === 'LIDER_CDP') {
-    for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.alcance !== 'CDP' || contexto.rolUI !== 'LIDER_CDP') continue;
+      const cdp = roles?.cdp_lider?.find((item) => item.id === contexto.cdpId);
+      sombreros.push({
+        key: contexto.clave,
+        label: `CdP: ${cdp?.etiqueta ?? 'Sin referencia'}`,
+        contexto,
+      });
+    }
   }
 
   async function handleLogout() {
@@ -269,7 +288,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   function handleCambiarRol() {
-    setRolActivo(null);
+    setContextoActivo(null);
     navigate(ROUTES.SELECCIONAR_ROL);
   }
 
@@ -413,7 +432,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <UserCog className="h-4 w-4" /> Mi cuenta
             </button>
-            {opcionesRol && opcionesRol.length > 1 && (
+            {contextosDisponibles && contextosDisponibles.length > 1 && (
               <button
                 onClick={() => { setMenuAbierto(false); handleCambiarRol(); }}
                 className={cn(
@@ -523,7 +542,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <UserCog className="h-4 w-4" /> Mi cuenta
               </DropdownMenuItem>
-              {opcionesRol && opcionesRol.length > 1 && (
+              {contextosDisponibles && contextosDisponibles.length > 1 && (
                 <DropdownMenuItem
                   onSelect={handleCambiarRol}
                   className={cn('gap-2', esOscuro && 'focus:bg-white/10 focus:text-white')}

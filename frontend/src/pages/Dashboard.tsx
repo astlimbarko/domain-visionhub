@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useRolUI } from '@/hooks/useRolUI';
 import { vistaPorDefectoParaRol } from '@/utils/permisos';
 import { ROUTES } from '@/utils/constants';
@@ -20,24 +21,25 @@ import { DashboardSupervisor } from '@/components/dashboard/DashboardSupervisor'
 import { DashboardLiderRed } from '@/components/dashboard/DashboardLiderRed';
 import { DashboardLiderCdp } from '@/components/dashboard/DashboardLiderCdp';
 import type { Vista } from '@/types/dashboard.types';
+import { vistaInicialParaContexto } from '@/utils/contextos-disponibles';
 
 export function Dashboard() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId);
   const rolUI = useRolUI();
+  const { contextoActivo } = useContextoActivo();
   const [pila, setPila] = useState<Vista[]>([]);
-  const location = useLocation();
-  const vistaForzada = (location.state as { vista?: Vista } | null)?.vista;
 
   useEffect(() => {
-    if (vistaForzada) {
-      setPila([vistaForzada]);
+    const vistaContexto = contextoActivo ? vistaInicialParaContexto(contextoActivo) : null;
+    if (vistaContexto) {
+      setPila([vistaContexto]);
       return;
     }
     const defecto = rolUI ? vistaPorDefectoParaRol(rolUI, roles, iglesiaActivaId) : null;
     setPila(defecto ? [defecto] : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roles, rolUI, iglesiaActivaId, location.key]);
+  }, [roles, rolUI, iglesiaActivaId, contextoActivo?.clave]);
 
   function avanzar(nueva: Vista) {
     setPila((prev) => [...prev, nueva]);

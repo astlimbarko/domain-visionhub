@@ -20,14 +20,16 @@
 | Contexto | Alcance | Selector multirol | Panel independiente | Navbar actual comprobado |
 |---|---|---:|---:|---|
 | Super Admin | Global | Sí | Sí | Oscuro `#0A0E1A` |
-| Pastor | Iglesia | Sí | Sí | Temporal: blanco nieve `#FFFAFA` |
-| Supervisor de la Visión en Acción | Iglesia | Sí | Sí | Temporal: blanco nieve `#FFFAFA` |
-| Líder del Departamento de Afirmación | Departamento + iglesia | Sí | Sí | Temporal: blanco nieve `#FFFAFA` |
+| Pastor | Iglesia | Sí | Sí | Propuesto `#7A2948` |
+| Supervisor de la Visión en Acción | Iglesia | Sí | Sí | Propuesto `#0F766E` |
+| Líder del Departamento de Afirmación | Departamento + iglesia | Sí | Sí | Propuesto `#0071E3` |
 | Líder de Red | Red + iglesia | Una opción por Red | Sí | Azul `#4E73B7` |
-| Líder de Casa de Paz | CdP + Red + iglesia | Una opción por CdP | Sí | Temporal: blanco nieve `#FFFAFA` |
+| Supervisor de Red | Red + iglesia | Una opción por Red | Comparte funciones con Líder de Red, identidad visual propia | Propuesto `#5B4BB7` |
+| Líder de Casa de Paz | CdP + Red + iglesia | Una opción por CdP | Sí | Propuesto `#B45309` |
 | Sublíder de Casa de Paz | CdP + Red + iglesia | Una opción por CdP | Sí | Blanco nieve `#FFFAFA` |
 | Líder de Jóvenes | Iglesia | Sí | Sí, solo lectura actualmente | Temporal: blanco nieve `#FFFAFA` |
 | Encargado de Matrimonios | Iglesia | Sí | Sí, solo lectura actualmente | Temporal: blanco nieve `#FFFAFA` |
+| Encargado de Calendario (futuro) | Iglesia | Sí | Sí; calendario, eventos y banner de entrada | Propuesto `#6D28D9` |
 
 `SIN_ROL` no es un panel. Es un estado de acceso sin contexto operativo y no
 recibe sidebar, navbar temático ni rutas de otro cargo.
@@ -42,7 +44,9 @@ recibe sidebar, navbar temático ni rutas de otro cargo.
 Estos valores pueden coincidir visualmente, pero no se sustituyen entre sí y
 deben tener fuentes de verdad separadas.
 
-## Decisión pendiente antes de KAN-133
+## Paleta provisional para KAN-133
 
-Definir la paleta definitiva de navbar para los roles marcados como temporales.
-Hasta entonces usan blanco nieve; nunca usarán `red.color` como reemplazo.
+Los colores marcados como `Propuesto` se centralizarán en un único catálogo y
+quedarán pendientes de revisión visual del owner al finalizar KAN-133. Cambiar
+un color fijo debe requerir modificar una sola entrada. Los roles aún marcados
+como temporales conservan blanco nieve; nunca usan `red.color` como reemplazo.

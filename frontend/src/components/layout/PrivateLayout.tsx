@@ -1,10 +1,12 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { useOpcionesRol } from '@/hooks/useOpcionesRol';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
 import { ROUTES } from '@/utils/constants';
+import { puedeAcceder } from '@/utils/permisos';
+import { rutaInicialParaContexto } from '@/utils/contextos-disponibles';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
@@ -12,11 +14,11 @@ import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const membresiaPendiente = useAuthStore((s) => s.membresiaPendiente);
-  const rolActivo = useAuthStore((s) => s.rolActivo);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
-  const opciones = useOpcionesRol();
+  const location = useLocation();
+  const { contextoActivo, contextosDisponibles, cargando } = useContextoActivo();
   // Mismo query que usa useOpcionesRol por debajo (misma queryKey, React Query
   // lo dedupe -- no es un pedido de red extra) -- se necesita acá solo para
   // leer isError/refetch, que useOpcionesRol no expone.
@@ -44,16 +46,23 @@ export function PrivateLayout() {
     return <AppErrorScreen onReintentar={() => reintentarRoles()} onCerrarSesion={handleCerrarSesion} />;
   }
 
-  // Un Super Admin sin otros roles resuelve solo (opciones.length <= 1) y
-  // sigue de largo con su atajo a /administracion -- solo si además tiene
-  // otro rol (opciones.length > 1) se lo manda a elegir, igual que a cualquiera.
-  if (opciones === undefined) {
+  if (cargando || contextosDisponibles === undefined) {
     return <AppLoadingScreen />;
   }
 
-  const rolActivoValido = opciones.some((o) => o.rolUI === rolActivo);
-  if (opciones.length > 1 && !rolActivoValido) {
+  if (contextosDisponibles.length > 0 && !contextoActivo) {
     return <Navigate to={ROUTES.SELECCIONAR_ROL} replace />;
+  }
+
+  // Una cuenta todavía sin panel conserva acceso al inicio vacío y a Cuenta,
+  // pero no puede abrir módulos por URL.
+  if (!contextoActivo) {
+    const rutaBase = location.pathname === ROUTES.DASHBOARD || location.pathname === ROUTES.CUENTA;
+    if (!rutaBase) return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
+
+  if (contextoActivo && !puedeAcceder(contextoActivo.rolUI, location.pathname)) {
+    return <Navigate to={rutaInicialParaContexto(contextoActivo)} replace />;
   }
 
   return (

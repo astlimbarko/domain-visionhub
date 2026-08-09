@@ -1,6 +1,7 @@
 import type { IglesiaAccesible } from '@/types/auth.types';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
-import type { MisRolesDashboard } from '@/types/dashboard.types';
+import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
+import { ROUTES } from '@/utils/constants';
 
 interface FuentesContextos {
   esSuperAdmin: boolean;
@@ -40,12 +41,14 @@ export function construirContextosDisponibles({
   }
 
   for (const red of roles.redes_lider ?? []) {
+    const cargoRed = red.es_sublider ? 'SUPERVISOR' : 'LIDER';
     contextos.push({
-      clave: `LIDER_RED:${iglesia.id}:${red.id}`,
+      clave: `${cargoRed === 'SUPERVISOR' ? 'SUPERVISOR_RED' : 'LIDER_RED'}:${iglesia.id}:${red.id}`,
       rolUI: 'LIDER_RED',
       alcance: 'RED',
       iglesiaId: iglesia.id,
       redId: red.id,
+      cargoRed,
     });
   }
 
@@ -114,5 +117,32 @@ export function encontrarContextoValido(
       disponible.rolUI === contexto.rolUI &&
       disponible.alcance === contexto.alcance,
   ) ?? null;
+}
+
+export function rutaInicialParaContexto(contexto: ContextoActivo): string {
+  if (contexto.rolUI === 'SUPER_ADMIN') return ROUTES.ADMINISTRACION;
+  if (contexto.rolUI === 'SUBLIDER_CDP') return ROUTES.CASAS_DE_PAZ;
+  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return ROUTES.AFIRMACION;
+  if (contexto.rolUI === 'LIDER_JOVENES') return ROUTES.JOVENES;
+  if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return ROUTES.MATRIMONIOS;
+  return ROUTES.DASHBOARD;
+}
+
+export function vistaInicialParaContexto(contexto: ContextoActivo): Vista | null {
+  if (contexto.rolUI === 'PASTOR') return { tipo: 'pastor' };
+  if (contexto.rolUI === 'SUPERVISOR') {
+    return { tipo: 'supervisor', iglesiaId: contexto.iglesiaId };
+  }
+  if (contexto.alcance === 'RED') {
+    return { tipo: 'red', redId: contexto.redId };
+  }
+  if (contexto.alcance === 'CDP') {
+    return {
+      tipo: 'cdp',
+      cdpId: contexto.cdpId,
+      esSublider: contexto.rolUI === 'SUBLIDER_CDP',
+    };
+  }
+  return null;
 }
 
