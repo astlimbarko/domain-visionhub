@@ -444,3 +444,62 @@ implementar). Investigué el modelo real (`harness/03-estructura/design.md`,
   vigente) antes de pasar a "Finalizada"; evaluar si vale la pena un panel
   de "Movimientos entre Redes" para `fn_listar_movimientos_red_persona`
   (hoy solo existe el RPC, sin UI).
+
+## Sesión 8 — KAN-101, base del Sistema de anuncios por roles y redes
+
+Contexto: épico con 9 subtareas ya desglosadas por el reporter (T1 a T9,
+KAN-102 a KAN-110). Esta sesión tenía prohibido tocar autenticación/sesión,
+el selector multirol, `AppShell.tsx`, `PrivateLayout.tsx` y `permisos.ts`
+(KAN-129 de Gonzalo en curso en paralelo en `codex/refactorizacion-multirol`)
+-- justo `PrivateLayout.tsx` es el enganche natural de "modal al ingresar"
+(T5), así que prioricé dejar la base completa y sólida (T1/T2/T3/T4/T7) y
+preparar T5/T6 como pieza reusable sin montar.
+
+- [x] **T1/KAN-102** (modelo de datos): tablas `anuncio` (red_id nullable =
+  toda la iglesia) y `anuncio_visto` (registro de visualización), mismo
+  patrón de auditoría/soft-delete que el resto del esquema.
+- [x] **T2/KAN-103** (permisos/RLS): helpers en schema `private`
+  (`fn_anuncio_puede_crear`, `fn_anuncio_es_destinatario`) + políticas RLS.
+  Reusé `fn_es_lider_de_red` (ya reconoce LIDER_RED y SUBLIDER_RED -- el
+  "Supervisor de Red" del épico es el cargo SUBLIDER_RED, no un rol de
+  sistema aparte, confirmado contra `90_supervisor_red_en_accion.sql`).
+- [x] **T3/KAN-104** (gestión): CRUD completo vía RPC + página nueva
+  `/anuncios` (`frontend/src/pages/Anuncios.tsx`), sin ítem de nav (no podía
+  tocar `permisos.ts`) -- accesible por URL directa, mismo criterio que tuvo
+  Estructura Organizacional para Líder de Red antes de KAN-78.
+- [x] **T4/KAN-105** (selector de destinatarios): `fn_anuncio_roles_disponibles`
+  calcula dinámicamente el set de roles según quién crea.
+- [x] **T7/KAN-108** (registro de visualización): tabla `anuncio_visto` +
+  `fn_anuncio_marcar_mostrado`/`fn_anuncio_cerrar`.
+- [x] **T5/T6 (KAN-106/107)**: toda la lógica de datos resuelta
+  (`fn_anuncios_pendientes` con cola por prioridad/fecha) y el hook
+  `useAnunciosPendientes()` + componente `<ModalAnuncios />` ya armados y
+  funcionales, pero A PROPÓSITO sin montar -- falta 1 línea en
+  `PrivateLayout.tsx` de quien pueda tocar ese archivo. Quedan "Tareas por
+  hacer" con el detalle exacto comentado en Jira.
+- [x] **T8/T9 (KAN-109/110)**: no implementados, documentados como
+  pendientes (T8 necesita `<ModalAnuncios />` montado para probarse en
+  dispositivo real; T9 ya tiene 'MIEMBRO' preparado en el modelo de datos,
+  solo falta la fuente real cuando exista acceso de Miembro).
+- [x] Decisiones de producto (documentadas en el comentario de KAN-101):
+  bucket de Storage nuevo `anuncios` (privado, 5MB, jpg/png/webp, acceso por
+  URL firmada); cola sin expiración automática más allá de `fecha_fin`,
+  orden por prioridad y luego fecha de publicación; PASTOR deliberadamente
+  fuera de "quién crea anuncios de iglesia" aunque el resto del sistema lo
+  trate como operativo (el épico es textual sobre "Supervisor de la Visión
+  en Acción"), SUPER_ADMIN mantiene el bypass universal de siempre.
+- [x] Migración nueva `supabase/migrations/20260808290000_anuncios_sistema_base.sql`,
+  pendiente de aplicar contra Supabase real.
+- [x] `tsc -b && vite build` y `oxlint` limpios (sin warnings nuevos).
+- [x] Commit local (sin push) `e59c353` -- solo mis archivos, hay otras 2
+  sesiones en paralelo (movilidad, membresía) con cambios propios sin
+  commitear en el mismo working directory que no toqué.
+- [x] Jira: KAN-102/103/104/105/108 comentados y pasados a "En revisión";
+  KAN-106/107/109/110 comentados, se quedan "Tareas por hacer" con el motivo
+  explícito; KAN-101 (épica) comentada con el resumen completo y las
+  decisiones, pasada a "En curso". Assignee Gonzalo en las 10.
+- [ ] Falta: aplicar la migración contra Supabase real; probar el flujo
+  completo en vivo (crear anuncio como Supervisor/Líder de Red/Supervisor de
+  Red, subir imagen, verificar destinatarios); montar `<ModalAnuncios />` en
+  `PrivateLayout.tsx` (quien tenga permiso) para cerrar T5/T6; T8/T9 quedan
+  para una sesión posterior.
