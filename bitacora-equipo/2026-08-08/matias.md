@@ -370,3 +370,19 @@ sí tienen alcance claro -- implementados en esta sesión.
   lienzo por URL directa, confirmar que solo puede editar su propia Red y
   que el resto queda en solo lectura) antes de pasar KAN-78 a "Finalizada";
   prueba en dispositivo físico real para KAN-63.
+
+## Coordinación con KAN-129 (Gonzalo, rama `codex/refactorizacion-multirol`)
+
+- [x] Gonzalo avisó que arranca la épica KAN-129 (refactor de arquitectura
+  multirol y contexto activo: KAN-130 a KAN-135) en la rama
+  `codex/refactorizacion-multirol`.
+- [x] Aviso importante: ANTES de este mensaje, en esta sesión ya se tocaron
+  en `feature/supervisor-vision-accion` varios archivos que esa épica
+  probablemente va a rediseñar: `AppShell.tsx` (KAN-73/114/128, commit
+  `ba6e759`), `useOpcionesRolContextuales.ts` (KAN-116, mismo commit), y el
+  guard de acceso de `EstructuraOrganizacional.tsx` (KAN-78, ahora admite
+  `LIDER_RED`, commit `29934c3`). Nada de esto está pusheado a origin.
+  Comentado en KAN-129 para que quede visible.
+- [x] A partir de ahora: no se toca autenticación, selector multirol,
+  AppShell, PrivateLayout, permisos ni dashboards en esta sesión sin
+  coordinar antes con Gonzalo, para no pisarse con KAN-130 a KAN-135.
