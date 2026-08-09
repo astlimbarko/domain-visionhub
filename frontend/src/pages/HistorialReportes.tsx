@@ -1,21 +1,11 @@
 import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
-import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
 import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisCasasDePaz } from '@/hooks/useCalendario';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
@@ -35,11 +25,9 @@ function semanasVentana(hoy: Date, n: number): { inicio: string; fin: string }[]
 }
 
 export function HistorialReportes() {
-  const rolUI = useRolUI();
-  const personaId = useAuthStore((s) => s.personaId);
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const { contextoActivo } = useContextoActivo();
+  const rolUI = contextoActivo?.rolUI;
+  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -71,9 +59,7 @@ export function HistorialReportes() {
   // no el historial de una sola CdP.
   if (rolUI === 'SUPERVISOR') return <HistorialReportesSupervisorVista />;
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
-
-  if (!misCasas || misCasas.length === 0) {
+  if (!cdpActiva) {
     return (
       <ProximamentePlaceholder
         titulo="Historial de Reportes"
@@ -84,22 +70,6 @@ export function HistorialReportes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        {misCasas.length > 1 && (
-          <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-            <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
-              <SelectValue placeholder="Casa de Paz" />
-            </SelectTrigger>
-            <SelectContent>
-              {misCasas.map((c) => (
-                <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                  {c.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
 
       {cargandoVentana ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

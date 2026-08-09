@@ -33,8 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAuthStore } from '@/store/auth.store';
-import { useMisCasasDePaz } from '@/hooks/useCalendario';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import {
   useCamposObligatoriosReporte,
@@ -74,13 +73,11 @@ type FormValues = z.infer<typeof esquema>;
 const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
 
 export function Reportes() {
-  const personaId = useAuthStore((s) => s.personaId);
-  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const { contextoActivo } = useContextoActivo();
+  const contextoCdp = contextoActivo?.alcance === 'CDP' ? contextoActivo : null;
+  const iglesiaActivaId = contextoCdp?.iglesiaId;
+  const cdpActiva = contextoCdp?.cdpId;
   const queryClient = useQueryClient();
-
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
 
   const hoy = aISO(new Date());
 
@@ -369,9 +366,7 @@ export function Reportes() {
     }
   }
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full" />;
-
-  if (!misCasas || misCasas.length === 0) {
+  if (!contextoCdp) {
     return (
       <ProximamentePlaceholder
         titulo="Reporte de Casa de Paz"
@@ -386,22 +381,6 @@ export function Reportes() {
         icon={ClipboardList}
         eyebrow="Reporte semanal"
         title="Reporte de la reunión"
-        actions={
-          misCasas.length > 1 && (
-            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger size="sm" className="w-full border-white/25 bg-white/10 text-sm text-white [&_svg]:text-white/70 sm:w-56">
-                <SelectValue placeholder="Casa de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                {misCasas.map((c) => (
-                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                    {c.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )
-        }
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
