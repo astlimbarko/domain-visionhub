@@ -225,6 +225,8 @@ export interface CargoFicha {
 
 /** Ministerios donde la persona participa o lidera -- puede liderar varios a la vez. */
 export interface MinisterioDePersona {
+  /** id de la fila ministerio_persona (la participacion puntual, no el ministerio). */
+  participante_id: string;
   ministerio_id: string;
   nombre: string;
   es_lider: boolean;

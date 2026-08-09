@@ -78,6 +78,15 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
     });
   }
 
+  // KAN-38: "Seleccionar todo" para el filtro de sedes -- todas por default,
+  // pero si el Pastor/Supervisor destildó alguna, este toggle la vuelve a
+  // incluir a todas de una vez (o las saca a todas, dejando el calendario
+  // vacío hasta que elija de nuevo).
+  const todasLasSedesElegidas = sedesElegidas.size === sedes.length;
+  function toggleTodasLasSedes() {
+    setSedesElegidas(todasLasSedesElegidas ? new Set() : new Set(sedes.map((s) => s.id)));
+  }
+
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes, setMes] = useState(hoy.getMonth());
@@ -161,6 +170,14 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" /> Sedes:
             </span>
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm font-medium">
+              <Checkbox
+                checked={todasLasSedesElegidas ? true : sedesElegidas.size > 0 ? 'indeterminate' : false}
+                onCheckedChange={toggleTodasLasSedes}
+              />
+              Todas ({sedesElegidas.size}/{sedes.length})
+            </label>
+            <span className="h-4 w-px bg-border" aria-hidden />
             {sedes.map((s) => (
               <label key={s.id} className="flex cursor-pointer items-center gap-1.5 text-sm">
                 <Checkbox checked={sedesElegidas.has(s.id)} onCheckedChange={() => toggleSede(s.id)} />

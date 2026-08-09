@@ -166,7 +166,12 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   <CardTitle className="text-base">Ministerios</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <FichaMinisterios ministerios={ficha.ministerios ?? []} />
+                  <FichaMinisterios
+                    personaId={ficha.persona.id}
+                    iglesiaId={ficha.persona.iglesia_id}
+                    ministerios={ficha.ministerios ?? []}
+                    puedeEditar={puedeEditar}
+                  />
                 </CardContent>
               </Card>
 
