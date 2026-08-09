@@ -503,3 +503,70 @@ preparar T5/T6 como pieza reusable sin montar.
   Red, subir imagen, verificar destinatarios); montar `<ModalAnuncios />` en
   `PrivateLayout.tsx` (quien tenga permiso) para cerrar T5/T6; T8/T9 quedan
   para una sesión posterior.
+
+## Sesión 6 — cluster de Membresía ampliada (KAN-123 a KAN-126)
+
+Retomé `harness/17-membresia-ampliada/` (spec completa de una sesión
+anterior, ver Sesión 3 más arriba) para cerrar las 8 preguntas abiertas de
+`open-questions.md` e implementar el cluster.
+
+- [x] Respondí las 8 preguntas con mejor criterio, priorizando lo más
+  simple/menos disruptivo (formulario de auto-registro usado por miembros
+  reales). Resumen (detalle completo en el comentario de KAN-123):
+  catálogo de discipulados **global** (Q-1, mismo patrón que
+  `motivo_llegada`/`cargo`); discipulado **repetible** (Q-2); Seminario y
+  Universidad del Rey Jesús con **tablas dedicadas** (Q-3); fecha con
+  precisión modelada como **`anio`/`mes`/`dia` nullable** en vez de `DATE`
+  único (Q-4, única forma de cumplir la regla de "no inventar" del propio
+  ticket); Mentor **sin cargo/catálogo nuevo**, texto libre + casillero
+  autodeclarado (Q-5, la pregunta más abierta); Cónyuge/Familia se procesan
+  **al guardar**, reutilizando `referencia_familiar` ya existente (Q-6);
+  persistencia del wizard en **cliente/localStorage**, no servidor (Q-7);
+  KAN-126 alcanza a **cualquier `usuario_rol` vigente excluyendo
+  SUPER_ADMIN** (Q-8) -- verifiqué que `red_cargo`/`casa_de_paz_cargo`/
+  `departamento_cargo` exigen `persona_id NOT NULL` en el esquema real, así
+  que no pueden ser un vector adicional para "rol sin Persona".
+- [x] **KAN-123**: migración nueva
+  `supabase/migrations/20260808290000_membresia_ampliada_campos.sql` --
+  `precision_fecha_enum`, `tipo_discipulado` (catálogo global + seed de 6
+  valores), `persona_discipulado`, `persona_seminario`,
+  `persona_universidad_rey_jesus`, `persona_mentor`, columnas de bautismo
+  en `persona_detalle`, columna `es_miembro_iglesia` en
+  `referencia_familiar`. RLS + auditoría + `trg_bloquear_delete` en cada
+  tabla nueva. Función compartida `fn_guardar_membresia_extendida`,
+  llamada desde los 3 flujos atómicos existentes (`fn_registrar_persona_via_url`,
+  `fn_completar_membresia`, `fn_registrar_persona_afirmacion`) para no
+  triplicar lógica. UI: `CamposMembresiaExtendidaFields.tsx` (los 8 grupos,
+  componente controlado value/onChange, desacoplado de react-hook-form a
+  propósito para poder compartirse entre los 3 formularios).
+- [x] **KAN-124**: `FormularioPaginado.tsx` (wizard genérico reutilizable,
+  barra de progreso, validación por página) + `usePersistenciaLocal.ts`
+  (persistencia en localStorage, Q-7).
+- [x] **KAN-125**: `FormularioMembresiaPublico.tsx` reescrito sobre el
+  wizard, con persistencia local por slug. Ministerios queda fuera del
+  flujo público a propósito (sin forma anon-safe de listar ministerios de
+  una iglesia puntual todavía).
+- [x] **KAN-126**: solo capa de datos -- `fn_mi_membresia_incompleta()` +
+  hook `useMembresiaIncompletaGeneral`. NO conecté el gate en
+  `PrivateLayout.tsx`/`auth.store.ts`: ambos archivos estaban
+  explícitamente prohibidos en esta sesión (Gonzalo en paralelo en
+  `codex/refactorizacion-multirol`, KAN-129, tocando justo esos 2
+  archivos). Confirmé que `MembresiaObligatoria.tsx` ya está enganchado
+  desde `PrivateLayout.tsx` pero acoplado 1:1 al caso de invitación --
+  generalizarlo requiere tocar la lógica de gating de `PrivateLayout.tsx`
+  en sí, documentado y no lo hice.
+- [x] `MembresiaObligatoria.tsx` y `RegistrarPersonaAfirmacion.tsx`
+  también reescritos sobre `FormularioPaginado` (KAN-124 "reutilizable por
+  los diferentes flujos"), con los campos ampliados; `RegistrarPersonaAfirmacion`
+  sí incluye Ministerios (autenticado, con `iglesiaId`).
+- [x] `tsc -b --force` y `vite build` limpios; `oxlint` sin warnings
+  nuevos en los archivos tocados/creados.
+- [x] Jira: KAN-123/124/125 comentados (las 8 respuestas + qué se
+  implementó de cada uno) y pasados a "En revisión". KAN-126 comentado,
+  se queda "En curso" con el motivo explícito. Assignee y reporter
+  Gonzalo en los 4.
+- [ ] Falta: aplicar la migración `20260808290000_membresia_ampliada_campos.sql`
+  contra Supabase real (no pude correrla contra un Postgres local en este
+  entorno, la revisé con cuidado pero no está probada en vivo); probar los
+  3 flujos completos en vivo; conectar KAN-126 en `PrivateLayout.tsx`
+  cuando el refactor de KAN-129 mergee.

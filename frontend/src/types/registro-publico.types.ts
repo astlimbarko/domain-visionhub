@@ -1,3 +1,5 @@
+import type { DatosMembresiaExtendida } from './membresia-extendida.types';
+
 export interface CamposObligatorios {
   ci: boolean;
   fecha_nacimiento: boolean;
@@ -33,7 +35,10 @@ export type GradoInstruccion =
   | 'MAESTRIA'
   | 'DOCTORADO';
 
-export interface DatosRegistroPublico {
+// KAN-123: extiende con los campos ampliados (Discipulados/Seminario/
+// Universidad/Mentor/Bautismo/Familia) -- Ministerios queda fuera del flujo
+// público a propósito, ver membresia-extendida.types.ts.
+export interface DatosRegistroPublico extends DatosMembresiaExtendida {
   primer_nombre: string;
   segundo_nombre?: string;
   primer_apellido: string;

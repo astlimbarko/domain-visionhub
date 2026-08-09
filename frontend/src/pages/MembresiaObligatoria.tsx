@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,9 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  SeccionFamiliaMinisteriosMembresia,
+  SeccionFormacionMembresia,
+  SeccionMentorBautismoMembresia,
+} from '@/components/shared/CamposMembresiaExtendidaFields';
+import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
 import { useAuthStore } from '@/store/auth.store';
+import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { InvitacionPendiente } from '@/types/invitacion-lider.types';
 
 const GRADOS_INSTRUCCION = [
@@ -64,8 +72,11 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     handleSubmit,
     watch,
     setValue,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(esquema) });
+
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
 
   const mutacion = useCompletarMembresia();
 
@@ -82,6 +93,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion || undefined,
+      // KAN-123: campos ampliados. Ministerios queda fuera acá -- la
+      // invitación no trae iglesia_id, solo iglesia_nombre (ver comentario
+      // en membresia-extendida.types.ts).
+      ...extendido,
     };
 
     try {
@@ -128,115 +143,139 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             Antes de ver tu panel necesitamos estos datos.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="primer_nombre">Primer nombre *</Label>
-                <Input id="primer_nombre" {...register('primer_nombre')} />
-                {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="segundo_nombre">Segundo nombre</Label>
-                <Input id="segundo_nombre" {...register('segundo_nombre')} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="primer_apellido">Primer apellido *</Label>
-                <Input id="primer_apellido" {...register('primer_apellido')} />
-                {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="segundo_apellido">Segundo apellido</Label>
-                <Input id="segundo_apellido" {...register('segundo_apellido')} />
-              </div>
+        <CardContent className="flex flex-col gap-4">
+          <FormularioPaginado
+            enviando={isSubmitting}
+            textoFinalizar="Completar membresía y continuar"
+            onFinalizar={handleSubmit(onSubmit)}
+            pasos={[
+              {
+                id: 'identidad',
+                titulo: 'Tus datos',
+                validar: () =>
+                  trigger(['primer_nombre', 'primer_apellido', 'sexo', 'fecha_nacimiento', 'ci', 'correo', 'ocupacion', 'grado_instruccion']),
+                contenido: (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="primer_nombre">Primer nombre *</Label>
+                      <Input id="primer_nombre" {...register('primer_nombre')} />
+                      {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="segundo_nombre">Segundo nombre</Label>
+                      <Input id="segundo_nombre" {...register('segundo_nombre')} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="primer_apellido">Primer apellido *</Label>
+                      <Input id="primer_apellido" {...register('primer_apellido')} />
+                      {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="segundo_apellido">Segundo apellido</Label>
+                      <Input id="segundo_apellido" {...register('segundo_apellido')} />
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Sexo *</Label>
-                <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculino</SelectItem>
-                    <SelectItem value="F">Femenino</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Sexo *</Label>
+                      <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Masculino</SelectItem>
+                          <SelectItem value="F">Femenino</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="fecha_nacimiento">
-                  Fecha de nacimiento {invitacion.campos_obligatorios.fecha_nacimiento && '*'}
-                </Label>
-                <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
-                {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="fecha_nacimiento">
+                        Fecha de nacimiento {invitacion.campos_obligatorios.fecha_nacimiento && '*'}
+                      </Label>
+                      <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
+                      {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="ci">CI {invitacion.campos_obligatorios.ci && '*'}</Label>
-                <Input id="ci" {...register('ci')} />
-                {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="ci">CI {invitacion.campos_obligatorios.ci && '*'}</Label>
+                      <Input id="ci" {...register('ci')} />
+                      {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="correo">Correo</Label>
-                <Input id="correo" type="email" {...register('correo')} />
-                {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="correo">Correo</Label>
+                      <Input id="correo" type="email" {...register('correo')} />
+                      {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Estado civil</Label>
-                <Select
-                  value={estadoCivilActual ?? ''}
-                  onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SOLTERO">Soltero/a</SelectItem>
-                    <SelectItem value="CASADO">Casado/a</SelectItem>
-                    <SelectItem value="VIUDO">Viudo/a</SelectItem>
-                    <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Estado civil</Label>
+                      <Select
+                        value={estadoCivilActual ?? ''}
+                        onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SOLTERO">Soltero/a</SelectItem>
+                          <SelectItem value="CASADO">Casado/a</SelectItem>
+                          <SelectItem value="VIUDO">Viudo/a</SelectItem>
+                          <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="ocupacion">Ocupación {invitacion.campos_obligatorios.ocupacion && '*'}</Label>
-                <Input id="ocupacion" {...register('ocupacion')} />
-                {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="ocupacion">Ocupación {invitacion.campos_obligatorios.ocupacion && '*'}</Label>
+                      <Input id="ocupacion" {...register('ocupacion')} />
+                      {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
 
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label>Grado de instrucción {invitacion.campos_obligatorios.grado_instruccion && '*'}</Label>
-                <Select
-                  value={gradoActual ?? ''}
-                  onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GRADOS_INSTRUCCION.map((g) => (
-                      <SelectItem key={g} value={g}>
-                        {g.replaceAll('_', ' ').toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.grado_instruccion && <p className="text-sm text-destructive">Requerido</p>}
-              </div>
-            </div>
-
-            <Button type="submit" disabled={isSubmitting} className="mt-2">
-              {isSubmitting ? 'Guardando...' : 'Completar membresía y continuar'}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
-              <LogOut className="h-4 w-4" />
-              Salir sin completar
-            </Button>
-          </form>
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <Label>Grado de instrucción {invitacion.campos_obligatorios.grado_instruccion && '*'}</Label>
+                      <Select
+                        value={gradoActual ?? ''}
+                        onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRADOS_INSTRUCCION.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g.replaceAll('_', ' ').toLowerCase()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.grado_instruccion && <p className="text-sm text-destructive">Requerido</p>}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                id: 'formacion',
+                titulo: 'Formación',
+                contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'mentor-bautismo',
+                titulo: 'Mentor y Bautismo',
+                contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'familia',
+                titulo: 'Familia',
+                contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
+              },
+            ]}
+          />
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5 self-start" onClick={salir}>
+            <LogOut className="h-4 w-4" />
+            Salir sin completar
+          </Button>
         </CardContent>
       </Card>
     </div>

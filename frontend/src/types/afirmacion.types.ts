@@ -1,4 +1,5 @@
 import type { EstadoCivil, GradoInstruccion } from '@/types/registro-publico.types';
+import type { DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 
 export interface LiderCdpAfirmacion {
   casa_de_paz_cargo_id: string;
@@ -8,7 +9,9 @@ export interface LiderCdpAfirmacion {
   cdp_etiqueta: string;
 }
 
-export interface DatosPersonaAfirmacion {
+// KAN-123: extiende con los campos ampliados, incluye Ministerios (flujo
+// autenticado, iglesia ya resuelta -- a diferencia del registro público).
+export interface DatosPersonaAfirmacion extends DatosMembresiaExtendida {
   primer_nombre: string;
   segundo_nombre?: string;
   primer_apellido: string;
