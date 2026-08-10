@@ -148,6 +148,18 @@ con que quede solo en el commit o en la bitácora local.
   una sesión avanza parcialmente un ticket y sigue a otra cosa, ese avance
   parcial queda comentado ahí mismo antes de moverse.
 
+## Memoria entre sesiones (obligatorio)
+
+**Antes de dar por terminada cualquier tarea (no solo al cerrar la sesión
+entera), actualizar la memoria persistente de Claude** con qué se hizo y
+qué queda pendiente inmediato para retomar. Pedido explícito 2026-08-10,
+tras varios cortes de sesión (la computadora se apagó a medias más de una
+vez) que dejaban avance real sin registrar en ningún lado — ni en git
+(commits pendientes sin hacer) ni en memoria, obligando a reconstruir el
+estado desde cero. No esperar a que la sesión completa termine para
+guardar memoria: cada tarea cerrada es un punto natural para hacerlo, así
+un corte a mitad de la siguiente tarea no pierde lo ya avanzado.
+
 ## Otras convenciones del proyecto
 
 Ver también `harness/README.md` (specs técnicas del sistema) y
