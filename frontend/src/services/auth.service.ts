@@ -20,6 +20,22 @@ export async function iniciarSesionConGoogle() {
   if (error) throw error;
 }
 
+/**
+ * KAN-144/146: vincula Google a la sesión temporal que ya abrió el link de
+ * invitación por correo -- a diferencia de `iniciarSesionConGoogle`
+ * (signInWithOAuth, un login nuevo), esto usa linkIdentity porque la persona
+ * YA está autenticada (sesión de invitación) y lo que se busca es agregarle
+ * el proveedor Google a ESA MISMA cuenta, no crear/loguear una distinta.
+ * Requiere enable_manual_linking = true en la config de Supabase Auth.
+ */
+export async function vincularGoogleAInvitacion() {
+  const { error } = await supabase.auth.linkIdentity({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}${ROUTES.AUTH_CALLBACK}` },
+  });
+  if (error) throw error;
+}
+
 export async function cerrarSesion() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
