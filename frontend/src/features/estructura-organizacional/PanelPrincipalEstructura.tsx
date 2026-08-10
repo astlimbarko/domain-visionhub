@@ -71,10 +71,13 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
 
   const procesando = asignar.isPending || invitar.isPending;
   const codigoCompleto = /^\d{6}$/.test(otp);
-  // Vía BD usa la RPC propia del constructor: respeta el switch del módulo.
-  const otpValidoBase = !otpRequerido || codigoCompleto;
-  // Vía correo reusa invitar-usuario (regla global): Super Admin siempre exige OTP.
-  const otpValidoCorreo = codigoCompleto;
+  // KAN-157: ambos modos respetan el mismo switch del módulo -- vía BD usa
+  // la RPC propia del constructor, vía correo pasa respetarOtpIglesia=true
+  // a invitar-usuario para que use fn_exigir_pin_iglesia en vez de la regla
+  // global (que exige OTP siempre a un Super Admin).
+  const otpValido = !otpRequerido || codigoCompleto;
+  const otpValidoBase = otpValido;
+  const otpValidoCorreo = otpValido;
 
   const invalidarEstructura = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -128,9 +131,10 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
         rol: rolInvitacion,
         iglesiaId,
         pin: otp,
+        respetarOtpIglesia: true,
       });
       if (resultado.error) {
-        toast.warning(resultado.error);
+        toast.info(resultado.error);
       } else {
         await invalidarEstructura();
         toast.success('Designación enviada por correo');
@@ -280,7 +284,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
                 </div>
               )}
 
-              {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
+              {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
 
               <button
                 type="button"

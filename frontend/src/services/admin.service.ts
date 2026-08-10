@@ -87,7 +87,11 @@ export async function invitarUsuario(
   correo: string,
   rol: RolSistema,
   iglesiaId: string | null,
-  pin?: string
+  pin?: string,
+  /** KAN-157: solo el constructor de Estructura Organizacional pasa esto en
+   * true, para que se respete estructura_organigrama.otp_requerido de esa
+   * iglesia en vez de exigir OTP siempre (regla global de Administracion.tsx). */
+  respetarOtpIglesia?: boolean
 ): Promise<ResultadoInvitacion> {
   const { data, error } = await supabase.functions.invoke('invitar-usuario', {
     body: {
@@ -95,6 +99,7 @@ export async function invitarUsuario(
       rol,
       iglesiaId,
       pin,
+      respetarOtpIglesia,
       redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });

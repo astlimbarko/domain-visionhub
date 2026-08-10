@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,10 @@ interface Props {
   asignando: boolean;
   /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
   oscuro?: boolean;
+  /** KAN-155: preconfigura el cargo/iglesia (ej. "Asignar Pastor ahora" al
+   * terminar de crear una iglesia) -- el usuario igual puede cambiarlos. */
+  rolInicial?: RolSistema;
+  iglesiaIdInicial?: string;
   onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
   onAsignarExistente: (usuarioId: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
 }
@@ -52,6 +56,8 @@ export function InvitarUsuarioDialog({
   invitando,
   asignando,
   oscuro,
+  rolInicial,
+  iglesiaIdInicial,
   onInvitar,
   onAsignarExistente,
 }: Props) {
@@ -60,9 +66,16 @@ export function InvitarUsuarioDialog({
   const [correo, setCorreo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [usuarioElegido, setUsuarioElegido] = useState<CuentaBusqueda | null>(null);
-  const [rol, setRol] = useState<RolSistema | ''>('');
-  const [iglesiaId, setIglesiaId] = useState('');
+  const [rol, setRol] = useState<RolSistema | ''>(rolInicial ?? '');
+  const [iglesiaId, setIglesiaId] = useState(iglesiaIdInicial ?? '');
   const [pin, setPin] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setRol(rolInicial ?? '');
+      setIglesiaId(iglesiaIdInicial ?? '');
+    }
+  }, [open, rolInicial, iglesiaIdInicial]);
 
   const necesitaIglesia = rol !== '' && rol !== 'SUPER_ADMIN';
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);

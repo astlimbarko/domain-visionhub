@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Building2, ChevronDown, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
@@ -119,10 +119,24 @@ export function Administracion() {
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
   const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
+  // KAN-155: al crear una iglesia, si el owner elige "Asignar Pastor ahora"
+  // se reabre InvitarUsuarioDialog preconfigurado en vez de reinventar el
+  // buscar/invitar acá -- reusa su propio paso de confirmación de 6 dígitos.
+  const [iglesiaParaAsignarPastor, setIglesiaParaAsignarPastor] = useState<{ id: string; nombre: string } | null>(null);
 
   const { data: iglesias = [], isLoading: cargandoIglesias } = useIglesiasTodas();
   const gruposIglesias = agruparIglesiasJerarquicamente(iglesias);
   const { data: usuarios = [], isLoading: cargandoUsuarios } = useUsuarios(undefined);
+  // KAN-155: nombre del Pastor por iglesia, para mostrarlo discreto al lado
+  // del nombre en la lista -- ya viene en fn_listar_usuarios, no hace falta
+  // una query nueva.
+  const pastorPorIglesiaId = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const u of usuarios) {
+      if (u.rol === 'PASTOR' && u.iglesia_id) mapa.set(u.iglesia_id, u.persona_nombre || u.correo);
+    }
+    return mapa;
+  }, [usuarios]);
   const { data: panorama, isLoading: cargandoPanorama } = useDashboardSuperAdmin();
   const crearIglesia = useCrearIglesia();
   const actualizarIglesia = useActualizarIglesia();
@@ -313,7 +327,12 @@ export function Administracion() {
                             </span>
                           )}
                         </span>
-                        <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
+                        <span className="block truncate text-sm text-white/50">
+                          {i.ciudad}
+                          {pastorPorIglesiaId.has(i.id) && (
+                            <span className="text-white/30"> · {pastorPorIglesiaId.get(i.id)}</span>
+                          )}
+                        </span>
                       </span>
                       {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                     </button>
@@ -449,9 +468,7 @@ export function Administracion() {
               sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin,
             });
             if (resultado.error) {
-              toast.warning(resultado.error);
-            } else if (pastorUsuarioId || pastorCorreoNuevo) {
-              toast.success('Iglesia creada y Pastor asignado');
+              toast.info(resultado.error);
             } else {
               toast.success('Iglesia creada');
             }
@@ -460,6 +477,10 @@ export function Administracion() {
             manejarError(e, 'No se pudo crear la iglesia');
             throw e;
           }
+        }}
+        onIglesiaCreada={(iglesiaId, nombre) => {
+          setIglesiaParaAsignarPastor({ id: iglesiaId, nombre });
+          setMostrarInvitar(true);
         }}
       />
 
@@ -500,22 +521,25 @@ export function Administracion() {
 
       <InvitarUsuarioDialog
         open={mostrarInvitar}
-        onOpenChange={setMostrarInvitar}
+        onOpenChange={(abierto) => { setMostrarInvitar(abierto); if (!abierto) setIglesiaParaAsignarPastor(null); }}
         iglesias={iglesias}
         invitando={invitarUsuario.isPending}
         asignando={asignarUsuarioExistente.isPending}
         oscuro
+        rolInicial={iglesiaParaAsignarPastor ? 'PASTOR' : undefined}
+        iglesiaIdInicial={iglesiaParaAsignarPastor?.id}
         onInvitar={(correo, rol, iglesiaId, pin) =>
           invitarUsuario.mutate(
             { correo, rol, iglesiaId, pin },
             {
               onSuccess: (resultado) => {
                 if (resultado.error) {
-                  toast.warning(resultado.error);
+                  toast.info(resultado.error);
                 } else {
                   toast.success(`Invitación enviada a ${correo}`);
                 }
                 setMostrarInvitar(false);
+                setIglesiaParaAsignarPastor(null);
               },
               onError: (e) => manejarError(e, 'No se pudo invitar al usuario'),
             }
@@ -528,6 +552,7 @@ export function Administracion() {
               onSuccess: () => {
                 toast.success('Cargo asignado');
                 setMostrarInvitar(false);
+                setIglesiaParaAsignarPastor(null);
               },
               onError: (e) => manejarError(e, 'No se pudo asignar el cargo'),
             }

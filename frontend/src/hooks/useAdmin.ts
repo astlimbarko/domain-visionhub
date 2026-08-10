@@ -81,12 +81,14 @@ export function useInvitarUsuario() {
       rol,
       iglesiaId,
       pin,
+      respetarOtpIglesia,
     }: {
       correo: string;
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
-    }) => invitarUsuario(correo, rol, iglesiaId, pin),
+      respetarOtpIglesia?: boolean;
+    }) => invitarUsuario(correo, rol, iglesiaId, pin, respetarOtpIglesia),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }

@@ -29,7 +29,14 @@ const ETIQUETA_ROL: Record<string, string> = {
 // trg_validar_rol se aplica igual al insertar).
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    let body: { correo?: string; rol?: string; iglesiaId?: string | null; redirectTo?: string; pin?: string };
+    let body: {
+      correo?: string;
+      rol?: string;
+      iglesiaId?: string | null;
+      redirectTo?: string;
+      pin?: string;
+      respetarOtpIglesia?: boolean;
+    };
     try {
       body = await req.json();
     } catch {
@@ -58,9 +65,15 @@ export default {
       return Response.json({ error: "No tenes permiso para invitar usuarios aqui" }, { status: 403 });
     }
 
-    // fn_exigir_pin solo pide algo si quien llama es Super Admin -- para
-    // Pastor/Supervisor invitando dentro de su propia iglesia no cambia nada.
-    const { error: errorPin } = await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pin ?? null });
+    // KAN-157: solo quien llama desde el constructor de Estructura
+    // Organizacional (PanelPrincipalEstructura, respetarOtpIglesia=true)
+    // respeta el switch estructura_organigrama.otp_requerido de esa iglesia
+    // puntual -- el resto (Administracion.tsx/InvitarUsuarioDialog) sigue
+    // exigiendo OTP siempre para Super Admin, sin cambios, vía fn_exigir_pin.
+    const { error: errorPin } =
+      body.respetarOtpIglesia && iglesiaId
+        ? await ctx.supabase.rpc("fn_exigir_pin_iglesia", { p_iglesia_id: iglesiaId, p_pin: body.pin ?? null })
+        : await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pin ?? null });
     if (errorPin) {
       return Response.json({ error: "PIN incorrecto" }, { status: 403 });
     }
@@ -78,17 +91,41 @@ export default {
 
     if (error) {
       if (error.status === 409 || error.code === "email_exists") {
-        // Mismo hallazgo que invitar-lider (2026-08-02): si la cuenta existe
-        // pero nunca se le vinculo una Persona, "asignaselo desde su ficha"
-        // es un callejon sin salida -- no hay ficha que buscar.
+        // KAN-156: antes esto era un callejon sin salida -- avisaba "ya
+        // existe una cuenta, asignaselo a mano desde Usuarios" y no hacia
+        // nada mas. El owner pidio que el sistema no bloquee: si la cuenta
+        // ya existe y tiene una Persona vinculada, se le asigna el cargo
+        // en el mismo paso (mismo patron "un solo PIN" que crear-iglesia
+        // con fn_vincular_pastor_invitado -- el PIN ya se consumio arriba,
+        // fn_asignar_rol_recien_invitado no vuelve a pedir uno propio).
         const { data: tienePersona } = await ctx.supabase.rpc("fn_correo_tiene_persona", { p_correo: correo });
+        if (tienePersona) {
+          const { data: cuentas } = await ctx.supabase.rpc("fn_buscar_cuentas", { p_busqueda: correo });
+          const cuenta = (cuentas ?? []).find(
+            (c: { usuario_id: string; correo: string }) => c.correo?.toLowerCase() === correo
+          );
+          if (cuenta) {
+            const { error: errorAsignar } = await ctx.supabase.rpc("fn_asignar_rol_recien_invitado", {
+              p_usuario_id: cuenta.usuario_id,
+              p_rol: rol,
+              p_iglesia_id: iglesiaId,
+            });
+            if (!errorAsignar) {
+              return Response.json({ id: cuenta.usuario_id, correo, yaExistia: true });
+            }
+            return Response.json(
+              { error: `Esa cuenta ya existía -- no se le pudo asignar el cargo: ${errorAsignar.message}` },
+              { status: 200 }
+            );
+          }
+        }
         return Response.json(
           {
             error: tienePersona
-              ? "Ya existe una cuenta con ese correo. Esa persona ya puede iniciar sesion; si le falta un cargo, asignaselo desde su ficha."
-              : "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
+              ? "Esa cuenta ya existía y ya puede iniciar sesión; si le falta un cargo, asignaselo desde su ficha."
+              : "Esa cuenta ya existía, pero sin una Persona vinculada en el sistema (quedó a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo técnico.",
           },
-          { status: 409 }
+          { status: 200 }
         );
       }
       return Response.json({ error: error.message }, { status: 500 });

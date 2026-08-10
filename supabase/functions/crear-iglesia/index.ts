@@ -74,11 +74,36 @@ export default {
     });
 
     if (errorInvitar) {
-      const mensaje =
-        errorInvitar.status === 409 || errorInvitar.code === "email_exists"
-          ? "La iglesia se creo, pero ya existe una cuenta con ese correo -- asignale el cargo de Pastor buscandola por correo desde Usuarios."
-          : `La iglesia se creo, pero no se pudo invitar al Pastor: ${errorInvitar.message}`;
-      return Response.json({ id: iglesiaId, error: mensaje }, { status: 200 });
+      if (errorInvitar.status === 409 || errorInvitar.code === "email_exists") {
+        // KAN-156: la iglesia ya se creo; si el correo ya tiene cuenta, se
+        // le asigna el Pastor directo en vez de solo avisar (mismo patron
+        // "un solo PIN" -- fn_vincular_pastor_invitado no pide uno propio).
+        const { data: cuentas } = await ctx.supabase.rpc("fn_buscar_cuentas", { p_busqueda: correoNuevo });
+        const cuenta = (cuentas ?? []).find(
+          (c: { usuario_id: string; correo: string }) => c.correo?.toLowerCase() === correoNuevo
+        );
+        if (cuenta) {
+          const { error: errorVincularExistente } = await ctx.supabase.rpc("fn_vincular_pastor_invitado", {
+            p_iglesia_id: iglesiaId,
+            p_usuario_id: cuenta.usuario_id,
+          });
+          if (!errorVincularExistente) {
+            return Response.json({ id: iglesiaId, pastorInvitado: true, pastorYaExistia: true });
+          }
+          return Response.json(
+            { id: iglesiaId, error: `La iglesia se creó, pero esa cuenta ya existía y no se le pudo asignar el Pastor: ${errorVincularExistente.message}` },
+            { status: 200 }
+          );
+        }
+        return Response.json(
+          { id: iglesiaId, error: "La iglesia se creó. Ese correo ya tenía cuenta -- asignale el cargo de Pastor buscándola por correo desde Usuarios." },
+          { status: 200 }
+        );
+      }
+      return Response.json(
+        { id: iglesiaId, error: `La iglesia se creo, pero no se pudo invitar al Pastor: ${errorInvitar.message}` },
+        { status: 200 }
+      );
     }
 
     const { error: errorVincular } = await ctx.supabase.rpc("fn_vincular_pastor_invitado", {
