@@ -142,6 +142,11 @@ con que quede solo en el commit o en la bitácora local.
   probarlo en vivo, y a `Finalizada` recién cuando quedó verificado en vivo
   (no solo escrito). No dejar tickets con trabajo real completado varados en
   "Tareas por hacer" solo porque se comentaron.
+- **Antes de pasar a otro ticket, siempre dejar un comentario en el ticket
+  actual con lo que se hizo** (pedido explícito 2026-08-10) — aunque no se
+  cierre todavía. No esperar a terminarlo del todo para actualizar Jira; si
+  una sesión avanza parcialmente un ticket y sigue a otra cosa, ese avance
+  parcial queda comentado ahí mismo antes de moverse.
 
 ## Otras convenciones del proyecto
 
