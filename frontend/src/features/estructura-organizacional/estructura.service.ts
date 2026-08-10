@@ -12,6 +12,24 @@ import type {
   RedEstructura,
 } from './types';
 
+/**
+ * Extrae el mensaje real de un error de RPC de Supabase. `supabase.rpc()`
+ * rechaza con un PostgrestError (objeto plano `{message, details, hint,
+ * code}`), no con una instancia de `Error` -- los `catch` de este módulo
+ * comprobaban `error instanceof Error`, que siempre da `false` para esos
+ * objetos, así que el motivo real (ej. "esta persona ya tiene otro cargo
+ * de sistema en esta iglesia") nunca llegaba a mostrarse, solo el mensaje
+ * genérico de respaldo (bug real, reportado 2026-08-09: "no debería haber
+ * ninguna restricción" era en realidad una restricción real y válida, pero
+ * invisible por este bug).
+ */
+export function mensajeError(error: unknown, mensajePorDefecto: string): string {
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+    return (error as { message: string }).message;
+  }
+  return mensajePorDefecto;
+}
+
 function esCimientoNoDisponible(error: { code?: string } | null): boolean {
   return error?.code === 'PGRST205' || error?.code === '42P01';
 }
@@ -63,6 +81,8 @@ interface PersonaBusquedaFila {
   id: string;
   nombre_completo: string;
   correo: string | null;
+  iglesia_id: string;
+  iglesia_nombre: string;
 }
 
 function nombrePersona(persona: PersonaFila): string {
@@ -574,5 +594,7 @@ export async function buscarPersonasEstructura(
     id: persona.id,
     nombre: persona.nombre_completo,
     correo: persona.correo,
+    iglesiaId: persona.iglesia_id,
+    iglesiaNombre: persona.iglesia_nombre,
   }));
 }
