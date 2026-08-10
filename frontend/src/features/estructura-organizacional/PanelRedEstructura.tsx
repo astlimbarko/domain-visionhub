@@ -25,7 +25,7 @@ import {
   useReenviarInvitacionLider,
 } from '@/hooks/useInvitacionLider';
 import { textoLegibleSobre } from './contraste';
-import { notificarAsignacionCargoRed } from './estructura.service';
+import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
   useActualizarRedEstructura,
   useAsignarCargoRedEstructura,
@@ -319,7 +319,7 @@ export function PanelRedEstructura({
         setOtp('');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo guardar la Red');
+      toast.error(mensajeError(error, 'No se pudo guardar la Red'));
     }
   };
 
@@ -331,7 +331,7 @@ export function PanelRedEstructura({
       setMostrarCambiarNombre(false);
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el nombre');
+      toast.error(mensajeError(error, 'No se pudo cambiar el nombre'));
     }
   };
 
@@ -344,7 +344,7 @@ export function PanelRedEstructura({
       setOtp('');
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red');
+      toast.error(mensajeError(error, 'No se pudo eliminar la Red'));
     }
   };
 
@@ -356,7 +356,7 @@ export function PanelRedEstructura({
       setConfirmandoReactivar(false);
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo reactivar la Red');
+      toast.error(mensajeError(error, 'No se pudo reactivar la Red'));
     }
   };
 
@@ -379,14 +379,14 @@ export function PanelRedEstructura({
               { redId },
               {
                 onSuccess: () => toast.success(`Red "${nombreRed}" recuperada (sigue agrisada como eliminada)`),
-                onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudo deshacer'),
+                onError: (error) => toast.error(mensajeError(error, 'No se pudo deshacer')),
               },
             );
           },
         },
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la Red de la base de datos');
+      toast.error(mensajeError(error, 'No se pudo eliminar la Red de la base de datos'));
     }
   };
 
@@ -400,7 +400,7 @@ export function PanelRedEstructura({
       setBusqueda('');
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo asignar el cargo');
+      toast.error(mensajeError(error, 'No se pudo asignar el cargo'));
     }
   };
 
@@ -431,7 +431,7 @@ export function PanelRedEstructura({
         setOtp('');
         setOtpAsignarExistente('');
       } else {
-        toast.error(error instanceof Error ? error.message : 'No se pudo enviar la designación');
+        toast.error(mensajeError(error, 'No se pudo enviar la designación'));
       }
     }
   };
@@ -453,7 +453,7 @@ export function PanelRedEstructura({
       setOtpAsignarExistente('');
       setCorreo('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo asignar el cargo');
+      toast.error(mensajeError(error, 'No se pudo asignar el cargo'));
     }
   };
 
@@ -465,7 +465,7 @@ export function PanelRedEstructura({
       setOtp('');
       setConfirmandoQuitar(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo retirar el cargo');
+      toast.error(mensajeError(error, 'No se pudo retirar el cargo'));
     }
   };
 
@@ -474,7 +474,7 @@ export function PanelRedEstructura({
       await reenviar.mutateAsync(invitacionId);
       toast.success('Invitación reenviada');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo reenviar la invitación');
+      toast.error(mensajeError(error, 'No se pudo reenviar la invitación'));
     }
   };
 
@@ -484,7 +484,7 @@ export function PanelRedEstructura({
       await invalidar();
       toast.success('Designación cancelada');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo cancelar la designación');
+      toast.error(mensajeError(error, 'No se pudo cancelar la designación'));
     }
   };
 
@@ -499,7 +499,7 @@ export function PanelRedEstructura({
       toast.success('Correo corregido, invitación reenviada');
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo corregir el correo');
+      toast.error(mensajeError(error, 'No se pudo corregir el correo'));
     }
   };
 
@@ -520,7 +520,7 @@ export function PanelRedEstructura({
       setLiderCdpElegido(null);
       setOtp('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo crear la Casa de Paz');
+      toast.error(mensajeError(error, 'No se pudo crear la Casa de Paz'));
     }
   };
 
@@ -781,6 +781,11 @@ export function PanelRedEstructura({
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
                         <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                        {persona.iglesiaId !== iglesiaId && (
+                          <span className="mt-0.5 inline-block rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            {persona.iglesiaNombre}
+                          </span>
+                        )}
                       </span>
                     </button>
                   ))}
@@ -886,6 +891,11 @@ export function PanelRedEstructura({
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
                       <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                      {persona.iglesiaId !== iglesiaId && (
+                        <span className="mt-0.5 inline-block rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          {persona.iglesiaNombre}
+                        </span>
+                      )}
                     </span>
                   </button>
                 ))}
