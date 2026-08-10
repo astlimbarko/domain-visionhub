@@ -134,3 +134,14 @@ export async function toggleUsuarioRol(usuarioRolId: string, activo: boolean, pi
   });
   if (error) throw error;
 }
+
+/** KAN-154: a diferencia de toggleUsuarioRol (da de baja UN cargo puntual),
+ * esto elimina la cuenta completa -- todos los cargos y personas asociadas
+ * a ese usuario_id, de una sola vez. Pensado para limpieza manual de
+ * cuentas de prueba. */
+export async function eliminarCuentaUsuario(usuarioId: string, pin?: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_eliminar_cuenta_usuario', {
+    p_usuario_id: usuarioId, p_pin: pin ?? null,
+  });
+  if (error) throw error;
+}

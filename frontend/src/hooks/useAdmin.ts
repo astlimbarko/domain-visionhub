@@ -5,6 +5,7 @@ import {
   buscarCuentas,
   crearIglesia,
   crearUsuarioRol,
+  eliminarCuentaUsuario,
   eliminarIglesia,
   invitarUsuario,
   obtenerDashboardSuperAdmin,
@@ -170,6 +171,14 @@ export function useToggleUsuarioRol() {
   return useMutation({
     mutationFn: ({ usuarioRolId, activo, pin }: { usuarioRolId: string; activo: boolean; pin?: string }) =>
       toggleUsuarioRol(usuarioRolId, activo, pin),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
+  });
+}
+
+export function useEliminarCuentaUsuario() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ usuarioId, pin }: { usuarioId: string; pin?: string }) => eliminarCuentaUsuario(usuarioId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }

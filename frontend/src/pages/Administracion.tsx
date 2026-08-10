@@ -26,6 +26,7 @@ import {
   useAsignarUsuarioExistente,
   useActualizarUsuarioRol,
   useToggleUsuarioRol,
+  useEliminarCuentaUsuario,
   useDashboardSuperAdmin,
 } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
@@ -117,6 +118,7 @@ export function Administracion() {
   const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
+  const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
 
   const { data: iglesias = [], isLoading: cargandoIglesias } = useIglesiasTodas();
   const gruposIglesias = agruparIglesiasJerarquicamente(iglesias);
@@ -130,6 +132,7 @@ export function Administracion() {
   const asignarUsuarioExistente = useAsignarUsuarioExistente();
   const actualizarUsuarioRol = useActualizarUsuarioRol();
   const toggleUsuarioRol = useToggleUsuarioRol();
+  const eliminarCuentaUsuario = useEliminarCuentaUsuario();
 
   function manejarError(e: unknown, generico: string) {
     const error = e as { message?: string } | null;
@@ -142,6 +145,8 @@ export function Administracion() {
       toast.error('No se puede quitar al único Super Admin del sistema');
     } else if (mensaje.includes('ROL_AUTOMODIFICACION')) {
       toast.error('No podés modificar tu propio cargo');
+    } else if (mensaje.includes('SUPER_ADMIN_SOLO_PRINCIPAL')) {
+      toast.error('Solo el Super Admin principal puede crear, editar o quitar a otro Super Admin');
     } else if (mensaje.includes('IGLESIA_CON_REDES_ACTIVAS') || mensaje.includes('IGLESIA_CON_HIJAS')) {
       toast.error('Esta iglesia tiene estructura vigente; reasignala antes de eliminar');
     } else if (mensaje.includes('USUARIO_FUERA_DE_ALCANCE')) {
@@ -397,6 +402,11 @@ export function Administracion() {
                   <p className="truncate font-medium text-white">{u.correo}</p>
                   <p className="truncate text-sm text-white/50">
                     {NOMBRE_ROL[u.rol]}
+                    {u.rol === 'SUPER_ADMIN' && (
+                      <span className="ml-1.5 rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+                        {u.es_principal ? 'Principal' : 'Secundario'}
+                      </span>
+                    )}
                     {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
                   </p>
                   <p className="truncate text-xs text-white/40">
@@ -413,7 +423,10 @@ export function Administracion() {
                     <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
                       <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
-                        Remover
+                        Remover cargo
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setUsuarioEliminar(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
+                        Eliminar cuenta
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -556,6 +569,27 @@ export function Administracion() {
               {
                 onSuccess: () => { toast.success('Usuario removido'); setUsuarioRemover(null); },
                 onError: (e) => manejarError(e, 'No se pudo remover al usuario'),
+              }
+            )
+          }
+        />
+      )}
+
+      {usuarioEliminar && (
+        <ConfirmarCambioDialog
+          open={!!usuarioEliminar}
+          onOpenChange={(abierto) => !abierto && setUsuarioEliminar(null)}
+          titulo={`Eliminar cuenta de ${usuarioEliminar.correo}`}
+          descripcion="Elimina TODOS los cargos y personas asociadas a esta cuenta (todas las iglesias), no solo este cargo. Pensado para limpieza de cuentas de prueba."
+          requiereMotivo
+          oscuro
+          procesando={eliminarCuentaUsuario.isPending}
+          onConfirmar={(_motivo, pin) =>
+            eliminarCuentaUsuario.mutate(
+              { usuarioId: usuarioEliminar.usuario_id, pin },
+              {
+                onSuccess: () => { toast.success('Cuenta eliminada'); setUsuarioEliminar(null); },
+                onError: (e) => manejarError(e, 'No se pudo eliminar la cuenta'),
               }
             )
           }

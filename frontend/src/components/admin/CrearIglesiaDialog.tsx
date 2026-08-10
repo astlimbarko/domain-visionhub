@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -36,7 +37,7 @@ interface Props {
   onCrear: (
     sufijo: string,
     ciudad: string,
-    iglesiaPadreId: string,
+    iglesiaPadreId: string | null,
     tipo: TipoIglesia,
     pastorUsuarioId: string | null,
     pastorCorreoNuevo: string | null,
@@ -46,9 +47,11 @@ interface Props {
 
 /**
  * Crear iglesia -- flujo integrado (15-gestion-administrativa, Panel 4).
- * Toda iglesia nueva es hija o satélite de una iglesia madre existente (no
- * existe "independiente" -- las 2 raíces actuales son una excepción
- * histórica). El Pastor se puede asignar en el mismo paso, con un solo
+ * Por defecto toda iglesia nueva es hija o satélite de una iglesia madre
+ * existente; el check "Iglesia raíz" (KAN-152, pedido 2026-08-10) permite
+ * crear una nueva iglesia autónoma sin madre -- `fn_crear_iglesia` ya acepta
+ * `p_iglesia_padre_id = NULL`, solo faltaba la opción en la UI. El Pastor se
+ * puede asignar en el mismo paso, con un solo
  * código de confirmación total: si ya tiene cuenta, o si se invita por
  * correo (cuenta nueva), la Edge Function `crear-iglesia` hace las 3
  * escrituras en una sola llamada verificando el código una única vez.
@@ -63,6 +66,7 @@ export function CrearIglesiaDialog({
 }: Props) {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
 
+  const [esRaiz, setEsRaiz] = useState(false);
   const [iglesiaPadreId, setIglesiaPadreId] = useState('');
   const [tipo, setTipo] = useState<TipoIglesia>('HIJA');
   const [sufijo, setSufijo] = useState('');
@@ -82,7 +86,7 @@ export function CrearIglesiaDialog({
   const puedeCrear =
     sufijo.trim() &&
     ciudad.trim() &&
-    iglesiaPadreId &&
+    (esRaiz || iglesiaPadreId) &&
     (modoPastor !== 'buscar' || !!pastorElegido) &&
     (modoPastor !== 'invitar' || correoPastor.trim().includes('@')) &&
     pinValido;
@@ -93,12 +97,14 @@ export function CrearIglesiaDialog({
     sufijo.trim() !== '' ||
     ciudad.trim() !== '' ||
     iglesiaPadreId !== '' ||
+    esRaiz ||
     pin.trim() !== '' ||
     busquedaPastor.trim() !== '' ||
     !!pastorElegido ||
     correoPastor.trim() !== '';
 
   function limpiarTodo() {
+    setEsRaiz(false);
     setIglesiaPadreId('');
     setTipo('HIJA');
     setSufijo('');
@@ -121,7 +127,7 @@ export function CrearIglesiaDialog({
       await onCrear(
         sufijo.trim(),
         ciudad.trim(),
-        iglesiaPadreId,
+        esRaiz ? null : iglesiaPadreId,
         tipo,
         modoPastor === 'buscar' && pastorElegido ? pastorElegido.usuario_id : null,
         modoPastor === 'invitar' ? correoPastor.trim().toLowerCase() : null,
@@ -145,24 +151,36 @@ export function CrearIglesiaDialog({
           <DialogTitle>Nueva Iglesia</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>Iglesia madre</Label>
-            <Select value={iglesiaPadreId} onValueChange={setIglesiaPadreId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Elegí la iglesia madre" />
-              </SelectTrigger>
-              <SelectContent>
-                {iglesias.map((i) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="es-raiz"
+              checked={esRaiz}
+              onCheckedChange={(checked) => { setEsRaiz(checked === true); if (checked) setIglesiaPadreId(''); }}
+            />
+            <Label htmlFor="es-raiz" className="cursor-pointer font-normal">
+              Iglesia raíz (sin iglesia madre, autónoma)
+            </Label>
           </div>
+          {!esRaiz && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Iglesia madre</Label>
+              <Select value={iglesiaPadreId} onValueChange={setIglesiaPadreId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Elegí la iglesia madre" />
+                </SelectTrigger>
+                <SelectContent>
+                  {iglesias.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label>Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as TipoIglesia)}>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as TipoIglesia)} disabled={esRaiz}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

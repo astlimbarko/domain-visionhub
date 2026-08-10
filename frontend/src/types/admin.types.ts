@@ -9,6 +9,8 @@ export interface UsuarioListado {
   iglesia_nombre: string | null;
   persona_id: string | null;
   persona_nombre: string | null;
+  /** Solo relevante si rol === 'SUPER_ADMIN' (KAN-154). */
+  es_principal: boolean;
 }
 
 export interface IglesiaAdmin {
