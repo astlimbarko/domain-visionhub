@@ -81,7 +81,13 @@ export function Dashboard() {
     return <Navigate to={ROUTES.CASAS_DE_PAZ} replace />;
   }
 
-  if (isLoading || !roles) {
+  // Sin iglesia activa (cuenta sin ninguna iglesia asociada todavia --
+  // KAN-138, alta nueva por Google) useMisRoles ni dispara (enabled:
+  // !!iglesiaId) -- `roles` queda undefined para siempre y este gate no
+  // debe esperarlo, si no la pantalla de carga nunca termina (bug real,
+  // 2026-08-09). Sin iglesia, "pila" resuelve a [] mas abajo y cae en el
+  // estado vacio real ("Todavia no tenes ningun panel asignado").
+  if (iglesiaActivaId && (isLoading || !roles)) {
     return (
       <div className="flex flex-col gap-6">
         <Skeleton className="h-10 w-48 rounded-xl" />
@@ -124,7 +130,7 @@ export function Dashboard() {
         </Button>
       )}
 
-      {vista.tipo === 'red' && roles.redes_lider && roles.redes_lider.length > 1 && pila.length === 1 && (
+      {vista.tipo === 'red' && roles?.redes_lider && roles.redes_lider.length > 1 && pila.length === 1 && (
         <Select value={vista.redId} onValueChange={(redId) => setPila([{ tipo: 'red', redId }])}>
           <SelectTrigger className="w-full rounded-xl text-sm sm:w-64">
             <SelectValue />
@@ -139,7 +145,7 @@ export function Dashboard() {
         </Select>
       )}
 
-      {vista.tipo === 'cdp' && !vista.esSublider && roles.cdp_lider && roles.cdp_lider.length > 1 && pila.length === 1 && (
+      {vista.tipo === 'cdp' && !vista.esSublider && roles?.cdp_lider && roles.cdp_lider.length > 1 && pila.length === 1 && (
         <Select value={vista.cdpId} onValueChange={(cdpId) => setPila([{ tipo: 'cdp', cdpId, esSublider: false }])}>
           <SelectTrigger className="w-full rounded-xl text-sm sm:w-64">
             <SelectValue />
@@ -159,7 +165,7 @@ export function Dashboard() {
       {vista.tipo === 'red' && (
         <DashboardLiderRed
           redId={vista.redId}
-          esSublider={roles.redes_lider?.find((r) => r.id === vista.redId)?.es_sublider ?? false}
+          esSublider={roles?.redes_lider?.find((r) => r.id === vista.redId)?.es_sublider ?? false}
           onSeleccionarCdp={(cdpId) => avanzar({ tipo: 'cdp', cdpId, esSublider: false })}
         />
       )}

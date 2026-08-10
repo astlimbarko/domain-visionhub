@@ -36,6 +36,16 @@ export function useOpcionesRol(): OpcionRol[] | undefined {
     return meta ? [{ rolUI: 'SUPER_ADMIN', ...meta }] : [];
   }
 
+  // Cuenta sin ninguna iglesia asociada (ej. alta nueva por Google via
+  // KAN-138, todavia sin invitacion a ninguna iglesia -- antes imposible,
+  // toda cuenta nacia ya invitada a una iglesia): useMisRoles ni siquiera
+  // dispara (enabled: !!iglesiaId), asi que `roles` queda undefined para
+  // siempre y este hook nunca salia del `undefined` -- PrivateLayout
+  // interpretaba eso como "todavia cargando" de forma indefinida (bug real,
+  // reportado 2026-08-09: pantalla de "Cargando..." que nunca terminaba).
+  // Sin iglesia no hay nada que resolver: es un [] valido, no una carga.
+  if (!iglesiaActivaId) return [];
+
   if (isLoading || !roles) return undefined;
 
   return calcularOpcionesRolUI(esSuperAdmin, esPastor, esOperativo, roles, esLiderAfirmacion)
