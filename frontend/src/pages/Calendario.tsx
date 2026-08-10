@@ -52,7 +52,8 @@ export function Calendario() {
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   // El Supervisor puede administrar el calendario de su iglesia, o el de una
   // hija/satélite directa (Padre -> Hija, ver 101_calendario_padre_satelite.sql).
-  const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' ? iglesiaActivaId : undefined);
+  // El Pastor (KAN-40) también ve esa lista de sedes, pero solo para consultar.
+  const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' || rolUI === 'PASTOR' ? iglesiaActivaId : undefined);
   const [casaDePazId, setCasaDePazId] = useState<string>();
   const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -164,6 +165,22 @@ export function Calendario() {
         iglesiaPrincipalId={iglesiaActivaId}
         nombreIglesiaPrincipal={nombreIglesiaActiva}
         iglesiasHijas={iglesiasHijas}
+      />
+    );
+  }
+
+  // El Pastor (KAN-40) ve el mismo calendario consolidado que el Supervisor
+  // (su iglesia + sedes hijas/satélite), pero en modo solo lectura -- el
+  // backend no le da permiso de crear/editar/eliminar eventos (spec de
+  // roles, Rol 5: Pastor solo supervisa y consulta; 43_pastor_no_operativo.sql).
+  if (rolUI === 'PASTOR') {
+    if (!iglesiaActivaId) return <Skeleton className="h-96 w-full rounded-2xl" />;
+    return (
+      <CalendarioMultiIglesia
+        iglesiaPrincipalId={iglesiaActivaId}
+        nombreIglesiaPrincipal={nombreIglesiaActiva}
+        iglesiasHijas={iglesiasHijas}
+        soloLectura
       />
     );
   }
