@@ -65,11 +65,18 @@ export const useAuthStore = create<AuthState>()(
         const iglesiaActivaId = iglesiaActualSigueValida
           ? estadoActual.iglesiaActivaId
           : elegirIglesiaPorDefecto(iglesias);
-        const contextoAnterior = estadoActual.personaId === personaId ? estadoActual.contextoActivo : null;
-        const contextoPerteneceALaSesion = contextoAnterior?.alcance === 'GLOBAL'
-          ? esSuperAdmin
-          : contextoAnterior?.iglesiaId === iglesiaActivaId;
-        const contextoActivo = contextoPerteneceALaSesion ? contextoAnterior : null;
+        // KAN-152: `setSesion` solo se llama tras un login real (Login,
+        // AuthCallback, CompletarCuenta) -- nunca al resumir una sesion ya
+        // abierta (eso lo maneja el propio store persistido, sin volver a
+        // llamar setSesion). Antes, si la persona coincidia, se reusaba el
+        // `contextoActivo` de la sesion anterior siempre que siguiera siendo
+        // valido -- un usuario con roles en mas de una iglesia (ej. Super
+        // Admin + Supervisor en otra iglesia) volvia a entrar SIEMPRE con el
+        // mismo rol de la ultima vez, sin poder elegir otro contexto en un
+        // login nuevo. Se limpia siempre en cada login real; si solo hay un
+        // contexto posible, `useContextoActivo` lo autoselecciona igual (sin
+        // cambio de comportamiento en ese caso); si hay mas de uno, ahora se
+        // fuerza pasar por el selector de rol en cada login.
         set({
           isAuthenticated: true,
           personaId,
@@ -79,8 +86,8 @@ export const useAuthStore = create<AuthState>()(
           esSuperAdmin,
           membresiaPendiente,
           iglesiaActivaId,
-          contextoActivo,
-          rolActivo: contextoActivo?.rolUI ?? null,
+          contextoActivo: null,
+          rolActivo: null,
         });
       },
 
