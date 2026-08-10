@@ -11,6 +11,12 @@
 - [x] KAN-154: rol Super Admin Secundario (astlimbark queda como principal; Daniel/Matías/test@somoscdv.com quedan como secundarios) — código listo y aplicado a la BD real, falta probar en vivo en el navegador
 - [x] Nueva acción "Eliminar cuenta" en el panel de Super Admin (limpieza de cuentas de prueba, borra todos los cargos + personas de una cuenta de una vez)
 - [x] Check "Iglesia raíz" en Nueva Iglesia (crear iglesia sin madre, antes no había forma en la UI aunque la BD ya lo soportaba)
+- [x] Prueba manual en vivo de KAN-154 → encontrada regresión real (mi migración de KAN-154 pisó una corrección del 2026-08-09: "el Super Admin sí puede tener roles operativos") — corregida y aplicada (`fn_validar_asignacion_rol`)
+- [x] KAN-155: rediseño del modal Crear Iglesia (raíz por defecto, OTP en 2 pasos, Pastor como paso posterior, nombre de Pastor discreto junto a la iglesia)
+- [x] KAN-156: asignar cargo a un correo que ya tiene cuenta ahora asigna directo en vez de solo avisar y no aplicar nada
+- [x] KAN-157: el toggle de OTP por iglesia ahora se respeta también en el modo "Por correo electrónico" de Estructura Organizacional
+- [x] KAN-158: segunda regresión de la migración de KAN-154 encontrada y corregida (`fn_listar_usuarios` había perdido el filtro por iglesia en el JOIN con persona)
+- [x] Auditoría de multitenant/multirol (sidebar, navbar, contexto activo): código saneado, sin bugs nuevos — solo falta prueba en vivo de la épica KAN-129/130-133 (nunca es un bug, es que nadie la probó todavía)
+- [x] Todo mergeado a `codex/refactorizacion-multirol` (2 agentes en worktrees separados, sin conflictos), `tsc`/lint limpios, migraciones aplicadas a la BD real
 - [ ] Confirmado con `git merge-tree`: mergear esta rama a master NO es seguro todavía (conflicto real en `AppShell.tsx` con el trabajo de Matías, KAN-86) — ver memoria
-- [ ] Todo en rama `codex/refactorizacion-multirol`, sin mergear a master todavía
-- [ ] Pendiente: probar en vivo en el navegador lo de hoy (MCP de Playwright desconectado toda la sesión) — crear iglesia raíz + asignar Pastor con OTP real a test@somoscdv.com en Iglesia Sion
+- [ ] **Nada de lo de hoy fue probado en vivo con login real** (requiere OTP por correo, eso lo hace Gonzalo) — checklist de prueba manual pendiente antes de avisar al equipo
