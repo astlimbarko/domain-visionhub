@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
 import { colorLegibleSobreBlanco, textoLegibleSobre } from './contraste';
@@ -239,7 +240,15 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
   );
 }
 
-export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
+// KAN-139: @xyflow/react re-renderiza los nodos custom en cada frame de
+// pan/zoom (ej. la animación de "Centrar estructura") a menos que estén
+// envueltos en memo() -- sin esto, una iglesia con datos reales (El Edén:
+// 4 redes, ~59 personas) colgaba la pestaña 10+ segundos en cada
+// interacción del lienzo, porque cada frame re-renderizaba TODAS las
+// tarjetas. `data` ya llega con referencia estable (grafoBase está
+// memoizado sobre los datos del servidor en EstructuraOrganizacional.tsx),
+// así que la comparación superficial por defecto de memo() alcanza.
+export const NodoEstructura = memo(function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
   const Icono = ICONOS[data.tipo];
   const esGrupo = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
   const color = data.color ?? (esGrupo ? '#334155' : '#2563eb');
@@ -371,4 +380,4 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>
   );
-}
+});

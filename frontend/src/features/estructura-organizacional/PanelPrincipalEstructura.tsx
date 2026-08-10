@@ -12,7 +12,7 @@ import {
   useQuitarPastorEstructura,
   useQuitarSupervisorEstructura,
 } from './useEstructuraOrganizacional';
-import { notificarAsignacionCargoPrincipal } from './estructura.service';
+import { mensajeError, notificarAsignacionCargoPrincipal } from './estructura.service';
 import type { PersonaEstructura, PersonaOpcionEstructura } from './types';
 
 type ModoAsignacion = 'base' | 'correo';
@@ -94,7 +94,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
       setOtp('');
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `No se pudo asignar al ${etiqueta}`);
+      toast.error(mensajeError(error, `No se pudo asignar al ${etiqueta}`));
     }
   };
 
@@ -108,7 +108,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
       setOtpQuitar('');
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `No se pudo quitar al ${etiqueta}`);
+      toast.error(mensajeError(error, `No se pudo quitar al ${etiqueta}`));
     }
   };
 
@@ -137,7 +137,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
         onClose();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo enviar la designación');
+      toast.error(mensajeError(error, 'No se pudo enviar la designación'));
     } finally {
       setOtp('');
     }
@@ -250,6 +250,11 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold text-slate-900">{persona.nombre}</span>
                             <span className="block truncate text-xs text-slate-500">{persona.correo || 'Sin correo registrado'}</span>
+                            {persona.iglesiaId !== iglesiaId && (
+                              <span className="mt-0.5 inline-block rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                                {persona.iglesiaNombre}
+                              </span>
+                            )}
                           </span>
                         </button>
                       ))}

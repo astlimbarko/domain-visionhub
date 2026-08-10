@@ -78,7 +78,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     [misRoles],
   );
   const puedeEditarRed = (redId: string | null | undefined): boolean => {
-    if (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR') return true;
+    if (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR') return true;
     if (rolUI === 'LIDER_RED' && redId) {
       const red = data?.redes.find((item) => item.id === redId);
       return redesEditablesIds.has(redId) && !red?.eliminada;
@@ -213,8 +213,8 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       <header className="z-20 border-b border-white/10 bg-[#0a0e1a] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4">
           <Link
-            to={ROUTES.ADMINISTRACION}
-            aria-label="Volver a Administración"
+            to={rolUI === 'SUPER_ADMIN' ? ROUTES.ADMINISTRACION : ROUTES.DASHBOARD}
+            aria-label={rolUI === 'SUPER_ADMIN' ? 'Volver a Administración' : 'Volver al Dashboard'}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -372,9 +372,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       <main className="relative min-h-0 flex-1">
         {/* KAN-78: crear una Red nueva y la proteccion OTP global de la
             iglesia son acciones que exceden "mi propia Red" -- se quedan
-            exclusivas de Super Admin/Supervisor, igual que en el backend
+            exclusivas de Super Admin/Supervisor/Pastor (paridad Pastor-
+            Supervisor, 2026-08-09), igual que en el backend
             (private.fn_estructura_puede_administrar). */}
-        {!isLoading && !error && data && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR') && (
+        {!isLoading && !error && data && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR') && (
           <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -429,7 +430,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 // (mismo panel generico que ya usa el lienzo para Pastor
                 // cuando lo ve el Supervisor).
                 const redId = node.id === 'redes-vacio' ? null : node.id.replace('red:', '');
-                const puedeCrear = rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR';
+                const puedeCrear = rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR';
                 const editable = redId ? puedeEditarRed(redId) : puedeCrear;
                 if (!editable) {
                   cerrarTodosLosPaneles();
@@ -466,7 +467,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 setPanelPrincipal('SUPERVISOR');
                 setDepartamentoSeleccionadoId(null);
                 setCasaDePazSeleccionadaId(null);
-              } else if (node.data.tipo === 'DEPARTAMENTO' && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR')) {
+              } else if (node.data.tipo === 'DEPARTAMENTO' && (rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR')) {
                 setPanelPrincipal(null);
                 setDepartamentoSeleccionadoId(node.id.replace('departamento:', ''));
                 setCasaDePazSeleccionadaId(null);
@@ -573,11 +574,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             esSuperAdmin={rolUI === 'SUPER_ADMIN'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
-            // Admin/Supervisor -- Lider/Supervisor de Red administran su
-            // propia Red (nombre, color, cargos, nuevas CdP) pero no esas
-            // dos acciones puntuales.
-            puedeEliminarRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
-            puedeInvitarPorCorreo={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+            // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09)
+            // -- Lider/Supervisor de Red administran su propia Red (nombre,
+            // color, cargos, nuevas CdP) pero no esas dos acciones puntuales.
+            puedeEliminarRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
+            puedeInvitarPorCorreo={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
             abrirCrearCdpAlAbrir={abrirCrearCdpDirecto}
             onClose={() => {
               setPanelRed(null);
@@ -635,7 +636,9 @@ export function EstructuraOrganizacional() {
   // al lienzo -- antes quedaban totalmente bloqueados de la pagina. Ven todo
   // el organigrama pero solo pueden editar su propia Red (ContenidoEstructura
   // acota clicks/paneles con puedeEditarRed); el resto queda en modo lectura.
-  if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR' && rolUI !== 'LIDER_RED') {
+  // 2026-08-09: Pastor entra con paridad de Supervisor (ver comentarios en
+  // ContenidoEstructura y la migracion 20260809080000_paridad_pastor_supervisor.sql).
+  if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR' && rolUI !== 'LIDER_RED' && rolUI !== 'PASTOR') {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
   if (!iglesiaId) return <Navigate to={ROUTES.ADMINISTRACION} replace />;

@@ -173,13 +173,22 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-# false a proposito: registro publico cerrado (decision 2026-07-30) -- toda
-# cuenta se crea por invitacion.
+# false a proposito: registro publico cerrado (decision original 2026-07-30,
+# reconfirmada 2026-08-09 tras probar brevemente abrir el alta por Google sin
+# invitacion -- KAN-138 quedo revertido). Toda cuenta, incluida via Google,
+# solo puede entrar si un admin la invito primero con un rol -- eso ya la ata
+# a una iglesia (Supervisor/Lider de Red/Lider de CdP siempre pertenecen a
+# una), que es lo que arma despues el formulario de Membresia
+# (fn_mi_membresia_incompleta).
 enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
-enable_manual_linking = false
+# KAN-144/146 (2026-08-09): true a proposito -- una persona invitada que abre
+# el link de "elegi tu contraseña" ya tiene una sesion (la de la invitacion);
+# vincular Google ahi usa auth.linkIdentity() sobre esa MISMA sesion (no un
+# login nuevo), y esa llamada exige este flag encendido.
+enable_manual_linking = true
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
 minimum_password_length = 6
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
@@ -291,9 +300,14 @@ max_frequency = "5s"
 # inactivity_timeout = "8h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
+# KAN-138 (2026-08-09): se probo brevemente wireado a
+# public.hook_restringir_alta_no_google para permitir alta nueva por Google
+# sin invitacion -- revertido el mismo dia (enable_signup volvio a false, que
+# ya bloquea todo alta antes de llegar a este hook). La funcion sigue
+# existiendo en la base por si se retoma esto mas adelante.
 # [auth.hook.before_user_created]
 # enabled = true
-# uri = "pg-functions://postgres/auth/before-user-created-hook"
+# uri = "pg-functions://postgres/public/hook_restringir_alta_no_google"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]

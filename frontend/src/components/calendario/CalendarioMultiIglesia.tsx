@@ -40,6 +40,8 @@ interface Props {
   iglesiaPrincipalId: string;
   nombreIglesiaPrincipal: string;
   iglesiasHijas: IglesiaHija[];
+  /** KAN-40: el Pastor usa esta misma vista pero sin permiso de crear/eliminar eventos -- oculta esos controles en vez de dejar que el backend los rechace. */
+  soloLectura?: boolean;
 }
 
 /**
@@ -50,7 +52,7 @@ interface Props {
  * día indica de qué sede es, y no depende de cambios estructurales: nuevas
  * sedes (nuevas iglesia_padre_id) aparecen solas vía fn_mis_iglesias_hijas.
  */
-export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrincipal, iglesiasHijas }: Props) {
+export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrincipal, iglesiasHijas, soloLectura = false }: Props) {
   const sedes: Sede[] = useMemo(
     () => [
       { id: iglesiaPrincipalId, nombre: nombreIglesiaPrincipal, color: COLORES_SEDE[0] },
@@ -187,10 +189,12 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
             ))}
           </div>
         )}
-        <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
-          <Plus className="h-4 w-4" />
-          Nuevo evento de Iglesia
-        </Button>
+        {!soloLectura && (
+          <Button onClick={() => setDialogoAbierto(true)} className="gap-2 rounded-xl shadow-sm shadow-primary/20 active:scale-[0.98]">
+            <Plus className="h-4 w-4" />
+            Nuevo evento de Iglesia
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-2 sm:pl-4">
@@ -298,7 +302,7 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
                         </p>
                         {e.descripcion && <p className="mt-0.5 text-xs text-muted-foreground">{e.descripcion}</p>}
                       </div>
-                      {e.sede_id === iglesiaPrincipalId && (
+                      {!soloLectura && e.sede_id === iglesiaPrincipalId && (
                         <button
                           type="button"
                           aria-label="Eliminar evento"

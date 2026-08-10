@@ -1,0 +1,20 @@
+-- VisionHub -- eliminar_restriccion_un_rol_por_persona
+-- Decision del owner (Gonzalo, confirmada 2026-08-09 vía Matías): una
+-- persona puede tener mas de un cargo de sistema vigente a la vez en la
+-- misma iglesia (ej. Pastor y Supervisor de la Vision en Accion juntos).
+--
+-- La migracion anterior (20260809020000) saco el chequeo aplicativo de
+-- fn_estructura_asignar_pastor/fn_estructura_asignar_supervisor, pero
+-- quedaba bloqueado igual por este indice unico a nivel de esquema
+-- (uq_usuario_rol_vigente: un solo usuario_rol vigente por usuario_id +
+-- iglesia_id) -- una restriccion fundacional del modelo de datos, no
+-- especifica de Estructura Organizacional.
+--
+-- Revision de impacto (2026-08-09): las funciones que hacen
+-- "SELECT ... INTO ... FROM usuario_rol" (fn_mi_membresia_incompleta,
+-- fn_completar_membresia_general) ya usan "ORDER BY fecha_creacion ASC
+-- LIMIT 1", asi que con multiples roles vigentes simplemente eligen el mas
+-- antiguo -- no rompen, no lanzan error. fn_actualizar_usuario_rol y
+-- fn_toggle_usuario_rol operan por usuario_rol_id especifico, no por
+-- usuario_id+iglesia_id, tampoco se ven afectadas.
+DROP INDEX IF EXISTS public.uq_usuario_rol_vigente;

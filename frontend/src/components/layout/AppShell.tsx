@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, Network } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -201,9 +201,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Super Admin no ve Afirmación/Jóvenes/Matrimonios en su menú aunque la
   // cuenta también tenga esas capacidades en otra iglesia -- eso se elige
   // desde el selector multi-rol, no debe aparecer mezclado con el rol
-  // activo (2026-08-03, pedido explícito del owner). Estructura Organizacional
-  // se abre desde cada iglesia del panel Administración; no existe un acceso
-  // ambiguo en el navbar que apunte a la primera iglesia (owner, 2026-08-04).
+  // activo (2026-08-03, pedido explícito del owner). Para Super Admin,
+  // Estructura Organizacional se sigue abriendo desde cada iglesia del panel
+  // Administración -- no existe un acceso ambiguo en el navbar que apunte a
+  // la primera iglesia (owner, 2026-08-04), porque administra muchas iglesias
+  // a la vez. Pastor es distinto: tiene una sola iglesia activa bien
+  // definida, así que sí recibe un ítem de nav propio apuntando a ella
+  // (2026-08-09, paridad con Supervisor -- ver más abajo).
   //
   // NAV_ITEMS_AFIRMACION solo se agrega cuando el rol ACTIVO es justamente
   // LIDER_DEPARTAMENTO (KAN-114). Antes se agregaba con solo `esLiderAfirmacion`
@@ -221,6 +225,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         ...(rolUI === 'LIDER_DEPARTAMENTO' && esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
         ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
         ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
+        ...(rolUI === 'PASTOR' && iglesiaActivaId
+          ? [{ icon: Network, label: 'Estructura Organizacional', path: `/estructura-organizacional/${iglesiaActivaId}`, color: '#0a4174' }]
+          : []),
       ];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
