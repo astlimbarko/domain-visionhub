@@ -182,7 +182,6 @@ as $$
       and s.tipo = p_tipo
       and s.red_id = p_red_id
       and s.payload = p_payload
-      and s.fecha_eliminacion is null
       and (
         public.fn_es_lider_de_red(s.red_id)
         or public.fn_es_operativo_en(s.iglesia_id)
