@@ -108,16 +108,14 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.GESTION_REDES,
 ];
 
-// Pastor = solo supervisión y consulta (Dashboard + Reportes globales).
-// No crea Redes/CdP, no asigna líderes, no hace movimientos estructurales
-// (spec de roles, Sección 11 - Rol 5). Antes reutilizaba RUTAS_SUPERVISOR
-// por error, dándole el mismo alcance operativo que un Supervisor.
-const RUTAS_PASTOR: string[] = [
-  ROUTES.DASHBOARD,
-  ROUTES.REPORTES,
-  ROUTES.HISTORIAL_REPORTES,
-  ROUTES.HISTORIAL_ASISTENCIA,
-];
+// 2026-08-09: paridad completa con Supervisor (pedido explícito del
+// owner/equipo) -- Pastor ve y puede hacer exactamente lo mismo que
+// Supervisor. Antes tenía un alcance mucho más chico (solo Dashboard +
+// Reportes), citando "spec de roles Sección 11 Rol 5" -- esa restricción
+// quedó revertida. El backend (fn_es_pastor_en agregado junto a
+// fn_es_operativo_en en cada función relevante, ver migración
+// 20260809080000_paridad_pastor_supervisor.sql) ya respalda este alcance.
+const RUTAS_PASTOR: string[] = RUTAS_SUPERVISOR;
 
 const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
