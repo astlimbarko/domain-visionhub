@@ -35,6 +35,9 @@ interface Props {
    * vez de ir a los extremos. Sin esto, el pie no cambia (Atrás/Siguiente a
    * los extremos, como siempre). */
   accionExtra?: ReactNode;
+  /** KAN-179: nota corta encima del pie de botones (ej. "podés saltar cuando
+   * quieras") -- opcional, no afecta a los demás llamadores si no se pasa. */
+  notaPie?: ReactNode;
 }
 
 export function FormularioPaginado({
@@ -45,6 +48,7 @@ export function FormularioPaginado({
   pasoInicial = 0,
   onCambiarPaso,
   accionExtra,
+  notaPie,
 }: Props) {
   const [pasoActual, setPasoActual] = useState(
     Math.min(Math.max(pasoInicial, 0), pasos.length - 1)
@@ -87,6 +91,8 @@ export function FormularioPaginado({
       </div>
 
       <div key={paso.id}>{paso.contenido}</div>
+
+      {notaPie}
 
       <div className={cn('flex items-center gap-3 pt-1', accionExtra ? 'justify-center' : 'justify-between')}>
         <Button type="button" variant="outline" onClick={atras} disabled={pasoActual === 0 || enviando}>

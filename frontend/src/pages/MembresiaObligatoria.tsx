@@ -211,7 +211,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               </>
             )}{' '}
             Antes de ver tu panel necesitamos estos datos.
-            {esCasoGeneral && ' Podés salir cuando quieras: lo que ya completaste queda guardado y retomás justo donde dejaste.'}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -220,13 +219,21 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             textoFinalizar="Completar membresía y continuar"
             pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit)}
+            notaPie={
+              esCasoGeneral && (
+                <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
+                  Podés <strong>saltar</strong> esta pantalla cuando quieras — lo que ya completaste queda
+                  guardado y retomás justo donde dejaste.
+                </p>
+              )
+            }
             accionExtra={
               esCasoGeneral ? (
-                <Button type="button" variant="ghost" onClick={saltar}>
+                <Button type="button" variant="outline" onClick={saltar}>
                   Saltar
                 </Button>
               ) : (
-                <Button type="button" variant="ghost" className="gap-1.5" onClick={salir}>
+                <Button type="button" variant="outline" className="gap-1.5" onClick={salir}>
                   <LogOut className="h-4 w-4" />
                   Salir sin completar
                 </Button>
