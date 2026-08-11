@@ -106,6 +106,18 @@ export function Login() {
           <GoogleIcon className="h-4.5 w-4.5" />
           Continuar con Google
         </Button>
+        {/*
+          Registro público cerrado (decisión del owner, 2026-07-30): toda
+          cuenta se crea por invitación. Google solo vincula una cuenta YA
+          invitada -- una cuenta de Google nueva sin invitación es rechazada
+          por Supabase sin ningún parámetro de error (el corte pasa antes de
+          emitir tokens, AuthCallback ni llega a montarse), así que no hay
+          forma de mostrar un mensaje reactivo en ese momento. Este aviso
+          preventivo evita la confusión de "aprieto el botón y no pasa nada".
+        */}
+        <p className="mt-3 text-center text-[11px] text-muted-foreground">
+          Solo funciona si ya tenés una cuenta invitada al sistema.
+        </p>
       </div>
     </div>
   );
