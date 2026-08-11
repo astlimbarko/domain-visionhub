@@ -17,7 +17,7 @@
                 <img src="https://app.somoscdv.com/logo-correo.png" width="64" height="64" alt="Logo"
                      style="display:block; margin:0 auto 12px auto; border-radius:14px;" />
                 <p style="margin:0; font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#2f56e6;">
-                  {{ if .Data.iglesia_nombre }}{{ .Data.iglesia_nombre }}{{ else }}Sistema de gestión{{ end }}
+                  {{ if .Data.iglesia_nombre }}{{ .Data.iglesia_nombre }}{{ else }}VisionHub{{ end }}
                 </p>
               </td>
             </tr>
@@ -35,7 +35,7 @@
             <tr>
               <td style="padding:20px 32px 0 32px;">
                 <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#1f2937;">
-                  {{ if .Data.iglesia_nombre }}Fue invitado a crear una cuenta en el sistema de gestión y organización de <strong>{{ .Data.iglesia_nombre }}</strong>.{{ else }}Fue invitado a crear una cuenta en el sistema de gestión y organización.{{ end }}
+                  {{ if .Data.iglesia_nombre }}Fue invitado a crear una cuenta en el sistema de gestión y organización de <strong>{{ .Data.iglesia_nombre }}</strong>.{{ else }}Fue invitado a crear una cuenta de administración en <strong>VisionHub</strong>.{{ end }}
                 </p>
                 {{ if .Data.rol_etiqueta }}
                 <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#1f2937;">
@@ -85,7 +85,7 @@
               <td align="center" style="padding:20px 32px 32px 32px;">
                 <p style="margin:0; font-size:12px; line-height:1.6; color:#6b7280;">
                   Este es un mensaje automático. No responda a este correo, ya que esta bandeja no es monitoreada.
-                  {{ if .Data.iglesia_nombre }}Si necesita ayuda, comuníquese con el administrador de {{ .Data.iglesia_nombre }}.{{ else }}Si necesita ayuda, comuníquese con el administrador del sistema.{{ end }}
+                  {{ if .Data.iglesia_nombre }}Si necesita ayuda, comuníquese con el administrador de {{ .Data.iglesia_nombre }}.{{ else }}Si necesita ayuda, comuníquese con el administrador de VisionHub.{{ end }}
                 </p>
               </td>
             </tr>

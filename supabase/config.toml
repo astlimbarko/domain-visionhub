@@ -258,8 +258,17 @@ host = "smtp-relay.brevo.com"
 port = 587
 user = "b2b1c7001@smtp-brevo.com"
 pass = "env(BREVO_SMTP_PASS)"
+# El "From" de GoTrue es UN SOLO valor global -- no se puede variar por
+# invitacion (a diferencia de los Edge Functions con nodemailer, ej.
+# notificar-asignacion-cargo, que SI ponen el nombre de la iglesia como
+# remitente dinamico). Se deja en "VisionHub" (nunca el nombre de una
+# iglesia especifica) porque este mismo SMTP tambien manda recuperacion de
+# contrasena y confirmacion de registro, acciones de plataforma sin iglesia
+# -- antes decia "Centro de Vida 4 Anillo" (iglesia de prueba, quedo mal
+# puesto). El nombre de la iglesia SI aparece dentro del cuerpo del correo
+# (ver invite.html, {{ .Data.iglesia_nombre }}), solo no en el remitente.
 admin_email = "acceso@somoscdv.com"
-sender_name = "Centro de Vida 4 Anillo"
+sender_name = "VisionHub"
 
 # Pedido del owner (2026-08-07): el correo de invitacion generico no decia
 # para que rol/entidad fue invitada la persona, ni el nombre de SU iglesia
@@ -269,7 +278,7 @@ sender_name = "Centro de Vida 4 Anillo"
 # {{ .Data.entidad_nombre }} -- todas opcionales (el template no rompe si
 # alguna falta, ver supabase/templates/invite.html).
 [auth.email.template.invite]
-subject = "{{ if .Data.iglesia_nombre }}Ha sido invitado a {{ .Data.iglesia_nombre }}{{ else }}Ha sido invitado al sistema{{ end }}"
+subject = "{{ if .Data.iglesia_nombre }}Ha sido invitado a {{ .Data.iglesia_nombre }}{{ else }}Ha sido invitado a VisionHub{{ end }}"
 content_path = "./supabase/templates/invite.html"
 
 # Uncomment to customize notification email template
