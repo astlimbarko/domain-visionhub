@@ -219,19 +219,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             onFinalizar={handleSubmit(onSubmit)}
             pasos={[
               {
-                id: 'identidad',
-                titulo: 'Tus datos',
+                id: 'nombre',
+                titulo: 'Tu nombre',
                 validar: async () => {
-                  const ok = await trigger([
-                    'primer_nombre',
-                    'primer_apellido',
-                    'sexo',
-                    'fecha_nacimiento',
-                    'ci',
-                    'correo',
-                    'ocupacion',
-                    'grado_instruccion',
-                  ]);
+                  const ok = await trigger(['primer_nombre', 'primer_apellido', 'sexo']);
                   if (!ok) return false;
                   const valores = getValues();
                   return guardarPasoSiCorresponde(1, {
@@ -240,9 +231,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     primer_apellido: valores.primer_apellido,
                     segundo_apellido: valores.segundo_apellido || undefined,
                     sexo: valores.sexo,
-                    fecha_nacimiento: valores.fecha_nacimiento || undefined,
-                    ci: valores.ci || undefined,
-                    correo: valores.correo || undefined,
                   });
                 },
                 contenido: (
@@ -279,7 +267,24 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                       </Select>
                       {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
-
+                  </div>
+                ),
+              },
+              {
+                id: 'datos-personales',
+                titulo: 'Datos personales',
+                validar: async () => {
+                  const ok = await trigger(['fecha_nacimiento', 'ci', 'correo']);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(2, {
+                    fecha_nacimiento: valores.fecha_nacimiento || undefined,
+                    ci: valores.ci || undefined,
+                    correo: valores.correo || undefined,
+                  });
+                },
+                contenido: (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="fecha_nacimiento">
                         Fecha de nacimiento {invitacion.campos_obligatorios.fecha_nacimiento && '*'}
@@ -299,7 +304,24 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                       <Input id="correo" type="email" {...register('correo')} />
                       {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
                     </div>
-
+                  </div>
+                ),
+              },
+              {
+                id: 'datos-generales',
+                titulo: 'Datos generales',
+                validar: async () => {
+                  const ok = await trigger(['ocupacion', 'grado_instruccion']);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(3, {
+                    estado_civil: valores.estado_civil || undefined,
+                    ocupacion: valores.ocupacion || undefined,
+                    grado_instruccion: valores.grado_instruccion || undefined,
+                  });
+                },
+                contenido: (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label>Estado civil</Label>
                       <Select
@@ -349,19 +371,19 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'formacion',
                 titulo: 'Formación',
-                validar: () => guardarPasoSiCorresponde(2, extendido),
+                validar: () => guardarPasoSiCorresponde(4, extendido),
                 contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'mentor-bautismo',
                 titulo: 'Mentor y Bautismo',
-                validar: () => guardarPasoSiCorresponde(3, extendido),
+                validar: () => guardarPasoSiCorresponde(5, extendido),
                 contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'familia',
                 titulo: 'Familia',
-                validar: () => guardarPasoSiCorresponde(4, extendido),
+                validar: () => guardarPasoSiCorresponde(6, extendido),
                 contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
               },
             ]}
