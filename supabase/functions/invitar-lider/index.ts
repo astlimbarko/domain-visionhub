@@ -241,6 +241,21 @@ export default {
               p_cargo_id: cargoFila.id,
             });
             if (!errorAsignar) {
+              // KAN-16x: mismo aviso por correo que invitar-usuario/
+              // crear-iglesia (KAN-164) -- ctx.supabase no tiene
+              // `.functions.invoke`, se llama por fetch directo con el
+              // Authorization del pedido original + apikey.
+              fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: req.headers.get("Authorization") ?? "",
+                  apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+                },
+                body: JSON.stringify({ departamentoId, personaId: persona.id, cargo: "LIDER_DEPARTAMENTO" }),
+              }).then(async (r) => {
+                if (!r.ok) console.error("invitar-lider: notificar-asignacion-cargo respondio", r.status, await r.text());
+              }).catch((e) => console.error("invitar-lider: no se pudo notificar la designacion", e));
               return Response.json({ id: persona.id, correo, yaExistia: true });
             }
           }

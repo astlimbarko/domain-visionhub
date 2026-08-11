@@ -471,6 +471,18 @@ export async function notificarAsignacionCargoPrincipal(
   if (error) throw error;
 }
 
+// KAN-16x: mismo hueco que REQ-ASG-7/KAN-117 pero para Líder de Departamento
+// (Afirmación) -- el modo "Buscar en base de datos" tampoco avisaba.
+export async function notificarAsignacionCargoDepartamento(
+  departamentoId: string,
+  personaId: string,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { departamentoId, personaId, cargo: 'LIDER_DEPARTAMENTO' },
+  });
+  if (error) throw error;
+}
+
 export async function quitarCargoRedEstructura(
   redId: string,
   codigo: CargoRedEstructura,

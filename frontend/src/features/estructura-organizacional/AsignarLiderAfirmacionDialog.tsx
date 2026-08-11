@@ -9,6 +9,7 @@ import {
   useQuitarCargoDepartamento,
 } from '@/hooks/usePanelSupervisor';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
+import { notificarAsignacionCargoDepartamento } from './estructura.service';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /**
@@ -54,6 +55,12 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     try {
       await asignarCargo.mutateAsync({ departamentoId, personaId: persona.id, cargoId: cargoLiderDepartamento.id, pin });
       toast.success(`${persona.nombre_completo} asignado`);
+      // KAN-16x: aviso por correo, igual que ya hace el mismo flujo para
+      // Pastor/Supervisor (notificarAsignacionCargoPrincipal) -- no bloquea
+      // si falla, el cargo ya quedó asignado.
+      notificarAsignacionCargoDepartamento(departamentoId, persona.id).catch((error) =>
+        console.error('No se pudo avisar por correo de la designación', error),
+      );
       setPin('');
       void invalidarEstructura();
     } catch (e) {
