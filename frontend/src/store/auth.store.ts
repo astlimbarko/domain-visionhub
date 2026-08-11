@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
 import type { ContextoActivo } from '../types/contexto-activo.types';
-import type { InvitacionPendiente } from '../types/invitacion-lider.types';
+import type { MembresiaIncompleta } from '../types/membresia-extendida.types';
 import type { RolUI } from '../utils/permisos';
 
 interface AuthState {
@@ -13,7 +13,7 @@ interface AuthState {
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
-  membresiaPendiente: InvitacionPendiente | null;
+  membresiaPendiente: MembresiaIncompleta | null;
   /** Compatibilidad temporal; la fuente canónica nueva es contextoActivo. */
   rolActivo: RolUI | null;
   contextoActivo: ContextoActivo | null;
@@ -23,13 +23,18 @@ interface AuthState {
     correo: string | null;
     iglesias: IglesiaAccesible[];
     esSuperAdmin: boolean;
-    membresiaPendiente?: InvitacionPendiente | null;
+    membresiaPendiente?: MembresiaIncompleta | null;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
   setContextoActivo: (contexto: ContextoActivo | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
+  /** KAN-126: "Saltar por ahora" (solo caso general, id===null) -- limpia el
+   * gate SOLO local/en memoria, sin tocar el backend. El próximo login vuelve
+   * a pedirlo (setSesion repuebla membresiaPendiente desde fn_mi_membresia_incompleta
+   * de nuevo) hasta que la persona realmente complete su ficha. */
+  saltarMembresiaLocal: () => void;
   logout: () => void;
 }
 
@@ -107,6 +112,8 @@ export const useAuthStore = create<AuthState>()(
 
       completarMembresiaLocal: (personaId, nombreCompleto) =>
         set({ personaId, nombreCompleto, membresiaPendiente: null }),
+
+      saltarMembresiaLocal: () => set({ membresiaPendiente: null }),
 
       logout: () =>
         set({

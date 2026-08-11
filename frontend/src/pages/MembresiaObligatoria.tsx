@@ -17,9 +17,10 @@ import {
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
+import { useCompletarMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
 import { useAuthStore } from '@/store/auth.store';
-import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
-import type { InvitacionPendiente } from '@/types/invitacion-lider.types';
+import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
+import type { RolInvitable } from '@/types/invitacion-lider.types';
 
 const GRADOS_INSTRUCCION = [
   'SIN_INSTRUCCION',
@@ -35,7 +36,7 @@ const GRADOS_INSTRUCCION = [
   'DOCTORADO',
 ] as const;
 
-function construirEsquema(obligatorios: InvitacionPendiente['campos_obligatorios']) {
+function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios']) {
   return z.object({
     primer_nombre: z.string().trim().min(1),
     segundo_nombre: z.string().trim().optional(),
@@ -51,18 +52,31 @@ function construirEsquema(obligatorios: InvitacionPendiente['campos_obligatorios
   });
 }
 
-const NOMBRE_ROL: Record<NonNullable<InvitacionPendiente['rol']>, string> = {
+const NOMBRE_ROL: Record<RolInvitable, string> = {
   LIDER_RED: 'Líder de Red',
   LIDER_CDP: 'Líder de Casa de Paz',
   SUBLIDER_CDP: 'Sublíder de Casa de Paz',
 };
 
+function esRolInvitable(rol: string | null): rol is RolInvitable {
+  return rol === 'LIDER_RED' || rol === 'LIDER_CDP' || rol === 'SUBLIDER_CDP';
+}
+
 interface Props {
-  invitacion: InvitacionPendiente;
+  invitacion: MembresiaIncompleta;
 }
 
 export function MembresiaObligatoria({ invitacion }: Props) {
+  // KAN-126: invitacion.id !== null significa que vino de invitacion_lider/
+  // invitacion_departamento (caso ya existente, obligatorio, sin Saltar).
+  // invitacion.id === null es el caso general (usuario_rol vigente sin
+  // Persona, Q-8, ej. Pastor/Supervisor asignado directo desde Administración)
+  // -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general en vez
+  // de fn_completar_membresia (que exige una invitacion_lider real).
+  const esCasoGeneral = invitacion.id === null;
+
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
+  const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
   const logout = useAuthStore((s) => s.logout);
   const esquema = construirEsquema(invitacion.campos_obligatorios);
   type FormValues = z.infer<typeof esquema>;
@@ -78,7 +92,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
 
-  const mutacion = useCompletarMembresia();
+  const mutacionInvitacion = useCompletarMembresia();
+  const mutacionGeneral = useCompletarMembresiaGeneral();
 
   async function onSubmit(valores: FormValues) {
     const datos = {
@@ -100,7 +115,11 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     };
 
     try {
-      await mutacion.mutateAsync(datos);
+      if (esCasoGeneral) {
+        await mutacionGeneral.mutateAsync(datos);
+      } else {
+        await mutacionInvitacion.mutateAsync(datos);
+      }
       const persona = await obtenerPersonaActual();
       completarMembresiaLocal(persona?.id ?? '', persona?.nombre_completo ?? '');
       toast.success('Membresía completada');
@@ -120,6 +139,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     logout();
   }
 
+  function saltar() {
+    saltarMembresiaLocal();
+  }
+
   const sexoActual = watch('sexo');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
@@ -130,10 +153,21 @@ export function MembresiaObligatoria({ invitacion }: Props) {
         <CardHeader>
           <CardTitle>Completá tu membresía</CardTitle>
           <CardDescription>
-            {invitacion.rol ? (
+            {esCasoGeneral ? (
               <>
-                Te invitaron como <strong>{NOMBRE_ROL[invitacion.rol]}</strong> de{' '}
-                <strong>{invitacion.destino}</strong> en {invitacion.iglesia_nombre}.
+                Tu cuenta ya tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, pero todavía no
+                completaste tu ficha de Membresía.
+              </>
+            ) : invitacion.rol && esRolInvitable(invitacion.rol) ? (
+              <>
+                Te invitaron como <strong>{NOMBRE_ROL[invitacion.rol]}</strong>
+                {invitacion.destino && (
+                  <>
+                    {' '}
+                    de <strong>{invitacion.destino}</strong>
+                  </>
+                )}{' '}
+                en {invitacion.iglesia_nombre}.
               </>
             ) : (
               <>
@@ -272,10 +306,17 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               },
             ]}
           />
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5 self-start" onClick={salir}>
-            <LogOut className="h-4 w-4" />
-            Salir sin completar
-          </Button>
+          <div className="flex items-center gap-2 self-start">
+            {esCasoGeneral && (
+              <Button type="button" variant="outline" size="sm" onClick={saltar}>
+                Saltar por ahora
+              </Button>
+            )}
+            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
+              <LogOut className="h-4 w-4" />
+              Salir sin completar
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

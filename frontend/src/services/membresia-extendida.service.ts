@@ -10,12 +10,24 @@ export async function listarTiposDiscipulado(): Promise<TipoDiscipulado[]> {
   return data ?? [];
 }
 
-// KAN-126 (capa de datos únicamente -- ver frontend/src/hooks/useMembresiaExtendida.ts
-// y bitácora del 2026-08-09: el enganche real en PrivateLayout.tsx/auth.store.ts
-// queda bloqueado a propósito, esos archivos están fuera de alcance en esta
-// sesión por el refactor paralelo de sesión/roles).
+// KAN-126: generaliza fn_mi_invitacion_pendiente (acotado a invitacion_lider/
+// invitacion_departamento) a cualquier usuario_rol vigente sin Persona (Q-8)
+// -- delega en el mismo chequeo de invitación primero, así que ese caso no
+// cambia de comportamiento. Enganchado en sesion.service.ts (2026-08-11,
+// ya no bloqueado por el refactor paralelo de sesión/roles).
 export async function obtenerMiMembresiaIncompleta(): Promise<MembresiaIncompleta | null> {
   const { data, error } = await supabase.rpc('fn_mi_membresia_incompleta');
+  if (error) throw error;
+  return data;
+}
+
+// KAN-126: completar Membresía para el caso general (usuario_rol vigente sin
+// invitación asociada, Q-8) -- fn_completar_membresia (invitación real) sigue
+// siendo la vía para invitacion_lider/invitacion_departamento, sin cambios.
+export async function completarMembresiaGeneral(
+  datos: Record<string, unknown>
+): Promise<{ nombre_completo: string; destino: string | null }> {
+  const { data, error } = await supabase.rpc('fn_completar_membresia_general', { p_datos: datos });
   if (error) throw error;
   return data;
 }
