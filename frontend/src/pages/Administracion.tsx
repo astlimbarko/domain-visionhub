@@ -528,9 +528,9 @@ export function Administracion() {
         oscuro
         rolInicial={iglesiaParaAsignarPastor ? 'PASTOR' : undefined}
         iglesiaIdInicial={iglesiaParaAsignarPastor?.id}
-        onInvitar={(correo, rol, iglesiaId, pin) =>
+        onInvitar={(correo, rol, iglesiaId, pin, persona) =>
           invitarUsuario.mutate(
-            { correo, rol, iglesiaId, pin },
+            { correo, rol, iglesiaId, pin, persona },
             {
               onSuccess: (resultado) => {
                 if (resultado.error) {
@@ -545,9 +545,9 @@ export function Administracion() {
             }
           )
         }
-        onAsignarExistente={(usuarioId, rol, iglesiaId, pin) =>
+        onAsignarExistente={(usuarioId, rol, iglesiaId, pin, persona) =>
           asignarUsuarioExistente.mutate(
-            { usuarioId, rol, iglesiaId, pin },
+            { usuarioId, rol, iglesiaId, pin, persona },
             {
               onSuccess: () => {
                 toast.success('Cargo asignado');

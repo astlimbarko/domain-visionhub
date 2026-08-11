@@ -15,6 +15,7 @@ import {
   toggleUsuarioRol,
 } from '@/services/admin.service';
 import type { RolSistema } from '@/types/auth.types';
+import type { PersonaMinima } from '@/components/admin/InvitarUsuarioDialog';
 
 export function useIglesiasTodas() {
   return useQuery({ queryKey: ['admin', 'iglesias'], queryFn: obtenerIglesiasTodas });
@@ -82,13 +83,15 @@ export function useInvitarUsuario() {
       iglesiaId,
       pin,
       respetarOtpIglesia,
+      persona,
     }: {
       correo: string;
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
       respetarOtpIglesia?: boolean;
-    }) => invitarUsuario(correo, rol, iglesiaId, pin, respetarOtpIglesia),
+      persona?: PersonaMinima;
+    }) => invitarUsuario(correo, rol, iglesiaId, pin, respetarOtpIglesia, persona),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }
@@ -103,12 +106,14 @@ export function useAsignarUsuarioExistente() {
       rol,
       iglesiaId,
       pin,
+      persona,
     }: {
       usuarioId: string;
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
-    }) => crearUsuarioRol(usuarioId, rol, iglesiaId, pin),
+      persona?: PersonaMinima;
+    }) => crearUsuarioRol(usuarioId, rol, iglesiaId, pin, persona),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }

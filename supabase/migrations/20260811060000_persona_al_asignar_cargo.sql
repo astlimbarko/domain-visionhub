@@ -1,4 +1,4 @@
--- VisionHub -- KAN-172: permitir cargar los datos minimos de Persona (nombre,
+-- VisionHub -- KAN-173: permitir cargar los datos minimos de Persona (nombre,
 -- apellido, sexo) en el mismo momento de asignar un cargo con iglesia
 -- (Pastor/Supervisor de Vision en Accion) desde el panel de administracion,
 -- en vez de depender exclusivamente del gate de "completar membresia" al

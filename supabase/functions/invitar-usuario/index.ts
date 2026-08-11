@@ -36,6 +36,11 @@ export default {
       redirectTo?: string;
       pin?: string;
       respetarOtpIglesia?: boolean;
+      // KAN-173: datos minimos de Persona, opcionales -- solo se usan si el
+      // correo ya tenia cuenta (camino "ya existia" mas abajo).
+      personaPrimerNombre?: string;
+      personaPrimerApellido?: string;
+      personaSexo?: string;
     };
     try {
       body = await req.json();
@@ -109,6 +114,9 @@ export default {
               p_usuario_id: cuenta.usuario_id,
               p_rol: rol,
               p_iglesia_id: iglesiaId,
+              p_persona_primer_nombre: body.personaPrimerNombre ?? null,
+              p_persona_primer_apellido: body.personaPrimerApellido ?? null,
+              p_persona_sexo: body.personaSexo ?? null,
             });
             if (!errorAsignar) {
               // KAN-164: este camino (cuenta ya existente, asignada directo)
