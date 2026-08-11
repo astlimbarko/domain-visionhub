@@ -111,6 +111,26 @@ export default {
               p_iglesia_id: iglesiaId,
             });
             if (!errorAsignar) {
+              // KAN-164: este camino (cuenta ya existente, asignada directo)
+              // nunca pasaba por notificarAsignacionCargoPrincipal -- eso
+              // solo vive en el modo "Buscar en base de datos" del
+              // constructor. Si el rol es Pastor/Supervisor y la cuenta ya
+              // tiene una Persona en esa iglesia, avisamos por correo acá
+              // tambien; no bloquea la respuesta si falla o no hay Persona.
+              if (rol === "PASTOR" || rol === "SUPERVISOR_VISION_ACCION") {
+                const { data: personaFila } = await ctx.supabase
+                  .from("persona")
+                  .select("id")
+                  .eq("usuario_id", cuenta.usuario_id)
+                  .eq("iglesia_id", iglesiaId)
+                  .is("fecha_eliminacion", null)
+                  .maybeSingle();
+                if (personaFila) {
+                  await ctx.supabase.functions.invoke("notificar-asignacion-cargo", {
+                    body: { iglesiaId, personaId: personaFila.id, cargo: rol === "PASTOR" ? "PASTOR" : "SUPERVISOR" },
+                  }).catch((e) => console.error("invitar-usuario: no se pudo notificar la designacion", e));
+                }
+              }
               return Response.json({ id: cuenta.usuario_id, correo, yaExistia: true });
             }
             if (errorAsignar.message?.includes("ROL_AUTOASIGNACION")) {

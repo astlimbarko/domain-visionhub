@@ -88,6 +88,22 @@ export default {
             p_usuario_id: cuenta.usuario_id,
           });
           if (!errorVincularExistente) {
+            // KAN-164: mismo aviso por correo que invitar-usuario -- si la
+            // cuenta ya tenia una Persona en esta iglesia, se le notifica la
+            // designacion. En la practica casi nunca aplica aca (la iglesia
+            // recien se creo), pero cuesta cero dejarlo consistente.
+            const { data: personaFila } = await ctx.supabase
+              .from("persona")
+              .select("id")
+              .eq("usuario_id", cuenta.usuario_id)
+              .eq("iglesia_id", iglesiaId)
+              .is("fecha_eliminacion", null)
+              .maybeSingle();
+            if (personaFila) {
+              await ctx.supabase.functions.invoke("notificar-asignacion-cargo", {
+                body: { iglesiaId, personaId: personaFila.id, cargo: "PASTOR" },
+              }).catch((e) => console.error("crear-iglesia: no se pudo notificar la designacion", e));
+            }
             return Response.json({ id: iglesiaId, pastorInvitado: true, pastorYaExistia: true });
           }
           if (errorVincularExistente.message?.includes("ROL_AUTOASIGNACION")) {
