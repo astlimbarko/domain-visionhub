@@ -26,4 +26,11 @@
 - [x] KAN-167: invitar Líder de Afirmación por correo tenía 2 bugs reales más — (1) exigía OTP siempre igual que KAN-165 pero en el backend (`invitar-lider`), corregido con el mismo patrón que ya tenía Líder de Red; (2) si el correo ya tenía cuenta, quedaba en callejón sin salida en vez de asignar directo (el backend ya devolvía los datos para hacerlo desde 2026-08-06, nunca se conectó en el frontend) — corregido con el mismo patrón de KAN-156, sin volver a pedir el código (es de un solo uso)
 - [x] Limpieza: encontrada y eliminada la tabla `usuario_pin` + funciones `fn_verificar_pin`/`fn_establecer_pin` del PIN estático viejo (reemplazado el 2026-07-30 por el código de 6 dígitos, nunca se había borrado del todo)
 - [ ] Confirmado con `git merge-tree`: mergear esta rama a master NO es seguro todavía (conflicto real en `AppShell.tsx` con el trabajo de Matías, KAN-86) — ver memoria
+- [x] KAN-160 (refinado): eliminar Red/CdP por completo ahora exige que esté vacía (sin líderes/miembros) y lo puede hacer también el Supervisor de la Visión en Acción, no solo Super Admin
+- [x] KAN-170: campos Ciudad y Zona ("dirección breve") al crear Casa de Paz desde el Constructor — las CdP no tienen nombre propio, se identifican por líder + zona
+- [x] KAN-169: mensaje "Asignado a la cuenta existente" en vez del texto que sonaba alarmante (se investigaron los ~40 toasts del Constructor antes de tocar nada, a pedido)
+- [x] KAN-171: correo de confirmación al Super Admin al crear una iglesia, a nombre de "VisionHub" (no de la iglesia, por ser acción de plataforma) — desplegado, falta probar en vivo
+- [x] KAN-168: ticket creado para borrar códigos OTP de más de 90 días (no implementado todavía, solo queda registrado)
+- [ ] Pendiente mañana (2026-08-11 en adelante): probar en vivo el flujo del Supervisor de la Visión en Acción igual que hoy con Super Admin; revisar todo el flujo de Super Admin con OTP activado; borrar la iglesia de prueba de hoy y crear una mejor
+- [ ] Sigue sin mergear a master — falta que Gonzalo revise lo que se agregó en esta sesión antes de decidir
 - [ ] Sigue en curso la prueba manual en vivo de Gonzalo — cada bug real que encuentra se corrige y se despliega en el momento
