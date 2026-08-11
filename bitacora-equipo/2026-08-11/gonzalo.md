@@ -1,3 +1,6 @@
 # Gonzalo — 2026-08-11
 
 - [x] KAN-173: investigado por qué "Usuarios" mostraba "sin persona asociada todavía" en algunas filas — el gate de "completar membresía" chequea si existe Persona en CUALQUIER iglesia, no en la del cargo nuevo, así que una cuenta con ficha en una iglesia nunca la completa de nuevo al recibir un segundo cargo en otra. Fix: opción para cargar nombre/apellido/sexo directo al asignar el cargo desde Administración > Usuarios. Código listo y desplegado, falta probar en vivo (sin navegador MCP esta sesión)
+- [x] KAN-174: la capa de datos de "completar membresía" para roles sin invitación (fn_mi_membresia_incompleta) ya existía pero nunca se conectó — quedó pendiente desde el 2026-08-09 por el refactor paralelo de sesión/roles. Conectado: ahora respeta el botón "Saltar por ahora" tal cual lo hizo Matías en master. No se tocó su código de las tarjetas (FormularioPaginado/CamposMembresiaExtendidaFields), verificado idéntico. Falta probar en vivo
+- [x] KAN-175: limpieza de cuentas — los 3 Super Admin (astlimbark, Daniel, Matías) ya no aparecen como Pastor/Supervisor de El Edén/Montero (eran cargos de prueba); quedan solo como Super Admin. Las pruebas de rol operativo se hacen con test@somoscdv.com
+- [x] KAN-176: nueva opción "Restablecer contraseña" por usuario en el panel de Super Admin, para limpieza de cuentas de prueba
