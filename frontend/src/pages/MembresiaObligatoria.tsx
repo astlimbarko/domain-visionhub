@@ -187,12 +187,12 @@ export function MembresiaObligatoria({ invitacion }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">Completá tu Membresía</DialogTitle>
+          <DialogTitle className="text-xl">Completa tu Membresía</DialogTitle>
           <DialogDescription>
             {esCasoGeneral ? (
               <>
-                Tu cuenta ya tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, pero todavía no
-                completaste tu ficha de Membresía.
+                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu
+                ficha de Membresía.
               </>
             ) : invitacion.rol && esRolInvitable(invitacion.rol) ? (
               <>
@@ -210,7 +210,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 Te invitaron como <strong>Líder de {invitacion.destino}</strong> en {invitacion.iglesia_nombre}.
               </>
             )}{' '}
-            Antes de ver tu panel necesitamos estos datos.
+            Necesitamos estos datos para continuar.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -222,14 +222,18 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             notaPie={
               esCasoGeneral && (
                 <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
-                  Podés <strong>saltar</strong> esta pantalla cuando quieras — lo que ya completaste queda
-                  guardado y retomás justo donde dejaste.
+                  Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
                 </p>
               )
             }
             accionExtra={
               esCasoGeneral ? (
-                <Button type="button" variant="outline" onClick={saltar}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={saltar}
+                >
                   Saltar
                 </Button>
               ) : (
