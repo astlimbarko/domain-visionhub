@@ -117,6 +117,12 @@ export default {
               // constructor. Si el rol es Pastor/Supervisor y la cuenta ya
               // tiene una Persona en esa iglesia, avisamos por correo acá
               // tambien; no bloquea la respuesta si falla o no hay Persona.
+              // OJO: ctx.supabase (de @supabase/server) NO tiene
+              // `.functions.invoke` -- ninguna otra función de este proyecto
+              // lo usa así, todas se comunican por `.rpc()`. El intento
+              // original fallaba en silencio (atrapado por el catch) y por
+              // eso nunca llegaba el correo -- se llama por fetch directo,
+              // reenviando el mismo Authorization del pedido original.
               if (rol === "PASTOR" || rol === "SUPERVISOR_VISION_ACCION") {
                 const { data: personaFila } = await ctx.supabase
                   .from("persona")
@@ -126,8 +132,13 @@ export default {
                   .is("fecha_eliminacion", null)
                   .maybeSingle();
                 if (personaFila) {
-                  await ctx.supabase.functions.invoke("notificar-asignacion-cargo", {
-                    body: { iglesiaId, personaId: personaFila.id, cargo: rol === "PASTOR" ? "PASTOR" : "SUPERVISOR" },
+                  fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: req.headers.get("Authorization") ?? "",
+                    },
+                    body: JSON.stringify({ iglesiaId, personaId: personaFila.id, cargo: rol === "PASTOR" ? "PASTOR" : "SUPERVISOR" }),
                   }).catch((e) => console.error("invitar-usuario: no se pudo notificar la designacion", e));
                 }
               }

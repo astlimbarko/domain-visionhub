@@ -100,8 +100,15 @@ export default {
               .is("fecha_eliminacion", null)
               .maybeSingle();
             if (personaFila) {
-              await ctx.supabase.functions.invoke("notificar-asignacion-cargo", {
-                body: { iglesiaId, personaId: personaFila.id, cargo: "PASTOR" },
+              // ctx.supabase no tiene `.functions.invoke` -- ver nota en
+              // invitar-usuario/index.ts (mismo bug real, mismo arreglo).
+              fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: req.headers.get("Authorization") ?? "",
+                },
+                body: JSON.stringify({ iglesiaId, personaId: personaFila.id, cargo: "PASTOR" }),
               }).catch((e) => console.error("crear-iglesia: no se pudo notificar la designacion", e));
             }
             return Response.json({ id: iglesiaId, pastorInvitado: true, pastorYaExistia: true });
