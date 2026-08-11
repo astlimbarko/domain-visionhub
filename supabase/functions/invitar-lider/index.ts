@@ -183,7 +183,13 @@ export default {
         return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
       }
     } else if (departamentoId) {
-      const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_verificar_otp", { p_codigo: body.pin ?? null });
+      // KAN-16x: antes llamaba a fn_verificar_otp (generica, exige codigo
+      // siempre) -- ahora respeta estructura_organigrama.otp_requerido de
+      // la iglesia, igual que ya hace fn_estructura_validar_otp_red arriba.
+      const { data: otpOk, error: errorOtp } = await ctx.supabase.rpc("fn_estructura_validar_otp_departamento", {
+        p_departamento_id: departamentoId,
+        p_codigo: body.pin ?? null,
+      });
       if (errorOtp || !otpOk) {
         return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
       }
