@@ -18,5 +18,6 @@
 - [x] KAN-158: segunda regresión de la migración de KAN-154 encontrada y corregida (`fn_listar_usuarios` había perdido el filtro por iglesia en el JOIN con persona)
 - [x] Auditoría de multitenant/multirol (sidebar, navbar, contexto activo): código saneado, sin bugs nuevos — solo falta prueba en vivo de la épica KAN-129/130-133 (nunca es un bug, es que nadie la probó todavía)
 - [x] Todo mergeado a `codex/refactorizacion-multirol` (2 agentes en worktrees separados, sin conflictos), `tsc`/lint limpios, migraciones aplicadas a la BD real
+- [x] Segunda ronda de prueba manual → 3 hallazgos más: KAN-159 (mensaje confuso al bloquear auto-asignación de rol -- Gonzalo se estaba probando el Pastor a sí mismo, correctamente bloqueado, mensaje no lo explicaba), KAN-160 (borrado definitivo de Red ignoraba el switch de OTP -- ya existía la función, solo faltaba ese respeto puntual), KAN-161 (renombrado "Estructura Organizacional" → "Constructor")
 - [ ] Confirmado con `git merge-tree`: mergear esta rama a master NO es seguro todavía (conflicto real en `AppShell.tsx` con el trabajo de Matías, KAN-86) — ver memoria
-- [ ] **Nada de lo de hoy fue probado en vivo con login real** (requiere OTP por correo, eso lo hace Gonzalo) — checklist de prueba manual pendiente antes de avisar al equipo
+- [ ] **Nada de lo de hoy fue probado en vivo con login real** (requiere OTP por correo, eso lo hace Gonzalo) — checklist de prueba manual en curso
