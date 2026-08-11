@@ -40,6 +40,16 @@ function armarHtml(personaNombre: string, cargoEtiqueta: string, contexto: strin
               <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#374151;">
                 ${linea}
               </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+                <tr>
+                  <td align="center" style="border-radius:10px;background-color:#2f56e6;">
+                    <a href="https://app.somoscdv.com/login" target="_blank"
+                       style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">
+                      Ingresar ahora
+                    </a>
+                  </td>
+                </tr>
+              </table>
               <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
                 Si no reconoce esta acción, comuníquese con quien administra el sistema en su iglesia.
               </p>

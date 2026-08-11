@@ -47,6 +47,12 @@ interface Props {
    * Líder vigente) aparezca como opción al asignar un cargo no exclusivo
    * (ej. Sublíder) -- REQ-CDP-6. Opcional, no cambia a quien no lo pasa. */
   excluirIdsExtra?: string[];
+  /** Bug real KAN-10x (2026-08-10): cuando se pasa `onPinChange`, este
+   * diálogo pedía OTP siempre, sin mirar el switch de OTP por iglesia
+   * (estructura_organigrama.otp_requerido) -- a diferencia de los demás
+   * diálogos del constructor, que sí lo respetan. Opcional, default `true`
+   * (mismo comportamiento de siempre) para no afectar a quien no lo pasa. */
+  otpRequerido?: boolean;
 }
 
 export function AsignarCargoDialog({
@@ -67,13 +73,14 @@ export function AsignarCargoDialog({
   pin,
   onPinChange,
   excluirIdsExtra = [],
+  otpRequerido = true,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
 
-  const requiereOtp = onPinChange !== undefined;
+  const requiereOtp = onPinChange !== undefined && otpRequerido;
   const pinValido = !requiereOtp || /^[0-9]{6}$/.test(pin ?? '');
 
   function manejarSeleccionPersona(persona: PersonaBusqueda) {

@@ -151,6 +151,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
           departamentoId={departamento.id}
           departamentoNombre={meta?.verbo ?? departamento.nombre}
           iglesiaId={iglesiaId}
+          otpRequerido={otpRequerido}
         />
       )}
 

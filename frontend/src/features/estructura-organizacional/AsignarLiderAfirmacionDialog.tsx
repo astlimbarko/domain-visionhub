@@ -23,6 +23,7 @@ interface Props {
   departamentoId: string;
   departamentoNombre: string;
   iglesiaId: string;
+  otpRequerido: boolean;
 }
 
 function manejarErrorCargo(e: unknown, generico: string) {
@@ -36,7 +37,7 @@ function manejarErrorCargo(e: unknown, generico: string) {
   }
 }
 
-export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoId, departamentoNombre, iglesiaId }: Props) {
+export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoId, departamentoNombre, iglesiaId, otpRequerido }: Props) {
   const queryClient = useQueryClient();
   const [pin, setPin] = useState('');
   const { data: cargos = [] } = useCargos();
@@ -108,6 +109,7 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
       onInvitar={handleInvitar}
       pin={pin}
       onPinChange={setPin}
+      otpRequerido={otpRequerido}
     />
   );
 }
