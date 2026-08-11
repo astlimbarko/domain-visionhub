@@ -24,6 +24,7 @@ import {
   useInvitarLider,
   useReenviarInvitacionLider,
 } from '@/hooks/useInvitacionLider';
+import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { textoLegibleSobre } from './contraste';
 import { notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -227,6 +228,8 @@ export function PanelRedEstructura({
   const cancelarInvitacion = useCancelarInvitacionLider();
   const corregirCorreo = useCorregirCorreoInvitacionLider();
   const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
+  const guardarDomicilioCdp = useGuardarDomicilioCdp(iglesiaId);
+  const { data: ciudades = [] } = useCiudades();
   const eliminarRed = useEliminarRedEstructura(iglesiaId);
   const reactivarRed = useReactivarRedEstructura(iglesiaId);
   const programarBorradoDefinitivo = useProgramarBorradoDefinitivoRedEstructura(iglesiaId);
@@ -253,6 +256,11 @@ export function PanelRedEstructura({
   const [creandoCdp, setCreandoCdp] = useState(false);
   const [busquedaLiderCdp, setBusquedaLiderCdp] = useState('');
   const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
+  // KAN-16x: "dirección breve" pedida por el owner -- ciudad + zona/barrio,
+  // igual que ya usa DomicilioAnfitrionDialog/CrearCdpDialog en el resto de
+  // la app, en vez de inventar un campo de texto libre nuevo.
+  const [ciudadCdpId, setCiudadCdpId] = useState('');
+  const [zonaCdp, setZonaCdp] = useState('');
   const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
 
   const colorInicialCierre = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
@@ -513,11 +521,26 @@ export function PanelRedEstructura({
   const crearNuevaCasaDePaz = async () => {
     if (!red || !otpValido) return;
     try {
-      await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      const nuevoCdpId = await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      // Dirección breve (opcional): mismo mecanismo que ya usa
+      // DomicilioAnfitrionDialog -- si falla, no deshace la CdP ya creada,
+      // solo avisa que hay que cargarla a mano después.
+      if (ciudadCdpId) {
+        try {
+          await guardarDomicilioCdp.mutateAsync({
+            cdpId: nuevoCdpId,
+            datos: { ciudadId: ciudadCdpId, zona: zonaCdp.trim() || null, calle: null, numero: null, referencia: null, url_gps: null },
+          });
+        } catch (error) {
+          console.error('No se pudo guardar la dirección de la nueva Casa de Paz', error);
+        }
+      }
       toast.success('Casa de Paz creada');
       setCreandoCdp(false);
       setBusquedaLiderCdp('');
       setLiderCdpElegido(null);
+      setCiudadCdpId('');
+      setZonaCdp('');
       setOtp('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo crear la Casa de Paz');
@@ -845,7 +868,7 @@ export function PanelRedEstructura({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); } }}>
+      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setCiudadCdpId(''); setZonaCdp(''); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nueva Casa de Paz</DialogTitle>
@@ -891,11 +914,38 @@ export function PanelRedEstructura({
                 ))}
               </div>
             )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="cdp_ciudad" className="mb-1 block text-xs font-semibold text-slate-700">Ciudad (opcional)</label>
+                <select
+                  id="cdp_ciudad"
+                  value={ciudadCdpId}
+                  onChange={(evento) => setCiudadCdpId(evento.target.value)}
+                  className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Sin definir</option>
+                  {ciudades.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="cdp_zona" className="mb-1 block text-xs font-semibold text-slate-700">Zona o barrio</label>
+                <input
+                  id="cdp_zona"
+                  value={zonaCdp}
+                  onChange={(evento) => setZonaCdp(evento.target.value)}
+                  disabled={!ciudadCdpId}
+                  placeholder="Ej. Barrio Las Palmas"
+                  className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                />
+              </div>
+            </div>
             {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
+                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setCiudadCdpId(''); setZonaCdp(''); setOtp(''); }}
                 className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Cancelar
