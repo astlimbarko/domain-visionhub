@@ -361,11 +361,11 @@ export function PanelRedEstructura({
   };
 
   const confirmarBorradoDefinitivoRed = async () => {
-    if (!red || !/^\d{6}$/.test(otpBorradoDefinitivo)) return;
+    if (!red || (otpRequerido && !/^\d{6}$/.test(otpBorradoDefinitivo))) return;
     const redId = red.id;
     const nombreRed = red.nombre;
     try {
-      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo });
+      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo || null });
       setConfirmandoBorradoDefinitivo(false);
       setOtpBorradoDefinitivo('');
       onClose();
@@ -1022,7 +1022,7 @@ export function PanelRedEstructura({
         onConfirmar={() => void confirmarBorradoDefinitivoRed()}
         textoConfirmar="Sí, eliminar definitivamente"
         textoProcesando="Eliminando…"
-        otpRequerido
+        otpRequerido={otpRequerido}
         otp={otpBorradoDefinitivo}
         onOtpChange={setOtpBorradoDefinitivo}
       />

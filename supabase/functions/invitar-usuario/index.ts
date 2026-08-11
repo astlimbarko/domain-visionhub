@@ -113,6 +113,9 @@ export default {
             if (!errorAsignar) {
               return Response.json({ id: cuenta.usuario_id, correo, yaExistia: true });
             }
+            if (errorAsignar.message?.includes("ROL_AUTOASIGNACION")) {
+              return Response.json({ error: "No podés asignarte un cargo a vos mismo -- probá con otra cuenta." }, { status: 200 });
+            }
             return Response.json(
               { error: `Esa cuenta ya existía -- no se le pudo asignar el cargo: ${errorAsignar.message}` },
               { status: 200 }

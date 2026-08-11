@@ -299,7 +299,7 @@ export function Administracion() {
                       onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
                       className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pr-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                       style={{ paddingLeft: `${16 + nivel * 22}px` }}
-                      aria-label={`Abrir estructura organizacional de ${i.nombre}`}
+                      aria-label={`Abrir Constructor de ${i.nombre}`}
                     >
                       {nivel > 0 && (
                         <span aria-hidden="true" className="shrink-0 font-mono text-sm text-white/35">└─</span>
@@ -374,7 +374,7 @@ export function Administracion() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
                           <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))} className="focus:bg-white/10 focus:text-white">
-                            <Network className="h-4 w-4" /> Estructura organizacional
+                            <Network className="h-4 w-4" /> Constructor
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">

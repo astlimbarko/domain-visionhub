@@ -90,6 +90,12 @@ export default {
           if (!errorVincularExistente) {
             return Response.json({ id: iglesiaId, pastorInvitado: true, pastorYaExistia: true });
           }
+          if (errorVincularExistente.message?.includes("ROL_AUTOASIGNACION")) {
+            return Response.json(
+              { id: iglesiaId, error: "La iglesia se creó, pero no podés asignarte el Pastor a vos mismo -- probá con otra cuenta." },
+              { status: 200 }
+            );
+          }
           return Response.json(
             { id: iglesiaId, error: `La iglesia se creó, pero esa cuenta ya existía y no se le pudo asignar el Pastor: ${errorVincularExistente.message}` },
             { status: 200 }

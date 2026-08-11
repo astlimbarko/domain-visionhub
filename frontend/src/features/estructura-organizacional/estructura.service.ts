@@ -373,8 +373,8 @@ export async function reactivarRedEstructura(redId: string, otp?: string | null)
   if (error) throw error;
 }
 
-export async function programarBorradoDefinitivoRedEstructura(redId: string, otp: string): Promise<void> {
-  const { error } = await supabase.rpc('fn_estructura_programar_borrado_red', { p_red_id: redId, p_otp: otp });
+export async function programarBorradoDefinitivoRedEstructura(redId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_programar_borrado_red', { p_red_id: redId, p_otp: otp ?? null });
   if (error) throw error;
 }
 

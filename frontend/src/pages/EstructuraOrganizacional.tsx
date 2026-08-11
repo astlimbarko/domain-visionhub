@@ -228,7 +228,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           </div>
           <div className="hidden h-8 w-px shrink-0 bg-white/15 lg:block corto:block" />
           <div className="hidden min-w-0 lg:block corto:block">
-            <h1 className="truncate text-base font-bold text-white">Estructura Organizacional</h1>
+            <h1 className="truncate text-base font-bold text-white">Constructor</h1>
             <p className="truncate text-left text-xs font-medium text-white/55">Vista general de la iglesia</p>
           </div>
           <div className="ml-auto hidden flex-1 items-center justify-end gap-2 lg:flex corto:flex">
