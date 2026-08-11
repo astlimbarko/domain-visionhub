@@ -1,7 +1,55 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
+import nodemailer from "nodemailer";
 
 const TIPOS_VALIDOS = ["HIJA", "SATELITE"];
+
+// KAN-16x: pedido del owner -- al crear una iglesia, avisar por correo al
+// Super Admin que la creó. A diferencia del aviso de designación de cargo
+// (que va "a nombre de" la iglesia -- REQ-IG-5, nunca "VisionHub" en su
+// lugar), esto es una confirmación de una acción de plataforma, no algo
+// que le pasó a una iglesia en particular -- va a nombre de VisionHub.
+async function notificarIglesiaCreada(correoDestino: string, iglesiaNombre: string, ciudad: string) {
+  const transporte = nodemailer.createTransport({
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: Deno.env.get("BREVO_SMTP_USER"),
+      pass: Deno.env.get("BREVO_SMTP_PASS"),
+    },
+  });
+  await transporte.sendMail({
+    from: '"VisionHub" <acceso@somoscdv.com>',
+    to: correoDestino,
+    subject: `Creaste ${iglesiaNombre}`,
+    html: `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fb;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;padding:36px 32px;">
+            <tr><td style="text-align:center;">
+              <img src="https://app.somoscdv.com/logo-correo.png" width="64" height="64" alt="Logo" style="display:block;margin:0 auto 12px auto;border-radius:14px;" />
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.04em;color:#6b7280;text-transform:uppercase;">VisionHub</p>
+              <h1 style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1f2937;">Iglesia creada</h1>
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#374151;">
+                Se creó <strong>${iglesiaNombre}</strong> (${ciudad}) en el sistema.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
+                Si no reconoce esta acción, comuníquese con quien administra el sistema.
+              </p>
+            </td></tr>
+          </table>
+          <p style="margin:20px 0 0;font-size:11px;color:#9ca3af;">Este es un mensaje automático. No responda a este correo.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`,
+  });
+}
 
 // Bug reportado 2026-07-31: crear una iglesia y de paso invitar a su Pastor
 // por correo pedia 2 codigos OTP (uno para fn_crear_iglesia, otro para
@@ -56,6 +104,16 @@ export default {
       return Response.json({ error: errorCrear.message }, { status: 400 });
     }
 
+    // KAN-16x: aviso al Super Admin que creó la iglesia -- no debe bloquear
+    // la respuesta si falla el correo (mismo patron `.catch()` de mas abajo).
+    const { data: creadorAuth } = await ctx.supabase.auth.getUser();
+    const { data: iglesiaCreada } = await ctx.supabase.from("iglesia").select("nombre").eq("id", iglesiaId).single();
+    if (creadorAuth?.user?.email && iglesiaCreada) {
+      notificarIglesiaCreada(creadorAuth.user.email, iglesiaCreada.nombre, ciudad).catch((e) =>
+        console.error("crear-iglesia: no se pudo notificar al creador", e)
+      );
+    }
+
     if (!correoNuevo) {
       return Response.json({ id: iglesiaId });
     }
@@ -67,10 +125,9 @@ export default {
       );
     }
 
-    const { data: iglesiaFila } = await ctx.supabase.from("iglesia").select("nombre").eq("id", iglesiaId).single();
     const { data: invitado, error: errorInvitar } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correoNuevo, {
       redirectTo: body.redirectTo,
-      data: iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre, rol_etiqueta: "Pastor" } : {},
+      data: iglesiaCreada ? { iglesia_nombre: iglesiaCreada.nombre, rol_etiqueta: "Pastor" } : {},
     });
 
     if (errorInvitar) {
