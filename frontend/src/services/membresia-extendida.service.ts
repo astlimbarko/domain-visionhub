@@ -15,8 +15,15 @@ export async function listarTiposDiscipulado(): Promise<TipoDiscipulado[]> {
 // -- delega en el mismo chequeo de invitación primero, así que ese caso no
 // cambia de comportamiento. Enganchado en sesion.service.ts (2026-08-11,
 // ya no bloqueado por el refactor paralelo de sesión/roles).
-export async function obtenerMiMembresiaIncompleta(): Promise<MembresiaIncompleta | null> {
-  const { data, error } = await supabase.rpc('fn_mi_membresia_incompleta');
+//
+// KAN-179 (seguimiento): p_iglesiaId opcional -- sin él resuelve por el rol
+// más antiguo (uso original, login). Con él, revisa específicamente esa
+// iglesia (uso: re-chequeo al cambiar de rol activo, PrivateLayout.tsx) --
+// para que alguien con roles en más de una iglesia también sea "molestado"
+// si le falta la ficha en la iglesia a la que recién cambió, no solo en la
+// del rol más antiguo.
+export async function obtenerMiMembresiaIncompleta(iglesiaId?: string): Promise<MembresiaIncompleta | null> {
+  const { data, error } = await supabase.rpc('fn_mi_membresia_incompleta', { p_iglesia_id: iglesiaId ?? null });
   if (error) throw error;
   return data;
 }

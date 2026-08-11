@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CAMPO_ESTILO } from '@/lib/estilos';
+import { cn } from '@/lib/utils';
 import {
   SeccionFamiliaMinisteriosMembresia,
   SeccionFormacionMembresia,
@@ -185,7 +187,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Completá tu membresía</DialogTitle>
+          <DialogTitle className="text-xl">Completá tu Membresía</DialogTitle>
           <DialogDescription>
             {esCasoGeneral ? (
               <>
@@ -209,6 +211,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               </>
             )}{' '}
             Antes de ver tu panel necesitamos estos datos.
+            {esCasoGeneral && ' Podés salir cuando quieras: lo que ya completaste queda guardado y retomás justo donde dejaste.'}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -217,6 +220,18 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             textoFinalizar="Completar membresía y continuar"
             pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit)}
+            accionExtra={
+              esCasoGeneral ? (
+                <Button type="button" variant="ghost" onClick={saltar}>
+                  Saltar
+                </Button>
+              ) : (
+                <Button type="button" variant="ghost" className="gap-1.5" onClick={salir}>
+                  <LogOut className="h-4 w-4" />
+                  Salir sin completar
+                </Button>
+              )
+            }
             pasos={[
               {
                 id: 'nombre',
@@ -237,27 +252,27 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_nombre">Primer nombre *</Label>
-                      <Input id="primer_nombre" {...register('primer_nombre')} />
+                      <Input id="primer_nombre" className={CAMPO_ESTILO} {...register('primer_nombre')} />
                       {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_nombre">Segundo nombre</Label>
-                      <Input id="segundo_nombre" {...register('segundo_nombre')} />
+                      <Input id="segundo_nombre" className={CAMPO_ESTILO} {...register('segundo_nombre')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_apellido">Primer apellido *</Label>
-                      <Input id="primer_apellido" {...register('primer_apellido')} />
+                      <Input id="primer_apellido" className={CAMPO_ESTILO} {...register('primer_apellido')} />
                       {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_apellido">Segundo apellido</Label>
-                      <Input id="segundo_apellido" {...register('segundo_apellido')} />
+                      <Input id="segundo_apellido" className={CAMPO_ESTILO} {...register('segundo_apellido')} />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label>Sexo *</Label>
                       <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -289,19 +304,19 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                       <Label htmlFor="fecha_nacimiento">
                         Fecha de nacimiento {invitacion.campos_obligatorios.fecha_nacimiento && '*'}
                       </Label>
-                      <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
+                      <Input id="fecha_nacimiento" type="date" className={CAMPO_ESTILO} {...register('fecha_nacimiento')} />
                       {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="ci">CI {invitacion.campos_obligatorios.ci && '*'}</Label>
-                      <Input id="ci" {...register('ci')} />
+                      <Input id="ci" className={CAMPO_ESTILO} {...register('ci')} />
                       {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label htmlFor="correo">Correo</Label>
-                      <Input id="correo" type="email" {...register('correo')} />
+                      <Input id="correo" type="email" className={CAMPO_ESTILO} {...register('correo')} />
                       {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
                     </div>
                   </div>
@@ -328,7 +343,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                         value={estadoCivilActual ?? ''}
                         onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -342,7 +357,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="ocupacion">Ocupación {invitacion.campos_obligatorios.ocupacion && '*'}</Label>
-                      <Input id="ocupacion" {...register('ocupacion')} />
+                      <Input id="ocupacion" className={CAMPO_ESTILO} {...register('ocupacion')} />
                       {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
@@ -352,7 +367,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                         value={gradoActual ?? ''}
                         onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -388,18 +403,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               },
             ]}
           />
-          <div className="flex items-center gap-2 self-start">
-            {esCasoGeneral ? (
-              <Button type="button" variant="outline" size="sm" onClick={saltar}>
-                Saltar por ahora
-              </Button>
-            ) : (
-              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
-                <LogOut className="h-4 w-4" />
-                Salir sin completar
-              </Button>
-            )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
+import { obtenerMiMembresiaIncompleta } from '@/services/membresia-extendida.service';
 import { ROUTES } from '@/utils/constants';
 import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-contexto';
 import { AppShell } from '@/components/layout/AppShell';
@@ -13,6 +15,7 @@ import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const membresiaPendiente = useAuthStore((s) => s.membresiaPendiente);
+  const setMembresiaPendiente = useAuthStore((s) => s.setMembresiaPendiente);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
@@ -22,6 +25,23 @@ export function PrivateLayout() {
   // lo dedupe -- no es un pedido de red extra) -- se necesita acá solo para
   // leer isError/refetch, que useOpcionesRol no expone.
   const { isError: fallaRoles, refetch: reintentarRoles } = useMisRoles(iglesiaActivaId ?? undefined);
+
+  // KAN-179 (seguimiento): el gate solo se evaluaba una vez, al iniciar
+  // sesión, contra la iglesia del rol MÁS ANTIGUO -- si la persona tiene
+  // roles en más de una iglesia y cambia a otra, no se volvía a chequear.
+  // Se re-evalúa cada vez que cambia la iglesia del contexto activo (elegir
+  // rol por primera vez o "Cambiar rol" después), pisando membresiaPendiente
+  // con lo que corresponda a la iglesia recién activada (incluido null, si
+  // ahí sí está completa).
+  const iglesiaContextoId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : null;
+  useEffect(() => {
+    if (!iglesiaContextoId) return;
+    let vigente = true;
+    obtenerMiMembresiaIncompleta(iglesiaContextoId)
+      .then((resultado) => { if (vigente) setMembresiaPendiente(resultado); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, [iglesiaContextoId, setMembresiaPendiente]);
 
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;

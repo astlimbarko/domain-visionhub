@@ -35,6 +35,9 @@ interface AuthState {
    * a pedirlo (setSesion repuebla membresiaPendiente desde fn_mi_membresia_incompleta
    * de nuevo) hasta que la persona realmente complete su ficha. */
   saltarMembresiaLocal: () => void;
+  /** KAN-179 (seguimiento): re-chequeo al cambiar de rol activo -- a
+   * diferencia de setSesion, esto no toca ningún otro campo de la sesión. */
+  setMembresiaPendiente: (m: MembresiaIncompleta | null) => void;
   logout: () => void;
 }
 
@@ -114,6 +117,8 @@ export const useAuthStore = create<AuthState>()(
         set({ personaId, nombreCompleto, membresiaPendiente: null }),
 
       saltarMembresiaLocal: () => set({ membresiaPendiente: null }),
+
+      setMembresiaPendiente: (m) => set({ membresiaPendiente: m }),
 
       logout: () =>
         set({

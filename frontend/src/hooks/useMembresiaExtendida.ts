@@ -22,7 +22,7 @@ export function useTiposDiscipulado() {
 export function useMembresiaIncompletaGeneral(habilitado: boolean) {
   return useQuery({
     queryKey: ['membresia-extendida', 'mi-membresia-incompleta'],
-    queryFn: obtenerMiMembresiaIncompleta,
+    queryFn: () => obtenerMiMembresiaIncompleta(),
     enabled: habilitado,
   });
 }

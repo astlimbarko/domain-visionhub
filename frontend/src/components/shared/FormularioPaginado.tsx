@@ -11,6 +11,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export interface PasoFormularioPaginado {
   id: string;
@@ -29,6 +30,11 @@ interface Props {
   textoFinalizar?: string;
   pasoInicial?: number;
   onCambiarPaso?: (paso: number) => void;
+  /** KAN-179: botón adicional (ej. "Saltar") en el mismo pie que Atrás/
+   * Siguiente -- cuando se pasa, el pie queda centrado como grupo de a 3 en
+   * vez de ir a los extremos. Sin esto, el pie no cambia (Atrás/Siguiente a
+   * los extremos, como siempre). */
+  accionExtra?: ReactNode;
 }
 
 export function FormularioPaginado({
@@ -38,6 +44,7 @@ export function FormularioPaginado({
   textoFinalizar = 'Enviar',
   pasoInicial = 0,
   onCambiarPaso,
+  accionExtra,
 }: Props) {
   const [pasoActual, setPasoActual] = useState(
     Math.min(Math.max(pasoInicial, 0), pasos.length - 1)
@@ -81,13 +88,14 @@ export function FormularioPaginado({
 
       <div key={paso.id}>{paso.contenido}</div>
 
-      <div className="flex items-center justify-between gap-2 pt-1">
+      <div className={cn('flex items-center gap-3 pt-1', accionExtra ? 'justify-center' : 'justify-between')}>
         <Button type="button" variant="outline" onClick={atras} disabled={pasoActual === 0 || enviando}>
           Atrás
         </Button>
         <Button type="button" onClick={() => void siguiente()} disabled={enviando} className="min-w-32">
           {enviando ? 'Guardando...' : esUltimo ? textoFinalizar : 'Siguiente'}
         </Button>
+        {accionExtra}
       </div>
     </div>
   );
