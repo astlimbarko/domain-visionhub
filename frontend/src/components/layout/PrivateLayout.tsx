@@ -27,7 +27,14 @@ export function PrivateLayout() {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  if (membresiaPendiente) {
+  // KAN-179: el caso de invitación real (invitacion_lider/invitacion_
+  // departamento, invitacion.id !== null) todavía no tiene ningún cargo
+  // creado -- no hay panel posible detrás, sigue siendo lo único visible.
+  // El caso general (id === null, ej. Pastor/Supervisor asignado directo)
+  // SÍ tiene panel ya resuelto (el cargo vive en usuario_rol, no depende de
+  // que exista Persona) -- ese se muestra como modal ENCIMA del panel, más
+  // abajo.
+  if (membresiaPendiente && membresiaPendiente.id !== null) {
     return <MembresiaObligatoria invitacion={membresiaPendiente} />;
   }
 
@@ -67,6 +74,7 @@ export function PrivateLayout() {
   return (
     <AppShell>
       <Outlet />
+      {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
     </AppShell>
   );
 }

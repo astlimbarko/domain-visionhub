@@ -118,4 +118,10 @@ export interface MembresiaIncompleta {
     ocupacion: boolean;
     grado_instruccion: boolean;
   };
+  /** KAN-179: solo en el caso general (id === null) -- guardado progresivo.
+   * paso_actual es la última página guardada (1-indexed); datos_guardados
+   * trae lo ya tipeado (página 1 + borrador de las páginas 2-4 combinado)
+   * para precargar el formulario en vez de arrancar de cero. */
+  paso_actual?: number;
+  datos_guardados?: Record<string, unknown> | null;
 }

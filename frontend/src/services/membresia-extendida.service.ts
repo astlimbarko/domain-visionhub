@@ -31,3 +31,12 @@ export async function completarMembresiaGeneral(
   if (error) throw error;
   return data;
 }
+
+// KAN-179: guardado progresivo -- se llama al avanzar de página (1..4) en el
+// caso general. La página 1 crea/actualiza la Persona real (en borrador);
+// las páginas 2-4 solo acumulan en el borrador JSONB, sin tocar tablas hijas
+// todavía (eso pasa una sola vez, al finalizar con completarMembresiaGeneral).
+export async function guardarPasoMembresiaGeneral(paso: number, datos: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.rpc('fn_guardar_paso_membresia_general', { p_paso: paso, p_datos: datos });
+  if (error) throw error;
+}

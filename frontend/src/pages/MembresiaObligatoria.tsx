@@ -7,7 +7,7 @@ import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   SeccionFamiliaMinisteriosMembresia,
@@ -17,7 +17,7 @@ import {
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
-import { useCompletarMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
+import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
@@ -73,6 +73,12 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   // Persona, Q-8, ej. Pastor/Supervisor asignado directo desde Administración)
   // -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general en vez
   // de fn_completar_membresia (que exige una invitacion_lider real).
+  //
+  // KAN-179: solo el caso general se muestra como modal SOBRE el panel del
+  // rol ya cargado (PrivateLayout.tsx renderiza <AppShell> normal + este
+  // modal encima) -- el caso de invitación no tiene panel detrás todavía
+  // (el cargo real recién se crea al completar, no antes), así que sigue
+  // siendo lo único visible, igual que antes.
   const esCasoGeneral = invitacion.id === null;
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
@@ -81,19 +87,42 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const esquema = construirEsquema(invitacion.campos_obligatorios);
   type FormValues = z.infer<typeof esquema>;
 
+  const datosGuardados = invitacion.datos_guardados ?? undefined;
+
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    getValues,
     trigger,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(esquema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(esquema),
+    defaultValues: datosGuardados as Partial<FormValues> | undefined,
+  });
 
-  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(
+    (datosGuardados as DatosMembresiaExtendida | undefined) ?? DATOS_MEMBRESIA_EXTENDIDA_VACIO
+  );
 
   const mutacionInvitacion = useCompletarMembresia();
   const mutacionGeneral = useCompletarMembresiaGeneral();
+  const guardarPaso = useGuardarPasoMembresiaGeneral();
+
+  // KAN-179: guardado progresivo -- se llama al hacer clic en "Siguiente" de
+  // cada página (solo en el caso general). Si falla (ej. corte de red), avisa
+  // y NO deja avanzar -- mejor que perder en silencio lo que se tipeó.
+  async function guardarPasoSiCorresponde(paso: number, datos: DatosMembresiaExtendida | Record<string, unknown>) {
+    if (!esCasoGeneral) return true;
+    try {
+      await guardarPaso.mutateAsync({ paso, datos: datos as Record<string, unknown> });
+      return true;
+    } catch {
+      toast.error('No se pudo guardar esta página, revisá tu conexión e intentá de nuevo');
+      return false;
+    }
+  }
 
   async function onSubmit(valores: FormValues) {
     const datos = {
@@ -108,9 +137,9 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion || undefined,
-      // KAN-123: campos ampliados. Ministerios queda fuera acá -- la
-      // invitación no trae iglesia_id, solo iglesia_nombre (ver comentario
-      // en membresia-extendida.types.ts).
+      // KAN-123: campos ampliados. Ministerios queda fuera acá -- ninguno de
+      // los 2 caminos (invitación ni caso general) trae iglesia_id al
+      // frontend (ver comentario en membresia-extendida.types.ts).
       ...extendido,
     };
 
@@ -148,11 +177,16 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const gradoActual = watch('grado_instruccion');
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg rounded-2xl shadow-lg">
-        <CardHeader>
-          <CardTitle>Completá tu membresía</CardTitle>
-          <CardDescription>
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-lg"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>Completá tu membresía</DialogTitle>
+          <DialogDescription>
             {esCasoGeneral ? (
               <>
                 Tu cuenta ya tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, pero todavía no
@@ -175,19 +209,42 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               </>
             )}{' '}
             Antes de ver tu panel necesitamos estos datos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
           <FormularioPaginado
             enviando={isSubmitting}
             textoFinalizar="Completar membresía y continuar"
+            pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit)}
             pasos={[
               {
                 id: 'identidad',
                 titulo: 'Tus datos',
-                validar: () =>
-                  trigger(['primer_nombre', 'primer_apellido', 'sexo', 'fecha_nacimiento', 'ci', 'correo', 'ocupacion', 'grado_instruccion']),
+                validar: async () => {
+                  const ok = await trigger([
+                    'primer_nombre',
+                    'primer_apellido',
+                    'sexo',
+                    'fecha_nacimiento',
+                    'ci',
+                    'correo',
+                    'ocupacion',
+                    'grado_instruccion',
+                  ]);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(1, {
+                    primer_nombre: valores.primer_nombre,
+                    segundo_nombre: valores.segundo_nombre || undefined,
+                    primer_apellido: valores.primer_apellido,
+                    segundo_apellido: valores.segundo_apellido || undefined,
+                    sexo: valores.sexo,
+                    fecha_nacimiento: valores.fecha_nacimiento || undefined,
+                    ci: valores.ci || undefined,
+                    correo: valores.correo || undefined,
+                  });
+                },
                 contenido: (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
@@ -292,33 +349,37 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'formacion',
                 titulo: 'Formación',
+                validar: () => guardarPasoSiCorresponde(2, extendido),
                 contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'mentor-bautismo',
                 titulo: 'Mentor y Bautismo',
+                validar: () => guardarPasoSiCorresponde(3, extendido),
                 contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'familia',
                 titulo: 'Familia',
+                validar: () => guardarPasoSiCorresponde(4, extendido),
                 contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
               },
             ]}
           />
           <div className="flex items-center gap-2 self-start">
-            {esCasoGeneral && (
+            {esCasoGeneral ? (
               <Button type="button" variant="outline" size="sm" onClick={saltar}>
                 Saltar por ahora
               </Button>
+            ) : (
+              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
+                <LogOut className="h-4 w-4" />
+                Salir sin completar
+              </Button>
             )}
-            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
-              <LogOut className="h-4 w-4" />
-              Salir sin completar
-            </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
