@@ -102,13 +102,18 @@ export default {
             if (personaFila) {
               // ctx.supabase no tiene `.functions.invoke` -- ver nota en
               // invitar-usuario/index.ts (mismo bug real, mismo arreglo).
+              // apikey es obligatorio para el gateway de Supabase, ademas
+              // del Authorization del usuario.
               fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization: req.headers.get("Authorization") ?? "",
+                  apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
                 },
                 body: JSON.stringify({ iglesiaId, personaId: personaFila.id, cargo: "PASTOR" }),
+              }).then(async (r) => {
+                if (!r.ok) console.error("crear-iglesia: notificar-asignacion-cargo respondio", r.status, await r.text());
               }).catch((e) => console.error("crear-iglesia: no se pudo notificar la designacion", e));
             }
             return Response.json({ id: iglesiaId, pastorInvitado: true, pastorYaExistia: true });

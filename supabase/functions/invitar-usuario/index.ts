@@ -132,13 +132,19 @@ export default {
                   .is("fecha_eliminacion", null)
                   .maybeSingle();
                 if (personaFila) {
+                  // apikey es obligatorio para el gateway de Supabase, ademas
+                  // del Authorization del usuario -- sin este header la
+                  // llamada se puede rechazar antes de llegar a la funcion.
                   fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
                       Authorization: req.headers.get("Authorization") ?? "",
+                      apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
                     },
                     body: JSON.stringify({ iglesiaId, personaId: personaFila.id, cargo: rol === "PASTOR" ? "PASTOR" : "SUPERVISOR" }),
+                  }).then(async (r) => {
+                    if (!r.ok) console.error("invitar-usuario: notificar-asignacion-cargo respondio", r.status, await r.text());
                   }).catch((e) => console.error("invitar-usuario: no se pudo notificar la designacion", e));
                 }
               }
