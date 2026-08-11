@@ -57,7 +57,10 @@ interface Props {
   red: RedEstructura | null;
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
-  esSuperAdmin: boolean;
+  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
+   * eliminar por completo -- el backend (fn_estructura_programar_borrado_red)
+   * ya exige además que esté vacía (sin líder/supervisor ni Casas de Paz). */
+  puedeEliminarPorCompleto: boolean;
   /** KAN-78: false para Lider/Supervisor de Red -- eliminar una Red entera
    * es una accion estructural que excede "mi propia Red" y el backend la
    * sigue rechazando para ese rol (private.fn_estructura_puede_administrar). */
@@ -212,7 +215,7 @@ export function PanelRedEstructura({
   red,
   redesExistentes,
   otpRequerido,
-  esSuperAdmin,
+  puedeEliminarPorCompleto,
   puedeEliminarRed = true,
   puedeInvitarPorCorreo = true,
   abrirCrearCdpAlAbrir,
@@ -724,7 +727,7 @@ export function PanelRedEstructura({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => setConfirmandoReactivar(true)}>Reactivar</DropdownMenuItem>
-                  {esSuperAdmin && (
+                  {puedeEliminarPorCompleto && (
                     <DropdownMenuItem
                       onSelect={() => setConfirmandoBorradoDefinitivo(true)}
                       className="text-destructive focus:bg-destructive/10 focus:text-destructive"

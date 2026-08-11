@@ -39,7 +39,10 @@ interface Props {
   colorRed?: string | null;
   abrirAnadirSubliderAlAbrir?: boolean;
   otpRequerido: boolean;
-  esSuperAdmin: boolean;
+  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
+   * eliminar por completo -- el backend (fn_estructura_eliminar_casa_de_paz)
+   * ya exige además que esté vacía (sin líder/sublíder/anfitrión/miembros). */
+  puedeEliminarPorCompleto: boolean;
   onClose: () => void;
 }
 
@@ -54,7 +57,7 @@ function manejarErrorCargo(e: unknown, generico: string) {
   toast.error(mensaje || generico);
 }
 
-export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, esSuperAdmin, onClose }: Props) {
+export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, puedeEliminarPorCompleto, onClose }: Props) {
   const queryClient = useQueryClient();
   // KAN-95: banner superior pintado con el color real de la Red (la CdP no
   // tiene color propio), con el mismo criterio de contraste de texto que ya
@@ -309,7 +312,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
             </div>
           </section>
 
-          {esSuperAdmin && (
+          {puedeEliminarPorCompleto && (
             <button
               type="button"
               onClick={() => setConfirmandoEliminar(true)}

@@ -540,7 +540,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
-              esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
                 setAbrirAnadirSubliderDirecto(false);
@@ -570,7 +570,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             red={redSeleccionada}
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
-            esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
             // Admin/Supervisor -- Lider/Supervisor de Red administran su
