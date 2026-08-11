@@ -214,6 +214,38 @@ export default {
         // que el admin tenga que ir a buscarla a mano en otra pestaña.
         const { data: filas } = await ctx.supabase.rpc("fn_persona_por_correo_cuenta", { p_correo: correo });
         const persona = filas?.[0] as { id: string; nombre: string } | undefined;
+
+        // KAN-16x: el frontend nunca construyo el "asignarla de todas
+        // formas" que este endpoint ya preparaba (personaId/personaNombre)
+        // -- para Departamento, que es el unico caso probado en vivo hasta
+        // ahora, se asigna directo en el mismo paso (mismo patron que
+        // invitar-usuario/crear-iglesia, KAN-156). El OTP ya se valido una
+        // sola vez arriba (fn_estructura_validar_otp_departamento) -- por
+        // eso fn_asignar_cargo_departamento_directo no vuelve a pedirlo.
+        if (persona && departamentoId) {
+          const { data: departamentoFila } = await ctx.supabase
+            .from("departamento")
+            .select("iglesia_id")
+            .eq("id", departamentoId)
+            .single();
+          const { data: cargoFila } = await ctx.supabase
+            .from("cargo")
+            .select("id")
+            .eq("codigo", "LIDER_DEPARTAMENTO")
+            .single();
+          if (departamentoFila && cargoFila) {
+            const { error: errorAsignar } = await ctx.supabase.rpc("fn_asignar_cargo_departamento_directo", {
+              p_iglesia_id: departamentoFila.iglesia_id,
+              p_departamento_id: departamentoId,
+              p_persona_id: persona.id,
+              p_cargo_id: cargoFila.id,
+            });
+            if (!errorAsignar) {
+              return Response.json({ id: persona.id, correo, yaExistia: true });
+            }
+          }
+        }
+
         return Response.json(
           persona
             ? {

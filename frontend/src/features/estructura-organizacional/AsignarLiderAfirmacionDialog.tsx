@@ -65,8 +65,12 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     invitarLider.mutate(
       { correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin },
       {
-        onSuccess: () => {
-          toast.success(`Invitación enviada a ${correo}`);
+        onSuccess: (resultado) => {
+          // KAN-16x: si el correo ya tenía cuenta, se asignó directo (no se
+          // mandó ninguna invitación) -- mensaje distinto para no confundir.
+          toast.success(
+            resultado.yaExistia ? 'Asignado directamente (esa cuenta ya existía)' : `Invitación enviada a ${correo}`
+          );
           setPin('');
           void invalidarEstructura();
         },
