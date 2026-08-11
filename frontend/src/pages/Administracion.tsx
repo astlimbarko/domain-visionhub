@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, ChevronDown, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
-import { rutaEstructuraOrganizacional } from '@/utils/constants';
+import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
+import { obtenerUrlBase } from '@/utils/app-url';
+import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -168,6 +170,12 @@ export function Administracion() {
     } else {
       toast.error(mensaje || generico);
     }
+  }
+
+  function manejarRestablecerContrasena(correo: string) {
+    solicitarRecuperacionContrasena(correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`)
+      .then(() => toast.success(`Enlace para cambiar la contraseña enviado a ${correo}`))
+      .catch(() => toast.error('No se pudo enviar el enlace'));
   }
 
   function tituloConfirmarIglesia(c: ConfirmarIglesia) {
@@ -441,6 +449,9 @@ export function Administracion() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
                       <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => manejarRestablecerContrasena(u.correo)} className="gap-1.5 focus:bg-white/10 focus:text-white">
+                        <KeyRound className="h-3.5 w-3.5" /> Restablecer contraseña
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
                         Remover cargo
                       </DropdownMenuItem>
