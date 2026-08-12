@@ -261,10 +261,52 @@ export default {
           }
         }
 
+        // KAN-16x, mismo hallazgo aplicado ahora a Casa de Paz (2026-08-11):
+        // reusa fn_asignar_cargo_cdp tal cual (la MISMA funcion que ya llama
+        // el frontend para "Persona existente" en AsignarCargoDialog), sin
+        // duplicar su logica de permisos/exclusividad/solicitud de
+        // aprobacion. Esa funcion devuelve NULL cuando en vez de asignar de
+        // una crea una solicitud_estructura (caso Supervisor reasignando el
+        // Lider vigente de una Red que no es la suya) -- en ambos casos
+        // (id real o NULL) la llamada fue exitosa, no hay error que mostrar.
+        if (persona && casaDePazId && (rol === "LIDER_CDP" || rol === "SUBLIDER_CDP")) {
+          const { data: cargoFila } = await ctx.supabase
+            .from("cargo")
+            .select("id")
+            .eq("codigo", rol)
+            .single();
+          if (cargoFila) {
+            const { error: errorAsignar } = await ctx.supabase.rpc("fn_asignar_cargo_cdp", {
+              p_cdp_id: casaDePazId,
+              p_persona_id: persona.id,
+              p_codigo: rol,
+              p_cargo_id: cargoFila.id,
+            });
+            if (!errorAsignar) {
+              fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: req.headers.get("Authorization") ?? "",
+                  apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+                },
+                body: JSON.stringify({ cdpId: casaDePazId, personaId: persona.id, cargo: rol }),
+              }).then(async (r) => {
+                if (!r.ok) console.error("invitar-lider: notificar-asignacion-cargo respondio", r.status, await r.text());
+              }).catch((e) => console.error("invitar-lider: no se pudo notificar la designacion", e));
+              return Response.json({ id: persona.id, correo, yaExistia: true });
+            }
+          }
+        }
+
         return Response.json(
           persona
             ? {
-                error: `Ya existe una cuenta con ese correo, asociada a ${persona.nombre}.`,
+                // persona.nombre puede venir vacio ("") si esa Persona
+                // todavia no completo el formulario de Membresia (KAN-179,
+                // guardado progresivo) -- antes eso dejaba el mensaje como
+                // "asociada a ." (bug real 2026-08-11).
+                error: `Ya existe una cuenta con ese correo, asociada a ${persona.nombre?.trim() || correo}.`,
                 personaId: persona.id,
                 personaNombre: persona.nombre,
               }

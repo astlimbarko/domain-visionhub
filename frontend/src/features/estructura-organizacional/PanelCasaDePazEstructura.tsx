@@ -235,7 +235,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Líder</p>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{lider?.nombre?.trim() || lider?.correo || 'Sin asignar'}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{lider?.etiqueta ?? 'Sin asignar'}</p>
                 {lider?.correo && lider.nombre && <p className="truncate text-xs text-slate-500">{lider.correo}</p>}
               </div>
               <button
@@ -252,7 +252,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Anfitrión</p>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{anfitrion?.nombre?.trim() || anfitrion?.correo || 'Sin asignar'}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{anfitrion?.etiqueta ?? 'Sin asignar'}</p>
                 {anfitrion?.correo && anfitrion.nombre && <p className="truncate text-xs text-slate-500">{anfitrion.correo}</p>}
               </div>
               <button
@@ -275,7 +275,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                   <ul className="mt-1.5 flex flex-col gap-1">
                     {casaDePaz.sublideres.map((sub) => (
                       <li key={sub.id} className="truncate text-sm text-slate-900">
-                        {sub.nombre?.trim() || sub.correo}
+                        {sub.etiqueta}
                       </li>
                     ))}
                   </ul>

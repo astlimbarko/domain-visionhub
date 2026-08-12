@@ -68,12 +68,12 @@ function NodoResponsablePrincipal({ data, selected }: { data: DatosNodoEstructur
       </span>
 
       <span
-        title={principal?.nombre?.trim() || principal?.correo || vacio}
+        title={principal?.etiqueta ?? vacio}
         className={`mt-2 max-w-full text-sm font-semibold ${
-          principal?.nombre?.trim() ? 'truncate text-slate-950' : principal?.correo ? 'text-xs leading-4 text-slate-950 [overflow-wrap:anywhere]' : 'text-slate-500'
+          principal?.nombre?.trim() ? 'truncate text-slate-950' : principal?.etiqueta ? 'text-xs leading-4 text-slate-950 [overflow-wrap:anywhere]' : 'text-slate-500'
         }`}
       >
-        {principal?.nombre?.trim() || principal?.correo || vacio}
+        {principal?.etiqueta ?? vacio}
       </span>
       {principal?.nombre && principal.correo && (
         <span title={principal.correo} className="mt-0.5 max-w-full truncate text-[11px] text-slate-500">{principal.correo}</span>
@@ -94,7 +94,7 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
   const texto = textoLegibleSobre(color);
   const capaSuave = `color-mix(in oklab, ${texto} 16%, transparent)`;
   const bordeSuave = `color-mix(in oklab, ${texto} 20%, transparent)`;
-  const nombreResponsable = principal?.nombre?.trim() || principal?.correo;
+  const nombreResponsable = principal?.etiqueta;
   const textoEstado = pendiente ? 'Confirmación pendiente' : 'Cuenta confirmada';
 
   return (
@@ -144,7 +144,15 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
 
 function ResumenPersonaRed({ persona, texto }: { persona?: PersonaEstructura; texto: string | null }) {
   const iniciales = persona ? inicialesPersona(persona) : null;
-  const nombre = persona?.nombre?.trim() || persona?.correo || 'Sin asignar';
+  // `persona.etiqueta` ya trae la cascada nombre -> correo -> "Persona sin
+  // identificar" calculada en estructura.service.ts -- antes esto repetía
+  // la cascada acá pero sin ese último fallback, así que alguien realmente
+  // asignado (con cargo real en la base) pero sin nombre ni correo en su
+  // Persona terminaba mostrando el mismo texto que "nadie asignado" (bug
+  // real reportado 2026-08-11: Líder/Supervisor de Red recién designados,
+  // con la ficha de Membresía todavía sin completar, se veían como "Sin
+  // asignar").
+  const nombre = persona?.etiqueta ?? 'Sin asignar';
 
   if (texto === null) {
     return (
@@ -356,7 +364,7 @@ export function NodoEstructura({ data, selected }: NodeProps<NodoVisual>) {
                   que clickear la tarjeta -- abre su panel lateral, sin
                   burbuja aparte que quede pegada (bug real 2026-08-07). */}
               <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-1 text-[10px] font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover/sublider:opacity-100">
-                {sublider.nombre?.trim() || sublider.correo || 'Sublíder'}
+                {sublider.etiqueta || 'Sublíder'}
               </span>
             </span>
           );

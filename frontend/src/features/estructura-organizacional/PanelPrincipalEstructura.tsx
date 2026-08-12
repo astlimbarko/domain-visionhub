@@ -184,7 +184,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.nombre?.trim() || persona.correo}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.etiqueta}</p>
                   {persona.correo && persona.nombre && <p className="truncate text-xs text-slate-500">{persona.correo}</p>}
                 </div>
                 <button
@@ -301,7 +301,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
       <ConfirmarQuitarDialog
         open={!!confirmandoQuitar}
         onOpenChange={(abierto) => { if (!abierto) { setConfirmandoQuitar(null); setOtpQuitar(''); } }}
-        titulo={`¿Quitar a ${confirmandoQuitar?.nombre?.trim() || confirmandoQuitar?.correo || 'esta persona'} de ${etiqueta}?`}
+        titulo={`¿Quitar a ${confirmandoQuitar?.etiqueta || 'esta persona'} de ${etiqueta}?`}
         descripcion="Deja de tener acceso de inmediato. El cargo queda sin asignar."
         procesando={quitar.isPending}
         onConfirmar={() => void confirmarQuitar()}

@@ -31,7 +31,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
   const esFuncional = departamento.codigo === DEPARTAMENTO_FUNCIONAL;
   const lider = departamento.lideres[0];
   const pendiente = lider?.membresiaPendiente ?? false;
-  const etiqueta = lider?.nombre?.trim() || lider?.correo || 'Sin asignar';
+  const etiqueta = lider?.etiqueta ?? 'Sin asignar';
 
   const { data: vigentes = [] } = useCargoVigenteDepartamento(esFuncional ? departamento.id : undefined);
   const vigente = vigentes[0];

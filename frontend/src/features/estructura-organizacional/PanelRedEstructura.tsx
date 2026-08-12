@@ -96,7 +96,13 @@ function ResumenCargo({
   procesando,
 }: CargoProps) {
   const pendiente = responsable?.membresiaPendiente ?? false;
-  const etiqueta = responsable?.nombre?.trim() || responsable?.correo || 'Sin asignar';
+  // `responsable.etiqueta` ya trae la cascada nombre -> correo -> "Persona
+  // sin identificar" (estructura.service.ts) -- repetirla acá sin ese
+  // último fallback hacía que alguien recién designado, con la ficha de
+  // Membresía todavía sin completar, se viera igual que "nadie asignado"
+  // (bug real reportado 2026-08-11, mismo panel que reporté arreglado en el
+  // lienzo pero faltaba acá).
+  const etiqueta = responsable?.etiqueta ?? 'Sin asignar';
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [correoNuevo, setCorreoNuevo] = useState('');
 
@@ -310,7 +316,7 @@ export function PanelRedEstructura({
     (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
   );
   const responsableAQuitar = confirmandoQuitar === 'LIDER_RED' ? red?.lideres[0] : red?.supervisores[0];
-  const etiquetaAQuitar = responsableAQuitar?.nombre?.trim() || responsableAQuitar?.correo || 'esta persona';
+  const etiquetaAQuitar = responsableAQuitar?.etiqueta || 'esta persona';
 
   const invalidar = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
