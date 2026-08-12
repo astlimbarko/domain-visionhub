@@ -44,6 +44,7 @@ const GestionRedes = lazy(() => import('@/pages/GestionRedes').then((m) => ({ de
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
 const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
 const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizacional').then((m) => ({ default: m.EstructuraOrganizacional })));
+const ConstructorResumen = lazy(() => import('@/pages/ConstructorResumen').then((m) => ({ default: m.ConstructorResumen })));
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
@@ -248,6 +249,11 @@ function App() {
             <Route path={ROUTES.ADMINISTRACION} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.ADMINISTRACION)}><Administracion /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.CONSTRUCTOR_RESUMEN} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.CONSTRUCTOR_RESUMEN)}><ConstructorResumen /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />

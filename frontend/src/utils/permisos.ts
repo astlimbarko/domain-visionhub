@@ -122,7 +122,10 @@ const RUTAS_SUPERVISOR: string[] = [
 // Supervisor. El backend ya respalda este alcance (fn_es_pastor_en agregado
 // junto a fn_es_operativo_en en cada función relevante, ver migración
 // 20260809080000_paridad_pastor_supervisor.sql).
-const RUTAS_PASTOR: string[] = RUTAS_SUPERVISOR;
+// CONSTRUCTOR_RESUMEN es propio de Pastor (2026-08-11): a diferencia de
+// Supervisor, tiene ítem de nav directo al Constructor (una sola iglesia
+// activa bien definida) -- ver paneles-contexto.ts.
+const RUTAS_PASTOR: string[] = [...RUTAS_SUPERVISOR, ROUTES.CONSTRUCTOR_RESUMEN];
 
 const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
