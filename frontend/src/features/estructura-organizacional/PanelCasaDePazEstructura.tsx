@@ -170,8 +170,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     invitarLider.mutate(
       { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
       {
-        onSuccess: () => {
-          toast.success(`Invitación enviada a ${correo}`);
+        onSuccess: (resultado) => {
+          // KAN-16x (2026-08-11): si el correo ya tenia cuenta, el backend
+          // asigna directo en el mismo paso en vez de mandar una invitacion
+          // nueva -- avisar eso, no "invitación enviada" (nadie recibe nada).
+          toast.success(resultado.yaExistia ? `${correo} ya tenía cuenta: asignado directo y notificado por correo` : `Invitación enviada a ${correo}`);
           void invalidarEstructura();
         },
         onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
