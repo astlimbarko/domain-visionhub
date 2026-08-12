@@ -25,9 +25,10 @@ export function ConstructorResumen() {
   const { data: iglesiasHijas = [], isLoading: cargandoHijas } = useIglesiasHijas(iglesiaId);
 
   if (rolUI === null) return <Skeleton className="h-96 w-full rounded-2xl" />;
-  // Autoprotegida, mismo patrón que EstructuraOrganizacional.tsx -- por ahora
-  // solo Pastor tiene un ítem de nav que apunta acá (paneles-contexto.ts).
-  if (rolUI !== 'PASTOR') return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Autoprotegida, mismo patrón que EstructuraOrganizacional.tsx -- Pastor y
+  // Supervisor son los únicos con un ítem de nav que apunta acá
+  // (paneles-contexto.ts, mismo nivel, KAN-86).
+  if (rolUI !== 'PASTOR' && rolUI !== 'SUPERVISOR') return <Navigate to={ROUTES.DASHBOARD} replace />;
   if (!iglesiaId) return <Navigate to={ROUTES.DASHBOARD} replace />;
 
   if (isError) {

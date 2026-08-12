@@ -115,6 +115,9 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
   ROUTES.GESTION_REDES,
+  // Resumen del Constructor (2026-08-11) -- mismo nivel que Pastor, ver
+  // paneles-contexto.ts.
+  ROUTES.CONSTRUCTOR_RESUMEN,
 ];
 
 // 2026-08-09: paridad completa con Supervisor (pedido explícito del
@@ -122,10 +125,7 @@ const RUTAS_SUPERVISOR: string[] = [
 // Supervisor. El backend ya respalda este alcance (fn_es_pastor_en agregado
 // junto a fn_es_operativo_en en cada función relevante, ver migración
 // 20260809080000_paridad_pastor_supervisor.sql).
-// CONSTRUCTOR_RESUMEN es propio de Pastor (2026-08-11): a diferencia de
-// Supervisor, tiene ítem de nav directo al Constructor (una sola iglesia
-// activa bien definida) -- ver paneles-contexto.ts.
-const RUTAS_PASTOR: string[] = [...RUTAS_SUPERVISOR, ROUTES.CONSTRUCTOR_RESUMEN];
+const RUTAS_PASTOR: string[] = RUTAS_SUPERVISOR;
 
 const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
@@ -224,13 +224,26 @@ export function obtenerNavItems(rolUI: RolUI): NavItem[] {
     }));
 }
 
+// `ruta` acá es un pathname real (ej. `/constructor/3dd4...`), mientras que
+// las plantillas de RUTAS_POR_ROL pueden traer segmentos dinámicos (ej.
+// `/constructor/:iglesiaId`) -- comparar con `===`/`includes` nunca
+// coincide para esas. CONSTRUCTOR_RESUMEN (2026-08-11) fue la primera ruta
+// dinámica dentro de PrivateLayout (antes solo existían fuera, ej.
+// ESTRUCTURA_ORGANIZACIONAL, que se autoprotege sin pasar por acá).
+function coincideConPlantilla(plantilla: string, ruta: string): boolean {
+  const partesPlantilla = plantilla.split('/');
+  const partesRuta = ruta.split('/');
+  if (partesPlantilla.length !== partesRuta.length) return false;
+  return partesPlantilla.every((parte, i) => parte.startsWith(':') || parte === partesRuta[i]);
+}
+
 /**
  * Verifica si un rol puede acceder a una ruta específica.
  */
 export function puedeAcceder(rolUI: RolUI, ruta: string): boolean {
   // La ruta /cuenta siempre es accesible para todos
   if (ruta === ROUTES.CUENTA) return true;
-  return RUTAS_POR_ROL[rolUI].includes(ruta);
+  return RUTAS_POR_ROL[rolUI].some((plantilla) => coincideConPlantilla(plantilla, ruta));
 }
 
 /**

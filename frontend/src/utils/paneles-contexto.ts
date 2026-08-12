@@ -54,13 +54,14 @@ function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];
   const items = obtenerNavItems(contexto.rolUI);
-  // Pastor tiene una sola iglesia activa bien definida (a diferencia de Super
-  // Admin, que administra varias): recibe su propio ítem de nav apuntando a
-  // ella en vez de tener que pasar por un panel de Administración que no ve
-  // (paridad con Supervisor, KAN-86, 2026-08-09). Apunta al resumen, no
-  // directo al lienzo -- desde ahí puede ver si tiene iglesias hijas/satélite
-  // y entrar al Constructor de cada una por separado (2026-08-11).
-  if (contexto.rolUI === 'PASTOR') {
+  // Pastor y Supervisor tienen una sola iglesia activa bien definida (a
+  // diferencia de Super Admin, que administra varias): ambos reciben su
+  // propio ítem de nav apuntando a ella en vez de tener que pasar por un
+  // panel de Administración que no ven (paridad Pastor-Supervisor, KAN-86,
+  // 2026-08-09 -- mismo nivel, mismo acceso). Apunta al resumen, no directo
+  // al lienzo -- desde ahí puede ver si tiene iglesias hijas/satélite y
+  // entrar al Constructor de cada una por separado (2026-08-11).
+  if (contexto.rolUI === 'PASTOR' || contexto.rolUI === 'SUPERVISOR') {
     return [
       ...items,
       { icon: Network, label: 'Constructor', path: rutaConstructorResumen(contexto.iglesiaId), color: '#0a4174' },
