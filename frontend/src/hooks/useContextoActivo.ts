@@ -30,6 +30,12 @@ export function useContextoActivo(): EstadoContextoActivo {
         roles: { es_operativo: false, redes_lider: null, cdp_lider: null, cdp_sublider: null },
       });
     }
+    // Cuenta sin ninguna iglesia asociada (ej. alta nueva por Google, KAN-138,
+    // todavía sin invitación a ninguna iglesia): useMisRoles ni siquiera
+    // dispara (enabled: !!iglesiaId), así que `roles` queda undefined para
+    // siempre y este hook nunca salía del "cargando" (pantalla de carga
+    // eterna, reportado 2026-08-09). Sin iglesia no hay nada que resolver.
+    if (!iglesiaActivaId && !esSuperAdmin) return [];
     if (!roles) return undefined;
     return construirContextosDisponibles({ esSuperAdmin, iglesia, roles });
   }, [esSuperAdmin, iglesia, iglesiaActivaId, roles]);

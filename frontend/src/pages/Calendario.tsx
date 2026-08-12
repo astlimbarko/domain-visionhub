@@ -44,7 +44,8 @@ export function Calendario() {
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   // El Supervisor puede administrar el calendario de su iglesia, o el de una
   // hija/satélite directa (Padre -> Hija, ver 101_calendario_padre_satelite.sql).
-  const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' ? iglesiaActivaId : undefined);
+  // El Pastor (KAN-40) también ve esa lista de sedes, pero solo para consultar.
+  const { data: iglesiasHijas = [] } = useIglesiasHijas(rolUI === 'SUPERVISOR' || rolUI === 'PASTOR' ? iglesiaActivaId : undefined);
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
   const contenedorRef = useRef<HTMLDivElement>(null);
 
@@ -144,7 +145,6 @@ export function Calendario() {
   // CalendarioMultiIglesia): eventos que fija se ven en todas las Redes y CdP
   // de esa iglesia (fn_eventos_cdp/fn_eventos_red ya los mezclan; ver
   // 100_calendario_ambito_iglesia.sql / 101_calendario_padre_satelite.sql).
-  // Pastor no tiene "Calendario" en su menú (RUTAS_PASTOR) -- fuera de alcance.
   if (rolUI === 'SUPERVISOR') {
     if (!iglesiaActivaId) return <Skeleton className="h-96 w-full rounded-2xl" />;
     // KAN-39: filtro de sede multi-selección + vista consolidada (antes,
@@ -154,6 +154,22 @@ export function Calendario() {
         iglesiaPrincipalId={iglesiaActivaId}
         nombreIglesiaPrincipal={nombreIglesiaActiva}
         iglesiasHijas={iglesiasHijas}
+      />
+    );
+  }
+
+  // El Pastor (KAN-40) ve el mismo calendario consolidado que el Supervisor
+  // (su iglesia + sedes hijas/satélite), pero en modo solo lectura -- el
+  // backend no le da permiso de crear/editar/eliminar eventos (paridad
+  // Pastor-Supervisor, 2026-08-09, pero de solo consulta para el calendario).
+  if (rolUI === 'PASTOR') {
+    if (!iglesiaActivaId) return <Skeleton className="h-96 w-full rounded-2xl" />;
+    return (
+      <CalendarioMultiIglesia
+        iglesiaPrincipalId={iglesiaActivaId}
+        nombreIglesiaPrincipal={nombreIglesiaActiva}
+        iglesiasHijas={iglesiasHijas}
+        soloLectura
       />
     );
   }

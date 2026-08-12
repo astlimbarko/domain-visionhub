@@ -1,3 +1,4 @@
+import { Network } from 'lucide-react';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import {
   NAV_ITEMS_AFIRMACION,
@@ -7,7 +8,7 @@ import {
   puedeAcceder,
   type NavItem,
 } from '@/utils/permisos';
-import { ROUTES } from '@/utils/constants';
+import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 
 export const COLORES_NAVBAR_CONTEXTO = {
   SUPER_ADMIN: '#0A0E1A',
@@ -52,7 +53,18 @@ function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return NAV_ITEMS_AFIRMACION;
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];
-  return obtenerNavItems(contexto.rolUI);
+  const items = obtenerNavItems(contexto.rolUI);
+  // Pastor tiene una sola iglesia activa bien definida (a diferencia de Super
+  // Admin, que administra varias): recibe su propio ítem de nav apuntando a
+  // ella en vez de tener que pasar por un panel de Administración que no ve
+  // (paridad con Supervisor, KAN-86, 2026-08-09).
+  if (contexto.rolUI === 'PASTOR') {
+    return [
+      ...items,
+      { icon: Network, label: 'Estructura Organizacional', path: rutaEstructuraOrganizacional(contexto.iglesiaId), color: '#0a4174' },
+    ];
+  }
+  return items;
 }
 
 function rutaInicialContexto(contexto: ContextoActivo): string {
