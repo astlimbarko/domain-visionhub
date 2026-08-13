@@ -97,6 +97,8 @@ export interface PersonaOpcionEstructura {
   id: string;
   nombre: string;
   correo: string | null;
+  iglesiaId: string;
+  iglesiaNombre: string;
 }
 
 export type CargoRedEstructura = 'LIDER_RED' | 'SUBLIDER_RED';

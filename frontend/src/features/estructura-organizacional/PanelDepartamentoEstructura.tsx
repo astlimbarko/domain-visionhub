@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
+import { mensajeError } from './estructura.service';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { DepartamentoEstructura } from './types';
 
@@ -54,7 +55,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
       setConfirmandoQuitar(false);
       setOtpQuitar('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'No se pudo quitar el líder');
+      toast.error(mensajeError(error, 'No se pudo quitar el líder'));
     }
   }
 

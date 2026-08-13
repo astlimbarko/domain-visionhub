@@ -606,6 +606,60 @@ anterior, ver Sesión 3 más arriba) para cerrar las 8 preguntas abiertas de
   alcance).
 - [x] Commit `7427207` (fix + migraciones aplicadas), sobre el `124938f`
   de la sesión anterior.
-- [ ] Falta: conectar KAN-126 en `PrivateLayout.tsx` cuando el refactor de
-  KAN-129 mergee; revisar el parpadeo cosmético de "Requerido" si hay
-  tiempo en una sesión futura.
+- [x] Investigué el parpadeo cosmético de "Requerido": reproduje la misma
+  secuencia exacta varias veces con Playwright, snapshot después de cada
+  acción individual -- no es reproducible de forma determinística (la
+  misma secuencia a veces lo muestra, a veces no). Es una condición de
+  carrera de un frame entre React Hook Form + Radix Select en
+  `CamposMembresiaFields.tsx`, archivo que no toqué esta sesión (ya lo
+  usaban `RegistrarPersonaAfirmacion.tsx` y el registro público antes de
+  mis cambios) -- quirk preexistente, no una regresión. No bloquea nunca
+  el envío real. No hice un cambio especulativo para "arreglarlo" sin
+  poder reproducirlo de forma confiable.
+
+## Sesión 7 — KAN-126, con autorización explícita para tocar auth.store.ts
+
+El owner me pidió explícitamente seguir con KAN-126. Le expliqué que el
+único camino real pasaba por tocar `auth.store.ts` (archivo prohibido en
+esta sesión por el riesgo de choque con el refactor paralelo de Gonzalo,
+KAN-129) y por qué, y me autorizó a hacerlo puntualmente en el chat antes
+de proceder.
+
+- [x] Encontré una forma de minimizar el radio de impacto: `PrivateLayout.tsx`
+  **no hizo falta tocarlo** -- ya gatea con `if (membresiaPendiente) return
+  <MembresiaObligatoria .../>` sin importar de dónde sale el dato, así que
+  alcanzó con ampliar qué le llega. El único archivo prohibido que sí toqué
+  fue `auth.store.ts`, con un diff mínimo a propósito: un import, dos
+  anotaciones de tipo (`membresiaPendiente` pasa de `InvitacionPendiente` a
+  `MembresiaIncompleta`, superset) y una acción nueva de una línea
+  (`saltarMembresiaLocal`).
+- [x] `fn_completar_membresia_general` (migración `20260808330000`, nueva):
+  equivalente a `fn_completar_membresia` pero para el caso general
+  (`usuario_rol` vigente sin `invitacion_lider`) -- crea la Persona sin
+  asignar ningún cargo nuevo. Probada con una transacción `ROLLBACK`
+  simulando un usuario con rol PASTOR sin Persona (tuve que desactivar
+  momentáneamente el trigger de validación de asignación de rol dentro de
+  la transacción de prueba, ya que `auth.uid()` no resuelve corriendo como
+  servicio directo) -- confirmé que `fn_mi_membresia_incompleta` detecta el
+  caso y que el alta completa (con discipulados/mentor/familia) funciona
+  bien, sin dejar ningún dato de prueba real.
+- [x] `sesion.service.ts` (no estaba prohibido) ahora llama a
+  `fn_mi_membresia_incompleta` en vez de `fn_mi_invitacion_pendiente` en el
+  login -- delega en el mismo chequeo de invitación primero, comportamiento
+  existente sin cambios para ese caso.
+- [x] `MembresiaObligatoria.tsx` (tampoco prohibido, "ampliar" ya estaba
+  permitido): detecta el caso general (`invitacion.id === null`), usa
+  `fn_completar_membresia_general` ahí, muestra el botón "Saltar por ahora"
+  solo en ese caso (la invitación sigue siendo obligatoria, sin Saltar,
+  como siempre), y tolera `rol`/`destino` nulos en el texto descriptivo.
+- [x] Smoke test en vivo: levanté el frontend local apuntado a Supabase
+  real y cargué `/login` -- cero errores de consola. Es la prueba más
+  importante de esta sesión porque `auth.store.ts` lo usa toda la app; una
+  regresión ahí rompe el login para todo el mundo, no solo Membresía.
+- [ ] Falta real: no tengo una cuenta de prueba en el sistema real con un
+  rol vigente y sin Persona, así que no pude probar el flujo completo de
+  punta a punta en el navegador (login real → gate → botón Saltar →
+  completar membresía). Verificado a nivel de base de datos con la
+  transacción de prueba en su lugar. KAN-126 pasa a "En revisión", no
+  "Finalizada".
+- [x] Commit `e56b8f3`.

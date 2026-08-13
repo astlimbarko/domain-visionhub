@@ -1,0 +1,23 @@
+# Matías — 2026-08-09
+
+- [x] Deployeé `master` en producción (`app.somoscdv.com`), vía SSH/SFTP siguiendo el patrón ya usado (backup timestamped de `public/` + swap del build nuevo)
+- [x] Verifiqué en vivo: raíz devuelve 200 con el build nuevo y ruta profunda (`/afirmacion`) resuelve bien vía `.htaccess` (sin 404)
+- [x] KAN-40: Pastor ahora ve el calendario consolidado de todas sus sedes (mismo componente que ya usaba el Supervisor), en modo solo lectura
+- [x] Migración nueva aplicada en Supabase (`fn_es_pastor_en_o_padre_de` + gate extendido en `fn_eventos_iglesia`/`fn_mis_iglesias_hijas`/`pol_evento_select`; INSERT/UPDATE de evento sin tocar, el Pastor sigue sin poder escribir)
+- [x] Verifiqué por backend contra la base real que el gate funciona y que el Pastor no ganó permisos de escritura
+- [ ] Falta: entrar como Pastor en el navegador (localhost:5174/calendario) y confirmar visualmente antes de pasar KAN-40 a Finalizada
+- [x] KAN-137: investigado "login con Google no funciona" -- no es un bug, es `enable_signup=false` (registro cerrado) rechazando cuentas de Google nunca invitadas; funciona bien con cuentas ya invitadas
+- [x] Agregué aviso en Login.tsx ("Solo funciona si ya tenés una cuenta invitada") y mejoré AuthCallback.tsx para mostrar error cuando Google sí lo manda
+- [ ] Falta: probar en vivo que el formulario de Membresía paginado aparece igual logueando por Google con una cuenta invitada e incompleta
+- [x] KAN-138: decisión de Gonzalo -- cualquier persona podrá loguearse con Google sin invitación previa, queda sin rol hasta que se le asigne (ticket creado, en cola -- pendiente Auth Hook)
+- [x] KAN-139: encontrada la causa real del freeze en Estructura Organizacional (`NodoEstructura` sin `React.memo`, se re-renderizaba todo el lienzo en cada frame de zoom/pan) -- arreglado y verificado en local
+- [x] KAN-140: los mensajes de error de asignar/quitar cargo eran genéricos y ocultaban el motivo real (bug de `error instanceof Error`) -- arreglado en los 3 archivos del módulo
+- [x] KAN-141: decisión de Gonzalo -- una persona ya puede tener más de un cargo de sistema a la vez (ej. Pastor + Supervisor); saqué el chequeo aplicativo Y el índice único de esquema que lo bloqueaba, verificado en vivo
+- [x] Desplegado a producción y confirmado en vivo
+- [x] Bug real: "Quitar cargo" de Pastor/Supervisor no hacía nada, sin error -- 3 causas de fondo (fallback persona/usuario_id, trigger bloqueando remociones de Super Admin, `fn_listar_usuarios` mezclando la ficha de otra iglesia) -- KAN-150, verificado en vivo (removí y restauré a un supervisor real de Montero)
+- [x] Búsqueda de personas para designar Pastor/Supervisor: Super Admin ahora ve resultados de todas las iglesias; el resto sigue viendo solo la suya -- KAN-151
+- [x] Pastor ahora comparte el mismo menú y permisos que Supervisor de la Visión en Acción, más Estructura Organizacional de su propia iglesia (44 funciones de backend ampliadas) -- KAN-86, en revisión
+- [x] Se probó abrir el registro por Google sin invitación (KAN-138) pero se revirtió el mismo día -- vuelve a requerir invitación previa
+- [x] Encontrado y arreglado bug real aparte: cuenta sin iglesia asociada dejaba el Dashboard cargando para siempre (`useOpcionesRol`/`Dashboard.tsx`)
+- [x] Super Admin ya puede tener un rol operativo asignado directamente, se sacó `ROL_SUPER_ADMIN_NO_OPERATIVO` -- KAN-149
+- [ ] Falta: probar en vivo como cuenta Pastor real (crear Red, activar OTP) antes de cerrar KAN-86 del todo
