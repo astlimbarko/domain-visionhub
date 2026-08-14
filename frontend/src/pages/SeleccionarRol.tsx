@@ -1,4 +1,5 @@
-import { LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { HelpCircle, LogOut } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
@@ -7,6 +8,7 @@ import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
+import { AyudaSeleccionarRol } from '@/components/seleccionar-rol/AyudaSeleccionarRol';
 import { AppErrorScreen } from '@/components/ui/logo-spinner';
 import { iniciales } from '@/components/shared/AvatarIniciales';
 import { ROUTES } from '@/utils/constants';
@@ -14,6 +16,7 @@ import { rutaInicialParaContexto } from '@/utils/paneles-contexto';
 
 export function SeleccionarRol() {
   const navigate = useNavigate();
+  const [mostrandoAyuda, setMostrandoAyuda] = useState(false);
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
@@ -72,54 +75,72 @@ export function SeleccionarRol() {
       </div>
 
       <div className="relative w-full max-w-lg rounded-3xl bg-card p-6 shadow-xl shadow-black/[0.06] sm:p-9">
-        <div className="mb-5 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
-            <img src="/logo.png" alt="" aria-hidden="true" className="h-4 w-4 object-contain brightness-0 invert" />
-          </span>
-          <span className="truncate text-[13px] font-semibold text-foreground">{nombreIglesia}</span>
-        </div>
-
-        <div className="flex flex-col items-center gap-1 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[13px] font-bold text-white shadow-lg shadow-black/10">
-            {nombreCompleto ? iniciales(nombreCompleto) : null}
+        <div className="mb-5 flex items-center justify-between gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
+              <img src="/logo.png" alt="" aria-hidden="true" className="h-4 w-4 object-contain brightness-0 invert" />
+            </span>
+            <span className="truncate text-[13px] font-semibold text-foreground">{nombreIglesia}</span>
           </div>
-          <h1 className="mt-1.5 text-xl font-extrabold tracking-tight text-foreground">
-            {primerNombre ? `Bienvenido, ${primerNombre}` : 'Bienvenido'}
-          </h1>
-          {opcionesContextuales !== undefined && (
-            <p className="text-[13px] text-muted-foreground">
-              Tienes <span className="font-bold text-[#0071e3]">{cantidad}</span>{' '}
-              {cantidad === 1 ? 'rol asignado' : 'roles asignados'}
-              <br />
-              Selecciona con cuál deseas ingresar
-            </p>
-          )}
-        </div>
-
-        <div className="mt-4">
-          {opcionesContextuales === undefined ? (
-            <div className="flex flex-col gap-3">
-              <Skeleton className="h-[60px] w-full rounded-2xl" />
-              <Skeleton className="h-[60px] w-full rounded-2xl" />
-            </div>
-          ) : (
-            <GrupoOpcionesRol opciones={opcionesContextuales} onSeleccionar={elegir} />
-          )}
-        </div>
-
-        <div className="mt-3 flex flex-col items-center gap-2.5">
-          <p className="text-center text-[11.5px] text-muted-foreground">
-            Podés cambiar de rol después desde tu perfil.
-          </p>
+          {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg) */}
           <button
             type="button"
-            onClick={handleSalir}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10 active:border-destructive active:bg-destructive active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            onClick={() => setMostrandoAyuda(true)}
+            aria-label="Ayuda"
+            title="¿Necesitás ayuda?"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-[var(--chart-1)] hover:text-[var(--chart-1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Cerrar sesión
+            <HelpCircle className="h-4 w-4" />
           </button>
         </div>
+
+        {mostrandoAyuda ? (
+          <AyudaSeleccionarRol onVolver={() => setMostrandoAyuda(false)} />
+        ) : (
+          <>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[13px] font-bold text-white shadow-lg shadow-black/10">
+                {nombreCompleto ? iniciales(nombreCompleto) : null}
+              </div>
+              <h1 className="mt-1.5 text-xl font-extrabold tracking-tight text-foreground">
+                {primerNombre ? `Bienvenido, ${primerNombre}` : 'Bienvenido'}
+              </h1>
+              {opcionesContextuales !== undefined && (
+                <p className="text-[13px] text-muted-foreground">
+                  Tienes <span className="font-bold text-[#0071e3]">{cantidad}</span>{' '}
+                  {cantidad === 1 ? 'rol asignado' : 'roles asignados'}
+                  <br />
+                  Selecciona con cuál deseas ingresar
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4">
+              {opcionesContextuales === undefined ? (
+                <div className="flex flex-col gap-3">
+                  <Skeleton className="h-[60px] w-full rounded-2xl" />
+                  <Skeleton className="h-[60px] w-full rounded-2xl" />
+                </div>
+              ) : (
+                <GrupoOpcionesRol opciones={opcionesContextuales} onSeleccionar={elegir} />
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-col items-center gap-2.5">
+              <p className="text-center text-[11.5px] text-muted-foreground">
+                Podés cambiar de rol después desde tu perfil.
+              </p>
+              <button
+                type="button"
+                onClick={handleSalir}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-2 text-[13px] font-medium text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10 active:border-destructive active:bg-destructive active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Cerrar sesión
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

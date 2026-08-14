@@ -1,10 +1,11 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface Props {
   icon: LucideIcon;
   color: string;
   titulo: string;
-  descripcion?: string;
+  descripcion?: ReactNode;
   size?: 'default' | 'sm';
 }
 
