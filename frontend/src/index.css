@@ -156,3 +156,15 @@
   50% { transform: scale(1.07); }
 }
 
+/* KAN-194: oculta la barra de scroll sin desactivar el scroll en sí -- para
+   paneles/tarjetas que necesitan poder scrollear si el contenido no entra,
+   pero donde la barra visible rompe el diseño (ej. la tarjeta de
+   SeleccionarRol.tsx). */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
