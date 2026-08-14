@@ -41,7 +41,9 @@ interface Props {
   otpRequerido: boolean;
   /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
    * eliminar por completo -- el backend (fn_estructura_eliminar_casa_de_paz)
-   * ya exige además que esté vacía (sin líder/sublíder/anfitrión/miembros). */
+   * ya exige además que no tenga datos reales (sin miembros ni
+   * reportes/reuniones registradas; líder/sublíder/anfitrión sí puede
+   * tener, eso ya no bloquea -- KAN-189). */
   puedeEliminarPorCompleto: boolean;
   onClose: () => void;
 }
@@ -93,6 +95,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
 
   const lider = casaDePaz.lideres[0];
   const anfitrion = casaDePaz.anfitriones[0];
+
+  // KAN-189: el diálogo de "Eliminar Casa de Paz" nombra al líder y/o
+  // sublíder actuales (si existen) en vez de un texto genérico -- el backend
+  // ya no bloquea el borrado por tenerlos asignados, así que hay que dejar
+  // claro con quién se está usando la acción antes de confirmar.
+  const nombreLider = lider ? (lider.nombre || lider.etiqueta) : null;
+  const nombresSublideres = casaDePaz.sublideres.map((s) => s.nombre || s.etiqueta);
+  const partesAsignadas = [
+    nombreLider ? `líder a ${nombreLider}` : null,
+    nombresSublideres.length > 0 ? `sublíder a ${nombresSublideres.join(' y ')}` : null,
+  ].filter((parte): parte is string => parte !== null);
+  const tituloEliminar = partesAsignadas.length > 0
+    ? `¿Eliminar esta Casa de Paz? Tiene como ${partesAsignadas.join(' y como ')}.`
+    : '¿Eliminar esta Casa de Paz de la base de datos?';
 
   useEffect(() => {
     if (dialogoCargo || mostrarDomicilio || confirmandoEliminar) return;
@@ -331,8 +347,8 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
       <ConfirmarQuitarDialog
         open={confirmandoEliminar}
         onOpenChange={(abierto) => { setConfirmandoEliminar(abierto); if (!abierto) setOtpEliminar(''); }}
-        titulo={`¿Eliminar esta Casa de Paz de la base de datos?`}
-        descripcion="Se elimina por completo junto con sus cargos, membresías y reportes. No se puede deshacer."
+        titulo={tituloEliminar}
+        descripcion="Se elimina por completo de la base de datos, junto con sus cargos asignados. No se puede deshacer."
         procesando={eliminarCdp.isPending}
         onConfirmar={() => void confirmarEliminar()}
         textoConfirmar="Sí, eliminar definitivamente"
