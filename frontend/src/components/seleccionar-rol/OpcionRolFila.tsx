@@ -31,9 +31,9 @@ export function OpcionRolFila({ opcion, onSeleccionar }: Props) {
       type="button"
       onClick={onSeleccionar}
       style={vars}
-      className="group flex min-h-[60px] w-full items-center gap-3 rounded-2xl border-2 border-[var(--fila-borde)] bg-[var(--fila-bg)] px-4 py-2.5 text-left transition-colors hover:border-[var(--fila-color)] active:border-white/30 active:bg-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
+      className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-2xl border-2 border-[var(--fila-borde)] bg-[var(--fila-bg)] px-3.5 py-2 text-left transition-colors hover:border-[var(--fila-color)] active:border-white/30 active:bg-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--fila-borde)] transition-colors group-active:bg-white">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--fila-borde)] transition-colors group-active:bg-white">
         <Icon className="h-4 w-4" style={{ color: opcion.colorIcono }} strokeWidth={2} />
       </span>
 

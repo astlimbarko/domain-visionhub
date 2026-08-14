@@ -9,7 +9,7 @@ interface Props {
 /** Lista de opciones, cada una su propia tarjeta redondeada con espacio entre sí (referencia: opencode/multirol/modelo.jpeg). */
 export function GrupoOpcionesRol({ opciones, onSeleccionar }: Props) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {opciones.map((opcion) => (
         <OpcionRolFila key={opcion.key} opcion={opcion} onSeleccionar={() => onSeleccionar(opcion)} />
       ))}
