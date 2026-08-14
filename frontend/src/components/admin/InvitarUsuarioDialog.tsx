@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,16 @@ const ROLES: { value: RolSistema; label: string }[] = [
   { value: 'SUPERVISOR_VISION_ACCION', label: 'Supervisor de Visión en Acción' },
 ];
 
+/** KAN-173: datos mínimos de Persona, opcionales, para crearla ahí mismo si
+ * la cuenta todavía no tiene una ficha en la iglesia elegida (el gate de
+ * "completar membresía" al iniciar sesión no vuelve a pedirla una vez que
+ * la cuenta ya tiene Persona en OTRA iglesia -- ver fn_crear_persona_si_falta). */
+export interface PersonaMinima {
+  primerNombre: string;
+  primerApellido: string;
+  sexo: 'M' | 'F';
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,8 +51,12 @@ interface Props {
   asignando: boolean;
   /** Tema oscuro del diálogo (hoy solo lo usa el panel de Super Admin). */
   oscuro?: boolean;
-  onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
-  onAsignarExistente: (usuarioId: string, rol: RolSistema, iglesiaId: string | null, pin?: string) => void;
+  /** KAN-155: preconfigura el cargo/iglesia (ej. "Asignar Pastor ahora" al
+   * terminar de crear una iglesia) -- el usuario igual puede cambiarlos. */
+  rolInicial?: RolSistema;
+  iglesiaIdInicial?: string;
+  onInvitar: (correo: string, rol: RolSistema, iglesiaId: string | null, pin?: string, persona?: PersonaMinima) => void;
+  onAsignarExistente: (usuarioId: string, rol: RolSistema, iglesiaId: string | null, pin?: string, persona?: PersonaMinima) => void;
 }
 
 export function InvitarUsuarioDialog({
@@ -52,6 +66,8 @@ export function InvitarUsuarioDialog({
   invitando,
   asignando,
   oscuro,
+  rolInicial,
+  iglesiaIdInicial,
   onInvitar,
   onAsignarExistente,
 }: Props) {
@@ -60,13 +76,29 @@ export function InvitarUsuarioDialog({
   const [correo, setCorreo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [usuarioElegido, setUsuarioElegido] = useState<CuentaBusqueda | null>(null);
-  const [rol, setRol] = useState<RolSistema | ''>('');
-  const [iglesiaId, setIglesiaId] = useState('');
+  const [rol, setRol] = useState<RolSistema | ''>(rolInicial ?? '');
+  const [iglesiaId, setIglesiaId] = useState(iglesiaIdInicial ?? '');
   const [pin, setPin] = useState('');
+  const [agregarPersona, setAgregarPersona] = useState(false);
+  const [primerNombre, setPrimerNombre] = useState('');
+  const [primerApellido, setPrimerApellido] = useState('');
+  const [sexo, setSexo] = useState<'M' | 'F' | ''>('');
+
+  useEffect(() => {
+    if (open) {
+      setRol(rolInicial ?? '');
+      setIglesiaId(iglesiaIdInicial ?? '');
+    }
+  }, [open, rolInicial, iglesiaIdInicial]);
 
   const necesitaIglesia = rol !== '' && rol !== 'SUPER_ADMIN';
   const pinValido = !esSuperAdmin || /^[0-9]{6}$/.test(pin);
   const procesando = invitando || asignando;
+  // Si se activó la sección opcional, nombre/apellido/sexo pasan a ser
+  // obligatorios para no crear una Persona a medias.
+  const personaValida = !agregarPersona || (primerNombre.trim() !== '' && primerApellido.trim() !== '' && sexo !== '');
+  const persona: PersonaMinima | undefined =
+    agregarPersona && personaValida ? { primerNombre: primerNombre.trim(), primerApellido: primerApellido.trim(), sexo: sexo as 'M' | 'F' } : undefined;
 
   // Alta de doble vía (REQ-C-1/C-2): busca entre TODAS las cuentas
   // existentes (cualquier rol) -- no solo cargos administrativos.
@@ -74,8 +106,8 @@ export function InvitarUsuarioDialog({
 
   const puedeEnviar =
     modo === 'invitar'
-      ? correo.trim().includes('@') && rol !== '' && (!necesitaIglesia || !!iglesiaId) && pinValido
-      : !!usuarioElegido && rol !== '' && (!necesitaIglesia || !!iglesiaId) && pinValido;
+      ? correo.trim().includes('@') && rol !== '' && (!necesitaIglesia || !!iglesiaId) && pinValido && personaValida
+      : !!usuarioElegido && rol !== '' && (!necesitaIglesia || !!iglesiaId) && pinValido && personaValida;
 
   function limpiar() {
     setCorreo('');
@@ -84,6 +116,10 @@ export function InvitarUsuarioDialog({
     setRol('');
     setIglesiaId('');
     setPin('');
+    setAgregarPersona(false);
+    setPrimerNombre('');
+    setPrimerApellido('');
+    setSexo('');
   }
 
   function handleCambiarModo(nuevo: 'invitar' | 'buscar') {
@@ -96,9 +132,9 @@ export function InvitarUsuarioDialog({
   function handleConfirmar() {
     if (!puedeEnviar) return;
     if (modo === 'invitar') {
-      onInvitar(correo.trim().toLowerCase(), rol as RolSistema, necesitaIglesia ? iglesiaId : null, esSuperAdmin ? pin : undefined);
+      onInvitar(correo.trim().toLowerCase(), rol as RolSistema, necesitaIglesia ? iglesiaId : null, esSuperAdmin ? pin : undefined, persona);
     } else if (usuarioElegido) {
-      onAsignarExistente(usuarioElegido.usuario_id, rol as RolSistema, necesitaIglesia ? iglesiaId : null, esSuperAdmin ? pin : undefined);
+      onAsignarExistente(usuarioElegido.usuario_id, rol as RolSistema, necesitaIglesia ? iglesiaId : null, esSuperAdmin ? pin : undefined, persona);
     }
     limpiar();
   }
@@ -209,6 +245,45 @@ export function InvitarUsuarioDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {necesitaIglesia && (
+            <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={agregarPersona} onChange={(e) => setAgregarPersona(e.target.checked)} />
+                Agregar nombre de la persona para esta iglesia
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Si la cuenta ya tiene ficha en otra iglesia, el sistema no le va a
+                volver a pedir que la complete acá -- quedaría "sin persona asociada" hasta
+                que se la cargues así.
+              </p>
+              {agregarPersona && (
+                <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="persona_nombre">Nombre</Label>
+                      <Input id="persona_nombre" value={primerNombre} onChange={(e) => setPrimerNombre(e.target.value)} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="persona_apellido">Apellido</Label>
+                      <Input id="persona_apellido" value={primerApellido} onChange={(e) => setPrimerApellido(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Sexo</Label>
+                    <Select value={sexo} onValueChange={(v) => setSexo(v as 'M' | 'F')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Elegí" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Masculino</SelectItem>
+                        <SelectItem value="F">Femenino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {esSuperAdmin && <CampoOtp value={pin} onChange={setPin} />}

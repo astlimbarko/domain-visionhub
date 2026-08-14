@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
+import type { ContextoActivo } from '../types/contexto-activo.types';
 import type { MembresiaIncompleta } from '../types/membresia-extendida.types';
 import type { RolUI } from '../utils/permisos';
 
@@ -12,13 +13,10 @@ interface AuthState {
   iglesias: IglesiaAccesible[];
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
-  // KAN-126 (autorizado explícitamente por Matías en chat, 2026-08-09):
-  // MembresiaIncompleta es superset de la vieja InvitacionPendiente --
-  // fn_mi_membresia_incompleta delega en fn_mi_invitacion_pendiente primero,
-  // así que el caso de invitación sigue funcionando igual que antes.
   membresiaPendiente: MembresiaIncompleta | null;
-  /** Rol elegido en /seleccionar-rol cuando el usuario tiene más de un sombrero en la iglesia activa. */
+  /** Compatibilidad temporal; la fuente canónica nueva es contextoActivo. */
   rolActivo: RolUI | null;
+  contextoActivo: ContextoActivo | null;
   setSesion: (data: {
     personaId: string | null;
     nombreCompleto: string | null;
@@ -29,14 +27,17 @@ interface AuthState {
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
+  setContextoActivo: (contexto: ContextoActivo | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
-  /** KAN-126: botón "Saltar" del caso general (sin invitación asociada) --
-   * entra al sistema sin completar, pero solo por esta sesión: el próximo
-   * login vuelve a pedirlo (setSesion repuebla membresiaPendiente desde el
-   * servidor). No se usa para el caso de invitación, que sigue siendo
-   * obligatorio como hasta ahora. */
+  /** KAN-126: "Saltar por ahora" (solo caso general, id===null) -- limpia el
+   * gate SOLO local/en memoria, sin tocar el backend. El próximo login vuelve
+   * a pedirlo (setSesion repuebla membresiaPendiente desde fn_mi_membresia_incompleta
+   * de nuevo) hasta que la persona realmente complete su ficha. */
   saltarMembresiaLocal: () => void;
+  /** KAN-179 (seguimiento): re-chequeo al cambiar de rol activo -- a
+   * diferencia de setSesion, esto no toca ningún otro campo de la sesión. */
+  setMembresiaPendiente: (m: MembresiaIncompleta | null) => void;
   logout: () => void;
 }
 
@@ -64,9 +65,26 @@ export const useAuthStore = create<AuthState>()(
       esSuperAdmin: false,
       membresiaPendiente: null,
       rolActivo: null,
+      contextoActivo: null,
 
       setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null }) => {
-        const iglesiaActualSigueValida = iglesias.some((i) => i.id === get().iglesiaActivaId);
+        const estadoActual = get();
+        const iglesiaActualSigueValida = iglesias.some((i) => i.id === estadoActual.iglesiaActivaId);
+        const iglesiaActivaId = iglesiaActualSigueValida
+          ? estadoActual.iglesiaActivaId
+          : elegirIglesiaPorDefecto(iglesias);
+        // KAN-152: `setSesion` solo se llama tras un login real (Login,
+        // AuthCallback, CompletarCuenta) -- nunca al resumir una sesion ya
+        // abierta (eso lo maneja el propio store persistido, sin volver a
+        // llamar setSesion). Antes, si la persona coincidia, se reusaba el
+        // `contextoActivo` de la sesion anterior siempre que siguiera siendo
+        // valido -- un usuario con roles en mas de una iglesia (ej. Super
+        // Admin + Supervisor en otra iglesia) volvia a entrar SIEMPRE con el
+        // mismo rol de la ultima vez, sin poder elegir otro contexto en un
+        // login nuevo. Se limpia siempre en cada login real; si solo hay un
+        // contexto posible, `useContextoActivo` lo autoselecciona igual (sin
+        // cambio de comportamiento en ese caso); si hay mas de uno, ahora se
+        // fuerza pasar por el selector de rol en cada login.
         set({
           isAuthenticated: true,
           personaId,
@@ -75,15 +93,20 @@ export const useAuthStore = create<AuthState>()(
           iglesias,
           esSuperAdmin,
           membresiaPendiente,
-          iglesiaActivaId: iglesiaActualSigueValida ? get().iglesiaActivaId : elegirIglesiaPorDefecto(iglesias),
-          // Cada login nuevo re-obliga a elegir rol si hay ambigüedad.
+          iglesiaActivaId,
+          contextoActivo: null,
           rolActivo: null,
         });
       },
 
-      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId, rolActivo: null }),
+      setIglesiaActiva: (iglesiaId) => set({ iglesiaActivaId: iglesiaId, rolActivo: null, contextoActivo: null }),
 
-      setRolActivo: (rol) => set({ rolActivo: rol }),
+      setRolActivo: (rol) => set({ rolActivo: rol, contextoActivo: null }),
+
+      setContextoActivo: (contexto) => set({
+        contextoActivo: contexto,
+        rolActivo: contexto?.rolUI ?? null,
+      }),
 
       renombrarIglesiaLocal: (iglesiaId, nombre) =>
         set({
@@ -94,6 +117,8 @@ export const useAuthStore = create<AuthState>()(
         set({ personaId, nombreCompleto, membresiaPendiente: null }),
 
       saltarMembresiaLocal: () => set({ membresiaPendiente: null }),
+
+      setMembresiaPendiente: (m) => set({ membresiaPendiente: m }),
 
       logout: () =>
         set({
@@ -106,6 +131,7 @@ export const useAuthStore = create<AuthState>()(
           esSuperAdmin: false,
           membresiaPendiente: null,
           rolActivo: null,
+          contextoActivo: null,
         }),
     }),
     {
@@ -120,6 +146,7 @@ export const useAuthStore = create<AuthState>()(
         esSuperAdmin: state.esSuperAdmin,
         membresiaPendiente: state.membresiaPendiente,
         rolActivo: state.rolActivo,
+        contextoActivo: state.contextoActivo,
       }),
     }
   )

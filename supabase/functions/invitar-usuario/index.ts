@@ -29,7 +29,19 @@ const ETIQUETA_ROL: Record<string, string> = {
 // trg_validar_rol se aplica igual al insertar).
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    let body: { correo?: string; rol?: string; iglesiaId?: string | null; redirectTo?: string; pin?: string };
+    let body: {
+      correo?: string;
+      rol?: string;
+      iglesiaId?: string | null;
+      redirectTo?: string;
+      pin?: string;
+      respetarOtpIglesia?: boolean;
+      // KAN-173: datos minimos de Persona, opcionales -- solo se usan si el
+      // correo ya tenia cuenta (camino "ya existia" mas abajo).
+      personaPrimerNombre?: string;
+      personaPrimerApellido?: string;
+      personaSexo?: string;
+    };
     try {
       body = await req.json();
     } catch {
@@ -58,9 +70,15 @@ export default {
       return Response.json({ error: "No tenes permiso para invitar usuarios aqui" }, { status: 403 });
     }
 
-    // fn_exigir_pin solo pide algo si quien llama es Super Admin -- para
-    // Pastor/Supervisor invitando dentro de su propia iglesia no cambia nada.
-    const { error: errorPin } = await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pin ?? null });
+    // KAN-157: solo quien llama desde el constructor de Estructura
+    // Organizacional (PanelPrincipalEstructura, respetarOtpIglesia=true)
+    // respeta el switch estructura_organigrama.otp_requerido de esa iglesia
+    // puntual -- el resto (Administracion.tsx/InvitarUsuarioDialog) sigue
+    // exigiendo OTP siempre para Super Admin, sin cambios, vía fn_exigir_pin.
+    const { error: errorPin } =
+      body.respetarOtpIglesia && iglesiaId
+        ? await ctx.supabase.rpc("fn_exigir_pin_iglesia", { p_iglesia_id: iglesiaId, p_pin: body.pin ?? null })
+        : await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pin ?? null });
     if (errorPin) {
       return Response.json({ error: "PIN incorrecto" }, { status: 403 });
     }
@@ -78,17 +96,84 @@ export default {
 
     if (error) {
       if (error.status === 409 || error.code === "email_exists") {
-        // Mismo hallazgo que invitar-lider (2026-08-02): si la cuenta existe
-        // pero nunca se le vinculo una Persona, "asignaselo desde su ficha"
-        // es un callejon sin salida -- no hay ficha que buscar.
+        // KAN-156: antes esto era un callejon sin salida -- avisaba "ya
+        // existe una cuenta, asignaselo a mano desde Usuarios" y no hacia
+        // nada mas. El owner pidio que el sistema no bloquee: si la cuenta
+        // ya existe y tiene una Persona vinculada, se le asigna el cargo
+        // en el mismo paso (mismo patron "un solo PIN" que crear-iglesia
+        // con fn_vincular_pastor_invitado -- el PIN ya se consumio arriba,
+        // fn_asignar_rol_recien_invitado no vuelve a pedir uno propio).
         const { data: tienePersona } = await ctx.supabase.rpc("fn_correo_tiene_persona", { p_correo: correo });
+        if (tienePersona) {
+          const { data: cuentas } = await ctx.supabase.rpc("fn_buscar_cuentas", { p_busqueda: correo });
+          const cuenta = (cuentas ?? []).find(
+            (c: { usuario_id: string; correo: string }) => c.correo?.toLowerCase() === correo
+          );
+          if (cuenta) {
+            const { error: errorAsignar } = await ctx.supabase.rpc("fn_asignar_rol_recien_invitado", {
+              p_usuario_id: cuenta.usuario_id,
+              p_rol: rol,
+              p_iglesia_id: iglesiaId,
+              p_persona_primer_nombre: body.personaPrimerNombre ?? null,
+              p_persona_primer_apellido: body.personaPrimerApellido ?? null,
+              p_persona_sexo: body.personaSexo ?? null,
+            });
+            if (!errorAsignar) {
+              // KAN-164: este camino (cuenta ya existente, asignada directo)
+              // nunca pasaba por notificarAsignacionCargoPrincipal -- eso
+              // solo vive en el modo "Buscar en base de datos" del
+              // constructor. Si el rol es Pastor/Supervisor y la cuenta ya
+              // tiene una Persona en esa iglesia, avisamos por correo acá
+              // tambien; no bloquea la respuesta si falla o no hay Persona.
+              // OJO: ctx.supabase (de @supabase/server) NO tiene
+              // `.functions.invoke` -- ninguna otra función de este proyecto
+              // lo usa así, todas se comunican por `.rpc()`. El intento
+              // original fallaba en silencio (atrapado por el catch) y por
+              // eso nunca llegaba el correo -- se llama por fetch directo,
+              // reenviando el mismo Authorization del pedido original.
+              if (rol === "PASTOR" || rol === "SUPERVISOR_VISION_ACCION") {
+                const { data: personaFila } = await ctx.supabase
+                  .from("persona")
+                  .select("id")
+                  .eq("usuario_id", cuenta.usuario_id)
+                  .eq("iglesia_id", iglesiaId)
+                  .is("fecha_eliminacion", null)
+                  .maybeSingle();
+                if (personaFila) {
+                  // apikey es obligatorio para el gateway de Supabase, ademas
+                  // del Authorization del usuario -- sin este header la
+                  // llamada se puede rechazar antes de llegar a la funcion.
+                  fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notificar-asignacion-cargo`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: req.headers.get("Authorization") ?? "",
+                      apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+                    },
+                    body: JSON.stringify({ iglesiaId, personaId: personaFila.id, cargo: rol === "PASTOR" ? "PASTOR" : "SUPERVISOR" }),
+                  }).then(async (r) => {
+                    if (!r.ok) console.error("invitar-usuario: notificar-asignacion-cargo respondio", r.status, await r.text());
+                  }).catch((e) => console.error("invitar-usuario: no se pudo notificar la designacion", e));
+                }
+              }
+              return Response.json({ id: cuenta.usuario_id, correo, yaExistia: true });
+            }
+            if (errorAsignar.message?.includes("ROL_AUTOASIGNACION")) {
+              return Response.json({ error: "No podés asignarte un cargo a vos mismo -- probá con otra cuenta." }, { status: 200 });
+            }
+            return Response.json(
+              { error: `Esa cuenta ya existía -- no se le pudo asignar el cargo: ${errorAsignar.message}` },
+              { status: 200 }
+            );
+          }
+        }
         return Response.json(
           {
             error: tienePersona
-              ? "Ya existe una cuenta con ese correo. Esa persona ya puede iniciar sesion; si le falta un cargo, asignaselo desde su ficha."
-              : "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
+              ? "Esa cuenta ya existía y ya puede iniciar sesión; si le falta un cargo, asignaselo desde su ficha."
+              : "Esa cuenta ya existía, pero sin una Persona vinculada en el sistema (quedó a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo técnico.",
           },
-          { status: 409 }
+          { status: 200 }
         );
       }
       return Response.json({ error: error.message }, { status: 500 });

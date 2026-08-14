@@ -9,6 +9,7 @@ import {
   useQuitarCargoDepartamento,
 } from '@/hooks/usePanelSupervisor';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
+import { notificarAsignacionCargoDepartamento } from './estructura.service';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /**
@@ -23,6 +24,7 @@ interface Props {
   departamentoId: string;
   departamentoNombre: string;
   iglesiaId: string;
+  otpRequerido: boolean;
 }
 
 function manejarErrorCargo(e: unknown, generico: string) {
@@ -36,7 +38,7 @@ function manejarErrorCargo(e: unknown, generico: string) {
   }
 }
 
-export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoId, departamentoNombre, iglesiaId }: Props) {
+export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoId, departamentoNombre, iglesiaId, otpRequerido }: Props) {
   const queryClient = useQueryClient();
   const [pin, setPin] = useState('');
   const { data: cargos = [] } = useCargos();
@@ -53,6 +55,12 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     try {
       await asignarCargo.mutateAsync({ departamentoId, personaId: persona.id, cargoId: cargoLiderDepartamento.id, pin });
       toast.success(`${persona.nombre_completo} asignado`);
+      // KAN-16x: aviso por correo, igual que ya hace el mismo flujo para
+      // Pastor/Supervisor (notificarAsignacionCargoPrincipal) -- no bloquea
+      // si falla, el cargo ya quedó asignado.
+      notificarAsignacionCargoDepartamento(departamentoId, persona.id).catch((error) =>
+        console.error('No se pudo avisar por correo de la designación', error),
+      );
       setPin('');
       void invalidarEstructura();
     } catch (e) {
@@ -64,8 +72,10 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     invitarLider.mutate(
       { correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin },
       {
-        onSuccess: () => {
-          toast.success(`Invitación enviada a ${correo}`);
+        onSuccess: (resultado) => {
+          // KAN-16x: si el correo ya tenía cuenta, se asignó directo (no se
+          // mandó ninguna invitación) -- mensaje distinto para no confundir.
+          toast.success(resultado.yaExistia ? 'Asignado a la cuenta existente' : `Invitación enviada a ${correo}`);
           setPin('');
           void invalidarEstructura();
         },
@@ -108,6 +118,7 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
       onInvitar={handleInvitar}
       pin={pin}
       onPinChange={setPin}
+      otpRequerido={otpRequerido}
     />
   );
 }

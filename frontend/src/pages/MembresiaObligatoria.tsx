@@ -7,8 +7,10 @@ import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CAMPO_ESTILO } from '@/lib/estilos';
+import { cn } from '@/lib/utils';
 import {
   SeccionFamiliaMinisteriosMembresia,
   SeccionFormacionMembresia,
@@ -17,13 +19,9 @@ import {
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
-import { useCompletarMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
+import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
 import { useAuthStore } from '@/store/auth.store';
-import {
-  DATOS_MEMBRESIA_EXTENDIDA_VACIO,
-  type DatosMembresiaExtendida,
-  type MembresiaIncompleta,
-} from '@/types/membresia-extendida.types';
+import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
 
 const GRADOS_INSTRUCCION = [
@@ -73,9 +71,16 @@ interface Props {
 export function MembresiaObligatoria({ invitacion }: Props) {
   // KAN-126: invitacion.id !== null significa que vino de invitacion_lider/
   // invitacion_departamento (caso ya existente, obligatorio, sin Saltar).
-  // invitacion.id === null es el caso general nuevo (usuario_rol vigente sin
-  // Persona, Q-8) -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general
-  // en vez de fn_completar_membresia (que exige una invitacion_lider real).
+  // invitacion.id === null es el caso general (usuario_rol vigente sin
+  // Persona, Q-8, ej. Pastor/Supervisor asignado directo desde Administración)
+  // -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general en vez
+  // de fn_completar_membresia (que exige una invitacion_lider real).
+  //
+  // KAN-179: solo el caso general se muestra como modal SOBRE el panel del
+  // rol ya cargado (PrivateLayout.tsx renderiza <AppShell> normal + este
+  // modal encima) -- el caso de invitación no tiene panel detrás todavía
+  // (el cargo real recién se crea al completar, no antes), así que sigue
+  // siendo lo único visible, igual que antes.
   const esCasoGeneral = invitacion.id === null;
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
@@ -84,19 +89,42 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const esquema = construirEsquema(invitacion.campos_obligatorios);
   type FormValues = z.infer<typeof esquema>;
 
+  const datosGuardados = invitacion.datos_guardados ?? undefined;
+
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    getValues,
     trigger,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(esquema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(esquema),
+    defaultValues: datosGuardados as Partial<FormValues> | undefined,
+  });
 
-  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(
+    (datosGuardados as DatosMembresiaExtendida | undefined) ?? DATOS_MEMBRESIA_EXTENDIDA_VACIO
+  );
 
   const mutacionInvitacion = useCompletarMembresia();
   const mutacionGeneral = useCompletarMembresiaGeneral();
+  const guardarPaso = useGuardarPasoMembresiaGeneral();
+
+  // KAN-179: guardado progresivo -- se llama al hacer clic en "Siguiente" de
+  // cada página (solo en el caso general). Si falla (ej. corte de red), avisa
+  // y NO deja avanzar -- mejor que perder en silencio lo que se tipeó.
+  async function guardarPasoSiCorresponde(paso: number, datos: DatosMembresiaExtendida | Record<string, unknown>) {
+    if (!esCasoGeneral) return true;
+    try {
+      await guardarPaso.mutateAsync({ paso, datos: datos as Record<string, unknown> });
+      return true;
+    } catch {
+      toast.error('No se pudo guardar esta página, revisá tu conexión e intentá de nuevo');
+      return false;
+    }
+  }
 
   async function onSubmit(valores: FormValues) {
     const datos = {
@@ -151,15 +179,20 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const gradoActual = watch('grado_instruccion');
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg rounded-2xl shadow-lg">
-        <CardHeader>
-          <CardTitle>Completá tu membresía</CardTitle>
-          <CardDescription>
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-lg"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-xl">Completa tu Membresía</DialogTitle>
+          <DialogDescription>
             {esCasoGeneral ? (
               <>
-                Tu cuenta ya tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, pero todavía no
-                completaste tu ficha de Membresía.
+                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu
+                ficha de Membresía.
               </>
             ) : invitacion.rol && esRolInvitable(invitacion.rol) ? (
               <>
@@ -177,45 +210,80 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 Te invitaron como <strong>Líder de {invitacion.destino}</strong> en {invitacion.iglesia_nombre}.
               </>
             )}{' '}
-            Antes de ver tu panel necesitamos estos datos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+            Necesitamos estos datos para continuar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
           <FormularioPaginado
             enviando={isSubmitting}
             textoFinalizar="Completar membresía y continuar"
+            pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit)}
+            notaPie={
+              esCasoGeneral && (
+                <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
+                  Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
+                </p>
+              )
+            }
+            accionExtra={
+              esCasoGeneral ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={saltar}
+                >
+                  Saltar
+                </Button>
+              ) : (
+                <Button type="button" variant="outline" className="gap-1.5" onClick={salir}>
+                  <LogOut className="h-4 w-4" />
+                  Salir sin completar
+                </Button>
+              )
+            }
             pasos={[
               {
-                id: 'identidad',
-                titulo: 'Tus datos',
-                validar: () =>
-                  trigger(['primer_nombre', 'primer_apellido', 'sexo', 'fecha_nacimiento', 'ci', 'correo', 'ocupacion', 'grado_instruccion']),
+                id: 'nombre',
+                titulo: 'Tu nombre',
+                validar: async () => {
+                  const ok = await trigger(['primer_nombre', 'primer_apellido', 'sexo']);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(1, {
+                    primer_nombre: valores.primer_nombre,
+                    segundo_nombre: valores.segundo_nombre || undefined,
+                    primer_apellido: valores.primer_apellido,
+                    segundo_apellido: valores.segundo_apellido || undefined,
+                    sexo: valores.sexo,
+                  });
+                },
                 contenido: (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_nombre">Primer nombre *</Label>
-                      <Input id="primer_nombre" {...register('primer_nombre')} />
+                      <Input id="primer_nombre" className={CAMPO_ESTILO} {...register('primer_nombre')} />
                       {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_nombre">Segundo nombre</Label>
-                      <Input id="segundo_nombre" {...register('segundo_nombre')} />
+                      <Input id="segundo_nombre" className={CAMPO_ESTILO} {...register('segundo_nombre')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_apellido">Primer apellido *</Label>
-                      <Input id="primer_apellido" {...register('primer_apellido')} />
+                      <Input id="primer_apellido" className={CAMPO_ESTILO} {...register('primer_apellido')} />
                       {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_apellido">Segundo apellido</Label>
-                      <Input id="segundo_apellido" {...register('segundo_apellido')} />
+                      <Input id="segundo_apellido" className={CAMPO_ESTILO} {...register('segundo_apellido')} />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label>Sexo *</Label>
                       <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -225,34 +293,68 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                       </Select>
                       {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
-
+                  </div>
+                ),
+              },
+              {
+                id: 'datos-personales',
+                titulo: 'Datos personales',
+                validar: async () => {
+                  const ok = await trigger(['fecha_nacimiento', 'ci', 'correo']);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(2, {
+                    fecha_nacimiento: valores.fecha_nacimiento || undefined,
+                    ci: valores.ci || undefined,
+                    correo: valores.correo || undefined,
+                  });
+                },
+                contenido: (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="fecha_nacimiento">
                         Fecha de nacimiento {invitacion.campos_obligatorios.fecha_nacimiento && '*'}
                       </Label>
-                      <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
+                      <Input id="fecha_nacimiento" type="date" className={CAMPO_ESTILO} {...register('fecha_nacimiento')} />
                       {errors.fecha_nacimiento && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="ci">CI {invitacion.campos_obligatorios.ci && '*'}</Label>
-                      <Input id="ci" {...register('ci')} />
+                      <Input id="ci" className={CAMPO_ESTILO} {...register('ci')} />
                       {errors.ci && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label htmlFor="correo">Correo</Label>
-                      <Input id="correo" type="email" {...register('correo')} />
+                      <Input id="correo" type="email" className={CAMPO_ESTILO} {...register('correo')} />
                       {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
                     </div>
-
+                  </div>
+                ),
+              },
+              {
+                id: 'datos-generales',
+                titulo: 'Datos generales',
+                validar: async () => {
+                  const ok = await trigger(['ocupacion', 'grado_instruccion']);
+                  if (!ok) return false;
+                  const valores = getValues();
+                  return guardarPasoSiCorresponde(3, {
+                    estado_civil: valores.estado_civil || undefined,
+                    ocupacion: valores.ocupacion || undefined,
+                    grado_instruccion: valores.grado_instruccion || undefined,
+                  });
+                },
+                contenido: (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label>Estado civil</Label>
                       <Select
                         value={estadoCivilActual ?? ''}
                         onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -266,7 +368,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="ocupacion">Ocupación {invitacion.campos_obligatorios.ocupacion && '*'}</Label>
-                      <Input id="ocupacion" {...register('ocupacion')} />
+                      <Input id="ocupacion" className={CAMPO_ESTILO} {...register('ocupacion')} />
                       {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
@@ -276,7 +378,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                         value={gradoActual ?? ''}
                         onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -295,33 +397,25 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'formacion',
                 titulo: 'Formación',
+                validar: () => guardarPasoSiCorresponde(4, extendido),
                 contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'mentor-bautismo',
                 titulo: 'Mentor y Bautismo',
+                validar: () => guardarPasoSiCorresponde(5, extendido),
                 contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'familia',
                 titulo: 'Familia',
+                validar: () => guardarPasoSiCorresponde(6, extendido),
                 contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
               },
             ]}
           />
-          <div className="flex items-center gap-2 self-start">
-            {esCasoGeneral && (
-              <Button type="button" variant="outline" size="sm" onClick={saltar}>
-                Saltar por ahora
-              </Button>
-            )}
-            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={salir}>
-              <LogOut className="h-4 w-4" />
-              Salir sin completar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

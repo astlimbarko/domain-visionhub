@@ -101,7 +101,7 @@ export function useReactivarCasaDePazEstructura(iglesiaId: string) {
 export function useProgramarBorradoDefinitivoRedEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
-    mutationFn: ({ redId, otp }: { redId: string; otp: string }) => programarBorradoDefinitivoRedEstructura(redId, otp),
+    mutationFn: ({ redId, otp }: { redId: string; otp?: string | null }) => programarBorradoDefinitivoRedEstructura(redId, otp),
     onSuccess: invalidar,
   });
 }

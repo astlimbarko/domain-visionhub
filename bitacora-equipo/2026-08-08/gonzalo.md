@@ -1,3 +1,7 @@
 # Gonzalo — 2026-08-08
 
-- [ ] Documentar arquitectura multirol y contexto activo.
+- [x] Documentar arquitectura multirol y contexto activo.
+- [x] Cerrar matriz funcional multirol (KAN-130).
+- [x] Implementar contexto activo persistente (KAN-131).
+- [x] Persistir selección multirol por contexto (KAN-132).
+- [x] Aislar navegación y tema por contexto (KAN-133).

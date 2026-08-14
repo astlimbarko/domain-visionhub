@@ -8,10 +8,10 @@
  * tocar la fuente de verdad de permisos/roles.
  */
 import type { LucideIcon } from 'lucide-react';
-import { HeartHandshake, Home, Settings, Share2, ShieldCheck, UserPlus } from 'lucide-react';
+import { Heart, HeartHandshake, Home, Settings, Share2, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import type { RolUI } from '@/utils/permisos';
 
-export type FilaRolKind = Extract<RolUI, 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'LIDER_DEPARTAMENTO'>;
+export type FilaRolKind = Exclude<RolUI, 'SIN_ROL'>;
 
 export interface FilaRolVisual {
   titulo: string;
@@ -32,6 +32,8 @@ export const FILA_ROL_VISUAL: Record<FilaRolKind, FilaRolVisual> = {
   // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL, utils/departamentos.ts) --
   // título específico en vez del genérico "Líder de Departamento" de ROL_UI_META.
   LIDER_DEPARTAMENTO: { titulo: 'Líder del Departamento de Afirmación', icon: UserPlus, bgIcono: '#e9e4fb', colorIcono: '#7c3aed' },
+  LIDER_JOVENES: { titulo: 'Líder de Jóvenes', icon: Users, bgIcono: '#fff2df', colorIcono: '#c76a00' },
+  ENCARGADO_MATRIMONIOS: { titulo: 'Encargado de Matrimonios', icon: Heart, bgIcono: '#fde8ef', colorIcono: '#c6285b' },
 };
 
 /** Color neutro de respaldo para el punto de Red cuando no tiene color configurado (default '#FFFFFF' en BD). */

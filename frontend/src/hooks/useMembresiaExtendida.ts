@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   completarMembresiaGeneral,
+  guardarPasoMembresiaGeneral,
   listarTiposDiscipulado,
   obtenerMiMembresiaIncompleta,
 } from '@/services/membresia-extendida.service';
@@ -21,7 +22,7 @@ export function useTiposDiscipulado() {
 export function useMembresiaIncompletaGeneral(habilitado: boolean) {
   return useQuery({
     queryKey: ['membresia-extendida', 'mi-membresia-incompleta'],
-    queryFn: obtenerMiMembresiaIncompleta,
+    queryFn: () => obtenerMiMembresiaIncompleta(),
     enabled: habilitado,
   });
 }
@@ -29,4 +30,12 @@ export function useMembresiaIncompletaGeneral(habilitado: boolean) {
 // KAN-126: completar Membresía en el caso general (sin invitación asociada).
 export function useCompletarMembresiaGeneral() {
   return useMutation({ mutationFn: completarMembresiaGeneral });
+}
+
+// KAN-179: guardado progresivo por página.
+export function useGuardarPasoMembresiaGeneral() {
+  return useMutation({
+    mutationFn: ({ paso, datos }: { paso: number; datos: Record<string, unknown> }) =>
+      guardarPasoMembresiaGeneral(paso, datos),
+  });
 }

@@ -5,16 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useBuscarPersonas } from '@/hooks/usePersonas';
 import type { RolUI } from '@/utils/permisos';
 import { CrearPersonaDialog } from '@/components/personas/CrearPersonaDialog';
@@ -33,34 +25,10 @@ function CargandoPersonas() {
 /**
  * Líder de Red: no administra personas, solo las visualiza. Ve el roster de las
  * Casas de Paz de su Red (con procedencia y marca de fusión), no la búsqueda
- * global de toda la iglesia. Si lidera varias redes, elige cuál mirar.
+ * global de toda la iglesia. La Red visible proviene del ContextoActivo.
  */
-function PersonasDeRed() {
-  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const { data: roles } = useMisRoles(iglesiaActivaId);
-  const redes = roles?.redes_lider ?? [];
-  const [redId, setRedId] = useState<string>();
-  const redActiva = redId ?? redes[0]?.id;
-
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex justify-end">
-        {redes.length > 1 && (
-          <Select value={redActiva} onValueChange={setRedId}>
-            <SelectTrigger className="w-full rounded-2xl sm:w-56">
-              <SelectValue placeholder="Elegí una red" />
-            </SelectTrigger>
-            <SelectContent>
-              {redes.map((r) => (
-                <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-      {redActiva && <PersonasDeRedVista key={redActiva} redId={redActiva} />}
-    </div>
-  );
+function PersonasDeRed({ redId }: { redId: string }) {
+  return <PersonasDeRedVista key={redId} redId={redId} />;
 }
 
 /** Búsqueda global de personas de la iglesia (Supervisor, Pastor, Líder/Sublíder de CdP). */
@@ -181,8 +149,8 @@ function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
  * propios hooks, igual que pages/CasasDePaz.tsx.
  */
 export function Personas() {
-  const rolUI = useRolUI();
-  if (rolUI === null) return <CargandoPersonas />;
-  if (rolUI === 'LIDER_RED') return <PersonasDeRed />;
-  return <BusquedaPersonas rolUI={rolUI} />;
+  const { contextoActivo, cargando } = useContextoActivo();
+  if (cargando || !contextoActivo) return <CargandoPersonas />;
+  if (contextoActivo.alcance === 'RED') return <PersonasDeRed redId={contextoActivo.redId} />;
+  return <BusquedaPersonas rolUI={contextoActivo.rolUI} />;
 }

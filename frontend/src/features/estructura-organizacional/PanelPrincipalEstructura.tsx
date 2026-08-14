@@ -71,10 +71,13 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
 
   const procesando = asignar.isPending || invitar.isPending;
   const codigoCompleto = /^\d{6}$/.test(otp);
-  // Vía BD usa la RPC propia del constructor: respeta el switch del módulo.
-  const otpValidoBase = !otpRequerido || codigoCompleto;
-  // Vía correo reusa invitar-usuario (regla global): Super Admin siempre exige OTP.
-  const otpValidoCorreo = codigoCompleto;
+  // KAN-157: ambos modos respetan el mismo switch del módulo -- vía BD usa
+  // la RPC propia del constructor, vía correo pasa respetarOtpIglesia=true
+  // a invitar-usuario para que use fn_exigir_pin_iglesia en vez de la regla
+  // global (que exige OTP siempre a un Super Admin).
+  const otpValido = !otpRequerido || codigoCompleto;
+  const otpValidoBase = otpValido;
+  const otpValidoCorreo = otpValido;
 
   const invalidarEstructura = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -128,9 +131,10 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
         rol: rolInvitacion,
         iglesiaId,
         pin: otp,
+        respetarOtpIglesia: true,
       });
       if (resultado.error) {
-        toast.warning(resultado.error);
+        toast.info(resultado.error);
       } else {
         await invalidarEstructura();
         toast.success('Designación enviada por correo');
@@ -180,7 +184,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.nombre?.trim() || persona.correo}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.etiqueta}</p>
                   {persona.correo && persona.nombre && <p className="truncate text-xs text-slate-500">{persona.correo}</p>}
                 </div>
                 <button
@@ -285,7 +289,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
                 </div>
               )}
 
-              {(otpRequerido || modo === 'correo') && <CampoOtp value={otp} onChange={setOtp} />}
+              {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
 
               <button
                 type="button"
@@ -302,7 +306,7 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
       <ConfirmarQuitarDialog
         open={!!confirmandoQuitar}
         onOpenChange={(abierto) => { if (!abierto) { setConfirmandoQuitar(null); setOtpQuitar(''); } }}
-        titulo={`¿Quitar a ${confirmandoQuitar?.nombre?.trim() || confirmandoQuitar?.correo || 'esta persona'} de ${etiqueta}?`}
+        titulo={`¿Quitar a ${confirmandoQuitar?.etiqueta || 'esta persona'} de ${etiqueta}?`}
         descripcion="Deja de tener acceso de inmediato. El cargo queda sin asignar."
         procesando={quitar.isPending}
         onConfirmar={() => void confirmarQuitar()}

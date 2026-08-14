@@ -22,23 +22,19 @@ export function AuthCallback() {
   useEffect(() => {
     let cancelado = false;
 
-    // Si Google mismo rechaza el intento (ej. la persona cancela en la
-    // pantalla de consentimiento), o si Supabase rechaza el alta porque el
-    // correo nunca fue invitado (`enable_signup = false` -- registro público
-    // cerrado, KAN-145/147), sí reenvía acá con `error`/`error_description`
-    // en la URL (confirmado en vivo: `error_code=signup_disabled`).
+    // Si Google mismo rechaza el intento, o si Supabase rechaza el alta
+    // porque el correo nunca fue invitado (`enable_signup = false` --
+    // registro público cerrado), reenvía acá con `error`/`error_description`
+    // en la URL en vez de una sesión (confirmado en vivo:
+    // `error_code=signup_disabled`).
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const errorDescripcion = params.get('error_description') || hashParams.get('error_description') || params.get('error') || hashParams.get('error');
+    const errorDescripcion =
+      params.get('error_description') || hashParams.get('error_description') || params.get('error') || hashParams.get('error');
 
     if (errorDescripcion) {
       const cuentaNoInvitada = /signup/i.test(errorDescripcion);
-      toast.error(
-        cuentaNoInvitada
-          // KAN-145/147: texto exacto pedido por el owner.
-          ? 'Este correo no tiene acceso habilitado en el sistema.'
-          : 'No se pudo iniciar sesión con Google.'
-      );
+      toast.error(cuentaNoInvitada ? 'Este correo no tiene acceso habilitado en el sistema.' : 'No se pudo iniciar sesión con Google.');
       navigate(ROUTES.LOGIN, { replace: true });
       return;
     }

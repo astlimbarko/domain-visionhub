@@ -24,6 +24,7 @@ import {
   useInvitarLider,
   useReenviarInvitacionLider,
 } from '@/hooks/useInvitacionLider';
+import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { textoLegibleSobre } from './contraste';
 import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -56,7 +57,10 @@ interface Props {
   red: RedEstructura | null;
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
-  esSuperAdmin: boolean;
+  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
+   * eliminar por completo -- el backend (fn_estructura_programar_borrado_red)
+   * ya exige además que esté vacía (sin líder/supervisor ni Casas de Paz). */
+  puedeEliminarPorCompleto: boolean;
   /** KAN-78: false para Lider/Supervisor de Red -- eliminar una Red entera
    * es una accion estructural que excede "mi propia Red" y el backend la
    * sigue rechazando para ese rol (private.fn_estructura_puede_administrar). */
@@ -92,7 +96,13 @@ function ResumenCargo({
   procesando,
 }: CargoProps) {
   const pendiente = responsable?.membresiaPendiente ?? false;
-  const etiqueta = responsable?.nombre?.trim() || responsable?.correo || 'Sin asignar';
+  // `responsable.etiqueta` ya trae la cascada nombre -> correo -> "Persona
+  // sin identificar" (estructura.service.ts) -- repetirla acá sin ese
+  // último fallback hacía que alguien recién designado, con la ficha de
+  // Membresía todavía sin completar, se viera igual que "nadie asignado"
+  // (bug real reportado 2026-08-11, mismo panel que reporté arreglado en el
+  // lienzo pero faltaba acá).
+  const etiqueta = responsable?.etiqueta ?? 'Sin asignar';
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [correoNuevo, setCorreoNuevo] = useState('');
 
@@ -211,7 +221,7 @@ export function PanelRedEstructura({
   red,
   redesExistentes,
   otpRequerido,
-  esSuperAdmin,
+  puedeEliminarPorCompleto,
   puedeEliminarRed = true,
   puedeInvitarPorCorreo = true,
   abrirCrearCdpAlAbrir,
@@ -227,6 +237,8 @@ export function PanelRedEstructura({
   const cancelarInvitacion = useCancelarInvitacionLider();
   const corregirCorreo = useCorregirCorreoInvitacionLider();
   const crearCdp = useCrearCasaDePazEstructura(iglesiaId);
+  const guardarDomicilioCdp = useGuardarDomicilioCdp(iglesiaId);
+  const { data: ciudades = [] } = useCiudades();
   const eliminarRed = useEliminarRedEstructura(iglesiaId);
   const reactivarRed = useReactivarRedEstructura(iglesiaId);
   const programarBorradoDefinitivo = useProgramarBorradoDefinitivoRedEstructura(iglesiaId);
@@ -253,6 +265,11 @@ export function PanelRedEstructura({
   const [creandoCdp, setCreandoCdp] = useState(false);
   const [busquedaLiderCdp, setBusquedaLiderCdp] = useState('');
   const [liderCdpElegido, setLiderCdpElegido] = useState<PersonaOpcionEstructura | null>(null);
+  // KAN-16x: "dirección breve" pedida por el owner -- ciudad + zona/barrio,
+  // igual que ya usa DomicilioAnfitrionDialog/CrearCdpDialog en el resto de
+  // la app, en vez de inventar un campo de texto libre nuevo.
+  const [ciudadCdpId, setCiudadCdpId] = useState('');
+  const [zonaCdp, setZonaCdp] = useState('');
   const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
 
   const colorInicialCierre = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
@@ -299,7 +316,7 @@ export function PanelRedEstructura({
     (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
   );
   const responsableAQuitar = confirmandoQuitar === 'LIDER_RED' ? red?.lideres[0] : red?.supervisores[0];
-  const etiquetaAQuitar = responsableAQuitar?.nombre?.trim() || responsableAQuitar?.correo || 'esta persona';
+  const etiquetaAQuitar = responsableAQuitar?.etiqueta || 'esta persona';
 
   const invalidar = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -361,11 +378,11 @@ export function PanelRedEstructura({
   };
 
   const confirmarBorradoDefinitivoRed = async () => {
-    if (!red || !/^\d{6}$/.test(otpBorradoDefinitivo)) return;
+    if (!red || (otpRequerido && !/^\d{6}$/.test(otpBorradoDefinitivo))) return;
     const redId = red.id;
     const nombreRed = red.nombre;
     try {
-      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo });
+      await programarBorradoDefinitivo.mutateAsync({ redId, otp: otpBorradoDefinitivo || null });
       setConfirmandoBorradoDefinitivo(false);
       setOtpBorradoDefinitivo('');
       onClose();
@@ -513,11 +530,26 @@ export function PanelRedEstructura({
   const crearNuevaCasaDePaz = async () => {
     if (!red || !otpValido) return;
     try {
-      await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      const nuevoCdpId = await crearCdp.mutateAsync({ redId: red.id, liderPersonaId: liderCdpElegido?.id ?? null, otp: otp || null });
+      // Dirección breve (opcional): mismo mecanismo que ya usa
+      // DomicilioAnfitrionDialog -- si falla, no deshace la CdP ya creada,
+      // solo avisa que hay que cargarla a mano después.
+      if (ciudadCdpId) {
+        try {
+          await guardarDomicilioCdp.mutateAsync({
+            cdpId: nuevoCdpId,
+            datos: { ciudadId: ciudadCdpId, zona: zonaCdp.trim() || null, calle: null, numero: null, referencia: null, url_gps: null },
+          });
+        } catch (error) {
+          console.error('No se pudo guardar la dirección de la nueva Casa de Paz', error);
+        }
+      }
       toast.success('Casa de Paz creada');
       setCreandoCdp(false);
       setBusquedaLiderCdp('');
       setLiderCdpElegido(null);
+      setCiudadCdpId('');
+      setZonaCdp('');
       setOtp('');
     } catch (error) {
       toast.error(mensajeError(error, 'No se pudo crear la Casa de Paz'));
@@ -701,7 +733,7 @@ export function PanelRedEstructura({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => setConfirmandoReactivar(true)}>Reactivar</DropdownMenuItem>
-                  {esSuperAdmin && (
+                  {puedeEliminarPorCompleto && (
                     <DropdownMenuItem
                       onSelect={() => setConfirmandoBorradoDefinitivo(true)}
                       className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -850,7 +882,7 @@ export function PanelRedEstructura({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); } }}>
+      <Dialog open={creandoCdp} onOpenChange={(abierto) => { if (!abierto) { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setCiudadCdpId(''); setZonaCdp(''); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nueva Casa de Paz</DialogTitle>
@@ -901,11 +933,38 @@ export function PanelRedEstructura({
                 ))}
               </div>
             )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="cdp_ciudad" className="mb-1 block text-xs font-semibold text-slate-700">Ciudad (opcional)</label>
+                <select
+                  id="cdp_ciudad"
+                  value={ciudadCdpId}
+                  onChange={(evento) => setCiudadCdpId(evento.target.value)}
+                  className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Sin definir</option>
+                  {ciudades.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="cdp_zona" className="mb-1 block text-xs font-semibold text-slate-700">Zona o barrio</label>
+                <input
+                  id="cdp_zona"
+                  value={zonaCdp}
+                  onChange={(evento) => setZonaCdp(evento.target.value)}
+                  disabled={!ciudadCdpId}
+                  placeholder="Ej. Barrio Las Palmas"
+                  className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                />
+              </div>
+            </div>
             {otpRequerido && <CampoOtp value={otp} onChange={setOtp} />}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setOtp(''); }}
+                onClick={() => { setCreandoCdp(false); setLiderCdpElegido(null); setBusquedaLiderCdp(''); setCiudadCdpId(''); setZonaCdp(''); setOtp(''); }}
                 className="h-9 cursor-pointer rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Cancelar
@@ -1032,7 +1091,7 @@ export function PanelRedEstructura({
         onConfirmar={() => void confirmarBorradoDefinitivoRed()}
         textoConfirmar="Sí, eliminar definitivamente"
         textoProcesando="Eliminando…"
-        otpRequerido
+        otpRequerido={otpRequerido}
         otp={otpBorradoDefinitivo}
         onOtpChange={setOtpBorradoDefinitivo}
       />

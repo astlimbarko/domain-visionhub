@@ -52,6 +52,11 @@ export const ROUTES = {
   // AppShell a proposito, barra superior oscura propia -- se entra desde la
   // lista de Iglesias del panel de Super Admin, una iglesia a la vez.
   ESTRUCTURA_ORGANIZACIONAL: '/estructura-organizacional/:iglesiaId',
+  // Resumen del Constructor (2026-08-11): landing con AppShell normal, antes
+  // de entrar al lienzo -- muestra el resumen de entidades/lideres de la
+  // iglesia y, si tiene hijas/satelite, un boton por cada una para entrar a
+  // SU propio Constructor (antes no habia forma de verlas por separado).
+  CONSTRUCTOR_RESUMEN: '/constructor/:iglesiaId',
 } as const;
 
 export function rutaRegistroPublico(slug: string) {
@@ -60,6 +65,10 @@ export function rutaRegistroPublico(slug: string) {
 
 export function rutaEstructuraOrganizacional(iglesiaId: string) {
   return `/estructura-organizacional/${iglesiaId}`;
+}
+
+export function rutaConstructorResumen(iglesiaId: string) {
+  return `/constructor/${iglesiaId}`;
 }
 
 /**

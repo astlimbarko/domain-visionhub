@@ -1,10 +1,13 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { useOpcionesRol } from '@/hooks/useOpcionesRol';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
+import { obtenerMiMembresiaIncompleta } from '@/services/membresia-extendida.service';
 import { ROUTES } from '@/utils/constants';
+import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-contexto';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
@@ -12,21 +15,46 @@ import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const membresiaPendiente = useAuthStore((s) => s.membresiaPendiente);
-  const rolActivo = useAuthStore((s) => s.rolActivo);
+  const setMembresiaPendiente = useAuthStore((s) => s.setMembresiaPendiente);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
-  const opciones = useOpcionesRol();
+  const location = useLocation();
+  const { contextoActivo, contextosDisponibles, cargando } = useContextoActivo();
   // Mismo query que usa useOpcionesRol por debajo (misma queryKey, React Query
   // lo dedupe -- no es un pedido de red extra) -- se necesita acá solo para
   // leer isError/refetch, que useOpcionesRol no expone.
   const { isError: fallaRoles, refetch: reintentarRoles } = useMisRoles(iglesiaActivaId ?? undefined);
 
+  // KAN-179 (seguimiento): el gate solo se evaluaba una vez, al iniciar
+  // sesión, contra la iglesia del rol MÁS ANTIGUO -- si la persona tiene
+  // roles en más de una iglesia y cambia a otra, no se volvía a chequear.
+  // Se re-evalúa cada vez que cambia la iglesia del contexto activo (elegir
+  // rol por primera vez o "Cambiar rol" después), pisando membresiaPendiente
+  // con lo que corresponda a la iglesia recién activada (incluido null, si
+  // ahí sí está completa).
+  const iglesiaContextoId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : null;
+  useEffect(() => {
+    if (!iglesiaContextoId) return;
+    let vigente = true;
+    obtenerMiMembresiaIncompleta(iglesiaContextoId)
+      .then((resultado) => { if (vigente) setMembresiaPendiente(resultado); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, [iglesiaContextoId, setMembresiaPendiente]);
+
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  if (membresiaPendiente) {
+  // KAN-179: el caso de invitación real (invitacion_lider/invitacion_
+  // departamento, invitacion.id !== null) todavía no tiene ningún cargo
+  // creado -- no hay panel posible detrás, sigue siendo lo único visible.
+  // El caso general (id === null, ej. Pastor/Supervisor asignado directo)
+  // SÍ tiene panel ya resuelto (el cargo vive en usuario_rol, no depende de
+  // que exista Persona) -- ese se muestra como modal ENCIMA del panel, más
+  // abajo.
+  if (membresiaPendiente && membresiaPendiente.id !== null) {
     return <MembresiaObligatoria invitacion={membresiaPendiente} />;
   }
 
@@ -44,21 +72,29 @@ export function PrivateLayout() {
     return <AppErrorScreen onReintentar={() => reintentarRoles()} onCerrarSesion={handleCerrarSesion} />;
   }
 
-  // Un Super Admin sin otros roles resuelve solo (opciones.length <= 1) y
-  // sigue de largo con su atajo a /administracion -- solo si además tiene
-  // otro rol (opciones.length > 1) se lo manda a elegir, igual que a cualquiera.
-  if (opciones === undefined) {
+  if (cargando || contextosDisponibles === undefined) {
     return <AppLoadingScreen />;
   }
 
-  const rolActivoValido = opciones.some((o) => o.rolUI === rolActivo);
-  if (opciones.length > 1 && !rolActivoValido) {
+  if (contextosDisponibles.length > 0 && !contextoActivo) {
     return <Navigate to={ROUTES.SELECCIONAR_ROL} replace />;
+  }
+
+  // Una cuenta todavía sin panel conserva acceso al inicio vacío y a Cuenta,
+  // pero no puede abrir módulos por URL.
+  if (!contextoActivo) {
+    const rutaBase = location.pathname === ROUTES.DASHBOARD || location.pathname === ROUTES.CUENTA;
+    if (!rutaBase) return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
+
+  if (contextoActivo && !obtenerPanelContexto(contextoActivo).puedeAccederRuta(location.pathname)) {
+    return <Navigate to={rutaInicialParaContexto(contextoActivo)} replace />;
   }
 
   return (
     <AppShell>
       <Outlet />
+      {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
     </AppShell>
   );
 }

@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, Network } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -16,27 +16,16 @@ import { useAuthStore } from '@/store/auth.store';
 import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useOpcionesRol } from '@/hooks/useOpcionesRol';
-import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
-import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
-import { NAV_ITEMS_AFIRMACION, NAV_ITEM_JOVENES, NAV_ITEM_MATRIMONIOS, ROL_UI_META, obtenerNavItems, type NavItem } from '@/utils/permisos';
-import { NAVBAR_COLOR_ROL } from '@/utils/navbar-color-rol';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
+import type { NavItem } from '@/utils/permisos';
+import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
-import type { Vista } from '@/types/dashboard.types';
+import type { ContextoActivo } from '@/types/contexto-activo.types';
 import { ROUTES } from '@/utils/constants';
 
-interface Sombrero { key: string; label: string; vista: Vista; }
+interface Sombrero { key: string; label: string; contexto: ContextoActivo; }
 
 const CORREO_SOPORTE = 'soporte@somoscdv.com';
-
-function mismaVista(a: Vista, b: Vista): boolean {
-  if (a.tipo !== b.tipo) return false;
-  if (a.tipo === 'red' && b.tipo === 'red') return a.redId === b.redId;
-  if (a.tipo === 'cdp' && b.tipo === 'cdp') return a.cdpId === b.cdpId && a.esSublider === b.esSublider;
-  if (a.tipo === 'supervisor' && b.tipo === 'supervisor') return a.iglesiaId === b.iglesiaId;
-  return a.tipo === 'pastor';
-}
 
 // Bloque discreto de soporte institucional, al pie del menú lateral (15-gestion-
 // administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
@@ -64,10 +53,11 @@ function SoporteFooter({ href, correo, onClick, className, oscuro }: { href: str
 
 function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
   const location = useLocation();
-  const vistaActual = (location.state as { vista?: Vista } | null)?.vista;
   const queryClient = useQueryClient();
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const contextoActivo = useAuthStore((s) => s.contextoActivo);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
 
   // Al pasar el mouse (o el foco, para navegación por teclado) por un link,
   // ya se dispara la carga del módulo y del primer dato que va a pedir --
@@ -99,9 +89,15 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
                 {iconoChip}{label}
               </div>
               {sombreros.map((s) => {
-                const activoSombrero = activo && vistaActual && mismaVista(vistaActual, s.vista);
+                const activoSombrero = activo && contextoActivo?.clave === s.contexto.clave;
                 return (
-                  <Link key={s.key} to={path} state={{ vista: s.vista }} onClick={onNavigate}
+                  <Link
+                    key={s.key}
+                    to={path}
+                    onClick={() => {
+                      setContextoActivo(s.contexto);
+                      onNavigate?.();
+                    }}
                     onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
                     className={cn(
                       'truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] transition-all',
@@ -139,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const correo = useAuthStore((s) => s.correo);
   const iglesias = useAuthStore((s) => s.iglesias);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
-  const setRolActivo = useAuthStore((s) => s.setRolActivo);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
   // Buscador del navbar (KAN-74): hoy solo visual, sin funcionalidad todavia
@@ -151,84 +147,34 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [valorBusqueda, setValorBusqueda] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const opcionesRol = useOpcionesRol();
 
   const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
 
-  // Rol UI y navegación filtrada
-  const rolUI = useRolUI();
-  // Super Admin tiene su propio "tema" oscuro en todo el shell (sidebar +
-  // barra superior + menú de cuenta) -- panel global, sin iglesia asociada,
-  // visualmente distinto a propósito. Cada rol va a tener su color más
-  // adelante; por ahora solo Super Admin usa este oscuro.
-  const esOscuro = rolUI === 'SUPER_ADMIN';
-  // Color propio de navbar por rol (hoy solo Líder de Red) -- ver
-  // navbar-color-rol.ts. `navbarClaro` decide si el texto/íconos de la
-  // barra van en blanco (Super Admin oscuro, o cualquier rol con color
-  // propio) o en el gris/negro de siempre.
-  const colorNavbarRol = rolUI ? NAVBAR_COLOR_ROL[rolUI] : undefined;
-  const navbarClaro = esOscuro || !!colorNavbarRol;
+  const { contextoActivo, contextosDisponibles } = useContextoActivo();
+  const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
+  const rolUI = contextoActivo?.rolUI ?? null;
+  const esOscuro = panelContexto?.temaOscuro ?? false;
+  const colorNavbarRol = panelContexto?.colorNavbar;
+  const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
-  // Tono suave del mismo color en el sidebar (desktop y drawer móvil) --
-  // acompaña al navbar sin repetir el mismo azul saturado (pedido del
-  // owner, 2026-08-04). El texto del sidebar sigue oscuro (`oscuro={false}`
-  // en NavLinks), la mezcla es lo bastante clara para eso.
   const estiloSidebarColor = colorNavbarRol
     ? { backgroundColor: `color-mix(in oklab, ${colorNavbarRol} 10%, white)` }
     : undefined;
 
-  // Cargo del rol activo (ej. "Líder de Red"), para la barra superior --
-  // reemplaza al selector de iglesia que aparecía ahí antes (bug: salía en
-  // cualquier rol, sin ser un selector oficial de nada -- pedido del owner,
-  // 2026-08-04). El selector real de iglesia sigue viviendo en el drawer
-  // móvil para cuentas con más de una.
-  const cargoLabel = rolUI ? (ROL_UI_META[rolUI]?.label ?? iglesias[0]?.nombre ?? '') : '';
-  // El título del menú de cuenta ("Pastor", "Líder de Red", etc.) tiene que
-  // reflejar el ROL ACTIVO elegido en el picker multi-rol -- no el cargo de
-  // mayor prioridad fija que devuelve fn_mi_titulo (Pastor > Supervisor >
-  // cargo), que ignoraba por completo cuál rol estaba puesto (KAN-73). Se
-  // reusa `cargoLabel`, ya calculado a partir de `rolUI`, en vez de `titulo`
-  // (ese sigue viviendo -- ver más abajo, sombrero "Panel operativo").
-  // Sin sentido mostrarlo mientras se actúa como Super Admin (panel global,
-  // sin iglesia asociada), confundiría con qué sombrero está puesto.
-  const tituloMostrado = esOscuro ? null : cargoLabel;
+  const cargoLabel = panelContexto?.titulo ?? '';
+  // KAN-73/KAN-152: `fn_mi_titulo` resuelve el cargo por prioridad fija
+  // (Pastor > Supervisor > cargo de menor orden), sin mirar el rol activo --
+  // alguien Pastor Y Líder de Red en la misma iglesia veía siempre "Pastor"
+  // en el menú de cuenta aunque hubiera elegido entrar como Líder de Red.
+  // `cargoLabel` ya viene del contexto realmente activo (mismo dato que usa
+  // el navbar/sidebar), así que reemplaza al título de la RPC en vez de
+  // combinarse con él.
+  const tituloMostrado = esOscuro ? null : cargoLabel || null;
   const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
-
-  const esLiderAfirmacion = useEsLiderAfirmacion();
-  const esLiderJovenes = useEsLiderJovenes();
-  const esEncargadoMatrimonios = useEsEncargadoMatrimonios();
-  // Super Admin no ve Afirmación/Jóvenes/Matrimonios en su menú aunque la
-  // cuenta también tenga esas capacidades en otra iglesia -- eso se elige
-  // desde el selector multi-rol, no debe aparecer mezclado con el rol
-  // activo (2026-08-03, pedido explícito del owner). Para Super Admin,
-  // Estructura Organizacional se sigue abriendo desde cada iglesia del panel
-  // Administración -- no existe un acceso ambiguo en el navbar que apunte a
-  // la primera iglesia (owner, 2026-08-04), porque administra muchas iglesias
-  // a la vez. Pastor es distinto: tiene una sola iglesia activa bien
-  // definida, así que sí recibe un ítem de nav propio apuntando a ella
-  // (2026-08-09, paridad con Supervisor -- ver más abajo).
-  //
-  // NAV_ITEMS_AFIRMACION solo se agrega cuando el rol ACTIVO es justamente
-  // LIDER_DEPARTAMENTO (KAN-114). Antes se agregaba con solo `esLiderAfirmacion`
-  // -- capacidad ortogonal al RolUI -- lo que mezclaba el menú de Afirmación
-  // con el de CUALQUIER otro rol activo (ej. entrar como Líder de Red y ver
-  // igual el menú de Afirmación). Afirmación dejó de ser puramente ortogonal
-  // el 2026-08-01, cuando pasó a tener su propio RolUI seleccionable en el
-  // picker multi-rol -- este gateo lo deja consistente con eso. Jóvenes y
-  // Matrimonios siguen siendo ortogonales de verdad (no tienen RolUI propio
-  // ni aparecen en el picker), así que se quedan sin cambios.
-  const navItems = esOscuro
-    ? [...(rolUI ? obtenerNavItems(rolUI) : [])]
-    : [
-        ...(rolUI ? obtenerNavItems(rolUI) : []),
-        ...(rolUI === 'LIDER_DEPARTAMENTO' && esLiderAfirmacion ? NAV_ITEMS_AFIRMACION : []),
-        ...(esLiderJovenes ? [NAV_ITEM_JOVENES] : []),
-        ...(esEncargadoMatrimonios ? [NAV_ITEM_MATRIMONIOS] : []),
-        ...(rolUI === 'PASTOR' && iglesiaActivaId
-          ? [{ icon: Network, label: 'Estructura Organizacional', path: `/estructura-organizacional/${iglesiaActivaId}`, color: '#0a4174' }]
-          : []),
-      ];
+  // El sidebar se obtiene exclusivamente del contexto elegido. Las demás
+  // capacidades permanecen en el selector y nunca se suman a este menú.
+  const navItems = panelContexto?.navItems ?? [];
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
   // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
@@ -269,13 +215,31 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: roles } = useMisRoles(iglesiaActivaId ?? undefined);
   const sombreros: Sombrero[] = [];
   if (rolUI === 'SUPERVISOR') {
-    if (roles?.es_operativo && iglesiaActivaId) {
-      sombreros.push({ key: 'operativo', label: titulo ?? 'Panel operativo', vista: { tipo: 'supervisor', iglesiaId: iglesiaActivaId } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.rolUI === 'SUPERVISOR') {
+        sombreros.push({ key: contexto.clave, label: titulo ?? 'Panel operativo', contexto });
+      }
     }
   } else if (rolUI === 'LIDER_RED') {
-    for (const r of roles?.redes_lider ?? []) sombreros.push({ key: `red-${r.id}`, label: `Red: ${r.nombre}`, vista: { tipo: 'red', redId: r.id } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.alcance !== 'RED') continue;
+      const red = roles?.redes_lider?.find((item) => item.id === contexto.redId);
+      sombreros.push({
+        key: contexto.clave,
+        label: `${contexto.cargoRed === 'SUPERVISOR' ? 'Supervisión' : 'Red'}: ${red?.nombre ?? 'Sin nombre'}`,
+        contexto,
+      });
+    }
   } else if (rolUI === 'LIDER_CDP') {
-    for (const c of roles?.cdp_lider ?? []) sombreros.push({ key: `cdp-${c.id}`, label: `CdP: ${c.etiqueta}`, vista: { tipo: 'cdp', cdpId: c.id, esSublider: false } });
+    for (const contexto of contextosDisponibles ?? []) {
+      if (contexto.alcance !== 'CDP' || contexto.rolUI !== 'LIDER_CDP') continue;
+      const cdp = roles?.cdp_lider?.find((item) => item.id === contexto.cdpId);
+      sombreros.push({
+        key: contexto.clave,
+        label: `CdP: ${cdp?.etiqueta ?? 'Sin referencia'}`,
+        contexto,
+      });
+    }
   }
 
   async function handleLogout() {
@@ -291,7 +255,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   function handleCambiarRol() {
-    setRolActivo(null);
+    setContextoActivo(null);
     navigate(ROUTES.SELECCIONAR_ROL);
   }
 
@@ -318,7 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
               <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
             </div>
-            <span className="truncate text-[15px] font-bold tracking-tight text-white">{nombreMarca}</span>
+            <span className={cn('truncate text-[15px] font-bold tracking-tight', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
           </div>
         ) : (
           <div className="mb-6 flex items-center gap-3 px-3 pt-1">
@@ -348,21 +312,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={estiloNavbarColor}
       >
         <div className="flex min-w-0 items-center gap-3">
-          {/* El botón sigue visible también para Super Admin (esOscuro) aunque
-              el sidebar de escritorio quede oculto para ese rol -- en mobile
-              es la ÚNICA puerta al drawer, y "Cambiar rol"/"Salir" viven solo
-              en su footer (no hay dropdown de cuenta en este header). Ocultarlo
-              dejaba a Super Admin sin ninguna forma de cerrar sesión o cambiar
-              de rol en mobile (KAN-128). */}
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Abrir menú"
-            className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
-            onClick={() => setMenuAbierto(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {!esOscuro && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Abrir menú"
+              className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+              onClick={() => setMenuAbierto(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
@@ -397,7 +357,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 variant="ghost"
                 size="icon"
                 aria-label="Buscar"
-                className="rounded-xl text-white hover:bg-white/10"
+                className={cn('rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-black/5')}
                 onClick={() => setBusquedaAbierta(true)}
               >
                 <Search className="h-4.5 w-4.5" />
@@ -408,9 +368,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* Drawer mobile -- abierto también para Super Admin (KAN-128), ver
-          comentario en el botón "Abrir menú" de arriba. */}
-      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
+      {/* Drawer mobile */}
+      <Sheet open={!esOscuro && menuAbierto} onOpenChange={setMenuAbierto}>
         <SheetContent
           side="left"
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
@@ -440,7 +399,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <UserCog className="h-4 w-4" /> Mi cuenta
             </button>
-            {opcionesRol && opcionesRol.length > 1 && (
+            {contextosDisponibles && contextosDisponibles.length > 1 && (
               <button
                 onClick={() => { setMenuAbierto(false); handleCambiarRol(); }}
                 className={cn(
@@ -550,7 +509,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <UserCog className="h-4 w-4" /> Mi cuenta
               </DropdownMenuItem>
-              {opcionesRol && opcionesRol.length > 1 && (
+              {contextosDisponibles && contextosDisponibles.length > 1 && (
                 <DropdownMenuItem
                   onSelect={handleCambiarRol}
                   className={cn('gap-2', esOscuro && 'focus:bg-white/10 focus:text-white')}

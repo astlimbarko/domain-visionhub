@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, ChevronDown, Church, Database, IdCard, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
-import { rutaEstructuraOrganizacional } from '@/utils/constants';
+import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
+import { obtenerUrlBase } from '@/utils/app-url';
+import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +28,7 @@ import {
   useAsignarUsuarioExistente,
   useActualizarUsuarioRol,
   useToggleUsuarioRol,
+  useEliminarCuentaUsuario,
   useDashboardSuperAdmin,
 } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
@@ -117,10 +120,25 @@ export function Administracion() {
   const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
+  const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
+  // KAN-155: al crear una iglesia, si el owner elige "Asignar Pastor ahora"
+  // se reabre InvitarUsuarioDialog preconfigurado en vez de reinventar el
+  // buscar/invitar acá -- reusa su propio paso de confirmación de 6 dígitos.
+  const [iglesiaParaAsignarPastor, setIglesiaParaAsignarPastor] = useState<{ id: string; nombre: string } | null>(null);
 
   const { data: iglesias = [], isLoading: cargandoIglesias } = useIglesiasTodas();
   const gruposIglesias = agruparIglesiasJerarquicamente(iglesias);
   const { data: usuarios = [], isLoading: cargandoUsuarios } = useUsuarios(undefined);
+  // KAN-155: nombre del Pastor por iglesia, para mostrarlo discreto al lado
+  // del nombre en la lista -- ya viene en fn_listar_usuarios, no hace falta
+  // una query nueva.
+  const pastorPorIglesiaId = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const u of usuarios) {
+      if (u.rol === 'PASTOR' && u.iglesia_id) mapa.set(u.iglesia_id, u.persona_nombre || u.correo);
+    }
+    return mapa;
+  }, [usuarios]);
   const { data: panorama, isLoading: cargandoPanorama } = useDashboardSuperAdmin();
   const crearIglesia = useCrearIglesia();
   const actualizarIglesia = useActualizarIglesia();
@@ -130,6 +148,7 @@ export function Administracion() {
   const asignarUsuarioExistente = useAsignarUsuarioExistente();
   const actualizarUsuarioRol = useActualizarUsuarioRol();
   const toggleUsuarioRol = useToggleUsuarioRol();
+  const eliminarCuentaUsuario = useEliminarCuentaUsuario();
 
   function manejarError(e: unknown, generico: string) {
     const error = e as { message?: string } | null;
@@ -142,6 +161,8 @@ export function Administracion() {
       toast.error('No se puede quitar al único Super Admin del sistema');
     } else if (mensaje.includes('ROL_AUTOMODIFICACION')) {
       toast.error('No podés modificar tu propio cargo');
+    } else if (mensaje.includes('SUPER_ADMIN_SOLO_PRINCIPAL')) {
+      toast.error('Solo el Super Admin principal puede crear, editar o quitar a otro Super Admin');
     } else if (mensaje.includes('IGLESIA_CON_REDES_ACTIVAS') || mensaje.includes('IGLESIA_CON_HIJAS')) {
       toast.error('Esta iglesia tiene estructura vigente; reasignala antes de eliminar');
     } else if (mensaje.includes('USUARIO_FUERA_DE_ALCANCE')) {
@@ -149,6 +170,12 @@ export function Administracion() {
     } else {
       toast.error(mensaje || generico);
     }
+  }
+
+  function manejarRestablecerContrasena(correo: string) {
+    solicitarRecuperacionContrasena(correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`)
+      .then(() => toast.success(`Enlace para cambiar la contraseña enviado a ${correo}`))
+      .catch(() => toast.error('No se pudo enviar el enlace'));
   }
 
   function tituloConfirmarIglesia(c: ConfirmarIglesia) {
@@ -280,7 +307,7 @@ export function Administracion() {
                       onClick={() => navigate(rutaEstructuraOrganizacional(i.id))}
                       className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pr-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                       style={{ paddingLeft: `${16 + nivel * 22}px` }}
-                      aria-label={`Abrir estructura organizacional de ${i.nombre}`}
+                      aria-label={`Abrir Constructor de ${i.nombre}`}
                     >
                       {nivel > 0 && (
                         <span aria-hidden="true" className="shrink-0 font-mono text-sm text-white/35">└─</span>
@@ -308,7 +335,12 @@ export function Administracion() {
                             </span>
                           )}
                         </span>
-                        <span className="block truncate text-sm text-white/50">{i.ciudad}</span>
+                        <span className="block truncate text-sm text-white/50">
+                          {i.ciudad}
+                          {pastorPorIglesiaId.has(i.id) && (
+                            <span className="text-white/30"> · {pastorPorIglesiaId.get(i.id)}</span>
+                          )}
+                        </span>
                       </span>
                       {!i.activo && <Badge variant="outline" className="border-white/20 text-white/70">Inactiva</Badge>}
                     </button>
@@ -350,7 +382,7 @@ export function Administracion() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
                           <DropdownMenuItem onSelect={() => navigate(rutaEstructuraOrganizacional(i.id))} className="focus:bg-white/10 focus:text-white">
-                            <Network className="h-4 w-4" /> Estructura organizacional
+                            <Network className="h-4 w-4" /> Constructor
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">
@@ -397,6 +429,11 @@ export function Administracion() {
                   <p className="truncate font-medium text-white">{u.correo}</p>
                   <p className="truncate text-sm text-white/50">
                     {NOMBRE_ROL[u.rol]}
+                    {u.rol === 'SUPER_ADMIN' && (
+                      <span className="ml-1.5 rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+                        {u.es_principal ? 'Principal' : 'Secundario'}
+                      </span>
+                    )}
                     {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
                   </p>
                   <p className="truncate text-xs text-white/40">
@@ -412,8 +449,14 @@ export function Administracion() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
                       <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => manejarRestablecerContrasena(u.correo)} className="gap-1.5 focus:bg-white/10 focus:text-white">
+                        <KeyRound className="h-3.5 w-3.5" /> Restablecer contraseña
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
-                        Remover
+                        Remover cargo
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setUsuarioEliminar(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
+                        Eliminar cuenta
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -436,9 +479,7 @@ export function Administracion() {
               sufijo, ciudad, iglesiaPadreId, tipo, pastorUsuarioId, pastorCorreoNuevo, pin,
             });
             if (resultado.error) {
-              toast.warning(resultado.error);
-            } else if (pastorUsuarioId || pastorCorreoNuevo) {
-              toast.success('Iglesia creada y Pastor asignado');
+              toast.info(resultado.error);
             } else {
               toast.success('Iglesia creada');
             }
@@ -447,6 +488,10 @@ export function Administracion() {
             manejarError(e, 'No se pudo crear la iglesia');
             throw e;
           }
+        }}
+        onIglesiaCreada={(iglesiaId, nombre) => {
+          setIglesiaParaAsignarPastor({ id: iglesiaId, nombre });
+          setMostrarInvitar(true);
         }}
       />
 
@@ -487,34 +532,38 @@ export function Administracion() {
 
       <InvitarUsuarioDialog
         open={mostrarInvitar}
-        onOpenChange={setMostrarInvitar}
+        onOpenChange={(abierto) => { setMostrarInvitar(abierto); if (!abierto) setIglesiaParaAsignarPastor(null); }}
         iglesias={iglesias}
         invitando={invitarUsuario.isPending}
         asignando={asignarUsuarioExistente.isPending}
         oscuro
-        onInvitar={(correo, rol, iglesiaId, pin) =>
+        rolInicial={iglesiaParaAsignarPastor ? 'PASTOR' : undefined}
+        iglesiaIdInicial={iglesiaParaAsignarPastor?.id}
+        onInvitar={(correo, rol, iglesiaId, pin, persona) =>
           invitarUsuario.mutate(
-            { correo, rol, iglesiaId, pin },
+            { correo, rol, iglesiaId, pin, persona },
             {
               onSuccess: (resultado) => {
                 if (resultado.error) {
-                  toast.warning(resultado.error);
+                  toast.info(resultado.error);
                 } else {
                   toast.success(`Invitación enviada a ${correo}`);
                 }
                 setMostrarInvitar(false);
+                setIglesiaParaAsignarPastor(null);
               },
               onError: (e) => manejarError(e, 'No se pudo invitar al usuario'),
             }
           )
         }
-        onAsignarExistente={(usuarioId, rol, iglesiaId, pin) =>
+        onAsignarExistente={(usuarioId, rol, iglesiaId, pin, persona) =>
           asignarUsuarioExistente.mutate(
-            { usuarioId, rol, iglesiaId, pin },
+            { usuarioId, rol, iglesiaId, pin, persona },
             {
               onSuccess: () => {
                 toast.success('Cargo asignado');
                 setMostrarInvitar(false);
+                setIglesiaParaAsignarPastor(null);
               },
               onError: (e) => manejarError(e, 'No se pudo asignar el cargo'),
             }
@@ -556,6 +605,27 @@ export function Administracion() {
               {
                 onSuccess: () => { toast.success('Usuario removido'); setUsuarioRemover(null); },
                 onError: (e) => manejarError(e, 'No se pudo remover al usuario'),
+              }
+            )
+          }
+        />
+      )}
+
+      {usuarioEliminar && (
+        <ConfirmarCambioDialog
+          open={!!usuarioEliminar}
+          onOpenChange={(abierto) => !abierto && setUsuarioEliminar(null)}
+          titulo={`Eliminar cuenta de ${usuarioEliminar.correo}`}
+          descripcion="Elimina TODOS los cargos y personas asociadas a esta cuenta (todas las iglesias), no solo este cargo. Pensado para limpieza de cuentas de prueba."
+          requiereMotivo
+          oscuro
+          procesando={eliminarCuentaUsuario.isPending}
+          onConfirmar={(_motivo, pin) =>
+            eliminarCuentaUsuario.mutate(
+              { usuarioId: usuarioEliminar.usuario_id, pin },
+              {
+                onSuccess: () => { toast.success('Cuenta eliminada'); setUsuarioEliminar(null); },
+                onError: (e) => manejarError(e, 'No se pudo eliminar la cuenta'),
               }
             )
           }

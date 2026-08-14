@@ -2,7 +2,6 @@ import { LogOut } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { useOpcionesRol } from '@/hooks/useOpcionesRol';
 import { useOpcionesRolContextuales, type OpcionRolContextual } from '@/hooks/useOpcionesRolContextuales';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
@@ -10,20 +9,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
 import { AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ROUTES } from '@/utils/constants';
+import { rutaInicialParaContexto } from '@/utils/paneles-contexto';
 
 export function SeleccionarRol() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
-  const setRolActivo = useAuthStore((s) => s.setRolActivo);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const logout = useAuthStore((s) => s.logout);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
 
-  // Fuente de verdad de "hay ambigüedad real": por TIPO de rol, la misma que
-  // usa PrivateLayout -- no se toca. Las opciones contextuales (abajo) son
-  // solo para mostrar cada asignación por separado dentro de esos tipos.
-  const opciones = useOpcionesRol();
   const opcionesContextuales = useOpcionesRolContextuales();
   // Mismo query que ya usan los hooks de arriba (misma queryKey, sin pedido de
   // red extra) -- solo para leer isError/refetch, ver AppErrorScreen abajo.
@@ -45,17 +41,16 @@ export function SeleccionarRol() {
     return <AppErrorScreen onReintentar={() => reintentarRoles()} onCerrarSesion={handleSalir} />;
   }
 
-  // Blindaje contra acceso directo por URL: sin ambigüedad no hay nada que elegir
-  // (esto ya cubre al Super Admin sin otros roles: Dashboard lo manda a Administración).
-  if (opciones && opciones.length <= 1) return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Sin ambigüedad contextual no hay nada que elegir. El contexto único se
+  // persiste automáticamente al entrar al layout privado.
+  if (opcionesContextuales && opcionesContextuales.length <= 1) {
+    const unica = opcionesContextuales[0];
+    return <Navigate to={unica ? rutaInicialParaContexto(unica.contexto) : ROUTES.DASHBOARD} replace />;
+  }
 
   function elegir(opcion: OpcionRolContextual) {
-    setRolActivo(opcion.rolUI);
-    if (opcion.ruta) {
-      navigate(opcion.ruta, { replace: true });
-      return;
-    }
-    navigate(ROUTES.DASHBOARD, { replace: true, state: opcion.vista ? { vista: opcion.vista } : undefined });
+    setContextoActivo(opcion.contexto);
+    navigate(rutaInicialParaContexto(opcion.contexto), { replace: true });
   }
 
   const primerNombre = nombreCompleto?.split(' ')[0];

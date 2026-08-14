@@ -55,11 +55,21 @@ Si falla, limpia solo el contexto inválido y va a `/seleccionar-rol`; no intent
 
 ## 4. Catálogo único de paneles
 
-Crear un catálogo único, por ejemplo `frontend/src/utils/paneles-contexto.ts`. Cada entrada recibe el contexto y devuelve título, subtítulo, color de navbar, tokens visuales, rutas permitidas, ruta inicial, `NavItem[]` y estrategia de alcance para consultas.
+El catálogo único vive en `frontend/src/utils/paneles-contexto.ts`. Cada entrada recibe el contexto y devuelve título, color de navbar, contraste, rutas permitidas, ruta inicial y `NavItem[]`.
 
-`AppShell.tsx` consume exclusivamente ese catálogo. Se elimina el patrón de añadir `NAV_ITEMS_AFIRMACION`, Jóvenes o Matrimonios sobre el menú de otro rol.
+`AppShell.tsx` consume exclusivamente ese catálogo. Afirmación, Jóvenes y Matrimonios solo aparecen cuando su contexto está activo; nunca se añaden sobre el menú de otro rol.
 
-Antes de codificar Afirmación/Jóvenes/Matrimonios se decide si cada uno será un panel/contexto independiente, o una capacidad sin panel propio que no debe aportar navegación. No se permite mantener un tercer estado ambiguo.
+### Separación de sistemas de color
+
+- Los colores del navbar son fijos por contexto y viven en el catálogo central.
+- Super Admin conserva `#0A0E1A`; Líder de Red conserva `#4E73B7`.
+- Supervisor de Red comparte panel y permisos con Líder de Red, pero usa `#5B4BB7`.
+- Sublíder de CdP usa blanco nieve `#FFFAFA` con texto oscuro.
+- Los roles todavía sin color oficial usan temporalmente `#FFFAFA` hasta que el owner confirme su paleta.
+- Los colores de Red son datos dinámicos de Supabase y no reemplazan el color del navbar.
+- Los colores de departamentos, chips del selector e íconos de navegación son sistemas visuales separados.
+
+Afirmación, Jóvenes y Matrimonios se modelan como paneles/contextos independientes. Sus accesos dejan de añadirse sobre el sidebar de otro rol.
 
 ## 5. Consumo de datos y caché
 
@@ -94,3 +104,20 @@ Las políticas RLS y RPC existentes permanecen como autoridad. Si una vista requ
 6. Eliminar compatibilidad temporal tras pruebas completas.
 
 No se deben refactorizar todos los módulos en un único commit sin pruebas por rol; el orden está detallado en `implementation-plan.md`.
+
+### Resultado real de seguridad (KAN-135)
+
+La auditoría reemplaza la hipótesis inicial de esta sección: pertenecer a una
+iglesia no basta para autorizar una Red o CdP. La regla de backend es:
+
+- Supervisor/Pastor/Super Admin pueden leer el alcance superior autorizado.
+- Líder/Supervisor de Red solo puede leer su Red y sus CdP.
+- Líder/Sublíder CdP solo puede leer su CdP y la Red padre necesaria para
+  presentar el contexto.
+- Finanzas conserva su regla más restrictiva mediante
+  `fn_puede_ver_ingresos_cdp`; visibilidad estructural no concede visibilidad
+  financiera.
+
+Los helpers `fn_puede_ver_red` y `fn_puede_ver_cdp` son `STABLE SECURITY
+DEFINER`, usan `search_path = ''`, nombres cualificados y ejecución exclusiva
+de `authenticated`. Las RPC no confían en IDs enviados por el cliente.

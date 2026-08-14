@@ -20,6 +20,7 @@ const ETIQUETA_CARGO: Record<string, string> = {
   SUBLIDER_CDP: "Sublíder de Casa de Paz",
   PASTOR: "Pastor",
   SUPERVISOR: "Supervisor de la Visión en Acción",
+  LIDER_DEPARTAMENTO: "Líder de Departamento",
 };
 
 function armarHtml(personaNombre: string, cargoEtiqueta: string, contexto: string | null, iglesiaNombre: string): string {
@@ -40,6 +41,16 @@ function armarHtml(personaNombre: string, cargoEtiqueta: string, contexto: strin
               <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#374151;">
                 ${linea}
               </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+                <tr>
+                  <td align="center" style="border-radius:10px;background-color:#2f56e6;">
+                    <a href="https://app.somoscdv.com/login" target="_blank"
+                       style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">
+                      Ingresar ahora
+                    </a>
+                  </td>
+                </tr>
+              </table>
               <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
                 Si no reconoce esta acción, comuníquese con quien administra el sistema en su iglesia.
               </p>
@@ -55,7 +66,7 @@ function armarHtml(personaNombre: string, cargoEtiqueta: string, contexto: strin
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    let body: { redId?: string; cdpId?: string; iglesiaId?: string; personaId?: string; cargo?: string };
+    let body: { redId?: string; cdpId?: string; iglesiaId?: string; departamentoId?: string; personaId?: string; cargo?: string };
     try {
       body = await req.json();
     } catch {
@@ -63,7 +74,7 @@ export default {
     }
 
     const cargoEtiqueta = body.cargo ? ETIQUETA_CARGO[body.cargo] : undefined;
-    const entidades = [body.redId, body.cdpId, body.iglesiaId].filter(Boolean);
+    const entidades = [body.redId, body.cdpId, body.iglesiaId, body.departamentoId].filter(Boolean);
     if (entidades.length !== 1 || !body.personaId || !cargoEtiqueta) {
       return Response.json({ error: "Faltan datos" }, { status: 400 });
     }
@@ -93,6 +104,17 @@ export default {
       ({ persona_nombre, correo, iglesia_nombre } = fila);
       contexto = `la Casa de Paz <strong>${fila.cdp_nombre}</strong>`;
       contextoSubject = ` en ${fila.cdp_nombre}`;
+    } else if (body.departamentoId) {
+      const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_departamento", {
+        p_departamento_id: body.departamentoId,
+        p_persona_id: body.personaId,
+      });
+      if (errorDatos) return Response.json({ error: "No tenes permiso, o la persona/departamento no existe" }, { status: 403 });
+      const fila = filas?.[0] as { persona_nombre: string; correo: string | null; departamento_nombre: string; iglesia_nombre: string } | undefined;
+      if (!fila) return Response.json({ error: "No se encontro la persona en ese departamento" }, { status: 404 });
+      ({ persona_nombre, correo, iglesia_nombre } = fila);
+      contexto = `el departamento <strong>${fila.departamento_nombre}</strong>`;
+      contextoSubject = ` en ${fila.departamento_nombre}`;
     } else {
       const { data: filas, error: errorDatos } = await ctx.supabase.rpc("fn_estructura_datos_notificacion_cargo_principal", {
         p_iglesia_id: body.iglesiaId,

@@ -1,21 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { AlertTriangle, Users, type LucideIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { mosaico, AZUL, VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { HistorialAsistencia as HistorialAsistenciaSeccion } from '@/components/reporte/HistorialAsistencia';
 import { HistorialAsistenciaSupervisorVista } from '@/components/reporte/HistorialAsistenciaSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisCasasDePaz } from '@/hooks/useCalendario';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
 
 const UMBRAL_URGENCIA = 2;
@@ -67,11 +57,9 @@ function StatMini({
 }
 
 export function HistorialAsistencia() {
-  const rolUI = useRolUI();
-  const personaId = useAuthStore((s) => s.personaId);
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const { contextoActivo } = useContextoActivo();
+  const rolUI = contextoActivo?.rolUI;
+  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
 
   // Misma queryKey que usa el componente de abajo -- React Query comparte el
   // cache, así que esto no dispara una segunda consulta a la red.
@@ -86,9 +74,7 @@ export function HistorialAsistencia() {
   // historial agrupado por Red de toda la iglesia, no el de una sola CdP.
   if (rolUI === 'SUPERVISOR') return <HistorialAsistenciaSupervisorVista />;
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
-
-  if (!misCasas || misCasas.length === 0) {
+  if (!cdpActiva) {
     return (
       <ProximamentePlaceholder
         titulo="Historial de Asistencia"
@@ -99,22 +85,6 @@ export function HistorialAsistencia() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        {misCasas.length > 1 && (
-          <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-            <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
-              <SelectValue placeholder="Casa de Paz" />
-            </SelectTrigger>
-            <SelectContent>
-              {misCasas.map((c) => (
-                <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                  {c.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
 
       {data && totalMiembros > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

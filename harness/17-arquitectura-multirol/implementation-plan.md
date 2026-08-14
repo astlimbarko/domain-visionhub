@@ -2,39 +2,39 @@
 
 ## Fase 0 — Cierre funcional (KAN-130)
 
-- [ ] Confirmar la matriz de `requirements.md` con el owner.
-- [ ] Resolver Afirmación, Jóvenes y Matrimonios: panel independiente o capacidad sin navegación.
-- [ ] Definir ejemplos reales de usuarios para la matriz de pruebas.
+- [x] Confirmar la matriz de `requirements.md` con el owner.
+- [x] Resolver Afirmación, Jóvenes y Matrimonios como paneles independientes.
+- [x] Definir ejemplos reales de usuarios para la matriz de pruebas.
 
 No se cambia código hasta cerrar esta fase.
 
 ## Fase 1 — Modelo y validación de contexto (KAN-131)
 
-- [ ] Crear `ContextoActivo` y un adaptador desde `useMisRoles`.
-- [ ] Extender `auth.store.ts` para persistirlo y limpiarlo al cambiar iglesia o cerrar sesión.
-- [ ] Reemplazar la resolución de `useRolUI` por la derivación del contexto.
-- [ ] Añadir validación ante recarga e invalidación de contexto obsoleto.
+- [x] Crear `ContextoActivo` y un adaptador desde `useMisRoles`.
+- [x] Extender `auth.store.ts` para persistirlo y limpiarlo al cambiar iglesia o cerrar sesión.
+- [x] Reemplazar la resolución de `useRolUI` por la derivación del contexto.
+- [x] Añadir validación ante recarga e invalidación de contexto obsoleto.
 
 ## Fase 2 — Selector y rutas (KAN-132)
 
-- [ ] Unificar `useOpcionesRol` y `useOpcionesRolContextuales` en una fuente de opciones por asignación real.
-- [ ] Hacer que `SeleccionarRol.tsx` guarde el contexto completo.
-- [ ] Adaptar `PrivateLayout.tsx` y guards para validar contexto + ruta.
-- [ ] Eliminar dependencia funcional de `location.state` para conservar alcance.
+- [x] Unificar selector y validación sobre contextos por asignación real.
+- [x] Hacer que `SeleccionarRol.tsx` guarde el contexto completo.
+- [x] Adaptar `PrivateLayout.tsx` y guards para validar contexto + ruta.
+- [x] Eliminar dependencia funcional de `location.state` para conservar alcance.
 
 ## Fase 3 — Shell visual aislado (KAN-133)
 
-- [ ] Crear catálogo de paneles por contexto.
-- [ ] Migrar `AppShell.tsx` al catálogo.
-- [ ] Retirar agregados de nav de capacidades ajenas.
-- [ ] Centralizar colores de navbar, títulos y rutas iniciales.
+- [x] Crear catálogo de paneles por contexto.
+- [x] Migrar `AppShell.tsx` al catálogo.
+- [x] Retirar agregados de nav de capacidades ajenas.
+- [x] Centralizar colores de navbar, títulos y rutas iniciales.
 
 ## Fase 4 — Módulos y consultas (KAN-134)
 
-- [ ] Migrar Dashboard primero: no usar `vistaPorDefectoParaRol` basada en índice.
-- [ ] Migrar Calendario, Evangelismo y Visitas.
-- [ ] Migrar Personas, Gestión de Red/CdP, Reportes e Historiales.
-- [ ] Revisar query keys, caché y selectores internos.
+- [x] Migrar Dashboard primero: no usar `vistaPorDefectoParaRol` basada en índice.
+- [x] Migrar Calendario, Evangelismo y Visitas.
+- [x] Migrar Personas, Gestión de Red/CdP, Reportes e Historiales.
+- [x] Revisar query keys, caché y selectores internos.
 
 ## Fase 5 — Seguridad, pruebas y documentación (KAN-135)
 
@@ -59,3 +59,18 @@ No se cambia código hasta cerrar esta fase.
 ## Terminación
 
 La épica no se considera terminada hasta que la matriz de pruebas pase en vivo con cuentas de prueba multirol, las rutas directas sean seguras y el usuario verifique visualmente que no hay sidebars ni colores mezclados.
+
+### Avance real de KAN-135
+
+- [x] Auditar en lectura RPC, ACL y RLS de iglesia, Red, CdP y departamento.
+- [x] Preparar migraciones trazables según la evidencia encontrada.
+- [x] Corregir y probar localmente las aprobaciones de Red (Q-MR-13).
+- [x] Compilar las tres migraciones KAN-135 en PostgreSQL 17.
+- [x] Validar tipos, lint, build Vite y build del Docker Compose compartido.
+- [ ] Aplicar las migraciones pendientes con aprobación del owner.
+- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
+- [ ] Resolver Q-MR-12 antes de cerrar la épica.
+
+## Informe tecnico de auditoria
+
+El detalle verificable de KAN-135 esta en [informe-auditoria-2026-08-09.md](./informe-auditoria-2026-08-09.md).

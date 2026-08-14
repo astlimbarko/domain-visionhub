@@ -20,7 +20,7 @@ function nombreArchivoSeguro(nombreIglesia: string): string {
     .replace(/^-+|-+$/g, '')
     .toLowerCase();
   const fecha = new Date().toISOString().slice(0, 10);
-  return `estructura-organizacional-${normalizado || 'iglesia'}-${fecha}`;
+  return `constructor-${normalizado || 'iglesia'}-${fecha}`;
 }
 
 /**

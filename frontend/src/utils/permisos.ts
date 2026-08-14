@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
-import type { MisRolesDashboard, Vista } from '@/types/dashboard.types';
 import type { LucideIcon } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -34,7 +33,17 @@ import type { LucideIcon } from 'lucide-react';
 // Líder de Afirmación puro, sin cargo de Casas de Paz). No debe heredar
 // nav ni rutas de ningún otro rol -- ver NAV_ITEM_AFIRMACION para cómo se
 // agrega su propio acceso, ortogonal a este tipo.
-export type RolUI = 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR' | 'LIDER_RED' | 'LIDER_CDP' | 'SUBLIDER_CDP' | 'LIDER_DEPARTAMENTO' | 'SIN_ROL';
+export type RolUI =
+  | 'SUPER_ADMIN'
+  | 'PASTOR'
+  | 'SUPERVISOR'
+  | 'LIDER_RED'
+  | 'LIDER_CDP'
+  | 'SUBLIDER_CDP'
+  | 'LIDER_DEPARTAMENTO'
+  | 'LIDER_JOVENES'
+  | 'ENCARGADO_MATRIMONIOS'
+  | 'SIN_ROL';
 
 export interface NavItem {
   icon: LucideIcon;
@@ -106,15 +115,16 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
   ROUTES.GESTION_REDES,
+  // Resumen del Constructor (2026-08-11) -- mismo nivel que Pastor, ver
+  // paneles-contexto.ts.
+  ROUTES.CONSTRUCTOR_RESUMEN,
 ];
 
 // 2026-08-09: paridad completa con Supervisor (pedido explícito del
-// owner/equipo) -- Pastor ve y puede hacer exactamente lo mismo que
-// Supervisor. Antes tenía un alcance mucho más chico (solo Dashboard +
-// Reportes), citando "spec de roles Sección 11 Rol 5" -- esa restricción
-// quedó revertida. El backend (fn_es_pastor_en agregado junto a
-// fn_es_operativo_en en cada función relevante, ver migración
-// 20260809080000_paridad_pastor_supervisor.sql) ya respalda este alcance.
+// owner/equipo, KAN-86) -- Pastor ve y puede hacer exactamente lo mismo que
+// Supervisor. El backend ya respalda este alcance (fn_es_pastor_en agregado
+// junto a fn_es_operativo_en en cada función relevante, ver migración
+// 20260809080000_paridad_pastor_supervisor.sql).
 const RUTAS_PASTOR: string[] = RUTAS_SUPERVISOR;
 
 const RUTAS_SUPER_ADMIN: string[] = [
@@ -133,6 +143,8 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_URLS,
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
 ];
+const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
+const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
 
 const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   LIDER_CDP: RUTAS_LIDER_CDP,
@@ -142,6 +154,8 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   PASTOR: RUTAS_PASTOR,
   SUPER_ADMIN: RUTAS_SUPER_ADMIN,
   LIDER_DEPARTAMENTO: RUTAS_LIDER_DEPARTAMENTO,
+  LIDER_JOVENES: RUTAS_LIDER_JOVENES,
+  ENCARGADO_MATRIMONIOS: RUTAS_ENCARGADO_MATRIMONIOS,
   // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
   // una capacidad ortogonal (Afirmación) o /cuenta.
   SIN_ROL: [],
@@ -198,104 +212,6 @@ export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios'
 // ─── Funciones públicas ──────────────────────────────────────────────────────
 
 /**
- * Determina el rol UI efectivo del usuario.
- * Prioridad: SUPER_ADMIN > PASTOR > SUPERVISOR > LIDER_RED > LIDER_CDP > SUBLIDER_CDP
- *
- * - Pastor se detecta por es_pastor en la iglesia activa (antes se adivinaba
- *   por "tiene acceso a más de una iglesia", lo cual fallaba para el caso
- *   típico de un pastor de una sola iglesia)
- * - Supervisor se detecta por es_operativo en la iglesia activa
- * - Líder Red por tener redes_lider
- * - Líder CdP por tener cdp_lider; Sublíder CdP por tener solo cdp_sublider
- *
- * `null` cuando ninguna condición aplica -- ej. cargos de Líder/Encargado de
- * Departamento (`LIDER_DEPARTAMENTO`, `ENCARGADO_DEPARTAMENTOS_RED`/`_VISION`
- * en el catálogo de `cargo`), o un Líder de Afirmación puro sin ningún cargo
- * de Casas de Paz. Antes esto caía por defecto en `LIDER_CDP`, mandando a esas
- * personas al panel de una Casa de Paz ajena (bug real, corregido 2026-07-26).
- * `useRolUI` y `Dashboard` ya saben mostrar el estado vacío correspondiente
- * ("Todavía no tenés ningún panel asignado") o redirigir a Afirmación.
- */
-export function determinarRolUI(
-  esSuperAdmin: boolean,
-  esPastor: boolean,
-  esOperativo: boolean,
-  roles: MisRolesDashboard | undefined,
-  esLiderAfirmacion = false,
-): RolUI | null {
-  if (esSuperAdmin) return 'SUPER_ADMIN';
-  if (esPastor) return 'PASTOR';
-  if (esOperativo) return 'SUPERVISOR';
-  if (roles?.redes_lider?.length) return 'LIDER_RED';
-  if (roles?.cdp_lider?.length) return 'LIDER_CDP';
-  if (roles?.cdp_sublider?.length) return 'SUBLIDER_CDP';
-  if (esLiderAfirmacion) return 'LIDER_DEPARTAMENTO';
-  return null;
-}
-
-/**
- * Metadata para mostrar un RolUI como opción elegible (pantalla "Seleccionar rol"
- * y el menú "Cambiar rol"). Un Super Admin puede además tener roles operativos
- * (decisión del owner, 2026-07-31: ninguna cuenta está limitada a un solo rol) --
- * cuando eso pasa, SUPER_ADMIN aparece como una opción más del picker.
- */
-export const ROL_UI_META: Partial<Record<RolUI, { label: string; icon: LucideIcon; color: string }>> = {
-  SUPER_ADMIN: { label: 'Super Admin', icon: ShieldCheck, color: '#0a4174' },
-  PASTOR: { label: 'Pastor', icon: HeartHandshake, color: 'var(--brand-navy)' },
-  SUPERVISOR: { label: 'Supervisor', icon: Settings, color: '#0071e3' },
-  LIDER_RED: { label: 'Líder de Red', icon: Users, color: '#5856d6' },
-  LIDER_CDP: { label: 'Líder de Casa de Paz', icon: Home, color: '#0aa5c0' },
-  SUBLIDER_CDP: { label: 'Sublíder de Casa de Paz', icon: Home, color: '#30b0c7' },
-  // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL) -- el label
-  // genérico alcanza porque es la única variante real que puede aparecer.
-  LIDER_DEPARTAMENTO: { label: 'Líder de Departamento', icon: UserPlus, color: '#0071e3' },
-};
-
-/**
- * A diferencia de `determinarRolUI` (prioridad, corta en el primero), esta
- * función acumula TODOS los roles que aplican -- es la base de la pantalla
- * de selección de rol y del ítem "Cambiar rol": ahí el usuario elige entre
- * todos sus sombreros posibles, no solo el de mayor jerarquía.
- */
-export function calcularOpcionesRolUI(
-  esSuperAdmin: boolean,
-  esPastor: boolean,
-  esOperativo: boolean,
-  roles: MisRolesDashboard | undefined,
-  esLiderAfirmacion = false,
-): RolUI[] {
-  const opciones: RolUI[] = [];
-  if (esSuperAdmin) opciones.push('SUPER_ADMIN');
-  if (esPastor) opciones.push('PASTOR');
-  if (esOperativo) opciones.push('SUPERVISOR');
-  if (roles?.redes_lider?.length) opciones.push('LIDER_RED');
-  if (roles?.cdp_lider?.length) opciones.push('LIDER_CDP');
-  if (roles?.cdp_sublider?.length) opciones.push('SUBLIDER_CDP');
-  if (esLiderAfirmacion) opciones.push('LIDER_DEPARTAMENTO');
-  return opciones;
-}
-
-/**
- * Vista de Dashboard por defecto para un RolUI ya elegido (picker de rol o
- * caso unívoco). Espejo de las prioridades que antes vivían hardcodeadas en
- * Dashboard.tsx -- centralizado acá para que el rol elegido en el picker
- * siempre determine qué panel abre.
- */
-export function vistaPorDefectoParaRol(
-  rolUI: RolUI,
-  roles: MisRolesDashboard | undefined,
-  iglesiaId: string | undefined,
-): Vista | null {
-  if (rolUI === 'PASTOR') return { tipo: 'pastor' };
-  if (rolUI === 'SUPERVISOR' && iglesiaId) return { tipo: 'supervisor', iglesiaId };
-  if (rolUI === 'LIDER_RED' && roles?.redes_lider?.length) return { tipo: 'red', redId: roles.redes_lider[0].id };
-  if (rolUI === 'LIDER_CDP' && roles?.cdp_lider?.length) return { tipo: 'cdp', cdpId: roles.cdp_lider[0].id, esSublider: false };
-  // SUBLIDER_CDP no pasa por acá: Dashboard.tsx lo redirige antes a
-  // ROUTES.CASAS_DE_PAZ (Perfil de Casa de Paz), sin panel de Dashboard.
-  return null;
-}
-
-/**
  * Devuelve los items de navegación para un rol, con labels resueltos.
  */
 export function obtenerNavItems(rolUI: RolUI): NavItem[] {
@@ -308,13 +224,26 @@ export function obtenerNavItems(rolUI: RolUI): NavItem[] {
     }));
 }
 
+// `ruta` acá es un pathname real (ej. `/constructor/3dd4...`), mientras que
+// las plantillas de RUTAS_POR_ROL pueden traer segmentos dinámicos (ej.
+// `/constructor/:iglesiaId`) -- comparar con `===`/`includes` nunca
+// coincide para esas. CONSTRUCTOR_RESUMEN (2026-08-11) fue la primera ruta
+// dinámica dentro de PrivateLayout (antes solo existían fuera, ej.
+// ESTRUCTURA_ORGANIZACIONAL, que se autoprotege sin pasar por acá).
+function coincideConPlantilla(plantilla: string, ruta: string): boolean {
+  const partesPlantilla = plantilla.split('/');
+  const partesRuta = ruta.split('/');
+  if (partesPlantilla.length !== partesRuta.length) return false;
+  return partesPlantilla.every((parte, i) => parte.startsWith(':') || parte === partesRuta[i]);
+}
+
 /**
  * Verifica si un rol puede acceder a una ruta específica.
  */
 export function puedeAcceder(rolUI: RolUI, ruta: string): boolean {
   // La ruta /cuenta siempre es accesible para todos
   if (ruta === ROUTES.CUENTA) return true;
-  return RUTAS_POR_ROL[rolUI].includes(ruta);
+  return RUTAS_POR_ROL[rolUI].some((plantilla) => coincideConPlantilla(plantilla, ruta));
 }
 
 /**

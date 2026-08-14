@@ -38,8 +38,7 @@ import { TEAL, AZUL, MORADO, AMBAR } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { obtenerUrlBase } from '@/utils/app-url';
 import { ROUTES } from '@/utils/constants';
-import { useAuthStore } from '@/store/auth.store';
-import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import {
   useAsignarCargoCdp,
   useAsignarCargoRed,
@@ -95,12 +94,10 @@ function IconoBadge({ color, icon: Icon, size = 'md' }: { color: string; icon: t
  * Paz viven en un menú (…) para mantener las filas compactas.
  */
 export function GestionRedVista() {
-  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const { data: roles, isLoading: cargandoRoles } = useMisRoles(iglesiaActivaId);
-  const redes = roles?.redes_lider ?? [];
-
-  const [redId, setRedId] = useState<string>();
-  const redActiva = redId ?? redes[0]?.id;
+  const { contextoActivo, cargando: cargandoContexto } = useContextoActivo();
+  const contextoRed = contextoActivo?.alcance === 'RED' ? contextoActivo : null;
+  const iglesiaActivaId = contextoRed?.iglesiaId;
+  const redActiva = contextoRed?.redId;
 
   const { data: todasRedes = [] } = useRedes(iglesiaActivaId);
   const redInfo = todasRedes.find((r) => r.id === redActiva);
@@ -238,7 +235,7 @@ export function GestionRedVista() {
     } catch (e) { manejarError(e, 'No se pudo asignar el cargo'); }
   }
 
-  if (cargandoRoles) {
+  if (cargandoContexto) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-28 w-full rounded-3xl" />
@@ -249,18 +246,12 @@ export function GestionRedVista() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Encabezado + selector solo de SUS redes ───────────────────────────── */}
+      {/* ── Encabezado de la Red activa ───────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Gestión de Casas de Paz</h1>
           <p className="mt-0.5 text-[13px] text-muted-foreground">Administrá solo las Casas de Paz de tu Red.</p>
         </div>
-        {redes.length > 1 && (
-          <Select value={redActiva} onValueChange={(v) => { setRedId(v); setVisibles(LOTE); }}>
-            <SelectTrigger className="w-full rounded-2xl sm:w-56"><SelectValue placeholder="Elegí una red" /></SelectTrigger>
-            <SelectContent>{redes.map((r) => (<SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>))}</SelectContent>
-          </Select>
-        )}
       </div>
 
       {/* ── Identidad de la Red (hero) ─────────────────────────────────────────── */}

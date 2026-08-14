@@ -33,3 +33,41 @@ Si no existe forma estable de identificar una asignación vigente, se podrá pro
 - prueba de regresión de todos los roles antes de aplicarla.
 
 No se debe crear una tabla para “roles activos”: el contexto activo es una preferencia de sesión de frontend, validada contra el dominio; no es un permiso que deba persistirse como fuente de verdad en la BD.
+
+## Resultado de auditoría KAN-135
+
+La Fase 5 demostró que sí hacen falta migraciones de seguridad. La base viva
+tenía RPC `SECURITY DEFINER` que validaban solo pertenencia a la iglesia y no la
+Red/CdP exacta, además de políticas `SELECT` con el mismo alcance amplio.
+
+Migraciones preparadas localmente, todavía no aplicadas a Supabase:
+
+- `20260809053351_kan_135_hardening_privilegios_y_coherencia.sql`: cierra
+  ejecución pública, evita cruces de iglesia en notificaciones, valida la
+  coherencia Iglesia/Red de anuncios y convierte `v_reporte_totales` en
+  `security_invoker`.
+- `20260809054456_kan_135_alcance_exacto_red_cdp.sql`: introduce
+  `fn_puede_ver_red`/`fn_puede_ver_cdp`, acota listados y RPC de CdP y endurece
+  las políticas de lectura de estructura, reportes, evangelismo y calendario.
+- `20260809060533_kan_135_aprobaciones_red_transaccionales.sql`: valida que
+  solicitud, iglesia, Red, payload y aprobador coincidan; permite ejecutar
+  fusión/multiplicación aprobadas sin elevar al Líder a Supervisor.
+
+Hallazgo pendiente que no se debe resolver por intuición:
+
+1. `Personas.tsx` permite deliberadamente búsqueda de toda la iglesia a
+   Líder/Sublíder CdP, mientras el contexto nuevo declara alcance CdP. Requiere
+   decisión funcional del owner antes de cambiar UI, RPC o RLS de `persona`.
+
+La migración de aprobaciones compiló en PostgreSQL 17 y pasó pruebas locales de
+fusión válida, multiplicación válida y rechazo de payload manipulado. El
+contenedor temporal fue eliminado después de las pruebas.
+
+Las tres migraciones KAN-135 compilaron en PostgreSQL 17 y pasaron pruebas
+locales. Se verificaron ACL, cruce de iglesia, coherencia Iglesia/Red,
+`security_invoker`, alcance exacto Red/CdP, Supervisor, aprobaciones válidas y
+rechazo de payload manipulado. Todos los contenedores temporales fueron
+eliminados después de las pruebas.
+
+Las migraciones siguen sin aplicarse a la base viva. Falta la aprobación del
+owner y la matriz final con cuentas multirol reales.

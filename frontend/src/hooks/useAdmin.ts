@@ -5,6 +5,7 @@ import {
   buscarCuentas,
   crearIglesia,
   crearUsuarioRol,
+  eliminarCuentaUsuario,
   eliminarIglesia,
   invitarUsuario,
   obtenerDashboardSuperAdmin,
@@ -14,6 +15,7 @@ import {
   toggleUsuarioRol,
 } from '@/services/admin.service';
 import type { RolSistema } from '@/types/auth.types';
+import type { PersonaMinima } from '@/components/admin/InvitarUsuarioDialog';
 
 export function useIglesiasTodas() {
   return useQuery({ queryKey: ['admin', 'iglesias'], queryFn: obtenerIglesiasTodas });
@@ -80,12 +82,16 @@ export function useInvitarUsuario() {
       rol,
       iglesiaId,
       pin,
+      respetarOtpIglesia,
+      persona,
     }: {
       correo: string;
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
-    }) => invitarUsuario(correo, rol, iglesiaId, pin),
+      respetarOtpIglesia?: boolean;
+      persona?: PersonaMinima;
+    }) => invitarUsuario(correo, rol, iglesiaId, pin, respetarOtpIglesia, persona),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }
@@ -100,12 +106,14 @@ export function useAsignarUsuarioExistente() {
       rol,
       iglesiaId,
       pin,
+      persona,
     }: {
       usuarioId: string;
       rol: RolSistema;
       iglesiaId: string | null;
       pin?: string;
-    }) => crearUsuarioRol(usuarioId, rol, iglesiaId, pin),
+      persona?: PersonaMinima;
+    }) => crearUsuarioRol(usuarioId, rol, iglesiaId, pin, persona),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }
@@ -170,6 +178,14 @@ export function useToggleUsuarioRol() {
   return useMutation({
     mutationFn: ({ usuarioRolId, activo, pin }: { usuarioRolId: string; activo: boolean; pin?: string }) =>
       toggleUsuarioRol(usuarioRolId, activo, pin),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
+  });
+}
+
+export function useEliminarCuentaUsuario() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ usuarioId, pin }: { usuarioId: string; pin?: string }) => eliminarCuentaUsuario(usuarioId, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
   });
 }

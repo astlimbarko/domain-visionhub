@@ -25,7 +25,7 @@ import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog
 
 const NOMBRE_CATEGORIA: Record<string, string> = {
   CDP: 'Casa de Paz',
-  ESTRUCTURA: 'Estructura organizacional',
+  ESTRUCTURA: 'Constructor',
   SSVA: 'Estados SSVA',
   DASHBOARD_LIDER: 'Dashboard del Líder de CdP',
   DASHBOARD_SUBLIDER: 'Dashboard del Sublíder',

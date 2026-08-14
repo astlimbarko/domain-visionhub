@@ -228,7 +228,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
           </div>
           <div className="hidden h-8 w-px shrink-0 bg-white/15 lg:block corto:block" />
           <div className="hidden min-w-0 lg:block corto:block">
-            <h1 className="truncate text-base font-bold text-white">Estructura Organizacional</h1>
+            <h1 className="truncate text-base font-bold text-white">Constructor</h1>
             <p className="truncate text-left text-xs font-medium text-white/55">Vista general de la iglesia</p>
           </div>
           <div className="ml-auto hidden flex-1 items-center justify-end gap-2 lg:flex corto:flex">
@@ -541,7 +541,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
-              esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
                 setAbrirAnadirSubliderDirecto(false);
@@ -571,7 +571,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             red={redSeleccionada}
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
-            esSuperAdmin={rolUI === 'SUPER_ADMIN'}
+            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
             // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09)
@@ -637,7 +637,7 @@ export function EstructuraOrganizacional() {
   // el organigrama pero solo pueden editar su propia Red (ContenidoEstructura
   // acota clicks/paneles con puedeEditarRed); el resto queda en modo lectura.
   // 2026-08-09: Pastor entra con paridad de Supervisor (ver comentarios en
-  // ContenidoEstructura y la migracion 20260809080000_paridad_pastor_supervisor.sql).
+  // ContenidoEstructura y la migración 20260809080000_paridad_pastor_supervisor.sql).
   if (rolUI !== 'SUPER_ADMIN' && rolUI !== 'SUPERVISOR' && rolUI !== 'LIDER_RED' && rolUI !== 'PASTOR') {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }

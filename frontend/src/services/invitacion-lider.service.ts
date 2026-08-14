@@ -28,7 +28,7 @@ export async function invitarLider(
   casaDePazId: string | null,
   departamentoId: string | null = null,
   pin?: string
-): Promise<{ id: string; correo: string }> {
+): Promise<{ id: string; correo: string; yaExistia?: boolean }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
       accion: 'invitar',

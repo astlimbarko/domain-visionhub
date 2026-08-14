@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
@@ -6,6 +6,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { ContenidoCargando } from '@/components/ui/logo-spinner';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useFichaPersonaStore } from '@/store/ficha-persona.store';
+import { useAuthStore } from '@/store/auth.store';
+import { supabase } from '@/services/supabase';
 import { ROUTES } from '@/utils/constants';
 import { rolesPermitidosPara } from '@/utils/permisos';
 import { RegistroPublico } from '@/pages/RegistroPublico';
@@ -42,6 +44,7 @@ const GestionRedes = lazy(() => import('@/pages/GestionRedes').then((m) => ({ de
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
 const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
 const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizacional').then((m) => ({ default: m.EstructuraOrganizacional })));
+const ConstructorResumen = lazy(() => import('@/pages/ConstructorResumen').then((m) => ({ default: m.ConstructorResumen })));
 const Afirmacion = lazy(() => import('@/pages/Afirmacion').then((m) => ({ default: m.Afirmacion })));
 const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').then((m) => ({ default: m.AfirmacionFormulario })));
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
@@ -107,6 +110,30 @@ const queryClient = new QueryClient({
 function App() {
   const personaFichaId = useFichaPersonaStore((s) => s.personaId);
   const cerrarFichaPersona = useFichaPersonaStore((s) => s.cerrar);
+  const logout = useAuthStore((s) => s.logout);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // Bug real reportado (2026-08-11): "isAuthenticated" es un flag propio
+  // persistido en localStorage, nunca se recalculaba solo porque la sesión
+  // real de Supabase se invalidara (refresh token vencido por estar mucho
+  // tiempo sin abrir la app, token corrupto, etc.) -- así que quedaba
+  // "pegado" en true, y el primer síntoma era una consulta fallando con 401
+  // (pantalla "No se pudo conectar" de PrivateLayout) en vez de mandar
+  // directo a /login. Verificado en vivo (corrompiendo el refresh token en
+  // localStorage) que en este caso -- token ya inválido desde el arranque,
+  // no una sesión activa que se corta -- Supabase emite 'INITIAL_SESSION'
+  // con session=null, NO 'SIGNED_OUT' (ese solo dispara si había una sesión
+  // en memoria y se pierde a mitad de camino) -- hay que cubrir los dos.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, session) => {
+      const sinSesionReal = (evento === 'SIGNED_OUT' || evento === 'INITIAL_SESSION') && !session;
+      if (sinSesionReal && isAuthenticated) {
+        logout();
+        queryClient.clear();
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [isAuthenticated, logout]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -222,6 +249,11 @@ function App() {
             <Route path={ROUTES.ADMINISTRACION} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.ADMINISTRACION)}><Administracion /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.CONSTRUCTOR_RESUMEN} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.CONSTRUCTOR_RESUMEN)}><ConstructorResumen /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.AFIRMACION} element={<RutaAfirmacion><Afirmacion /></RutaAfirmacion>} />

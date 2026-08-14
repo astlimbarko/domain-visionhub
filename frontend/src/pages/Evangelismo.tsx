@@ -17,21 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisRoles } from '@/hooks/useDashboard';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisCasasDePaz } from '@/hooks/useCalendario';
 import {
   useActualizarMetaPropia,
@@ -58,25 +50,15 @@ const { AZUL, VERDE, NARANJA, AMARILLO, CELESTE } = EVANGELISMO_COLOR;
 export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const rolUI = useRolUI();
+  const { contextoActivo } = useContextoActivo();
+  const rolUI = contextoActivo?.rolUI ?? null;
   // El sublíder ve Evangelismo en modo solo lectura -- no puede registrar
   // evangelizados ni tocar la meta propia (decisión del owner, 2026-07-31).
   const esSublider = rolUI === 'SUBLIDER_CDP';
-  const { data: roles } = useMisRoles(iglesiaActivaId);
 
   const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  // Mismo filtro que GestionSubliderVista.tsx: si la persona es Líder de una
-  // CdP y Sublíder de otra a la vez, esta vista se acota a la que corresponde
-  // al "sombrero" activo -- sin esto, el selector mezclaba ambas CdP y
-  // "esSublider" (flag global) quedaba mal aplicado a la CdP ajena.
-  const misCasas = useMemo(() => {
-    if (!misCasasCrudo) return misCasasCrudo;
-    if (rolUI !== 'LIDER_CDP' && rolUI !== 'SUBLIDER_CDP') return misCasasCrudo;
-    const idsPropios = new Set((rolUI === 'LIDER_CDP' ? roles?.cdp_lider : roles?.cdp_sublider)?.map((c) => c.id) ?? []);
-    return misCasasCrudo.filter((c) => idsPropios.has(c.casa_de_paz_id));
-  }, [misCasasCrudo, rolUI, roles]);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const misCasas = misCasasCrudo;
+  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
@@ -196,9 +178,7 @@ export function Evangelismo() {
   // propia (misCasas vacío), así que sin esta rama caía siempre en el
   // placeholder de abajo pese a tener "Evangelismo" en su menú.
   if (rolUI === 'LIDER_RED') {
-    if (!roles) return <Skeleton className="h-96 w-full rounded-2xl" />;
-    const redActiva = roles.redes_lider?.[0];
-    if (!redActiva) {
+    if (contextoActivo?.alcance !== 'RED') {
       return (
         <ProximamentePlaceholder
           titulo="Evangelismo"
@@ -206,7 +186,7 @@ export function Evangelismo() {
         />
       );
     }
-    return <EvangelismoRed redId={redActiva.id} />;
+    return <EvangelismoRed redId={contextoActivo.redId} />;
   }
 
   // El Supervisor no lidera/sublidera ninguna Casa de Paz ni Red propia --
@@ -217,7 +197,7 @@ export function Evangelismo() {
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
-  if (!misCasas || misCasas.length === 0) {
+  if (!cdpActiva || !misCasas?.some((c) => c.casa_de_paz_id === cdpActiva)) {
     return (
       <ProximamentePlaceholder
         titulo="Evangelismo"
@@ -292,20 +272,6 @@ export function Evangelismo() {
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
-        {misCasas.length > 1 && (
-          <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-            <SelectTrigger className="w-full sm:w-56 rounded-xl border-border/60 bg-background text-sm">
-              <SelectValue placeholder="Casa de Paz" />
-            </SelectTrigger>
-            <SelectContent>
-              {misCasas.map((c) => (
-                <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                  {c.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />

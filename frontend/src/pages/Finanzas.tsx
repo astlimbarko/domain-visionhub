@@ -2,19 +2,10 @@ import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { VERDE, MARINO } from '@/components/dashboard/DashboardUI';
-import { useAuthStore } from '@/store/auth.store';
-import { useRolUI } from '@/hooks/useRolUI';
-import { useMisCasasDePaz } from '@/hooks/useCalendario';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import { useComparativo, useCrearIngreso, useIngresosCdp, useTiposIngreso } from '@/hooks/useFinanzas';
 import { NuevoIngresoDialog } from '@/components/finanzas/NuevoIngresoDialog';
@@ -23,13 +14,10 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { aISO, nombreMes } from '@/utils/calendario-fechas';
 
 export function Finanzas() {
-  const rolUI = useRolUI();
-  const personaId = useAuthStore((s) => s.personaId);
-  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-
-  const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
-  const [casaDePazId, setCasaDePazId] = useState<string>();
-  const cdpActiva = casaDePazId ?? misCasas?.[0]?.casa_de_paz_id;
+  const { contextoActivo } = useContextoActivo();
+  const rolUI = contextoActivo?.rolUI;
+  const iglesiaActivaId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : undefined;
+  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
@@ -62,9 +50,7 @@ export function Finanzas() {
   // genera cada Red de la iglesia y, dentro de ella, cada una de sus CdP.
   if (rolUI === 'SUPERVISOR') return <FinanzasSupervisorVista />;
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
-
-  if (!misCasas || misCasas.length === 0) {
+  if (!cdpActiva) {
     return (
       <ProximamentePlaceholder
         titulo="Finanzas"
@@ -77,20 +63,6 @@ export function Finanzas() {
     <div ref={contenedorRef} className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {misCasas.length > 1 && (
-            <Select value={cdpActiva} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56 rounded-xl text-sm">
-                <SelectValue placeholder="Casa de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                {misCasas.map((c) => (
-                  <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>
-                    {c.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>

@@ -1,0 +1,36 @@
+# Gonzalo — 2026-08-10
+
+- [x] Auditoría completa KAN-152 (aislamiento multi-tenant, resolución de rol/iglesia activa) — Finalizada en Jira
+- [x] Fix: contexto de rol persistido reactivaba el rol de la sesión anterior en cada login nuevo, sin dejar elegir otro
+- [x] Fix: al crear una iglesia nueva no se sembraban los 4 Departamentos ni `estructura_organigrama` (trigger nuevo)
+- [x] Reparadas 3 iglesias reales existentes que tenían ese mismo gap (Sion, 4 Anillo, Guabira)
+- [x] Aplicadas las 3 migraciones de KAN-135 que quedaban preparadas de antes, con un bug real corregido en el camino (`solicitud_estructura`)
+- [x] Fix: menú de cuenta mostraba el cargo por prioridad fija en vez del rol activo real (KAN-73) — sin verificar en navegador (MCP desconectado)
+- [x] Revisadas cuentas Super Admin creadas por INSERT manual (astlimbark, Daniel, Matías) — sin inconsistencias funcionales, solo falta el dato de auditoría de quién las creó
+- [x] `CLAUDE.md`: 2 reglas nuevas (comentar en Jira antes de pasar de ticket; actualizar memoria al cerrar cada tarea)
+- [x] KAN-154: rol Super Admin Secundario (astlimbark queda como principal; Daniel/Matías/test@somoscdv.com quedan como secundarios) — código listo y aplicado a la BD real, falta probar en vivo en el navegador
+- [x] Nueva acción "Eliminar cuenta" en el panel de Super Admin (limpieza de cuentas de prueba, borra todos los cargos + personas de una cuenta de una vez)
+- [x] Check "Iglesia raíz" en Nueva Iglesia (crear iglesia sin madre, antes no había forma en la UI aunque la BD ya lo soportaba)
+- [x] Prueba manual en vivo de KAN-154 → encontrada regresión real (mi migración de KAN-154 pisó una corrección del 2026-08-09: "el Super Admin sí puede tener roles operativos") — corregida y aplicada (`fn_validar_asignacion_rol`)
+- [x] KAN-155: rediseño del modal Crear Iglesia (raíz por defecto, OTP en 2 pasos, Pastor como paso posterior, nombre de Pastor discreto junto a la iglesia)
+- [x] KAN-156: asignar cargo a un correo que ya tiene cuenta ahora asigna directo en vez de solo avisar y no aplicar nada
+- [x] KAN-157: el toggle de OTP por iglesia ahora se respeta también en el modo "Por correo electrónico" de Estructura Organizacional
+- [x] KAN-158: segunda regresión de la migración de KAN-154 encontrada y corregida (`fn_listar_usuarios` había perdido el filtro por iglesia en el JOIN con persona)
+- [x] Auditoría de multitenant/multirol (sidebar, navbar, contexto activo): código saneado, sin bugs nuevos — solo falta prueba en vivo de la épica KAN-129/130-133 (nunca es un bug, es que nadie la probó todavía)
+- [x] Todo mergeado a `codex/refactorizacion-multirol` (2 agentes en worktrees separados, sin conflictos), `tsc`/lint limpios, migraciones aplicadas a la BD real
+- [x] Segunda ronda de prueba manual → 3 hallazgos más: KAN-159 (mensaje confuso al bloquear auto-asignación de rol -- Gonzalo se estaba probando el Pastor a sí mismo, correctamente bloqueado, mensaje no lo explicaba), KAN-160 (borrado definitivo de Red ignoraba el switch de OTP -- ya existía la función, solo faltaba ese respeto puntual), KAN-161 (renombrado "Estructura Organizacional" → "Constructor")
+- [x] KAN-162: investigada cuenta huérfana (login con Google sin invitación) -- confirmado que el hueco está cerrado desde el 2026-08-09 (KAN-138 se probó y se revirtió ese mismo día). Se trajo a esta rama el mensaje de rechazo claro que Matías ya tenía en master. Se eliminaron 18 cuentas de prueba huérfanas de `auth.users` (decisión explícita del owner, se pierde su historial de auditoría). Quedó afuera `matiasfrancosalvatierra50@gmail.com` -- tiene un cargo real de Pastor activo en Montero, no es una cuenta vacía, hay que revisarla con Matías antes de tocarla
+- [x] KAN-163: `fn_buscar_cuentas` no encontraba cuentas sin ningún cargo activo (exigía un JOIN con `usuario_rol` con rol activo) — justo lo opuesto a su propósito (buscar para asignar el primer cargo). Corregido en vivo, verificado (test@somoscdv.com pudo asignarse Pastor después)
+- [x] KAN-164: correo de "fuiste designado" nunca llegaba — encontrados y corregidos 3 problemas reales en cadena: `ctx.supabase.functions.invoke` no existe en este proyecto, faltaba el header `apikey`, y la función de notificación en sí tenía un despliegue viejo atascado en el servidor. **Confirmado en vivo, el correo llegó.** Se le agregó también botón "Ingresar ahora" (KAN-166)
+- [x] KAN-165: asignar Líder de Afirmación pedía OTP siempre — el diálogo compartido (`AsignarCargoDialog`) nunca conoció el switch por iglesia, el backend ya lo respetaba bien. Corregido
+- [x] KAN-167: invitar Líder de Afirmación por correo tenía 2 bugs reales más — (1) exigía OTP siempre igual que KAN-165 pero en el backend (`invitar-lider`), corregido con el mismo patrón que ya tenía Líder de Red; (2) si el correo ya tenía cuenta, quedaba en callejón sin salida en vez de asignar directo (el backend ya devolvía los datos para hacerlo desde 2026-08-06, nunca se conectó en el frontend) — corregido con el mismo patrón de KAN-156, sin volver a pedir el código (es de un solo uso)
+- [x] Limpieza: encontrada y eliminada la tabla `usuario_pin` + funciones `fn_verificar_pin`/`fn_establecer_pin` del PIN estático viejo (reemplazado el 2026-07-30 por el código de 6 dígitos, nunca se había borrado del todo)
+- [ ] Confirmado con `git merge-tree`: mergear esta rama a master NO es seguro todavía (conflicto real en `AppShell.tsx` con el trabajo de Matías, KAN-86) — ver memoria
+- [x] KAN-160 (refinado): eliminar Red/CdP por completo ahora exige que esté vacía (sin líderes/miembros) y lo puede hacer también el Supervisor de la Visión en Acción, no solo Super Admin
+- [x] KAN-170: campos Ciudad y Zona ("dirección breve") al crear Casa de Paz desde el Constructor — las CdP no tienen nombre propio, se identifican por líder + zona
+- [x] KAN-169: mensaje "Asignado a la cuenta existente" en vez del texto que sonaba alarmante (se investigaron los ~40 toasts del Constructor antes de tocar nada, a pedido)
+- [x] KAN-171: correo de confirmación al Super Admin al crear una iglesia, a nombre de "VisionHub" (no de la iglesia, por ser acción de plataforma) — desplegado, falta probar en vivo
+- [x] KAN-168: ticket creado para borrar códigos OTP de más de 90 días (no implementado todavía, solo queda registrado)
+- [ ] Pendiente mañana (2026-08-11 en adelante): probar en vivo el flujo del Supervisor de la Visión en Acción igual que hoy con Super Admin; revisar todo el flujo de Super Admin con OTP activado; borrar la iglesia de prueba de hoy y crear una mejor
+- [ ] Sigue sin mergear a master — falta que Gonzalo revise lo que se agregó en esta sesión antes de decidir
+- [ ] Sigue en curso la prueba manual en vivo de Gonzalo — cada bug real que encuentra se corrige y se despliega en el momento

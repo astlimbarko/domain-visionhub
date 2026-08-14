@@ -116,7 +116,7 @@ export async function obtenerEstructuraOrganizacional(
   // más del lado del cliente para no ocultar filas que la RLS sí permite ver.
   const [iglesiaResultado, departamentosResultado, redesResultado, casasResultado, relacionesResultado,
     configuracionResultado, posicionesResultado, invitacionesRedResultado, usuariosResultado, cargosResultado,
-    cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado] =
+    cargosRedResultado, cargosCdpResultado, cargosDepartamentoResultado, correosRespaldoResultado] =
     await Promise.all([
       supabase
         .from('iglesia')
@@ -181,6 +181,12 @@ export async function obtenerEstructuraOrganizacional(
         .eq('iglesia_id', iglesiaId)
         .is('fecha_fin', null)
         .is('fecha_eliminacion', null),
+      // Bug real 2026-08-11: respaldo de correo (persona.correo vacío,
+      // fn_listar_usuarios no cubre Líder/Supervisor de Red -- solo roles
+      // de usuario_rol). No entra al `errores`/throw de abajo a propósito:
+      // si falla, el peor caso es "Persona sin identificar" en vez de
+      // tirar abajo todo el Constructor por un dato secundario.
+      supabase.rpc('fn_estructura_correos_respaldo', { p_iglesia_id: iglesiaId }),
     ]);
 
   const errores = [
@@ -230,6 +236,25 @@ export async function obtenerEstructuraOrganizacional(
     }
   }
 
+  // `persona.correo` (columna propia) suele quedar vacía para cuentas dadas
+  // de alta directo con un rol (ej. Pastor/Supervisor, o designadas por
+  // correo sin pasar por invitacion_lider) -- el correo real vive en
+  // auth.users. fn_listar_usuarios (usuariosResultado) solo cubre roles de
+  // usuario_rol (Pastor/Supervisor/Super Admin); fn_estructura_correos_
+  // respaldo (correosRespaldoResultado) cubre a cualquier Persona de la
+  // iglesia con cuenta vinculada, incluidos Líder/Supervisor de Red, Líder
+  // de Departamento y Líder/Sublíder/Anfitrión de Casa de Paz. Sin este
+  // respaldo, alguien recién designado y todavía sin completar su ficha de
+  // Membresía (nombre vacío, KAN-179) se mostraba como "Persona sin
+  // identificar" en vez de su correo -- bug real reportado 2026-08-11.
+  const correoPorPersonaId = new Map<string, string>();
+  for (const fila of (usuariosResultado.data ?? []) as UsuarioRolFila[]) {
+    if (fila.persona_id) correoPorPersonaId.set(fila.persona_id, fila.correo);
+  }
+  for (const fila of (correosRespaldoResultado.data ?? []) as { persona_id: string; correo: string }[]) {
+    if (!correoPorPersonaId.has(fila.persona_id)) correoPorPersonaId.set(fila.persona_id, fila.correo);
+  }
+
   let personas = new Map<string, PersonaEstructura>();
   if (personaIds.length > 0) {
     const { data, error } = await supabase
@@ -239,17 +264,20 @@ export async function obtenerEstructuraOrganizacional(
       .is('fecha_eliminacion', null);
     if (error) throw error;
     personas = new Map(
-      ((data ?? []) as PersonaFila[]).map((persona) => [
-        persona.id,
-        {
-          id: persona.id,
-          nombre: nombrePersona(persona),
-          nombreAbreviado: nombreAbreviado(persona) || persona.correo || 'Persona sin identificar',
-          correo: persona.correo,
-          etiqueta: nombrePersona(persona) || persona.correo || 'Persona sin identificar',
-          membresiaPendiente: !persona.usuario_id,
-        },
-      ]),
+      ((data ?? []) as PersonaFila[]).map((persona) => {
+        const correo = persona.correo ?? correoPorPersonaId.get(persona.id) ?? null;
+        return [
+          persona.id,
+          {
+            id: persona.id,
+            nombre: nombrePersona(persona),
+            nombreAbreviado: nombreAbreviado(persona) || correo || 'Persona sin identificar',
+            correo,
+            etiqueta: nombrePersona(persona) || correo || 'Persona sin identificar',
+            membresiaPendiente: !persona.usuario_id,
+          },
+        ];
+      }),
     );
   }
 
@@ -393,8 +421,8 @@ export async function reactivarRedEstructura(redId: string, otp?: string | null)
   if (error) throw error;
 }
 
-export async function programarBorradoDefinitivoRedEstructura(redId: string, otp: string): Promise<void> {
-  const { error } = await supabase.rpc('fn_estructura_programar_borrado_red', { p_red_id: redId, p_otp: otp });
+export async function programarBorradoDefinitivoRedEstructura(redId: string, otp?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_estructura_programar_borrado_red', { p_red_id: redId, p_otp: otp ?? null });
   if (error) throw error;
 }
 
@@ -487,6 +515,18 @@ export async function notificarAsignacionCargoPrincipal(
 ): Promise<void> {
   const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
     body: { iglesiaId, personaId, cargo: tipo },
+  });
+  if (error) throw error;
+}
+
+// KAN-16x: mismo hueco que REQ-ASG-7/KAN-117 pero para Líder de Departamento
+// (Afirmación) -- el modo "Buscar en base de datos" tampoco avisaba.
+export async function notificarAsignacionCargoDepartamento(
+  departamentoId: string,
+  personaId: string,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke('notificar-asignacion-cargo', {
+    body: { departamentoId, personaId, cargo: 'LIDER_DEPARTAMENTO' },
   });
   if (error) throw error;
 }
