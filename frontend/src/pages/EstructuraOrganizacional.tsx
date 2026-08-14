@@ -543,7 +543,12 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
-              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+              // KAN-190 (2026-08-13): eliminar por completo (borrado
+              // permanente, irreversible) queda exclusivo de Super Admin --
+              // pedido explícito del owner, ningún otro rol (ni Supervisor de
+              // la Visión en Acción, ni Líder/Supervisor de Red, ni Líder de
+              // CdP) lo necesita para su trabajo normal.
+              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN'}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
                 setAbrirAnadirSubliderDirecto(false);
@@ -573,7 +578,11 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             red={redSeleccionada}
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
-            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+            // KAN-190 (2026-08-13): eliminar por completo (borrado
+            // permanente, irreversible) queda exclusivo de Super Admin --
+            // pedido explícito del owner, ver el mismo comentario en el panel
+            // de Casa de Paz más arriba en este archivo.
+            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
             // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09)

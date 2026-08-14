@@ -57,8 +57,9 @@ interface Props {
   red: RedEstructura | null;
   redesExistentes: RedEstructura[];
   otpRequerido: boolean;
-  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
-   * eliminar por completo -- el backend (fn_estructura_programar_borrado_red)
+  /** KAN-190: solo Super Admin puede eliminar por completo (pedido
+   * explícito del owner, 2026-08-13 -- antes también podía Supervisor de la
+   * Visión en Acción). El backend (fn_estructura_programar_borrado_red)
    * ya exige además que esté vacía (sin líder/supervisor ni Casas de Paz). */
   puedeEliminarPorCompleto: boolean;
   /** KAN-78: false para Lider/Supervisor de Red -- eliminar una Red entera

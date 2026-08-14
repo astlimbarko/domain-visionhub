@@ -39,8 +39,9 @@ interface Props {
   colorRed?: string | null;
   abrirAnadirSubliderAlAbrir?: boolean;
   otpRequerido: boolean;
-  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
-   * eliminar por completo -- el backend (fn_estructura_eliminar_casa_de_paz)
+  /** KAN-190: solo Super Admin puede eliminar por completo (pedido
+   * explícito del owner, 2026-08-13 -- antes también podía Supervisor de la
+   * Visión en Acción). El backend (fn_estructura_eliminar_casa_de_paz)
    * ya exige además que no tenga datos reales (sin miembros ni
    * reportes/reuniones registradas; líder/sublíder/anfitrión sí puede
    * tener, eso ya no bloquea -- KAN-189). */
@@ -247,6 +248,15 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           >
             Reactivar Casa de Paz
           </button>
+          {puedeEliminarPorCompleto && (
+            <button
+              type="button"
+              onClick={() => setConfirmandoEliminar(true)}
+              className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
+            >
+              Eliminar Casa de Paz
+            </button>
+          )}
         </div>
         ) : (
         <div className="space-y-4 p-5">
