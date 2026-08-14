@@ -78,7 +78,7 @@ export function SeleccionarRol() {
           DialogContent (dialog.tsx) para no depender de que la lista de
           roles siempre entre. Con 6-7 roles la tarjeta ya no empuja toda la
           página, hace scroll adentro y "Cerrar sesión" sigue siempre a mano. */}
-      <div className="scrollbar-none relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-card p-6 shadow-xl shadow-black/[0.06] sm:p-9">
+      <div className="scrollbar-minimal relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-card p-6 shadow-xl shadow-black/[0.06] sm:p-9">
         <div className="mb-5 flex items-center justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
