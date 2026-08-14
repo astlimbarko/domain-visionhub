@@ -86,6 +86,12 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
   const logout = useAuthStore((s) => s.logout);
+  const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
+  const correo = useAuthStore((s) => s.correo);
+  // KAN-192: el modal saluda por nombre; si todavía no llenó su nombre
+  // (persona recién creada, sin membresía completada) usa el correo con el
+  // que inició sesión en su lugar.
+  const nombreOCorreo = nombreCompleto?.trim() || correo || null;
   const esquema = construirEsquema(invitacion.campos_obligatorios);
   type FormValues = z.infer<typeof esquema>;
 
@@ -187,7 +193,9 @@ export function MembresiaObligatoria({ invitacion }: Props) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">Completa tu Membresía</DialogTitle>
+          <DialogTitle className="text-xl">
+            {nombreOCorreo ? `Completa tu Membresía, ${nombreOCorreo}` : 'Completa tu Membresía'}
+          </DialogTitle>
           <DialogDescription>
             {esCasoGeneral ? (
               <>
