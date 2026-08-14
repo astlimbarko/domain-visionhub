@@ -284,16 +284,18 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* KAN-100: descargar el lienzo completo como PNG horizontal. */}
+            {/* KAN-100: descargar el lienzo completo como PNG horizontal.
+                KAN-187: solo icono, sin la palabra "Descargar" al lado. */}
             <button
               type="button"
-              title="Descargar como imagen"
+              aria-label={descargando ? 'Descargando…' : 'Descargar como imagen'}
+              title={descargando ? 'Descargando…' : 'Descargar como imagen'}
               {...eventosTactiles('Descargar como imagen')}
               onClick={() => void descargarLienzo()}
               disabled={descargando || nodes.length === 0}
-              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download className="h-4 w-4" /> <span className="hidden sm:inline">{descargando ? 'Descargando…' : 'Descargar'}</span>
+              <Download className="h-4 w-4" />
             </button>
           </div>
         </div>
