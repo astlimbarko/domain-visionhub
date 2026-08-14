@@ -219,7 +219,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
         {casaDePaz.eliminada ? (
         <div className="space-y-4 p-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue eliminada</p>
+            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue cerrada</p>
             <p className="mt-1 text-xs text-amber-700">
               Sigue visible (agrisada) mientras dure su período de gracia configurable. Nada se puede modificar hasta reactivarla.
             </p>
