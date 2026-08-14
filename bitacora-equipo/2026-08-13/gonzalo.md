@@ -20,3 +20,4 @@
 - [x] KAN-191: rediseño visual de "Seleccionar rol" (fondo degradado tipo gradient mesh + fila superior con logo de la iglesia + avatar con iniciales). Solo estética, verificado en vivo desktop y mobile, Finalizada
 - [x] KAN-192: modal "Completa tu Membresía" ahora saluda con el nombre, y si todavía no lo llenó muestra el correo. Verificado en vivo (test@somoscdv.com, sin nombre → mostró el correo), Finalizada
 - [x] KAN-193: icono "?" del selector de rol ahora abre la pantalla de ayuda (según multirol-help.jpeg) dentro de la misma tarjeta, con botón para volver. Verificado en vivo, Finalizada
+- [x] KAN-194: la tarjeta de "Seleccionar rol" no cabía en pantalla con varios roles (sin tope de alto). Se le agregó max-h-[90dvh] + scroll propio (mismo patrón que el Dialog compartido) y se ocultó la barra de scroll visualmente (nueva utilidad .scrollbar-none). Verificado en vivo achicando el viewport, Finalizada
