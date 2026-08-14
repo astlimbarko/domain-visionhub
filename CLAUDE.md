@@ -147,6 +147,25 @@ con que quede solo en el commit o en la bitácora local.
   cierre todavía. No esperar a terminarlo del todo para actualizar Jira; si
   una sesión avanza parcialmente un ticket y sigue a otra cosa, ese avance
   parcial queda comentado ahí mismo antes de moverse.
+- **Todo movimiento de estado lleva su propio comentario** (pedido explícito
+  2026-08-13), no solo el de "antes de pasar a otro ticket": cada vez que el
+  estado avanza (`En curso` → `En revisión` → `Finalizada`), ese cambio
+  puntual queda comentado en el momento, aunque la sesión siga trabajando el
+  mismo ticket después.
+- **El estado nunca avanza sin trabajo real que lo respalde** (pedido
+  explícito 2026-08-13). Si en algún momento no se puede seguir avanzando
+  (bloqueo, falta de info, etc.), se deja un comentario explicando por qué
+  y el ticket se queda en el estado en el que está — nunca se mueve "para
+  adelante" sin que ese paso esté de verdad hecho. No existe la combinación
+  "comentar y aun así cambiar de estado" si lo comentado es que no se pudo
+  avanzar.
+- **Autoría real de quien trabajó, aparte del reporter/assignee
+  centralizado** (pedido explícito 2026-08-13): como el reporter y el
+  assignee siempre quedan en Gonzalo (regla de arriba), si quien de verdad
+  trabajó en la sesión fue otra persona del equipo (Matías o Daniel), el
+  comentario del ticket debe decirlo explícitamente — así queda registrado
+  quién hizo el trabajo real aunque Jira solo muestre a Gonzalo como
+  asignado.
 
 ## Memoria entre sesiones (obligatorio)
 
