@@ -14,6 +14,19 @@ import nodemailer from "nodemailer";
 // nunca "VisionHub" (harness/EMAILS-AUTH.md).
 const REMITENTE = '"Centro de Vida 4 Anillo" <acceso@somoscdv.com>';
 
+// KAN-172: auditoria de latencia de correos OTP, separada de usuario_otp
+// (que sigue siendo solo generacion/hash/expiracion/uso del OTP en si).
+// Switch de 3 modos via secret de la funcion (nunca afecta el envio real,
+// solo la observabilidad): OFF (default) no registra nada; ERRORES
+// registra solo fallos de transporte (un insert); COMPLETA registra el
+// ciclo completo (inicia antes de sendMail, cierra despues).
+type ModoAuditoria = "OFF" | "ERRORES" | "COMPLETA";
+
+function leerModoAuditoria(): ModoAuditoria {
+  const valor = (Deno.env.get("AUDITORIA_EMAIL_MODO") ?? "OFF").toUpperCase();
+  return valor === "ERRORES" || valor === "COMPLETA" ? valor : "OFF";
+}
+
 function armarHtml(codigo: string): string {
   return `<!doctype html>
 <html>
@@ -55,7 +68,18 @@ export default {
       const esRateLimit = errorGenerar.message?.includes("OTP_MUY_SEGUIDO");
       return Response.json({ error: errorGenerar.message }, { status: esRateLimit ? 429 : 500 });
     }
-    const { codigo, expira_en: expiraEn } = (filas as { codigo: string; expira_en: string }[])[0];
+    const { id: otpId, codigo, expira_en: expiraEn } = (filas as { id: string; codigo: string; expira_en: string }[])[0];
+
+    const modoAuditoria = leerModoAuditoria();
+    let auditoriaId: string | null = null;
+    if (modoAuditoria === "COMPLETA") {
+      const { data } = await ctx.supabase.rpc("fn_auditoria_email_iniciar", {
+        p_otp_id: otpId,
+        p_tipo: "OTP",
+        p_proveedor: "brevo",
+      });
+      auditoriaId = (data as string | null) ?? null;
+    }
 
     const transporte = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
@@ -68,18 +92,38 @@ export default {
     });
 
     try {
-      await transporte.sendMail({
+      const resultado = await transporte.sendMail({
         from: REMITENTE,
         to: userData.user.email,
         subject: "Su código de confirmación",
         html: armarHtml(codigo),
       });
+      if (auditoriaId) {
+        await ctx.supabase.rpc("fn_auditoria_email_actualizar", {
+          p_id: auditoriaId,
+          p_estado: "ACEPTADO",
+          p_proveedor_message_id: resultado?.messageId ?? null,
+        });
+      }
     } catch (e) {
       // Antes esto se descartaba en silencio -- si Brevo rechaza o
       // throttlea el envio, no quedaba ningun rastro para diagnosticar
       // (incidente 2026-07-31, correos que nunca llegaron sin causa
       // confirmada). console.error va a los logs de la Edge Function.
       console.error("solicitar-otp: fallo el envio por Brevo SMTP", e);
+      // Sanitizado: solo el mensaje, nunca el objeto de error completo (podria
+      // traer detalles de la conexion SMTP), truncado por las dudas.
+      const errorCodigo = (e instanceof Error ? e.message : "ERROR_DESCONOCIDO").slice(0, 200);
+      if (auditoriaId) {
+        await ctx.supabase.rpc("fn_auditoria_email_actualizar", { p_id: auditoriaId, p_estado: "ERROR", p_error_codigo: errorCodigo });
+      } else if (modoAuditoria === "ERRORES") {
+        await ctx.supabase.rpc("fn_auditoria_email_registrar_error", {
+          p_otp_id: otpId,
+          p_tipo: "OTP",
+          p_proveedor: "brevo",
+          p_error_codigo: errorCodigo,
+        });
+      }
       return Response.json({ error: "No se pudo enviar el correo" }, { status: 500 });
     }
 
