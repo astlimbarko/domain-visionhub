@@ -187,21 +187,23 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     });
   }
 
-  function handleInvitar(correo: string) {
+  // KAN-206 (2026-08-15): si el correo ya tenia cuenta, el backend asigna
+  // directo en el mismo paso -- en vez de un toast con el modal quedando
+  // abierto, se devuelve `{ yaExistia: true }` para que AsignarCargoDialog
+  // muestre la confirmacion adentro suyo y se cierre solo. Una invitacion
+  // nueva de verdad (todavia sin cuenta) sigue avisando por toast.
+  async function handleInvitar(correo: string) {
     if (!dialogoCargo) return;
-    invitarLider.mutate(
-      { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
-      {
-        onSuccess: (resultado) => {
-          // KAN-16x (2026-08-11): si el correo ya tenia cuenta, el backend
-          // asigna directo en el mismo paso en vez de mandar una invitacion
-          // nueva -- avisar eso, no "invitación enviada" (nadie recibe nada).
-          toast.success(resultado.yaExistia ? `${correo} ya tenía cuenta: asignado directo y notificado por correo` : `Invitación enviada a ${correo}`);
-          void invalidarEstructura();
-        },
-        onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
-      },
-    );
+    try {
+      const resultado = await invitarLider.mutateAsync(
+        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
+      );
+      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      void invalidarEstructura();
+      return resultado;
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo invitar');
+    }
   }
 
   return (

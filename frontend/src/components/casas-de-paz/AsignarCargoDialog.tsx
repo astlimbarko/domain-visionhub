@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Mail, Search, X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { CheckCircle2, Mail, Search, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,7 +40,13 @@ interface Props {
   quitando?: boolean;
   invitable?: boolean;
   invitando?: boolean;
-  onInvitar?: (correo: string) => void;
+  /** KAN-206 (2026-08-15): si el correo ya tenía cuenta, el asignador la
+   * asigna directo en el mismo paso (sin mandar invitación real) -- cuando
+   * eso pasa, `onInvitar` puede devolver `{ yaExistia: true }` para que el
+   * diálogo muestre la confirmación adentro suyo y se cierre solo, en vez
+   * de un toast con el modal quedando abierto. Devolver `void`/nada omite
+   * ese comportamiento (ej. invitación nueva real, todavía sin cuenta). */
+  onInvitar?: (correo: string) => void | Promise<{ yaExistia?: boolean } | void>;
   /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
    * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
    * correo, o quitar a alguien quedan detrás de un paso de confirmación con
@@ -92,9 +98,21 @@ export function AsignarCargoDialog({
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
+  const [invitadoOk, setInvitadoOk] = useState(false);
+  const cierreAutomaticoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requiereOtp = onPinChange !== undefined && otpRequerido;
   const pinValido = !requiereOtp || /^[0-9]{6}$/.test(pin ?? '');
+
+  // KAN-206: al reabrirse para un cargo distinto, no debe arrastrar la
+  // confirmación del intento anterior.
+  useEffect(() => {
+    if (!open && invitadoOk) setInvitadoOk(false);
+  }, [open, invitadoOk]);
+
+  useEffect(() => () => {
+    if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
+  }, []);
 
   function manejarSeleccionPersona(persona: PersonaBusqueda) {
     if (requiereOtp) {
@@ -110,10 +128,23 @@ export function AsignarCargoDialog({
     setPersonaElegida(null);
   }
 
+  // KAN-206: si la persona ya tenía cuenta, se asignó directo en el mismo
+  // paso -- en vez de un toast chico con el modal quedando abierto (con el
+  // botón "Invitar" todavía visible), se muestra la confirmación adentro
+  // del propio modal y se cierra solo. Una invitación nueva de verdad
+  // (todavía sin cuenta) sigue el flujo de siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    onInvitar(correoInvitar.trim().toLowerCase());
+    const resultado = onInvitar(correoInvitar.trim().toLowerCase());
     setCorreoInvitar('');
+    if (resultado && typeof resultado.then === 'function') {
+      resultado.then((r) => {
+        if (r?.yaExistia) {
+          setInvitadoOk(true);
+          cierreAutomaticoRef.current = setTimeout(() => onOpenChange(false), 1800);
+        }
+      });
+    }
   }
 
   // Bug real (2026-08-15): antes solo confirmaba si la iglesia tenía OTP
@@ -157,6 +188,12 @@ export function AsignarCargoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {invitadoOk ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <CheckCircle2 className="h-9 w-9 text-green-600" />
+            <p className="text-sm font-medium text-foreground">Se añadió correctamente</p>
+          </div>
+        ) : (
         <form onSubmit={manejarSubmit} className="contents">
         <div className="flex flex-col gap-3">
           {cargandoVigentes ? (
@@ -303,6 +340,7 @@ export function AsignarCargoDialog({
           )
         )}
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
