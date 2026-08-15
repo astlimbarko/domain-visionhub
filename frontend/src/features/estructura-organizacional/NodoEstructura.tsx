@@ -378,12 +378,18 @@ export const NodoEstructura = memo(function NodoEstructura({ data, selected }: N
             </span>
           );
         })}
-        <span
-          data-accion="anadir-sublider"
-          className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:text-blue-900"
-        >
-          + Añadir sublíder
-        </span>
+        {/* Bug real 2026-08-15: este atajo abría el diálogo de asignación
+            aun con la CdP cerrada (sin pasar por el gate del panel lateral),
+            y el backend rechazaba con un error que el usuario nunca veía
+            claro. No tiene sentido igual: reactivá la CdP primero. */}
+        {!data.eliminada && (
+          <span
+            data-accion="anadir-sublider"
+            className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:text-blue-900"
+          >
+            + Añadir sublíder
+          </span>
+        )}
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>

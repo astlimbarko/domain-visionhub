@@ -79,10 +79,15 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const reactivarCdp = useReactivarCasaDePazEstructura(iglesiaId);
 
   useEffect(() => {
-    if (abrirAnadirSubliderAlAbrir) {
+    // Bug real (2026-08-15): el atajo "+ Añadir sublíder" del nodo en el
+    // lienzo dispara esto sin pasar por el gate de `casaDePaz.eliminada` de
+    // más abajo -- en una CdP cerrada terminaba abriendo el diálogo de
+    // todas formas, y el backend rechazaba con CDP_INEXISTENTE, que
+    // invitar-lider (edge function) confunde con "ya existe una cuenta".
+    if (abrirAnadirSubliderAlAbrir && !casaDePaz.eliminada) {
       setDialogoCargo({ codigo: 'SUBLIDER_CDP', titulo: 'Sublíderes de Casa de Paz', exclusivo: false });
     }
-  }, [abrirAnadirSubliderAlAbrir, casaDePaz.id]);
+  }, [abrirAnadirSubliderAlAbrir, casaDePaz.id, casaDePaz.eliminada]);
 
   const { data: cargos = [] } = useCargos();
   const { data: vigentes = [], isLoading: cargandoVigentes } = useCargoVigenteCdp(
