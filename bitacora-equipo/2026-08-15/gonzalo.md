@@ -1,3 +1,4 @@
 # Gonzalo — 2026-08-15
 
 - [x] KAN-199: filas de rol del selector pasaron de tarjetas con fondo de color a lista plana con divisores (m.png/m_hover/m_click) -- hover con tinte gris, click con borde de color + ripple, delay de 150ms antes de navegar para que se vea. Avatar con punto verde "en línea", saludo en 2 líneas. Verificado en vivo, Finalizada
+- [x] KAN-200: bug real -- "+ Añadir sublíder" en una Casa de Paz cerrada (Constructor) abría igual el diálogo de asignación, el backend rechazaba con CDP_INEXISTENTE pero se mostraba como "Ya existe una cuenta con ese correo" (mensaje sin relación). Corregido en NodoEstructura.tsx + PanelCasaDePazEstructura.tsx. Verificado en vivo con network inspection, Finalizada
