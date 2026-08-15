@@ -4,6 +4,14 @@
 // No requiere props: resuelve todo (cola, imagen, cierre) via
 // useAnunciosPendientes() + useUrlFirmadaAnuncio(). Se auto-oculta (retorna
 // null) cuando no hay nada pendiente, asi que es seguro montarlo siempre.
+//
+// Imagen sin recortar (KAN-109, T8): anuncios.txt SS7 es explicito -- "la
+// imagen nunca debe deformarse ni recortarse, siempre debe mostrarse el
+// 100% de la imagen", conceptualmente `object-fit: contain`, escalada hasta
+// el maximo posible respetando ancho Y alto disponibles (el que se alcance
+// primero manda). Antes usaba `object-cover` + aspect-ratio fijo (1/1 o
+// 3/4), que SI recortaba cualquier imagen cuya proporcion real no calzara
+// exacto con esos valores -- justo lo que este ticket pedia corregir.
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
@@ -38,18 +46,19 @@ export function ModalAnuncios() {
 
           <div className="overflow-hidden rounded-3xl bg-card shadow-2xl shadow-black/20 ring-1 ring-foreground/10">
             <div
-              className="relative w-full bg-muted"
-              style={{ aspectRatio: esVertical ? '3 / 4' : '1 / 1' }}
+              className="relative flex w-full items-center justify-center bg-muted"
+              style={{ maxHeight: 'min(65dvh, 560px)' }}
             >
               {cargandoImagen ? (
-                <div className="flex h-full w-full items-center justify-center">
+                <div className="flex h-48 w-full items-center justify-center">
                   <Spinner className="h-6 w-6 text-muted-foreground" />
                 </div>
               ) : imagenUrl ? (
                 <img
                   src={imagenUrl}
                   alt={anuncioActual.titulo}
-                  className="h-full w-full object-cover"
+                  className="w-full object-contain"
+                  style={{ maxHeight: 'min(65dvh, 560px)' }}
                 />
               ) : null}
 
