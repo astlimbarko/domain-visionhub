@@ -8,6 +8,7 @@ import type {
   DatosNuevoAnuncio,
   EncargadoAnuncio,
   OrientacionImagenAnuncio,
+  PersonaDestinataria,
   RolDestinatarioAnuncio,
 } from '@/types/anuncio.types';
 
@@ -36,6 +37,28 @@ export async function obtenerRolesDisponiblesAnuncio(
   });
   if (error) throw error;
   return (data ?? []) as RolDestinatarioAnuncio[];
+}
+
+/** Quién vería de verdad este anuncio con este alcance+roles, antes de
+ * guardarlo -- lista real de personas para el "se lo va a llegar a..." del
+ * formulario (2026-08-15, pedido del owner: nada que haga falta explicar,
+ * se ve el resultado directamente). */
+export async function previsualizarDestinatariosAnuncio(
+  iglesiaId: string,
+  alcanceTipo: AlcanceTipoAnuncio,
+  redIds: string[],
+  cdpIds: string[],
+  roles: RolDestinatarioAnuncio[]
+): Promise<PersonaDestinataria[]> {
+  const { data, error } = await supabase.rpc('fn_anuncio_previsualizar_destinatarios', {
+    p_iglesia_id: iglesiaId,
+    p_alcance_tipo: alcanceTipo,
+    p_red_ids: alcanceTipo === 'RED' ? redIds : null,
+    p_cdp_ids: alcanceTipo === 'CDP' ? cdpIds : null,
+    p_roles: roles,
+  });
+  if (error) throw error;
+  return (data ?? []) as PersonaDestinataria[];
 }
 
 export async function obtenerMisAnunciosGestion(iglesiaId: string, redId?: string | null): Promise<AnuncioGestion[]> {

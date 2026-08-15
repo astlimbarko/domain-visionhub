@@ -67,7 +67,7 @@ function etiquetaAlcance(anuncio: AnuncioGestion): string {
     return `${anuncio.redes.length} Redes`;
   }
   if (anuncio.casas_de_paz.length === 0) return 'Casa de Paz';
-  if (anuncio.casas_de_paz.length === 1) return anuncio.casas_de_paz[0].nombre;
+  if (anuncio.casas_de_paz.length === 1) return anuncio.casas_de_paz[0].lider_nombre ?? 'Casa de Paz sin líder';
   return `${anuncio.casas_de_paz.length} Casas de Paz`;
 }
 

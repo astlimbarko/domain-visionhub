@@ -11,12 +11,13 @@ import {
   obtenerMisAnunciosGestion,
   obtenerRolesDisponiblesAnuncio,
   obtenerUrlFirmadaAnuncio,
+  previsualizarDestinatariosAnuncio,
   publicarAnuncio,
   quitarEncargadoAnuncio,
   subirImagenAnuncio,
   toggleActivoAnuncio,
 } from '@/services/anuncio.service';
-import type { AlcanceTipoAnuncio, DatosEditarAnuncio, DatosNuevoAnuncio } from '@/types/anuncio.types';
+import type { AlcanceTipoAnuncio, DatosEditarAnuncio, DatosNuevoAnuncio, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
 const QUERY_KEY_GESTION = (iglesiaId: string | undefined, redId: string | null | undefined) =>
   ['anuncios', 'gestion', iglesiaId, redId ?? null] as const;
@@ -40,6 +41,21 @@ export function useRolesDisponiblesAnuncio(
     queryKey: ['anuncios', 'roles-disponibles', iglesiaId, alcanceTipo, redIds, cdpIds],
     queryFn: () => obtenerRolesDisponiblesAnuncio(iglesiaId as string, alcanceTipo, redIds, cdpIds),
     enabled: !!iglesiaId && tieneAlcance,
+  });
+}
+
+export function usePrevisualizarDestinatariosAnuncio(
+  iglesiaId: string | undefined,
+  alcanceTipo: AlcanceTipoAnuncio,
+  redIds: string[],
+  cdpIds: string[],
+  roles: RolDestinatarioAnuncio[]
+) {
+  const tieneAlcance = alcanceTipo === 'IGLESIA' || (alcanceTipo === 'RED' ? redIds.length > 0 : cdpIds.length > 0);
+  return useQuery({
+    queryKey: ['anuncios', 'previsualizar-destinatarios', iglesiaId, alcanceTipo, redIds, cdpIds, roles],
+    queryFn: () => previsualizarDestinatariosAnuncio(iglesiaId as string, alcanceTipo, redIds, cdpIds, roles),
+    enabled: !!iglesiaId && tieneAlcance && roles.length > 0,
   });
 }
 

@@ -3,10 +3,16 @@
 // modal) -- reemplaza a AnuncioFormDialog.tsx. Alcance multiple (Redes/CdP),
 // Guardar borrador vs Publicar, duraciones rapidas, "mostrar de nuevo" al
 // reeditar un publicado -- ver anuncios.txt SS40.
+//
+// "Quien lo ve" reescrito 2026-08-15 (pedido explicito del owner, se
+// confundio con "Alcance"/"Destinatarios" como campos tecnicos separados):
+// una sola oracion en lenguaje llano ("Este anuncio lo van a ver los <roles>
+// de <zona>") + lista real de personas en vivo debajo -- nada que haga
+// falta explicar, se ve el resultado directo antes de publicar.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Megaphone } from 'lucide-react';
+import { ArrowLeft, Megaphone, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +35,7 @@ import {
   useCrearAnuncio,
   useActualizarAnuncio,
   useMisAnunciosGestion,
+  usePrevisualizarDestinatariosAnuncio,
   usePublicarAnuncio,
   useRolesDisponiblesAnuncio,
   useSubirImagenAnuncio,
@@ -37,11 +44,11 @@ import {
 import type { AlcanceTipoAnuncio, OrientacionImagenAnuncio, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
 const ETIQUETA_ROL: Record<RolDestinatarioAnuncio, string> = {
-  LIDER_RED: 'Líder de Red',
-  SUBLIDER_RED: 'Supervisor de Red',
-  LIDER_CDP: 'Líder de Casa de Paz',
-  SUBLIDER_CDP: 'Sublíder de Casa de Paz',
-  MIEMBRO: 'Miembro (próximamente)',
+  LIDER_RED: 'Líderes de Red',
+  SUBLIDER_RED: 'Supervisores de Red',
+  LIDER_CDP: 'Líderes de Casa de Paz',
+  SUBLIDER_CDP: 'Sublíderes de Casa de Paz',
+  MIEMBRO: 'Miembros (próximamente)',
 };
 
 const DURACIONES_RAPIDAS = [
@@ -56,6 +63,13 @@ function aInputDatetimeLocal(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Las Casas de Paz no tienen nombre propio -- se identifican por su Líder
+ * y la zona del anfitrión, igual que el resto de VisionHub. */
+function etiquetaCdp(cdp: { lider_nombre: string | null; zona: string | null }): string {
+  const lider = cdp.lider_nombre ?? 'Sin líder asignado';
+  return cdp.zona ? `${lider} — Zona: ${cdp.zona}` : lider;
 }
 
 export function AnuncioForm() {
@@ -119,6 +133,25 @@ export function AnuncioForm() {
   const { data: rolesDisponibles = [] } = useRolesDisponiblesAnuncio(iglesiaActivaId ?? undefined, alcanceTipo, redIds, cdpIds);
   const { data: imagenActualUrl } = useUrlFirmadaAnuncio(esEdicion && !archivo ? anuncio?.imagen_path : undefined);
 
+  // Si la zona se achica (ej. de "Toda la iglesia" a una Red puntual) y
+  // algún rol ya marcado deja de estar disponible ahí, se saca solo -- sin
+  // esto quedaba un rol invalido marcado que recien fallaba al guardar.
+  useEffect(() => {
+    if (!inicializado) return;
+    setRolesSeleccionados((prev) => {
+      const filtrados = prev.filter((r) => rolesDisponibles.includes(r));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+  }, [inicializado, rolesDisponibles]);
+
+  const { data: destinatariosReales, isFetching: cargandoDestinatarios } = usePrevisualizarDestinatariosAnuncio(
+    iglesiaActivaId ?? undefined,
+    alcanceTipo,
+    redIds,
+    cdpIds,
+    rolesSeleccionados
+  );
+
   const subirImagen = useSubirImagenAnuncio();
   const crear = useCrearAnuncio();
   const actualizar = useActualizarAnuncio();
@@ -128,9 +161,9 @@ export function AnuncioForm() {
   const tiposAlcanceDisponibles = useMemo(() => {
     if (!capacidad) return [];
     const tipos: { valor: AlcanceTipoAnuncio; etiqueta: string }[] = [];
-    if (capacidad.puede_iglesia) tipos.push({ valor: 'IGLESIA', etiqueta: 'Toda la iglesia' });
-    if (capacidad.redes.length > 0 || capacidad.puede_iglesia) tipos.push({ valor: 'RED', etiqueta: 'Redes específicas' });
-    if (capacidad.casas_de_paz.length > 0 || capacidad.puede_iglesia) tipos.push({ valor: 'CDP', etiqueta: 'Casas de Paz específicas' });
+    if (capacidad.puede_iglesia) tipos.push({ valor: 'IGLESIA', etiqueta: 'toda la iglesia' });
+    if (capacidad.redes.length > 0 || capacidad.puede_iglesia) tipos.push({ valor: 'RED', etiqueta: 'una o varias Redes' });
+    if (capacidad.casas_de_paz.length > 0 || capacidad.puede_iglesia) tipos.push({ valor: 'CDP', etiqueta: 'una o varias Casas de Paz' });
     return tipos;
   }, [capacidad]);
 
@@ -284,6 +317,7 @@ export function AnuncioForm() {
 
   const imagenAMostrar = previewUrl ?? imagenActualUrl;
   const esBorradorActual = esEdicion ? !!anuncio?.es_borrador : true;
+  const etiquetaZonaElegida = tiposAlcanceDisponibles.find((t) => t.valor === alcanceTipo)?.etiqueta ?? '';
 
   return (
     <div className="flex flex-col gap-6 pb-24">
@@ -300,52 +334,6 @@ export function AnuncioForm() {
       </div>
 
       <section className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
-        {tiposAlcanceDisponibles.length > 1 && (
-          <div className="flex flex-col gap-1.5">
-            <Label>Alcance</Label>
-            <Select value={alcanceTipo} onValueChange={(v) => setAlcanceTipo(v as AlcanceTipoAnuncio)}>
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposAlcanceDisponibles.map((o) => (
-                  <SelectItem key={o.valor} value={o.valor}>{o.etiqueta}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {alcanceTipo === 'RED' && (
-          <div className="flex flex-col gap-1.5">
-            <Label>Redes ({redIds.length} seleccionada{redIds.length === 1 ? '' : 's'})</Label>
-            <div className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-xl border border-border/60 p-3">
-              {redesSeleccionables.length === 0 && <p className="text-[12px] text-muted-foreground">No administrás ninguna Red.</p>}
-              {redesSeleccionables.map((red) => (
-                <label key={red.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={redIds.includes(red.id)} onCheckedChange={() => toggleRed(red.id)} />
-                  {red.nombre}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {alcanceTipo === 'CDP' && (
-          <div className="flex flex-col gap-1.5">
-            <Label>Casas de Paz ({cdpIds.length} seleccionada{cdpIds.length === 1 ? '' : 's'})</Label>
-            <div className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-xl border border-border/60 p-3">
-              {cdpsSeleccionables.length === 0 && <p className="text-[12px] text-muted-foreground">No hay Casas de Paz disponibles.</p>}
-              {cdpsSeleccionables.map((cdp) => (
-                <label key={cdp.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={cdpIds.includes(cdp.id)} onCheckedChange={() => toggleCdp(cdp.id)} />
-                  {cdp.nombre}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="anuncio_titulo">Título (uso interno)</Label>
           <Input
@@ -386,20 +374,128 @@ export function AnuncioForm() {
             <img src={imagenAMostrar} alt="Vista previa" className="mt-1 h-40 w-auto rounded-xl border border-border/60 object-cover" />
           )}
         </div>
+      </section>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Destinatarios</Label>
-          <div className="flex flex-col gap-2 rounded-xl border border-border/60 p-3">
-            {rolesDisponibles.length === 0 && <p className="text-[12px] text-muted-foreground">Elegí el alcance para ver los roles disponibles.</p>}
-            {rolesDisponibles.map((rol) => (
-              <label key={rol} className="flex items-center gap-2 text-sm">
-                <Checkbox checked={rolesSeleccionados.includes(rol)} onCheckedChange={() => toggleRol(rol)} />
+      {/* "Quien lo ve" -- una sola oracion en lenguaje llano en vez de dos
+          campos tecnicos separados (Alcance/Destinatarios), + lista real de
+          personas en vivo debajo. Pedido explicito del owner 2026-08-15. */}
+      <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
+        <p className="text-sm font-semibold text-foreground">Este anuncio lo van a ver...</p>
+
+        <div className="flex flex-wrap gap-1.5">
+          {rolesDisponibles.length === 0 && (
+            <p className="text-[12px] text-muted-foreground">Elegí primero de qué zona (más abajo) para ver los roles disponibles.</p>
+          )}
+          {rolesDisponibles.map((rol) => {
+            const activo = rolesSeleccionados.includes(rol);
+            return (
+              <Button
+                key={rol}
+                type="button"
+                size="sm"
+                variant={activo ? 'default' : 'outline'}
+                onClick={() => toggleRol(rol)}
+              >
                 {ETIQUETA_ROL[rol]}
-              </label>
-            ))}
-          </div>
+              </Button>
+            );
+          })}
         </div>
 
+        {tiposAlcanceDisponibles.length > 1 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">de</span>
+            <Select value={alcanceTipo} onValueChange={(v) => setAlcanceTipo(v as AlcanceTipoAnuncio)}>
+              <SelectTrigger className={cn('w-auto min-w-[220px]', CAMPO_ESTILO)}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposAlcanceDisponibles.map((o) => (
+                  <SelectItem key={o.valor} value={o.valor}>{o.etiqueta}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">de {etiquetaZonaElegida}</p>
+        )}
+
+        {alcanceTipo === 'RED' && (
+          <div className="flex flex-col gap-1.5">
+            <Label>Redes ({redIds.length} seleccionada{redIds.length === 1 ? '' : 's'})</Label>
+            <div className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-xl border border-border/60 p-3">
+              {redesSeleccionables.length === 0 && <p className="text-[12px] text-muted-foreground">No administrás ninguna Red.</p>}
+              {redesSeleccionables.length > 1 && (
+                <button
+                  type="button"
+                  className="w-fit text-[12px] font-medium text-primary hover:underline"
+                  onClick={() => setRedIds(redIds.length === redesSeleccionables.length ? [] : redesSeleccionables.map((r) => r.id))}
+                >
+                  {redIds.length === redesSeleccionables.length ? 'Ninguna' : 'Todas'}
+                </button>
+              )}
+              {redesSeleccionables.map((red) => (
+                <label key={red.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={redIds.includes(red.id)} onCheckedChange={() => toggleRed(red.id)} />
+                  {red.nombre}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {alcanceTipo === 'CDP' && (
+          <div className="flex flex-col gap-1.5">
+            <Label>Casas de Paz ({cdpIds.length} seleccionada{cdpIds.length === 1 ? '' : 's'})</Label>
+            <div className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-xl border border-border/60 p-3">
+              {cdpsSeleccionables.length === 0 && <p className="text-[12px] text-muted-foreground">No hay Casas de Paz disponibles.</p>}
+              {cdpsSeleccionables.length > 1 && (
+                <button
+                  type="button"
+                  className="w-fit text-[12px] font-medium text-primary hover:underline"
+                  onClick={() => setCdpIds(cdpIds.length === cdpsSeleccionables.length ? [] : cdpsSeleccionables.map((c) => c.id))}
+                >
+                  {cdpIds.length === cdpsSeleccionables.length ? 'Ninguna' : 'Todas'}
+                </button>
+              )}
+              {cdpsSeleccionables.map((cdp) => (
+                <label key={cdp.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={cdpIds.includes(cdp.id)} onCheckedChange={() => toggleCdp(cdp.id)} />
+                  {etiquetaCdp(cdp)}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Resultado real, siempre visible -- reemplaza tener que entender
+            el mecanismo: se ve directamente a quien le llega. */}
+        <div className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3">
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            {rolesSeleccionados.length === 0 ? (
+              <span>Elegí al menos un rol para ver a quién le llega</span>
+            ) : cargandoDestinatarios ? (
+              <span>Calculando...</span>
+            ) : (
+              <span>
+                Le va a llegar a {destinatariosReales?.length ?? 0} persona{(destinatariosReales?.length ?? 0) === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          {!!destinatariosReales?.length && (
+            <p className="text-[13px] text-foreground">
+              {destinatariosReales.slice(0, 8).map((p) => p.nombre).join(', ')}
+              {destinatariosReales.length > 8 ? ` y ${destinatariosReales.length - 8} más` : ''}
+            </p>
+          )}
+          {rolesSeleccionados.length > 0 && !cargandoDestinatarios && destinatariosReales?.length === 0 && (
+            <p className="text-[13px] text-muted-foreground">Nadie coincide todavía con esta combinación.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="anuncio_fecha_inicio">Fecha de inicio (opcional, por defecto ahora)</Label>
           <Input

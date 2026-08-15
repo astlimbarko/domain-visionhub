@@ -19,8 +19,17 @@ export interface CapacidadAnuncio {
   /** Puede designar/quitar Encargados de Anuncios (Supervisor/Pastor/Super Admin). */
   puede_designar_encargados: boolean;
   redes: { id: string; nombre: string; color: string; es_sublider: boolean }[];
-  /** Casas de Paz de las Redes que administra (para alcance CDP puntual). */
-  casas_de_paz: { id: string; nombre: string; red_id: string }[];
+  /** Casas de Paz de las Redes que administra (para alcance CDP puntual).
+   * Sin nombre propio (ya no se usa) -- se identifican por su Líder y la
+   * zona del anfitrión, igual que el resto de VisionHub. */
+  casas_de_paz: { id: string; red_id: string; lider_nombre: string | null; zona: string | null }[];
+}
+
+/** Fila de fn_anuncio_previsualizar_destinatarios: quién vería de verdad un
+ * anuncio con este alcance+roles, antes de guardarlo. */
+export interface PersonaDestinataria {
+  persona_id: string;
+  nombre: string;
 }
 
 /** Fila de fn_mis_anuncios_gestion (T3, pantalla de gestion). */
@@ -28,7 +37,7 @@ export interface AnuncioGestion {
   id: string;
   alcance_tipo: AlcanceTipoAnuncio;
   redes: { id: string; nombre: string }[];
-  casas_de_paz: { id: string; nombre: string }[];
+  casas_de_paz: { id: string; lider_nombre: string | null; zona: string | null }[];
   titulo: string;
   mensaje: string | null;
   imagen_path: string;
