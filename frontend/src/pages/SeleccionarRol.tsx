@@ -69,7 +69,12 @@ export function SeleccionarRol() {
 
   function elegir(opcion: OpcionRolContextual) {
     setContextoActivo(opcion.contexto);
-    navigate(rutaInicialParaContexto(opcion.contexto), { replace: true });
+    // Delay chico a propósito (KAN-199): sin esto, la navegación es tan
+    // instantánea que el ripple/borde de "click" de OpcionRolFila no
+    // alcanza a verse.
+    window.setTimeout(() => {
+      navigate(rutaInicialParaContexto(opcion.contexto), { replace: true });
+    }, 150);
   }
 
   const primerNombre = nombreCompleto?.trim() ? nombreCompleto.trim().split(' ')[0] : null;
