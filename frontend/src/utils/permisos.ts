@@ -96,6 +96,12 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.VISITAS,
+  // KAN-101 (2026-08-15): Líder/Supervisor de Red puede crear anuncios para
+  // su propia Red (fn_anuncio_puede_administrar_alcance ya lo valida server-
+  // side) -- sin esto el guard de PrivateLayout.puedeAcceder rechazaba la
+  // ruta aunque el backend lo permitiera, dejando /anuncios inalcanzable
+  // incluso por URL directa (bug real encontrado probando en vivo).
+  ROUTES.ANUNCIOS,
 ];
 
 // El Supervisor no carga reportes (igual que el Líder de Red): supervisa,
@@ -118,6 +124,10 @@ const RUTAS_SUPERVISOR: string[] = [
   // Resumen del Constructor (2026-08-11) -- mismo nivel que Pastor, ver
   // paneles-contexto.ts.
   ROUTES.CONSTRUCTOR_RESUMEN,
+  // KAN-101 (2026-08-15): Supervisor/Pastor gestionan anuncios de iglesia
+  // completa (paridad, ver fn_anuncio_es_supervisor). RUTAS_PASTOR hereda
+  // este arreglo, así que un solo agregado cubre ambos.
+  ROUTES.ANUNCIOS,
 ];
 
 // 2026-08-09: paridad completa con Supervisor (pedido explícito del
