@@ -71,6 +71,17 @@ interface Props {
    * (fn_puede_invitar_lider). El camino "Desde base de datos" (persona ya
    * existente) si esta disponible para ese rol sobre su propia Red. */
   puedeInvitarPorCorreo?: boolean;
+  /** KAN-182 (2026-08-11): false para Lider/Supervisor de Red -- ya no
+   * pueden editar nombre/color de su propia Red (el backend, endurecido en
+   * fn_estructura_actualizar_red, tampoco se lo permite). Administran
+   * cargos y nuevas CdP dentro de su Red, nada más. Default `true` para no
+   * afectar a quien no lo pasa. */
+  puedeEditarDatosRed?: boolean;
+  /** KAN-182: true para Lider/Supervisor de Red -- el backend
+   * (private.fn_estructura_exigir_otp) ya exige OTP siempre para ese nivel
+   * de rol, sin importar el switch por iglesia. Fuerza el campo en la UI
+   * para que nunca falte cuando el backend lo va a pedir igual. */
+  otpSiempreObligatorio?: boolean;
   abrirCrearCdpAlAbrir?: boolean;
   onClose: () => void;
 }
@@ -221,13 +232,19 @@ export function PanelRedEstructura({
   modo,
   red,
   redesExistentes,
-  otpRequerido,
+  otpRequerido: otpRequeridoIglesia,
   puedeEliminarPorCompleto,
   puedeEliminarRed = true,
   puedeInvitarPorCorreo = true,
+  puedeEditarDatosRed = true,
+  otpSiempreObligatorio = false,
   abrirCrearCdpAlAbrir,
   onClose,
 }: Props) {
+  // KAN-182: para Lider/Supervisor de Red, OTP es obligatorio siempre --
+  // se combina acá para que el resto del componente (ya escrito contra
+  // `otpRequerido`) no necesite tocarse pieza por pieza.
+  const otpRequerido = otpRequeridoIglesia || otpSiempreObligatorio;
   const queryClient = useQueryClient();
   const crear = useCrearRedEstructura(iglesiaId);
   const actualizar = useActualizarRedEstructura(iglesiaId);
@@ -632,46 +649,56 @@ export function PanelRedEstructura({
                 style={{ backgroundColor: color, color: textoLegibleSobre(color) }}
               >
                 <span className="truncate">Red: &quot;{nombre}&quot;</span>
-                <button
-                  type="button"
-                  onClick={() => { setNombreConfirmando(nombre); setMostrarCambiarNombre(true); }}
-                  className="shrink-0 cursor-pointer rounded-lg bg-white/20 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/30"
-                >
-                  Cambiar nombre
-                </button>
+                {puedeEditarDatosRed && (
+                  <button
+                    type="button"
+                    onClick={() => { setNombreConfirmando(nombre); setMostrarCambiarNombre(true); }}
+                    className="shrink-0 cursor-pointer rounded-lg bg-white/20 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/30"
+                  >
+                    Cambiar nombre
+                  </button>
+                )}
               </div>
             )}
-            <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
-            <div className="mt-2 flex items-center gap-1">
-              {PALETA_RED.map((opcion) => (
-                <button
-                  key={opcion}
-                  type="button"
-                  aria-label={`Usar color ${opcion}`}
-                  onClick={() => setColor(opcion)}
-                  className={`h-7 w-7 shrink-0 cursor-pointer rounded-full border-2 ${color.toUpperCase() === opcion ? 'border-slate-900 ring-2 ring-slate-200' : 'border-white hover:border-slate-300'}`}
-                  style={{ backgroundColor: opcion }}
-                />
-              ))}
-              <label
-                aria-label="Elegir color personalizado o escribir un código hexadecimal"
-                title="Color personalizado (hexadecimal)"
-                className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-dashed border-slate-400 bg-white hover:border-slate-500'}`}
-                style={esColorPersonalizado ? { backgroundColor: color } : undefined}
-              >
-                <Pipette className="h-3.5 w-3.5" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(evento) => setColor(evento.target.value.toUpperCase())}
-                  className="sr-only"
-                />
-              </label>
-            </div>
-            {redConMismoColor && (
-              <p className="mt-2 text-xs font-medium text-amber-600">
-                Este color ya lo usa la Red «{redConMismoColor.nombre}». Podés continuar, pero conviene elegir uno distinto para diferenciarlas.
-              </p>
+            {/* KAN-182: Lider/Supervisor de Red ya no puede tocar nombre ni
+                color de su propia Red -- solo administra cargos y CdP. El
+                badge de arriba ya muestra su color actual, no hace falta
+                repetirlo en modo de solo lectura. */}
+            {puedeEditarDatosRed && (
+              <>
+                <p className="mt-4 text-xs font-semibold text-slate-700">Color identificativo</p>
+                <div className="mt-2 flex items-center gap-1">
+                  {PALETA_RED.map((opcion) => (
+                    <button
+                      key={opcion}
+                      type="button"
+                      aria-label={`Usar color ${opcion}`}
+                      onClick={() => setColor(opcion)}
+                      className={`h-7 w-7 shrink-0 cursor-pointer rounded-full border-2 ${color.toUpperCase() === opcion ? 'border-slate-900 ring-2 ring-slate-200' : 'border-white hover:border-slate-300'}`}
+                      style={{ backgroundColor: opcion }}
+                    />
+                  ))}
+                  <label
+                    aria-label="Elegir color personalizado o escribir un código hexadecimal"
+                    title="Color personalizado (hexadecimal)"
+                    className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ${esColorPersonalizado ? 'border-slate-900 ring-2 ring-slate-200' : 'border-dashed border-slate-400 bg-white hover:border-slate-500'}`}
+                    style={esColorPersonalizado ? { backgroundColor: color } : undefined}
+                  >
+                    <Pipette className="h-3.5 w-3.5" style={{ color: esColorPersonalizado ? textoLegibleSobre(color) : '#475569' }} />
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(evento) => setColor(evento.target.value.toUpperCase())}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
+                {redConMismoColor && (
+                  <p className="mt-2 text-xs font-medium text-amber-600">
+                    Este color ya lo usa la Red «{redConMismoColor.nombre}». Podés continuar, pero conviene elegir uno distinto para diferenciarlas.
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -745,17 +772,21 @@ export function PanelRedEstructura({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <button
-                type="button"
-                disabled={procesando || !hayCambios || (modo === 'crear' ? !formularioValido : !formularioValidoSinOtp)}
-                onClick={() => {
-                  if (modo === 'editar' && otpRequerido) setConfirmandoGuardarCambios(true);
-                  else void guardarRed();
-                }}
-                className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
-              </button>
+              // KAN-182: sin puedeEditarDatosRed no hay nombre/color que
+              // guardar -- ni siquiera tiene sentido mostrar el botón.
+              puedeEditarDatosRed && (
+                <button
+                  type="button"
+                  disabled={procesando || !hayCambios || (modo === 'crear' ? !formularioValido : !formularioValidoSinOtp)}
+                  onClick={() => {
+                    if (modo === 'editar' && otpRequerido) setConfirmandoGuardarCambios(true);
+                    else void guardarRed();
+                  }}
+                  className="h-10 cursor-pointer rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {crear.isPending || actualizar.isPending ? 'Guardando…' : modo === 'crear' ? 'Crear Red' : 'Guardar cambios'}
+                </button>
+              )
             )}
           </div>
         </div>

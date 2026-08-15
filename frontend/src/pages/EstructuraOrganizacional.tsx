@@ -585,11 +585,18 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
-            // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09)
-            // -- Lider/Supervisor de Red administran su propia Red (nombre,
-            // color, cargos, nuevas CdP) pero no esas dos acciones puntuales.
+            // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09).
+            // KAN-182 (2026-08-11, actualizado 2026-08-15): Lider/Supervisor
+            // de Red ya no puede editar nombre/color de su propia Red --
+            // administran cargos y nuevas CdP dentro de su Red, nada más.
             puedeEliminarRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
             puedeInvitarPorCorreo={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
+            puedeEditarDatosRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
+            // KAN-182: para Lider/Supervisor de Red el OTP es obligatorio
+            // siempre (ya lo exige el backend sin importar el switch); acá
+            // solo se refleja en la UI para que el campo nunca falte cuando
+            // el backend lo va a pedir igual.
+            otpSiempreObligatorio={rolUI === 'LIDER_RED'}
             abrirCrearCdpAlAbrir={abrirCrearCdpDirecto}
             onClose={() => {
               setPanelRed(null);
