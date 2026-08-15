@@ -130,6 +130,14 @@ export async function toggleActivoAnuncio(anuncioId: string, activo: boolean): P
   if (error) throw error;
 }
 
+/** Sube o baja un anuncio un lugar en el orden (SS23 anuncios.txt, pedido
+ * explicito del owner 2026-08-15) -- intercambia `prioridad` con el vecino
+ * inmediato en fn_mis_anuncios_gestion/fn_anuncios_pendientes. */
+export async function moverPrioridadAnuncio(anuncioId: string, direccion: 'SUBIR' | 'BAJAR'): Promise<void> {
+  const { error } = await supabase.rpc('fn_anuncio_mover_prioridad', { p_anuncio_id: anuncioId, p_direccion: direccion });
+  if (error) throw error;
+}
+
 export async function eliminarAnuncio(anuncioId: string): Promise<void> {
   const { error } = await supabase.rpc('fn_anuncio_eliminar', { p_anuncio_id: anuncioId });
   if (error) throw error;

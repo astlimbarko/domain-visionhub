@@ -22,10 +22,13 @@ export const ROUTES = {
   CUENTA: '/cuenta',
   ADMINISTRACION: '/administracion',
   // KAN-101: gestion de anuncios (Supervisor de la Vision en Accion /
-  // Lider de Red / Supervisor de Red). Sin item de nav todavia -- ver nota
-  // de alcance en el ticket (permisos.ts prohibido para esta sesion); se
-  // llega por URL directa.
+  // Pastor / Encargado de Anuncios / Lider de Red / Supervisor de Red). Sin
+  // item de nav todavia; se llega por URL directa.
   ANUNCIOS: '/anuncios',
+  // Formulario en pagina propia (2026-08-15, pedido explicito del owner:
+  // "control un poco mas" que un modal) -- no dialog.
+  ANUNCIO_NUEVO: '/anuncios/nuevo',
+  ANUNCIO_EDITAR: '/anuncios/:anuncioId/editar',
   // Paneles minimos de 15-gestion-administrativa (Panel 3/4, 2026-07-31):
   // solo funcionalidad de "crear", sin dashboard ni sidebar -- a proposito,
   // pedido explicito del owner para agilizar. La estetica (AppShell, nav,

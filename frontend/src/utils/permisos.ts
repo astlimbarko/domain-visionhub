@@ -102,6 +102,8 @@ const RUTAS_LIDER_RED: string[] = [
   // ruta aunque el backend lo permitiera, dejando /anuncios inalcanzable
   // incluso por URL directa (bug real encontrado probando en vivo).
   ROUTES.ANUNCIOS,
+  ROUTES.ANUNCIO_NUEVO,
+  ROUTES.ANUNCIO_EDITAR,
 ];
 
 // El Supervisor no carga reportes (igual que el Líder de Red): supervisa,
@@ -128,6 +130,8 @@ const RUTAS_SUPERVISOR: string[] = [
   // completa (paridad, ver fn_anuncio_es_supervisor). RUTAS_PASTOR hereda
   // este arreglo, así que un solo agregado cubre ambos.
   ROUTES.ANUNCIOS,
+  ROUTES.ANUNCIO_NUEVO,
+  ROUTES.ANUNCIO_EDITAR,
 ];
 
 // 2026-08-09: paridad completa con Supervisor (pedido explícito del

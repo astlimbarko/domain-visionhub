@@ -1,13 +1,14 @@
 // VisionHub -- KAN-101 (T3): pantalla de gestion de anuncios.
 //
-// Sin item de nav todavia (permisos.ts esta prohibido para esta sesion, ver
-// KAN-101) -- se llega por URL directa, mismo criterio que tuvo Estructura
-// Organizacional para Lider de Red antes de KAN-78. El propio guard de
-// acceso vive aca adentro (useCapacidadAnuncio), no en RequiereRol.
+// Sin item de nav todavia -- se llega por URL directa, mismo criterio que
+// tuvo Estructura Organizacional para Lider de Red antes de KAN-78. El
+// propio guard de acceso vive aca adentro (useCapacidadAnuncio), no en
+// RequiereRol. Crear/editar viven en pagina propia (AnuncioForm.tsx,
+// 2026-08-15, pedido explicito del owner: mas control que un modal).
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,6 @@ import {
 } from '@/components/ui/dialog';
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { AnuncioFormDialog } from '@/components/anuncios/AnuncioFormDialog';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
@@ -33,6 +33,7 @@ import {
   useEliminarAnuncio,
   useEncargadosAnuncio,
   useMisAnunciosGestion,
+  useMoverPrioridadAnuncio,
   useQuitarEncargadoAnuncio,
   useToggleActivoAnuncio,
   useUrlFirmadaAnuncio,
@@ -71,17 +72,44 @@ function etiquetaAlcance(anuncio: AnuncioGestion): string {
 
 function FilaAnuncio({
   anuncio,
+  puedeSubir,
+  puedeBajar,
   onEditar,
   onEliminar,
 }: {
   anuncio: AnuncioGestion;
+  puedeSubir: boolean;
+  puedeBajar: boolean;
   onEditar: () => void;
   onEliminar: () => void;
 }) {
   const toggleActivo = useToggleActivoAnuncio();
+  const mover = useMoverPrioridadAnuncio();
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
+      <div className="flex shrink-0 flex-col gap-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!puedeSubir || mover.isPending}
+          onClick={() => mover.mutate({ anuncioId: anuncio.id, direccion: 'SUBIR' })}
+          aria-label="Subir prioridad"
+        >
+          <ArrowUp className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!puedeBajar || mover.isPending}
+          onClick={() => mover.mutate({ anuncioId: anuncio.id, direccion: 'BAJAR' })}
+          aria-label="Bajar prioridad"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+        </Button>
+      </div>
       <MiniaturaAnuncio imagenPath={anuncio.imagen_path} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -129,13 +157,12 @@ function FilaAnuncio({
 }
 
 export function Anuncios() {
+  const navigate = useNavigate();
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const { data: capacidad, isLoading: cargandoCapacidad } = useCapacidadAnuncio(iglesiaActivaId ?? undefined);
   const { data: anuncios = [], isLoading: cargandoAnuncios } = useMisAnunciosGestion(iglesiaActivaId ?? undefined);
   const eliminar = useEliminarAnuncio();
 
-  const [mostrarForm, setMostrarForm] = useState(false);
-  const [anuncioEditar, setAnuncioEditar] = useState<AnuncioGestion | null>(null);
   const [anuncioEliminar, setAnuncioEliminar] = useState<AnuncioGestion | null>(null);
   const [mostrarEncargados, setMostrarEncargados] = useState(false);
 
@@ -177,14 +204,7 @@ export function Anuncios() {
               Encargados
             </Button>
           )}
-          <Button
-            type="button"
-            className="gap-1.5"
-            onClick={() => {
-              setAnuncioEditar(null);
-              setMostrarForm(true);
-            }}
-          >
+          <Button type="button" className="gap-1.5" onClick={() => navigate(ROUTES.ANUNCIO_NUEVO)}>
             <Plus className="h-4 w-4" />
             Anuncio
           </Button>
@@ -197,29 +217,17 @@ export function Anuncios() {
         <ProximamentePlaceholder titulo="Todavía no hay anuncios" descripcion="Creá el primero con el botón de arriba." />
       ) : (
         <div className="flex flex-col gap-2">
-          {anuncios.map((a) => (
+          {anuncios.map((a, i) => (
             <FilaAnuncio
               key={a.id}
               anuncio={a}
-              onEditar={() => {
-                setAnuncioEditar(a);
-                setMostrarForm(true);
-              }}
+              puedeSubir={i > 0}
+              puedeBajar={i < anuncios.length - 1}
+              onEditar={() => navigate(ROUTES.ANUNCIO_EDITAR.replace(':anuncioId', a.id))}
               onEliminar={() => setAnuncioEliminar(a)}
             />
           ))}
         </div>
-      )}
-
-      {capacidad && (
-        <AnuncioFormDialog
-          open={mostrarForm}
-          onOpenChange={setMostrarForm}
-          iglesiaId={iglesiaActivaId}
-          capacidad={capacidad}
-          anuncio={anuncioEditar}
-          onGuardado={() => setAnuncioEditar(null)}
-        />
       )}
 
       <Dialog open={!!anuncioEliminar} onOpenChange={(open) => !open && setAnuncioEliminar(null)}>

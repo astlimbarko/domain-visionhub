@@ -6,6 +6,7 @@ import {
   eliminarAnuncio,
   eliminarImagenAnuncio,
   listarEncargadosAnuncio,
+  moverPrioridadAnuncio,
   obtenerCapacidadAnuncio,
   obtenerMisAnunciosGestion,
   obtenerRolesDisponiblesAnuncio,
@@ -100,6 +101,15 @@ export function useEliminarAnuncio() {
         console.warn('No se pudo borrar la imagen del anuncio eliminado', e);
       }
     },
+    onSuccess: invalidar,
+  });
+}
+
+export function useMoverPrioridadAnuncio() {
+  const invalidar = useInvalidarGestionAnuncios();
+  return useMutation({
+    mutationFn: ({ anuncioId, direccion }: { anuncioId: string; direccion: 'SUBIR' | 'BAJAR' }) =>
+      moverPrioridadAnuncio(anuncioId, direccion),
     onSuccess: invalidar,
   });
 }
