@@ -192,20 +192,23 @@ export function GestionEstructuraVista() {
     }
   }
 
-  function manejarInvitarCdp(correo: string) {
+  // KAN-206: si el correo ya tenia cuenta, se devuelve { yaExistia: true }
+  // para que AsignarCargoDialog muestre la confirmacion adentro suyo y se
+  // cierre solo, en vez de un toast con el modal quedando abierto.
+  async function manejarInvitarCdp(correo: string) {
     if (!dialogoCdp) return;
-    invitarLider.mutate(
-      {
+    try {
+      const resultado = await invitarLider.mutateAsync({
         correo,
         rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP',
         redId: null,
         casaDePazId: dialogoCdp.cdpId,
-      },
-      {
-        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
-        onError: (e) => manejarError(e, 'No se pudo invitar'),
-      }
-    );
+      });
+      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      return resultado;
+    } catch (e) {
+      manejarError(e, 'No se pudo invitar');
+    }
   }
 
   function manejarEliminarCdp(motivo: string) {
@@ -777,6 +780,7 @@ export function GestionEstructuraVista() {
           titulo={dialogoCdp.titulo}
           exclusivo={dialogoCdp.exclusivo}
           iglesiaId={iglesiaActivaId}
+          cdpId={dialogoCdp.cdpId}
           vigentes={vigentesCdp}
           cargandoVigentes={cargandoVigentesCdp}
           asignando={asignarCargoCdp.isPending}

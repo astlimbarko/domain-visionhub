@@ -284,16 +284,18 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* KAN-100: descargar el lienzo completo como PNG horizontal. */}
+            {/* KAN-100: descargar el lienzo completo como PNG horizontal.
+                KAN-187: solo icono, sin la palabra "Descargar" al lado. */}
             <button
               type="button"
-              title="Descargar como imagen"
+              aria-label={descargando ? 'Descargando…' : 'Descargar como imagen'}
+              title={descargando ? 'Descargando…' : 'Descargar como imagen'}
               {...eventosTactiles('Descargar como imagen')}
               onClick={() => void descargarLienzo()}
               disabled={descargando || nodes.length === 0}
-              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download className="h-4 w-4" /> <span className="hidden sm:inline">{descargando ? 'Descargando…' : 'Descargar'}</span>
+              <Download className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -541,7 +543,12 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               colorRed={colorRed}
               abrirAnadirSubliderAlAbrir={abrirAnadirSubliderDirecto}
               otpRequerido={data.layout.otpRequerido}
-              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+              // KAN-190 (2026-08-13): eliminar por completo (borrado
+              // permanente, irreversible) queda exclusivo de Super Admin --
+              // pedido explícito del owner, ningún otro rol (ni Supervisor de
+              // la Visión en Acción, ni Líder/Supervisor de Red, ni Líder de
+              // CdP) lo necesita para su trabajo normal.
+              puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN'}
               onClose={() => {
                 setCasaDePazSeleccionadaId(null);
                 setAbrirAnadirSubliderDirecto(false);
@@ -571,14 +578,25 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             red={redSeleccionada}
             redesExistentes={data.redes}
             otpRequerido={data.layout.otpRequerido}
-            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR'}
+            // KAN-190 (2026-08-13): eliminar por completo (borrado
+            // permanente, irreversible) queda exclusivo de Super Admin --
+            // pedido explícito del owner, ver el mismo comentario en el panel
+            // de Casa de Paz más arriba en este archivo.
+            puedeEliminarPorCompleto={rolUI === 'SUPER_ADMIN'}
             // KAN-78: eliminar/reactivar una Red y designar por correo a
             // alguien SIN CUENTA registrada siguen exclusivos de Super
-            // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09)
-            // -- Lider/Supervisor de Red administran su propia Red (nombre,
-            // color, cargos, nuevas CdP) pero no esas dos acciones puntuales.
+            // Admin/Supervisor/Pastor (paridad Pastor-Supervisor, 2026-08-09).
+            // KAN-182 (2026-08-11, actualizado 2026-08-15): Lider/Supervisor
+            // de Red ya no puede editar nombre/color de su propia Red --
+            // administran cargos y nuevas CdP dentro de su Red, nada más.
             puedeEliminarRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
             puedeInvitarPorCorreo={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
+            puedeEditarDatosRed={rolUI === 'SUPER_ADMIN' || rolUI === 'SUPERVISOR' || rolUI === 'PASTOR'}
+            // KAN-182: para Lider/Supervisor de Red el OTP es obligatorio
+            // siempre (ya lo exige el backend sin importar el switch); acá
+            // solo se refleja en la UI para que el campo nunca falte cuando
+            // el backend lo va a pedir igual.
+            otpSiempreObligatorio={rolUI === 'LIDER_RED'}
             abrirCrearCdpAlAbrir={abrirCrearCdpDirecto}
             onClose={() => {
               setPanelRed(null);

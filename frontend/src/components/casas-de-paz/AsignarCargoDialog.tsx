@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Mail, Search, X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { CheckCircle2, Mail, Search, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,13 @@ import { AvatarPersona, COLORES_AVATAR } from '@/components/shared/AvatarInicial
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
 
+/** Bug real (2026-08-15): mostraba `nombre_completo` a lo bruto -- para una
+ * persona sin nombre cargado (sin membresía completa) eso rendereaba una
+ * línea vacía. Cae al correo, igual que ya hace el resto de la app. */
+function etiquetaCargoVigente(v: CargoVigente): string {
+  return v.nombre_completo.trim() || v.correo || 'Sin nombre';
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,7 +40,13 @@ interface Props {
   quitando?: boolean;
   invitable?: boolean;
   invitando?: boolean;
-  onInvitar?: (correo: string) => void;
+  /** KAN-206 (2026-08-15): si el correo ya tenía cuenta, el asignador la
+   * asigna directo en el mismo paso (sin mandar invitación real) -- cuando
+   * eso pasa, `onInvitar` puede devolver `{ yaExistia: true }` para que el
+   * diálogo muestre la confirmación adentro suyo y se cierre solo, en vez
+   * de un toast con el modal quedando abierto. Devolver `void`/nada omite
+   * ese comportamiento (ej. invitación nueva real, todavía sin cuenta). */
+  onInvitar?: (correo: string) => void | Promise<{ yaExistia?: boolean } | void>;
   /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
    * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
    * correo, o quitar a alguien quedan detrás de un paso de confirmación con
@@ -47,6 +60,11 @@ interface Props {
    * Líder vigente) aparezca como opción al asignar un cargo no exclusivo
    * (ej. Sublíder) -- REQ-CDP-6. Opcional, no cambia a quien no lo pasa. */
   excluirIdsExtra?: string[];
+  /** Q-MR-12 (2026-08-15): id de la Casa de Paz para priorizar sus propios
+   * miembros en la búsqueda (ver BuscadorPersona/buscarPersonas). Opcional
+   * -- cargos de Red/Departamento no lo pasan y buscan en toda la iglesia
+   * directamente, como siempre. */
+  cdpId?: string;
   /** Bug real KAN-10x (2026-08-10): cuando se pasa `onPinChange`, este
    * diálogo pedía OTP siempre, sin mirar el switch de OTP por iglesia
    * (estructura_organigrama.otp_requerido) -- a diferencia de los demás
@@ -74,14 +92,27 @@ export function AsignarCargoDialog({
   onPinChange,
   excluirIdsExtra = [],
   otpRequerido = true,
+  cdpId,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
+  const [invitadoOk, setInvitadoOk] = useState(false);
+  const cierreAutomaticoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requiereOtp = onPinChange !== undefined && otpRequerido;
   const pinValido = !requiereOtp || /^[0-9]{6}$/.test(pin ?? '');
+
+  // KAN-206: al reabrirse para un cargo distinto, no debe arrastrar la
+  // confirmación del intento anterior.
+  useEffect(() => {
+    if (!open && invitadoOk) setInvitadoOk(false);
+  }, [open, invitadoOk]);
+
+  useEffect(() => () => {
+    if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
+  }, []);
 
   function manejarSeleccionPersona(persona: PersonaBusqueda) {
     if (requiereOtp) {
@@ -97,24 +128,52 @@ export function AsignarCargoDialog({
     setPersonaElegida(null);
   }
 
+  // KAN-206: si la persona ya tenía cuenta, se asignó directo en el mismo
+  // paso -- en vez de un toast chico con el modal quedando abierto (con el
+  // botón "Invitar" todavía visible), se muestra la confirmación adentro
+  // del propio modal y se cierra solo. Una invitación nueva de verdad
+  // (todavía sin cuenta) sigue el flujo de siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    onInvitar(correoInvitar.trim().toLowerCase());
+    const resultado = onInvitar(correoInvitar.trim().toLowerCase());
     setCorreoInvitar('');
+    if (resultado && typeof resultado.then === 'function') {
+      resultado.then((r) => {
+        if (r?.yaExistia) {
+          setInvitadoOk(true);
+          cierreAutomaticoRef.current = setTimeout(() => onOpenChange(false), 1800);
+        }
+      });
+    }
   }
 
+  // Bug real (2026-08-15): antes solo confirmaba si la iglesia tenía OTP
+  // activado -- con OTP apagado, la X quitaba al instante sin avisar. Ahora
+  // siempre pide confirmación; el campo de OTP adentro del cuadro de
+  // confirmación sigue siendo condicional (solo aparece si hace falta).
   function manejarClicQuitar(v: CargoVigente) {
-    if (requiereOtp) {
-      setAQuitar(v);
-    } else {
-      onQuitar(v.id);
-    }
+    setAQuitar(v);
   }
 
   function confirmarBaja() {
     if (!aQuitar || !pinValido) return;
     onQuitar(aQuitar.id, pin);
     setAQuitar(null);
+  }
+
+  // Bug real (2026-08-15): sin un <form>, Enter en el input de correo o de
+  // OTP no hacía nada (solo funcionaba con el mouse) -- un <form> hace que
+  // el navegador dispare "submit" con Enter en cualquier input de texto de
+  // adentro, sin depender de que cada input tenga su propio manejador.
+  function manejarSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (aQuitar) {
+      confirmarBaja();
+    } else if (modo === 'invitar') {
+      enviarInvitacion();
+    } else if (personaElegida) {
+      confirmarAsignacion();
+    }
   }
 
   return (
@@ -129,6 +188,13 @@ export function AsignarCargoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {invitadoOk ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <CheckCircle2 className="h-9 w-9 text-green-600" />
+            <p className="text-sm font-medium text-foreground">Se añadió correctamente</p>
+          </div>
+        ) : (
+        <form onSubmit={manejarSubmit} className="contents">
         <div className="flex flex-col gap-3">
           {cargandoVigentes ? (
             <Skeleton className="h-8 w-full" />
@@ -137,8 +203,8 @@ export function AsignarCargoDialog({
               {vigentes.map((v, i) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
                   <span className="flex min-w-0 items-center gap-2">
-                    <AvatarPersona nombre={v.nombre_completo} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
-                    <span className="truncate">{v.nombre_completo}</span>
+                    <AvatarPersona nombre={etiquetaCargoVigente(v)} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
+                    <span className="truncate">{etiquetaCargoVigente(v)}</span>
                   </span>
                   <Button
                     type="button"
@@ -147,6 +213,12 @@ export function AsignarCargoDialog({
                     onClick={() => manejarClicQuitar(v)}
                     disabled={quitando}
                     aria-label="Quitar"
+                    // KAN-63: size="icon" son 32px, bajo el minimo tactil de
+                    // 44x44 (REQ-MOB-3) -- antes:absolute expande el area de
+                    // toque real sin agrandar el icono visible, mismo patron
+                    // ya usado en el resto del Constructor (paneles laterales,
+                    // botones de zoom/centrar).
+                    className="relative before:absolute before:-inset-2 before:content-['']"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -160,7 +232,7 @@ export function AsignarCargoDialog({
           {aQuitar && (
             <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
               <p className="text-sm text-foreground">
-                ¿Dar de baja a <span className="font-medium">{aQuitar.nombre_completo}</span>?
+                ¿Dar de baja a <span className="font-medium">{etiquetaCargoVigente(aQuitar)}</span>?
               </p>
               {requiereOtp && onPinChange && <CampoOtp value={pin ?? ''} onChange={onPinChange} />}
               {quitando && (
@@ -210,6 +282,7 @@ export function AsignarCargoDialog({
                 iglesiaId={iglesiaId}
                 excluirIds={[...vigentes.map((v) => v.persona_id), ...(excluirIdsExtra ?? [])]}
                 onSeleccionar={manejarSeleccionPersona}
+                cdpId={cdpId}
               />
             )
           )}
@@ -246,7 +319,7 @@ export function AsignarCargoDialog({
             <Button type="button" variant="ghost" onClick={() => setAQuitar(null)} disabled={quitando}>
               Cancelar
             </Button>
-            <Button type="button" variant="destructive" onClick={confirmarBaja} disabled={quitando || !pinValido}>
+            <Button type="submit" variant="destructive" disabled={quitando || !pinValido}>
               {quitando ? 'Dando de baja...' : 'Confirmar baja'}
             </Button>
           </DialogFooter>
@@ -254,17 +327,19 @@ export function AsignarCargoDialog({
           (modo === 'invitar' ? invitable : !!personaElegida) && (
             <DialogFooter>
               {modo === 'buscar' ? (
-                <Button type="button" onClick={confirmarAsignacion} disabled={asignando || !personaElegida || !pinValido}>
+                <Button type="submit" disabled={asignando || !personaElegida || !pinValido}>
                   {asignando ? 'Asignando...' : 'Confirmar'}
                 </Button>
               ) : (
-                <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                <Button type="submit" className="gap-1.5" disabled={invitando || !correoInvitar.trim() || !pinValido}>
                   {invitando && <Spinner className="h-3.5 w-3.5" />}
                   {invitando ? 'Enviando...' : 'Invitar'}
                 </Button>
               )}
             </DialogFooter>
           )
+        )}
+        </form>
         )}
       </DialogContent>
     </Dialog>

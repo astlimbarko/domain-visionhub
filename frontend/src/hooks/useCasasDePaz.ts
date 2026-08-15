@@ -56,10 +56,10 @@ export function useCdpsIglesia(iglesiaId: string | undefined) {
   });
 }
 
-export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, edadMinima?: number) {
+export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, edadMinima?: number, cdpId?: string) {
   return useQuery({
-    queryKey: ['estructura', 'buscar-personas', iglesiaId, texto, edadMinima],
-    queryFn: () => buscarPersonas(iglesiaId as string, texto, edadMinima),
+    queryKey: ['estructura', 'buscar-personas', iglesiaId, texto, edadMinima, cdpId],
+    queryFn: () => buscarPersonas(iglesiaId as string, texto, edadMinima, cdpId),
     enabled: !!iglesiaId && texto.trim().length >= 2,
   });
 }

@@ -221,7 +221,10 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
               // sigue visible (agrisada) mientras dure su periodo de gracia
               // configurable -- mismo criterio que ya usa Red.
               titulo: nombreLiderCorto(casa.lideres, 'Líder sin asignar'),
-              subtitulo: casa.eliminada ? 'Eliminada' : (casa.direccionBreve ?? 'Sin dirección asignada'),
+              // KAN-184: "Cerrada", no "Eliminada" -- una Casa de Paz jamás
+              // se borra de la base, solo cambia de estado (fecha_eliminacion),
+              // "Eliminada" sonaba mas agresivo de lo que en realidad pasa.
+              subtitulo: casa.eliminada ? 'Cerrada' : (casa.direccionBreve ?? 'Sin dirección asignada'),
               color: colorRed,
               estadoIncompleto: casaSinLider || casa.eliminada,
               eliminada: casa.eliminada,

@@ -74,7 +74,10 @@ export function DashboardSupervisor({ iglesiaId, onSeleccionarRed }: Props) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiMosaico label="Redes" icon={Network} color={MORADO}>{kpi.redes}</KpiMosaico>
         <KpiMosaico label="Casas de Paz" icon={Home} color={TEAL}>{kpi.cdp}</KpiMosaico>
-        <KpiMosaico label="Miembros totales" icon={Users} color={AMBAR}>{kpi.miembros_totales}</KpiMosaico>
+        {/* KAN-185: "Creyentes", no "Miembros" -- la clasificación formal
+            como Miembro la determina el módulo de Afirmación aparte
+            (bautismo/retiro); esto solo cuenta personas de Casas de Paz. */}
+        <KpiMosaico label="Creyentes totales" icon={Users} color={AMBAR}>{kpi.miembros_totales}</KpiMosaico>
         <KpiMosaico label="Asistencia promedio" icon={Activity} color={AZUL}>{kpi.asistencia_promedio ?? '—'}</KpiMosaico>
       </div>
 

@@ -67,9 +67,31 @@ La épica no se considera terminada hasta que la matriz de pruebas pase en vivo 
 - [x] Corregir y probar localmente las aprobaciones de Red (Q-MR-13).
 - [x] Compilar las tres migraciones KAN-135 en PostgreSQL 17.
 - [x] Validar tipos, lint, build Vite y build del Docker Compose compartido.
-- [ ] Aplicar las migraciones pendientes con aprobación del owner.
-- [ ] Ejecutar pruebas de IDs manipulados con cuentas multirol reales.
-- [ ] Resolver Q-MR-12 antes de cerrar la épica.
+- [x] Aplicar las migraciones pendientes con aprobación del owner (hecho el
+      2026-08-10 durante KAN-152, verificado contra Supabase real).
+- [x] Probar en vivo con cuentas reales (KAN-152: bug de rol activo
+      persistido, reproducido y corregido con la cuenta real de Super Admin;
+      3 iglesias reales auditadas y reparadas retroactivamente).
+- [x] Resolver Q-MR-12 (2026-08-15): busca prioritariamente en la propia CdP,
+      cae a toda la iglesia si no hay resultados ahí. Implementado.
+
+### Seguimiento 2026-08-15
+
+Repaso de verificación en vivo contra Supabase real (no solo re-leer las
+migraciones): confirmado con `has_function_privilege` que las funciones/
+políticas de las 3 migraciones de KAN-135 siguen con los permisos correctos,
+**salvo una regresión real encontrada y corregida**: `20260811110000`
+(recheck de membresía por rol activo) reemplazó `fn_mi_membresia_incompleta`
+con `DROP FUNCTION` + `CREATE FUNCTION` para agregarle un parámetro -- eso
+resetea el ACL al default de Postgres (ejecución pública) y solo volvió a
+otorgar a `authenticated`, sin revocar de `anon`/`public`, deshaciendo en
+silencio el hardening de KAN-135 sobre esa misma función. Riesgo real bajo
+(la función depende de `auth.uid()`, NULL para un llamado anónimo, así que
+no filtraba datos), pero es exactamente el patrón que este ticket existe
+para cerrar. Corregido y aplicado a producción en
+`20260815050000_kan_135_re_revocar_membresia_incompleta.sql`, verificado con
+`has_function_privilege('anon', ..., 'EXECUTE') = false`. El resto de
+funciones/políticas de las 3 migraciones originales se confirmaron intactas.
 
 ## Informe tecnico de auditoria
 

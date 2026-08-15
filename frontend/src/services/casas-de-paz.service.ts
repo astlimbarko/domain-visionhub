@@ -175,7 +175,41 @@ export async function obtenerHistoricoCdpEliminadas(
   return data ?? [];
 }
 
-export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number): Promise<PersonaBusqueda[]> {
+type FilaPersonaBusqueda = {
+  id: string;
+  primer_nombre: string | null;
+  segundo_nombre: string | null;
+  primer_apellido: string | null;
+  segundo_apellido: string | null;
+  fecha_nacimiento: string | null;
+};
+
+function filtrarYMapearPersonas(data: FilaPersonaBusqueda[], tokens: string[], edadMinima?: number): PersonaBusqueda[] {
+  return data
+    .map((p) => ({
+      id: p.id,
+      nombre_completo: [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' '),
+      fecha_nacimiento: p.fecha_nacimiento,
+    }))
+    .filter((p) => {
+      const nombreNormalizado = p.nombre_completo.toLowerCase();
+      return tokens.every((t) => nombreNormalizado.includes(t.toLowerCase()));
+    })
+    // Sin fecha de nacimiento registrada no se puede saber si es menor -- se
+    // deja pasar en vez de ocultar a alguien por falta de datos.
+    .filter((p) => !edadMinima || !p.fecha_nacimiento || calcularEdad(p.fecha_nacimiento) >= edadMinima)
+    .slice(0, 10)
+    .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
+}
+
+/**
+ * Q-MR-12 (2026-08-15, decisión del owner): busca prioritariamente entre los
+ * miembros de la propia Casa de Paz (`cdpId`) y, solo si ahí no aparece
+ * nadie, cae a toda la iglesia -- puede visitar la CdP alguien de otra y hay
+ * que poder anotarlo igual. Sin `cdpId` (ej. cargos de Red/Departamento),
+ * busca en toda la iglesia directamente, como siempre.
+ */
+export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number, cdpId?: string): Promise<PersonaBusqueda[]> {
   const tokens = texto.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
 
@@ -192,6 +226,21 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
     ])
     .join(',');
 
+  if (cdpId) {
+    const { data: propios, error: errorPropios } = await supabase
+      .from('persona')
+      .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, casa_de_paz_membresia!inner(casa_de_paz_id, es_principal, fecha_fin)')
+      .eq('iglesia_id', iglesiaId)
+      .eq('casa_de_paz_membresia.casa_de_paz_id', cdpId)
+      .eq('casa_de_paz_membresia.es_principal', true)
+      .is('casa_de_paz_membresia.fecha_fin', null)
+      .or(condiciones)
+      .limit(30);
+    if (errorPropios) throw errorPropios;
+    const resultadosPropios = filtrarYMapearPersonas(propios ?? [], tokens, edadMinima);
+    if (resultadosPropios.length > 0) return resultadosPropios;
+  }
+
   const { data, error } = await supabase
     .from('persona')
     .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento')
@@ -200,69 +249,24 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
     .limit(30);
   if (error) throw error;
 
-  return (data ?? [])
-    .map((p) => ({
-      id: p.id,
-      nombre_completo: [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' '),
-      fecha_nacimiento: p.fecha_nacimiento as string | null,
-    }))
-    .filter((p) => {
-      const nombreNormalizado = p.nombre_completo.toLowerCase();
-      return tokens.every((t) => nombreNormalizado.includes(t.toLowerCase()));
-    })
-    // Sin fecha de nacimiento registrada no se puede saber si es menor -- se
-    // deja pasar en vez de ocultar a alguien por falta de datos.
-    .filter((p) => !edadMinima || !p.fecha_nacimiento || calcularEdad(p.fecha_nacimiento) >= edadMinima)
-    .slice(0, 10)
-    .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
+  return filtrarYMapearPersonas(data ?? [], tokens, edadMinima);
 }
 
+// KAN-205: RPC en vez de consulta directa -- persona.correo (campo de
+// perfil aparte) casi siempre está vacío; el correo real de inicio de
+// sesión vive en auth.users, solo accesible desde una función SECURITY
+// DEFINER. Regla pedida por el owner para todo VisionHub: sin nombre,
+// mostrar correo, siempre.
 export async function obtenerCargoVigenteRed(redId: string, codigo: CargoRedCodigo): Promise<CargoVigente[]> {
-  const { data, error } = await supabase
-    .from('red_cargo')
-    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
-    .eq('red_id', redId)
-    .is('fecha_fin', null);
+  const { data, error } = await supabase.rpc('fn_cargo_vigente_red', { p_red_id: redId, p_codigo: codigo });
   if (error) throw error;
-  return (data ?? [])
-    .filter((r) => {
-      const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
-      return cargo?.codigo === codigo;
-    })
-    .map((r) => {
-      const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
-      return {
-        id: r.id,
-        persona_id: r.persona_id,
-        fecha_inicio: r.fecha_inicio,
-        correo: p?.correo ?? null,
-        nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
-      };
-    });
+  return data ?? [];
 }
 
 export async function obtenerCargoVigenteCdp(cdpId: string, codigo: CargoCdpCodigo): Promise<CargoVigente[]> {
-  const { data, error } = await supabase
-    .from('casa_de_paz_cargo')
-    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
-    .eq('casa_de_paz_id', cdpId)
-    .is('fecha_fin', null);
+  const { data, error } = await supabase.rpc('fn_cargo_vigente_cdp', { p_cdp_id: cdpId, p_codigo: codigo });
   if (error) throw error;
-  return (data ?? [])
-    .filter((r) => {
-      const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
-      return cargo?.codigo === codigo;
-    })
-    .map((r) => {
-      const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
-      return {
-        id: r.id,
-        persona_id: r.persona_id,
-        fecha_inicio: r.fecha_inicio,
-        correo: p?.correo ?? null,
-        nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
-      };
-    });
+  return data ?? [];
 }
 
 const CARGOS_EXCLUSIVOS_RED: CargoRedCodigo[] = ['LIDER_RED', 'ENCARGADO_DEPARTAMENTOS_RED', 'ENCARGADO_MINISTERIO_RED'];

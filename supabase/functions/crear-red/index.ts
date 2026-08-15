@@ -60,7 +60,12 @@ export default {
     const { data: iglesiaFila } = await ctx.supabase.from("iglesia").select("nombre").eq("id", iglesiaId).single();
     const { data: invitado, error: errorInvitar } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correoNuevo, {
       redirectTo: body.redirectTo,
-      data: iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre, rol_etiqueta: "Líder de Red", entidad_nombre: nombre } : {},
+      // KAN-201: marca que el hook_restringir_alta_no_google (Before User
+      // Created) usa para distinguir esta alta de un registro publico.
+      data: {
+        ...(iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre, rol_etiqueta: "Líder de Red", entidad_nombre: nombre } : {}),
+        invitado_por_admin: true,
+      },
     });
 
     if (errorInvitar) {

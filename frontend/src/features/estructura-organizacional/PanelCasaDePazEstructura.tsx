@@ -39,9 +39,12 @@ interface Props {
   colorRed?: string | null;
   abrirAnadirSubliderAlAbrir?: boolean;
   otpRequerido: boolean;
-  /** KAN-16x: Super Admin Y Supervisor de la Visión en Acción pueden
-   * eliminar por completo -- el backend (fn_estructura_eliminar_casa_de_paz)
-   * ya exige además que esté vacía (sin líder/sublíder/anfitrión/miembros). */
+  /** KAN-190: solo Super Admin puede eliminar por completo (pedido
+   * explícito del owner, 2026-08-13 -- antes también podía Supervisor de la
+   * Visión en Acción). El backend (fn_estructura_eliminar_casa_de_paz)
+   * ya exige además que no tenga datos reales (sin miembros ni
+   * reportes/reuniones registradas; líder/sublíder/anfitrión sí puede
+   * tener, eso ya no bloquea -- KAN-189). */
   puedeEliminarPorCompleto: boolean;
   onClose: () => void;
 }
@@ -76,10 +79,15 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const reactivarCdp = useReactivarCasaDePazEstructura(iglesiaId);
 
   useEffect(() => {
-    if (abrirAnadirSubliderAlAbrir) {
+    // Bug real (2026-08-15): el atajo "+ Añadir sublíder" del nodo en el
+    // lienzo dispara esto sin pasar por el gate de `casaDePaz.eliminada` de
+    // más abajo -- en una CdP cerrada terminaba abriendo el diálogo de
+    // todas formas, y el backend rechazaba con CDP_INEXISTENTE, que
+    // invitar-lider (edge function) confunde con "ya existe una cuenta".
+    if (abrirAnadirSubliderAlAbrir && !casaDePaz.eliminada) {
       setDialogoCargo({ codigo: 'SUBLIDER_CDP', titulo: 'Sublíderes de Casa de Paz', exclusivo: false });
     }
-  }, [abrirAnadirSubliderAlAbrir, casaDePaz.id]);
+  }, [abrirAnadirSubliderAlAbrir, casaDePaz.id, casaDePaz.eliminada]);
 
   const { data: cargos = [] } = useCargos();
   const { data: vigentes = [], isLoading: cargandoVigentes } = useCargoVigenteCdp(
@@ -93,6 +101,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
 
   const lider = casaDePaz.lideres[0];
   const anfitrion = casaDePaz.anfitriones[0];
+
+  // KAN-189: el diálogo de "Eliminar Casa de Paz" nombra al líder y/o
+  // sublíder actuales (si existen) en vez de un texto genérico -- el backend
+  // ya no bloquea el borrado por tenerlos asignados, así que hay que dejar
+  // claro con quién se está usando la acción antes de confirmar.
+  const nombreLider = lider ? (lider.nombre || lider.etiqueta) : null;
+  const nombresSublideres = casaDePaz.sublideres.map((s) => s.nombre || s.etiqueta);
+  const partesAsignadas = [
+    nombreLider ? `líder a ${nombreLider}` : null,
+    nombresSublideres.length > 0 ? `sublíder a ${nombresSublideres.join(' y ')}` : null,
+  ].filter((parte): parte is string => parte !== null);
+  const tituloEliminar = partesAsignadas.length > 0
+    ? `¿Eliminar esta Casa de Paz? Tiene como ${partesAsignadas.join(' y como ')}.`
+    : '¿Eliminar esta Casa de Paz de la base de datos?';
 
   useEffect(() => {
     if (dialogoCargo || mostrarDomicilio || confirmandoEliminar) return;
@@ -165,21 +187,23 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     });
   }
 
-  function handleInvitar(correo: string) {
+  // KAN-206 (2026-08-15): si el correo ya tenia cuenta, el backend asigna
+  // directo en el mismo paso -- en vez de un toast con el modal quedando
+  // abierto, se devuelve `{ yaExistia: true }` para que AsignarCargoDialog
+  // muestre la confirmacion adentro suyo y se cierre solo. Una invitacion
+  // nueva de verdad (todavia sin cuenta) sigue avisando por toast.
+  async function handleInvitar(correo: string) {
     if (!dialogoCargo) return;
-    invitarLider.mutate(
-      { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
-      {
-        onSuccess: (resultado) => {
-          // KAN-16x (2026-08-11): si el correo ya tenia cuenta, el backend
-          // asigna directo en el mismo paso en vez de mandar una invitacion
-          // nueva -- avisar eso, no "invitación enviada" (nadie recibe nada).
-          toast.success(resultado.yaExistia ? `${correo} ya tenía cuenta: asignado directo y notificado por correo` : `Invitación enviada a ${correo}`);
-          void invalidarEstructura();
-        },
-        onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
-      },
-    );
+    try {
+      const resultado = await invitarLider.mutateAsync(
+        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
+      );
+      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      void invalidarEstructura();
+      return resultado;
+    } catch (e) {
+      manejarErrorCargo(e, 'No se pudo invitar');
+    }
   }
 
   return (
@@ -219,7 +243,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
         {casaDePaz.eliminada ? (
         <div className="space-y-4 p-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue eliminada</p>
+            <p className="text-sm font-semibold text-amber-800">Esta Casa de Paz fue cerrada</p>
             <p className="mt-1 text-xs text-amber-700">
               Sigue visible (agrisada) mientras dure su período de gracia configurable. Nada se puede modificar hasta reactivarla.
             </p>
@@ -231,6 +255,15 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           >
             Reactivar Casa de Paz
           </button>
+          {puedeEliminarPorCompleto && (
+            <button
+              type="button"
+              onClick={() => setConfirmandoEliminar(true)}
+              className="h-9 w-full cursor-pointer rounded-xl text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
+            >
+              Eliminar Casa de Paz
+            </button>
+          )}
         </div>
         ) : (
         <div className="space-y-4 p-5">
@@ -331,8 +364,8 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
       <ConfirmarQuitarDialog
         open={confirmandoEliminar}
         onOpenChange={(abierto) => { setConfirmandoEliminar(abierto); if (!abierto) setOtpEliminar(''); }}
-        titulo={`¿Eliminar esta Casa de Paz de la base de datos?`}
-        descripcion="Se elimina por completo junto con sus cargos, membresías y reportes. No se puede deshacer."
+        titulo={tituloEliminar}
+        descripcion="Se elimina por completo de la base de datos, junto con sus cargos asignados. No se puede deshacer."
         procesando={eliminarCdp.isPending}
         onConfirmar={() => void confirmarEliminar()}
         textoConfirmar="Sí, eliminar definitivamente"
@@ -363,6 +396,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           titulo={dialogoCargo.titulo}
           exclusivo={dialogoCargo.exclusivo}
           iglesiaId={iglesiaId}
+          cdpId={casaDePaz.id}
           vigentes={vigentes}
           cargandoVigentes={cargandoVigentes}
           asignando={asignarCargo.isPending}

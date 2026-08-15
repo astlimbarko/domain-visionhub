@@ -124,15 +124,20 @@ export function GestionSubliderVista() {
     }
   }
 
-  function manejarInvitar(correo: string) {
+  // KAN-206: si el correo ya tenia cuenta, se devuelve { yaExistia: true }
+  // para que AsignarCargoDialog muestre la confirmacion adentro suyo y se
+  // cierre solo, en vez de un toast con el modal quedando abierto.
+  async function manejarInvitar(correo: string) {
     if (!cdpActiva) return;
-    invitarLider.mutate(
-      { correo, rol: 'SUBLIDER_CDP', redId: null, casaDePazId: cdpActiva },
-      {
-        onSuccess: () => toast.success(`Invitación enviada a ${correo}`),
-        onError: (e) => manejarError(e, 'No se pudo invitar'),
-      }
-    );
+    try {
+      const resultado = await invitarLider.mutateAsync(
+        { correo, rol: 'SUBLIDER_CDP', redId: null, casaDePazId: cdpActiva },
+      );
+      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      return resultado;
+    } catch (e) {
+      manejarError(e, 'No se pudo invitar');
+    }
   }
 
   // Quitar un sublíder pide confirmación explícita: el click en Quitar solo
@@ -510,6 +515,7 @@ export function GestionSubliderVista() {
           titulo="Asignar sublíder"
           exclusivo={false}
           iglesiaId={iglesiaActivaId}
+          cdpId={cdpActiva}
           vigentes={sublideres}
           cargandoVigentes={cargandoSublideres}
           asignando={asignarCargoCdp.isPending}
@@ -529,6 +535,7 @@ export function GestionSubliderVista() {
           titulo={`Anfitrión de ${nombreCdpActiva ?? 'la Casa de Paz'}`}
           exclusivo
           iglesiaId={iglesiaActivaId}
+          cdpId={cdpActiva}
           vigentes={anfitrion}
           cargandoVigentes={cargandoAnfitrion}
           asignando={asignarCargoCdp.isPending}

@@ -156,3 +156,42 @@
   50% { transform: scale(1.07); }
 }
 
+/* KAN-194: scroll discreto para paneles/tarjetas que necesitan poder
+   scrollear si el contenido no entra -- una línea delgada, gris, con
+   puntas redondeadas (sin flechas ni track visible), mismo espíritu del
+   scrollbar minimalista de ChatGPT en vez del scrollbar del sistema. */
+.scrollbar-minimal {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
+}
+.scrollbar-minimal::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-minimal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-minimal::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+  border-radius: 999px;
+}
+.scrollbar-minimal::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--foreground) 38%, transparent);
+}
+
+/* OpcionRolFila (seleccionar-rol): ripple que nace del punto exacto del
+   clic -- crece y se desvanece, mismo espíritu que el estado "click" de
+   m_click.png. */
+@keyframes fila-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.animate-fila-ripple {
+  animation: fila-ripple 500ms ease-out;
+}
+

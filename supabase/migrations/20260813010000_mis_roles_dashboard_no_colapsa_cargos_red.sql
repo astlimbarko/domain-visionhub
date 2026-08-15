@@ -1,21 +1,18 @@
--- VisionHub -- 92_cdp_dashboard_red_id.sql
--- Pedido del owner (2026-08-02): en la agrupación "Dashboard" del sidebar
--- (AppShell.tsx, `sombreros`), si una persona ya tiene acceso a nivel Red
--- (Líder de Red o Supervisor de la Red en Acción) no debería aparecer
--- TAMBIÉN un atajo separado a una Casa de Paz que ya pertenece a esa misma
--- Red -- es redundante, esa CdP ya se ve desde el dashboard de la Red. Antes
--- solo pasaba con combinaciones que no se solapaban (ej. Supervisor de la
--- Visión + Sublíder de una CdP en otra Red), pero con "Supervisor de la Red
--- en Acción" (90_) se volvió un caso real: la misma persona puede ser
--- Sublíder de una CdP que está DENTRO de la Red que supervisa.
+-- VisionHub -- KAN-186: el selector multirol no mostraba "Supervisor de Red"
+-- cuando la misma persona tiene los 2 cargos (LIDER_RED y SUBLIDER_RED)
+-- vigentes a la vez en la misma Red. Decision del owner (2026-08-13): esa
+-- combinacion SI debe poder coexistir (no se fuerza exclusividad) -- el
+-- selector tiene que mostrar ambos cargos como opciones separadas.
 --
--- fn_mis_roles_dashboard no exponía `red_id` en cdp_lider/cdp_sublider, así
--- que el frontend no tenía forma de saber si una CdP ya está cubierta por
--- alguna Red en `redes_lider`. Se agrega esa columna (mismo patrón que
--- casa_de_paz_red ya usa en otras funciones -- vigente = fecha_fin IS NULL).
--- El filtrado en sí se hace en AppShell.tsx, no acá (esta función solo
--- expone el dato).
-CREATE OR REPLACE FUNCTION fn_mis_roles_dashboard(p_iglesia_id UUID)
+-- Causa real: `DISTINCT ON (r.id) ... ORDER BY r.id, (c.codigo = 'LIDER_RED')
+-- DESC` colapsaba a una sola fila por Red, quedandose siempre con LIDER_RED
+-- cuando existian los 2 cargos -- SUBLIDER_RED (mostrado como "Supervisor de
+-- Red") desaparecia en silencio del array `redes_lider`, aunque el cargo
+-- existiera en la base. El resto de la cadena (contextos-disponibles.ts,
+-- useOpcionesRolContextuales.ts) ya arma una opcion distinta por cada fila
+-- del array (clave incluye el cargo), asi que alcanza con dejar de colapsar
+-- acá -- no hace falta tocar el frontend.
+CREATE OR REPLACE FUNCTION public.fn_mis_roles_dashboard(p_iglesia_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
@@ -28,11 +25,6 @@ BEGIN
   RETURN jsonb_build_object(
     'es_operativo', fn_es_operativo_en(p_iglesia_id),
     'redes_lider', (
-      -- KAN-186 (2026-08-13): sin DISTINCT ON -- si la misma persona tiene
-      -- LIDER_RED y SUBLIDER_RED vigentes a la vez en la misma Red (decision
-      -- del owner: pueden coexistir), tiene que devolver las 2 filas. Antes
-      -- colapsaba a una sola y SUBLIDER_RED ("Supervisor de Red") desaparecia
-      -- en silencio del selector multirol aunque el cargo existiera.
       SELECT jsonb_agg(jsonb_build_object('id', x.id, 'nombre', x.nombre, 'color', x.color, 'es_sublider', x.es_sublider) ORDER BY x.nombre, x.es_sublider)
       FROM (
         SELECT r.id, r.nombre, r.color, (c.codigo = 'SUBLIDER_RED') AS es_sublider
