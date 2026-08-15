@@ -7,9 +7,10 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -23,8 +24,19 @@ import {
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { AnuncioFormDialog } from '@/components/anuncios/AnuncioFormDialog';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
-import { useCapacidadAnuncio, useEliminarAnuncio, useMisAnunciosGestion, useToggleActivoAnuncio, useUrlFirmadaAnuncio } from '@/hooks/useAnuncios';
+import {
+  useAsignarEncargadoAnuncio,
+  useCapacidadAnuncio,
+  useEliminarAnuncio,
+  useEncargadosAnuncio,
+  useMisAnunciosGestion,
+  useQuitarEncargadoAnuncio,
+  useToggleActivoAnuncio,
+  useUrlFirmadaAnuncio,
+} from '@/hooks/useAnuncios';
 import { ROUTES } from '@/utils/constants';
 import type { AnuncioGestion, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
@@ -45,6 +57,18 @@ function MiniaturaAnuncio({ imagenPath }: { imagenPath: string }) {
   );
 }
 
+function etiquetaAlcance(anuncio: AnuncioGestion): string {
+  if (anuncio.alcance_tipo === 'IGLESIA') return 'Toda la iglesia';
+  if (anuncio.alcance_tipo === 'RED') {
+    if (anuncio.redes.length === 0) return 'Red';
+    if (anuncio.redes.length === 1) return anuncio.redes[0].nombre;
+    return `${anuncio.redes.length} Redes`;
+  }
+  if (anuncio.casas_de_paz.length === 0) return 'Casa de Paz';
+  if (anuncio.casas_de_paz.length === 1) return anuncio.casas_de_paz[0].nombre;
+  return `${anuncio.casas_de_paz.length} Casas de Paz`;
+}
+
 function FilaAnuncio({
   anuncio,
   onEditar,
@@ -62,8 +86,11 @@ function FilaAnuncio({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-foreground">{anuncio.titulo}</p>
+          {anuncio.es_borrador && (
+            <Badge variant="outline" className="shrink-0 text-[11px] text-amber-600">Borrador</Badge>
+          )}
           <Badge variant="outline" className="shrink-0 text-[11px] text-muted-foreground">
-            {anuncio.red_nombre ?? 'Toda la iglesia'}
+            {etiquetaAlcance(anuncio)}
           </Badge>
         </div>
         <div className="mt-1 flex flex-wrap gap-1">
@@ -110,6 +137,7 @@ export function Anuncios() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [anuncioEditar, setAnuncioEditar] = useState<AnuncioGestion | null>(null);
   const [anuncioEliminar, setAnuncioEliminar] = useState<AnuncioGestion | null>(null);
+  const [mostrarEncargados, setMostrarEncargados] = useState(false);
 
   if (!iglesiaActivaId) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
@@ -124,7 +152,7 @@ export function Anuncios() {
     );
   }
 
-  const puedeCrear = !!capacidad && (capacidad.puede_iglesia || capacidad.redes.length > 0);
+  const puedeCrear = !!capacidad && (capacidad.puede_iglesia || capacidad.redes.length > 0 || capacidad.casas_de_paz.length > 0);
 
   if (!puedeCrear) {
     return (
@@ -132,7 +160,7 @@ export function Anuncios() {
         <SeccionIconHeader icon={Megaphone} color="#ff9500" titulo="Anuncios" descripcion="Comunicá información a tu Red o a toda la iglesia." />
         <ProximamentePlaceholder
           titulo="Sin acceso"
-          descripcion="Solo el Supervisor de la Visión en Acción, el Líder de Red y el Supervisor de Red pueden crear anuncios."
+          descripcion="Solo el Pastor, el Supervisor de la Visión en Acción, un Encargado de Anuncios, el Líder de Red y el Supervisor de Red pueden crear anuncios."
         />
       </div>
     );
@@ -142,17 +170,25 @@ export function Anuncios() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <SeccionIconHeader icon={Megaphone} color="#ff9500" titulo="Anuncios" descripcion="Se muestran como modal al ingresar a VisionHub." />
-        <Button
-          type="button"
-          className="shrink-0 gap-1.5"
-          onClick={() => {
-            setAnuncioEditar(null);
-            setMostrarForm(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Anuncio
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          {capacidad?.puede_designar_encargados && (
+            <Button type="button" variant="outline" className="gap-1.5" onClick={() => setMostrarEncargados(true)}>
+              <UserCog className="h-4 w-4" />
+              Encargados
+            </Button>
+          )}
+          <Button
+            type="button"
+            className="gap-1.5"
+            onClick={() => {
+              setAnuncioEditar(null);
+              setMostrarForm(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Anuncio
+          </Button>
+        </div>
       </div>
 
       {cargandoAnuncios ? (
@@ -216,6 +252,133 @@ export function Anuncios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {capacidad?.puede_designar_encargados && (
+        <GestionarEncargadosDialog open={mostrarEncargados} onOpenChange={setMostrarEncargados} iglesiaId={iglesiaActivaId} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Encargado de Anuncios (2026-08-15, KAN-103): cargo delegado que el
+ * Supervisor de la Visión en Acción (o el Pastor) puede otorgar a 0..N
+ * personas, sin importar su rol organizacional -- si no hay nadie designado,
+ * Supervisor/Pastor conservan la capacidad completa (default sin cambios).
+ */
+function GestionarEncargadosDialog({
+  open,
+  onOpenChange,
+  iglesiaId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  iglesiaId: string;
+}) {
+  const { data: encargados = [], isLoading } = useEncargadosAnuncio(iglesiaId);
+  const asignar = useAsignarEncargadoAnuncio();
+  const quitar = useQuitarEncargadoAnuncio();
+  const [otp, setOtp] = useState('');
+  const [personaAAgregar, setPersonaAAgregar] = useState<{ id: string; nombre_completo: string } | null>(null);
+
+  function manejarAgregar() {
+    if (!personaAAgregar || otp.length !== 6) return;
+    asignar.mutate(
+      { iglesiaId, personaId: personaAAgregar.id, otp },
+      {
+        onSuccess: () => {
+          toast.success(`${personaAAgregar.nombre_completo} ahora es Encargado de Anuncios`);
+          setPersonaAAgregar(null);
+          setOtp('');
+        },
+        onError: (e) => toast.error(e.message || 'No se pudo asignar el cargo'),
+      }
+    );
+  }
+
+  function manejarQuitar(personaId: string, nombre: string) {
+    if (otp.length !== 6) {
+      toast.error('Ingresá el código de confirmación primero');
+      return;
+    }
+    quitar.mutate(
+      { iglesiaId, personaId, otp },
+      {
+        onSuccess: () => {
+          toast.success(`${nombre} ya no es Encargado de Anuncios`);
+          setOtp('');
+        },
+        onError: (e) => toast.error(e.message || 'No se pudo quitar el cargo'),
+      }
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Encargados de Anuncios</DialogTitle>
+          <DialogDescription>
+            Personas designadas para gestionar los anuncios de la iglesia en tu nombre. Sin nadie designado, vos
+            conservás el control total.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          {isLoading ? (
+            <Skeleton className="h-16 w-full rounded-xl" />
+          ) : encargados.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground">Todavía no hay nadie designado.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {encargados.map((e) => (
+                <div key={e.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm">
+                  {e.nombre}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    disabled={quitar.isPending}
+                    onClick={() => manejarQuitar(e.persona_id, e.nombre)}
+                    aria-label="Quitar"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3">
+            <BuscadorPersona
+              iglesiaId={iglesiaId}
+              excluirIds={encargados.map((e) => e.persona_id)}
+              onSeleccionar={(p) => setPersonaAAgregar(p)}
+            />
+            {personaAAgregar && (
+              <p className="text-[12px] text-muted-foreground">Agregar a <strong>{personaAAgregar.nombre_completo}</strong>:</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Input
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="Código de confirmación (6 dígitos)"
+              className={CAMPO_ESTILO}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" disabled={!personaAAgregar || otp.length !== 6 || asignar.isPending} onClick={manejarAgregar}>
+            {asignar.isPending ? 'Agregando...' : 'Agregar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

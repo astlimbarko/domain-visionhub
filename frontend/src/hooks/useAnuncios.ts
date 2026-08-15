@@ -1,17 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarAnuncio,
+  asignarEncargadoAnuncio,
   crearAnuncio,
   eliminarAnuncio,
   eliminarImagenAnuncio,
+  listarEncargadosAnuncio,
   obtenerCapacidadAnuncio,
   obtenerMisAnunciosGestion,
   obtenerRolesDisponiblesAnuncio,
   obtenerUrlFirmadaAnuncio,
+  publicarAnuncio,
+  quitarEncargadoAnuncio,
   subirImagenAnuncio,
   toggleActivoAnuncio,
 } from '@/services/anuncio.service';
-import type { DatosEditarAnuncio, DatosNuevoAnuncio } from '@/types/anuncio.types';
+import type { AlcanceTipoAnuncio, DatosEditarAnuncio, DatosNuevoAnuncio } from '@/types/anuncio.types';
 
 const QUERY_KEY_GESTION = (iglesiaId: string | undefined, redId: string | null | undefined) =>
   ['anuncios', 'gestion', iglesiaId, redId ?? null] as const;
@@ -24,11 +28,17 @@ export function useCapacidadAnuncio(iglesiaId: string | undefined) {
   });
 }
 
-export function useRolesDisponiblesAnuncio(iglesiaId: string | undefined, redId: string | null) {
+export function useRolesDisponiblesAnuncio(
+  iglesiaId: string | undefined,
+  alcanceTipo: AlcanceTipoAnuncio,
+  redIds: string[],
+  cdpIds: string[]
+) {
+  const tieneAlcance = alcanceTipo === 'IGLESIA' || (alcanceTipo === 'RED' ? redIds.length > 0 : cdpIds.length > 0);
   return useQuery({
-    queryKey: ['anuncios', 'roles-disponibles', iglesiaId, redId],
-    queryFn: () => obtenerRolesDisponiblesAnuncio(iglesiaId as string, redId),
-    enabled: !!iglesiaId,
+    queryKey: ['anuncios', 'roles-disponibles', iglesiaId, alcanceTipo, redIds, cdpIds],
+    queryFn: () => obtenerRolesDisponiblesAnuncio(iglesiaId as string, alcanceTipo, redIds, cdpIds),
+    enabled: !!iglesiaId && tieneAlcance,
   });
 }
 
@@ -100,5 +110,45 @@ export function useUrlFirmadaAnuncio(imagenPath: string | undefined) {
     queryFn: () => obtenerUrlFirmadaAnuncio(imagenPath as string),
     enabled: !!imagenPath,
     staleTime: 1000 * 60 * 30, // la URL firmada dura 1h; se refresca bastante antes
+  });
+}
+
+export function usePublicarAnuncio() {
+  const invalidar = useInvalidarGestionAnuncios();
+  return useMutation({
+    mutationFn: ({ anuncioId, fechaPublicacion }: { anuncioId: string; fechaPublicacion?: string | null }) =>
+      publicarAnuncio(anuncioId, fechaPublicacion),
+    onSuccess: invalidar,
+  });
+}
+
+export function useEncargadosAnuncio(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['anuncios', 'encargados', iglesiaId],
+    queryFn: () => listarEncargadosAnuncio(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+function useInvalidarEncargadosAnuncio() {
+  const queryClient = useQueryClient();
+  return (iglesiaId: string) => queryClient.invalidateQueries({ queryKey: ['anuncios', 'encargados', iglesiaId] });
+}
+
+export function useAsignarEncargadoAnuncio() {
+  const invalidar = useInvalidarEncargadosAnuncio();
+  return useMutation({
+    mutationFn: ({ iglesiaId, personaId, otp }: { iglesiaId: string; personaId: string; otp: string }) =>
+      asignarEncargadoAnuncio(iglesiaId, personaId, otp),
+    onSuccess: (_data, { iglesiaId }) => invalidar(iglesiaId),
+  });
+}
+
+export function useQuitarEncargadoAnuncio() {
+  const invalidar = useInvalidarEncargadosAnuncio();
+  return useMutation({
+    mutationFn: ({ iglesiaId, personaId, otp }: { iglesiaId: string; personaId: string; otp: string }) =>
+      quitarEncargadoAnuncio(iglesiaId, personaId, otp),
+    onSuccess: (_data, { iglesiaId }) => invalidar(iglesiaId),
   });
 }
