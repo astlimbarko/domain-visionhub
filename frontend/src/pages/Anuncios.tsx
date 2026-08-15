@@ -50,12 +50,45 @@ const ETIQUETA_ROL_CORTA: Record<RolDestinatarioAnuncio, string> = {
   MIEMBRO: 'Miembro',
 };
 
-function MiniaturaAnuncio({ imagenPath }: { imagenPath: string }) {
+function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: string; titulo: string; onAmpliar: () => void }) {
   const { data: url } = useUrlFirmadaAnuncio(imagenPath);
   return (
-    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
+    <button
+      type="button"
+      onClick={onAmpliar}
+      disabled={!url}
+      className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted transition-opacity hover:opacity-90 disabled:cursor-default"
+      aria-label={`Ver imagen completa de "${titulo}"`}
+    >
       {url && <img src={url} alt="" className="h-full w-full object-cover" />}
-    </div>
+    </button>
+  );
+}
+
+/** Vista ampliada al hacer clic en la miniatura -- imagen completa, sin
+ * recortar (pedido explicito del owner 2026-08-15). */
+function ImagenAnuncioAmpliada({
+  imagenPath,
+  titulo,
+  onOpenChange,
+}: {
+  imagenPath: string;
+  titulo: string;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: url } = useUrlFirmadaAnuncio(imagenPath);
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{titulo}</DialogTitle>
+          <DialogDescription>Vista ampliada de la imagen del anuncio.</DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center justify-center bg-muted" style={{ maxHeight: '80vh' }}>
+          {url && <img src={url} alt={titulo} className="max-w-full object-contain" style={{ maxHeight: '80vh' }} />}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -77,12 +110,14 @@ function FilaAnuncio({
   puedeBajar,
   onEditar,
   onEliminar,
+  onAmpliarImagen,
 }: {
   anuncio: AnuncioGestion;
   puedeSubir: boolean;
   puedeBajar: boolean;
   onEditar: () => void;
   onEliminar: () => void;
+  onAmpliarImagen: () => void;
 }) {
   const toggleActivo = useToggleActivoAnuncio();
   const mover = useMoverPrioridadAnuncio();
@@ -111,7 +146,7 @@ function FilaAnuncio({
           <ArrowDown className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <MiniaturaAnuncio imagenPath={anuncio.imagen_path} />
+      <MiniaturaAnuncio imagenPath={anuncio.imagen_path} titulo={anuncio.titulo} onAmpliar={onAmpliarImagen} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-foreground">{anuncio.titulo}</p>
@@ -165,6 +200,7 @@ export function Anuncios() {
   const eliminar = useEliminarAnuncio();
 
   const [anuncioEliminar, setAnuncioEliminar] = useState<AnuncioGestion | null>(null);
+  const [anuncioAmpliar, setAnuncioAmpliar] = useState<AnuncioGestion | null>(null);
   const [mostrarEncargados, setMostrarEncargados] = useState(false);
 
   if (!iglesiaActivaId) {
@@ -226,6 +262,7 @@ export function Anuncios() {
               puedeBajar={i < anuncios.length - 1}
               onEditar={() => navigate(ROUTES.ANUNCIO_EDITAR.replace(':anuncioId', a.id))}
               onEliminar={() => setAnuncioEliminar(a)}
+              onAmpliarImagen={() => setAnuncioAmpliar(a)}
             />
           ))}
         </div>
@@ -264,6 +301,14 @@ export function Anuncios() {
 
       {capacidad?.puede_designar_encargados && (
         <GestionarEncargadosDialog open={mostrarEncargados} onOpenChange={setMostrarEncargados} iglesiaId={iglesiaActivaId} />
+      )}
+
+      {anuncioAmpliar && (
+        <ImagenAnuncioAmpliada
+          imagenPath={anuncioAmpliar.imagen_path}
+          titulo={anuncioAmpliar.titulo}
+          onOpenChange={(open) => !open && setAnuncioAmpliar(null)}
+        />
       )}
     </div>
   );
