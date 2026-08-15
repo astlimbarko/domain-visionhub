@@ -109,6 +109,7 @@ export function AnuncioForm() {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [duracionPersonalizada, setDuracionPersonalizada] = useState(true);
+  const [duracionRapidaDias, setDuracionRapidaDias] = useState<number | null>(null);
   const [mostrarNuevamente, setMostrarNuevamente] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [orientacionDetectada, setOrientacionDetectada] = useState<OrientacionImagenAnuncio | null>(null);
@@ -219,6 +220,7 @@ export function AnuncioForm() {
 
   function aplicarDuracionRapida(dias: number) {
     setDuracionPersonalizada(false);
+    setDuracionRapidaDias(dias);
     const base = fechaInicio ? new Date(fechaInicio) : new Date();
     const fin = new Date(base.getTime() + dias * 24 * 60 * 60 * 1000);
     setFechaFin(aInputDatetimeLocal(fin.toISOString()));
@@ -367,7 +369,9 @@ export function AnuncioForm() {
               <p className="text-[12px] text-muted-foreground">Detectada: {orientacionDetectada === 'CUADRADA' ? 'cuadrada (1:1)' : 'vertical'}</p>
             )}
             {imagenAMostrar && (
-              <img src={imagenAMostrar} alt="Vista previa" className="mt-1 h-40 w-auto rounded-xl border border-border/60 object-cover" />
+              <div className="mt-1 flex max-h-72 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted p-2">
+                <img src={imagenAMostrar} alt="Vista previa" className="max-h-64 max-w-full object-contain" />
+              </div>
             )}
           </div>
         </div>
@@ -513,11 +517,25 @@ export function AnuncioForm() {
           <Label>Duración</Label>
           <div className="flex flex-wrap gap-1.5">
             {DURACIONES_RAPIDAS.map((d) => (
-              <Button key={d.dias} type="button" variant="outline" size="sm" onClick={() => aplicarDuracionRapida(d.dias)}>
+              <Button
+                key={d.dias}
+                type="button"
+                variant={!duracionPersonalizada && duracionRapidaDias === d.dias ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => aplicarDuracionRapida(d.dias)}
+              >
                 {d.etiqueta}
               </Button>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setDuracionPersonalizada(true)}>
+            <Button
+              type="button"
+              variant={duracionPersonalizada ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setDuracionPersonalizada(true);
+                setDuracionRapidaDias(null);
+              }}
+            >
               Personalizado
             </Button>
           </div>
