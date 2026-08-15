@@ -76,7 +76,6 @@ export function SeleccionarRol() {
   // Si la persona todavía no cargó su nombre (recién asignada, sin membresía
   // completa), el saludo cae al correo con el que inició sesión.
   const saludo = primerNombre ?? (correo ? truncarCorreo(correo) : null);
-  const cantidad = opcionesContextuales?.length ?? 0;
 
   return (
     <div
@@ -131,21 +130,21 @@ export function SeleccionarRol() {
         ) : (
           <>
             <div className="flex flex-col items-center gap-1 text-center">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[12px] font-bold text-white shadow-lg shadow-black/10">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[12px] font-bold text-white shadow-lg shadow-black/10">
                 {nombreCompleto ? iniciales(nombreCompleto) : null}
+                {/* Punto "en línea" (m.png) -- decorativo, no refleja presencia real. */}
+                <span
+                  className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-[var(--chart-2)]"
+                  aria-hidden="true"
+                />
               </div>
-              <h1
-                className="mt-1 w-full truncate px-2 text-lg font-extrabold tracking-tight text-foreground"
-                title={saludo && correo ? correo : undefined}
-              >
-                {saludo ? `Bienvenido, ${saludo}` : 'Bienvenido'}
-              </h1>
-              {opcionesContextuales !== undefined && (
-                <p className="text-[12.5px] text-muted-foreground">
-                  Tienes <span className="font-bold text-[#0071e3]">{cantidad}</span>{' '}
-                  {cantidad === 1 ? 'rol asignado' : 'roles asignados'} — elegí con cuál ingresar
+              <h1 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Bienvenido</h1>
+              {saludo && (
+                <p className="w-full max-w-full truncate px-2 text-[12.5px] text-muted-foreground" title={correo ?? undefined}>
+                  {saludo}
                 </p>
               )}
+              <p className="mt-0.5 text-[12.5px] text-muted-foreground">Selecciona un rol para continuar</p>
             </div>
 
             <div className="mt-3">

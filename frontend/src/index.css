@@ -178,3 +178,20 @@
   background-color: color-mix(in oklab, var(--foreground) 38%, transparent);
 }
 
+/* OpcionRolFila (seleccionar-rol): ripple que nace del punto exacto del
+   clic -- crece y se desvanece, mismo espíritu que el estado "click" de
+   m_click.png. */
+@keyframes fila-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.animate-fila-ripple {
+  animation: fila-ripple 500ms ease-out;
+}
+
