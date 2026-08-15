@@ -325,6 +325,17 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       .single();
     if (errorTotales) throw errorTotales;
 
+    // KAN-183: reclasificación automática Simpatizante/Creyente según
+    // ausencias/asistencia en esta CdP -- best-effort, un fallo acá no debe
+    // revertir un reporte que ya se guardó bien (por eso su propio try/catch,
+    // sin relanzar hacia el catch de más abajo).
+    try {
+      const { error: errorRecalculo } = await supabase.rpc('fn_recalcular_estados_cdp_reporte', { p_reporte_id: reporteId });
+      if (errorRecalculo) throw errorRecalculo;
+    } catch (e) {
+      console.error('No se pudo recalcular Simpatizante/Creyente', e);
+    }
+
     return {
       reporteId,
       totalMenores: totales.total_menores,
