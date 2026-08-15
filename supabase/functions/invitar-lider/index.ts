@@ -103,7 +103,9 @@ export default {
         : {};
       const { error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
         redirectTo: body.redirectTo,
-        data: dataCorreo,
+        // KAN-201: marca que el hook_restringir_alta_no_google (Before User
+        // Created) usa para distinguir esta alta de un registro publico.
+        data: { ...dataCorreo, invitado_por_admin: true },
       });
       if (error) {
         return Response.json({ error: error.message }, { status: 500 });
@@ -198,7 +200,9 @@ export default {
     const dataCorreo = await datosInvitacionParaCorreo(ctx, rol, redId, casaDePazId, departamentoId);
     const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
       redirectTo: body.redirectTo,
-      data: dataCorreo,
+      // KAN-201: marca que el hook_restringir_alta_no_google (Before User
+      // Created) usa para distinguir esta alta de un registro publico.
+      data: { ...dataCorreo, invitado_por_admin: true },
     });
 
     if (error) {

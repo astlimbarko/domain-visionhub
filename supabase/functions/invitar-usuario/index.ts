@@ -91,6 +91,9 @@ export default {
       data: {
         ...(iglesiaFila ? { iglesia_nombre: iglesiaFila.nombre } : {}),
         rol_etiqueta: ETIQUETA_ROL[rol],
+        // KAN-201: marca que el hook_restringir_alta_no_google (Before User
+        // Created) usa para distinguir esta alta de un registro publico.
+        invitado_por_admin: true,
       },
     });
 

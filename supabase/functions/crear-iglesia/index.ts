@@ -127,7 +127,12 @@ export default {
 
     const { data: invitado, error: errorInvitar } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correoNuevo, {
       redirectTo: body.redirectTo,
-      data: iglesiaCreada ? { iglesia_nombre: iglesiaCreada.nombre, rol_etiqueta: "Pastor" } : {},
+      // KAN-201: marca que el hook_restringir_alta_no_google (Before User
+      // Created) usa para distinguir esta alta de un registro publico.
+      data: {
+        ...(iglesiaCreada ? { iglesia_nombre: iglesiaCreada.nombre, rol_etiqueta: "Pastor" } : {}),
+        invitado_por_admin: true,
+      },
     });
 
     if (errorInvitar) {
