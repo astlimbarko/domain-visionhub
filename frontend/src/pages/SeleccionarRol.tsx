@@ -79,14 +79,24 @@ export function SeleccionarRol() {
   const cantidad = opcionesContextuales?.length ?? 0;
 
   return (
-    <div className="relative flex min-h-svh items-start justify-center overflow-hidden bg-muted p-4 py-6 sm:items-center sm:p-6">
-      {/* KAN-191: fondo tipo "gradient mesh" -- manchas de color desenfocadas
-          en las esquinas, mismo recurso (blur-3xl) que ya usa GRADIENTE_HERO
-          en los dashboards, sin imágenes. Los tonos vienen de los tokens de
-          gráficos (--chart-2/--chart-4) para que se adapten solos a dark mode. */}
+    <div
+      className="relative flex min-h-svh items-start justify-center overflow-hidden p-4 py-6 sm:items-center sm:p-6"
+      style={{
+        // KAN-191 (revisión): la primera versión eran manchas borrosas muy
+        // tenues sobre un fondo casi blanco -- se veía "lavado" comparado con
+        // el mockup (multirol.jpeg), que es un degradado diagonal que cubre
+        // toda la pantalla. Esto reemplaza esa base por un linear-gradient
+        // real violeta→blanco→verde con los mismos tokens de siempre
+        // (--chart-4/--chart-2), así sigue adaptándose solo a dark mode.
+        background:
+          'linear-gradient(135deg, color-mix(in oklab, var(--chart-4) 38%, var(--background)) 0%, var(--background) 55%, color-mix(in oklab, var(--chart-2) 32%, var(--background)) 100%)',
+      }}
+    >
+      {/* Manchas borrosas encima del degradado, como textura extra (mismo
+          recurso blur-3xl de GRADIENTE_HERO en los dashboards). */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[var(--chart-4)]/25 blur-3xl" />
-        <div className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--chart-2)]/20 blur-3xl" />
+        <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[var(--chart-4)]/30 blur-3xl" />
+        <div className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--chart-2)]/25 blur-3xl" />
         <div className="absolute top-1/3 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[var(--chart-1)]/10 blur-3xl" />
       </div>
 
@@ -102,12 +112,14 @@ export function SeleccionarRol() {
             </span>
             <span className="truncate text-[13px] font-semibold text-foreground">{nombreIglesia}</span>
           </div>
-          {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg) */}
+          {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg).
+              Hacer clic de nuevo sobre el mismo ícono vuelve a la lista de
+              roles -- alternativa rápida al botón "Volver a mis roles". */}
           <button
             type="button"
-            onClick={() => setMostrandoAyuda(true)}
-            aria-label="Ayuda"
-            title="¿Necesitás ayuda?"
+            onClick={() => setMostrandoAyuda((v) => !v)}
+            aria-label={mostrandoAyuda ? 'Volver a mis roles' : 'Ayuda'}
+            title={mostrandoAyuda ? 'Volver a mis roles' : '¿Necesitás ayuda?'}
             className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-[var(--chart-1)] hover:text-[var(--chart-1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <HelpCircle className="h-4 w-4" />
