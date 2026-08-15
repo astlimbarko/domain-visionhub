@@ -217,52 +217,21 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
     .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
 }
 
+// KAN-205: RPC en vez de consulta directa -- persona.correo (campo de
+// perfil aparte) casi siempre está vacío; el correo real de inicio de
+// sesión vive en auth.users, solo accesible desde una función SECURITY
+// DEFINER. Regla pedida por el owner para todo VisionHub: sin nombre,
+// mostrar correo, siempre.
 export async function obtenerCargoVigenteRed(redId: string, codigo: CargoRedCodigo): Promise<CargoVigente[]> {
-  const { data, error } = await supabase
-    .from('red_cargo')
-    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
-    .eq('red_id', redId)
-    .is('fecha_fin', null);
+  const { data, error } = await supabase.rpc('fn_cargo_vigente_red', { p_red_id: redId, p_codigo: codigo });
   if (error) throw error;
-  return (data ?? [])
-    .filter((r) => {
-      const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
-      return cargo?.codigo === codigo;
-    })
-    .map((r) => {
-      const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
-      return {
-        id: r.id,
-        persona_id: r.persona_id,
-        fecha_inicio: r.fecha_inicio,
-        correo: p?.correo ?? null,
-        nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
-      };
-    });
+  return data ?? [];
 }
 
 export async function obtenerCargoVigenteCdp(cdpId: string, codigo: CargoCdpCodigo): Promise<CargoVigente[]> {
-  const { data, error } = await supabase
-    .from('casa_de_paz_cargo')
-    .select('id, persona_id, fecha_inicio, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo), cargo:cargo_id(codigo)')
-    .eq('casa_de_paz_id', cdpId)
-    .is('fecha_fin', null);
+  const { data, error } = await supabase.rpc('fn_cargo_vigente_cdp', { p_cdp_id: cdpId, p_codigo: codigo });
   if (error) throw error;
-  return (data ?? [])
-    .filter((r) => {
-      const cargo = Array.isArray(r.cargo) ? r.cargo[0] : r.cargo;
-      return cargo?.codigo === codigo;
-    })
-    .map((r) => {
-      const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
-      return {
-        id: r.id,
-        persona_id: r.persona_id,
-        fecha_inicio: r.fecha_inicio,
-        correo: p?.correo ?? null,
-        nombre_completo: [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' '),
-      };
-    });
+  return data ?? [];
 }
 
 const CARGOS_EXCLUSIVOS_RED: CargoRedCodigo[] = ['LIDER_RED', 'ENCARGADO_DEPARTAMENTOS_RED', 'ENCARGADO_MINISTERIO_RED'];
