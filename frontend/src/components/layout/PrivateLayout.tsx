@@ -11,6 +11,7 @@ import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-c
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
+import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
 
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -95,6 +96,10 @@ export function PrivateLayout() {
     <AppShell>
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
+      {/* T5/T6 (KAN-106/107): un solo modal a la vez -- si hay membresia
+          pendiente, ese modal tiene prioridad y los anuncios esperan a la
+          siguiente vez que se re-evalue el gate. */}
+      {!membresiaPendiente && <ModalAnuncios />}
     </AppShell>
   );
 }

@@ -1,13 +1,5 @@
 // VisionHub -- KAN-101 (T5/T6): modal de anuncio al ingresar a VisionHub.
-//
-// Componente terminado y funcional, pero A PROPOSITO sin montar en ningun
-// lado -- el punto de enganche natural es PrivateLayout.tsx, que esta sesion
-// tiene prohibido tocar (KAN-129 en curso en paralelo, ver nota en
-// useAnunciosPendientes.ts). Quien pueda tocar ese archivo solo necesita:
-//
-//   import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
-//   ...
-//   <ModalAnuncios />
+// Montado en PrivateLayout.tsx (2026-08-15, KAN-106/107).
 //
 // No requiere props: resuelve todo (cola, imagen, cierre) via
 // useAnunciosPendientes() + useUrlFirmadaAnuncio(). Se auto-oculta (retorna

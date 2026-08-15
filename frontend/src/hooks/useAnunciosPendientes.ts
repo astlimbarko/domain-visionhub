@@ -1,17 +1,6 @@
 // VisionHub -- KAN-101 (T5/T6): hook reusable de la cola de anuncios
-// pendientes al ingresar a la app.
-//
-// A PROPOSITO no esta montado en ningun lado todavia -- el punto de enganche
-// natural es PrivateLayout.tsx, archivo que esta sesion tiene prohibido
-// tocar (KAN-129, refactor de sesion/roles en curso en paralelo). Queda
-// listo para que quien pueda tocar ese archivo agregue una sola linea:
-//
-//   import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
-//   ...
-//   <ModalAnuncios />   // en cualquier punto del arbol dentro de PrivateLayout
-//
-// <ModalAnuncios /> (src/components/anuncios/ModalAnuncios.tsx) ya usa este
-// hook internamente y no necesita props.
+// pendientes al ingresar a la app. Usado por <ModalAnuncios />
+// (src/components/anuncios/ModalAnuncios.tsx), montado en PrivateLayout.tsx.
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cerrarAnuncio, marcarAnuncioMostrado, obtenerAnunciosPendientes } from '@/services/anuncio.service';
