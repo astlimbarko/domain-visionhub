@@ -170,6 +170,12 @@ export function AsignarCargoDialog({
                     onClick={() => manejarClicQuitar(v)}
                     disabled={quitando}
                     aria-label="Quitar"
+                    // KAN-63: size="icon" son 32px, bajo el minimo tactil de
+                    // 44x44 (REQ-MOB-3) -- antes:absolute expande el area de
+                    // toque real sin agrandar el icono visible, mismo patron
+                    // ya usado en el resto del Constructor (paneles laterales,
+                    // botones de zoom/centrar).
+                    className="relative before:absolute before:-inset-2 before:content-['']"
                   >
                     <X className="h-4 w-4" />
                   </Button>

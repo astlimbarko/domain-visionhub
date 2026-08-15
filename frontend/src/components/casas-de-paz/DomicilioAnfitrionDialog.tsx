@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -49,7 +49,8 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
     });
   }, [open, domicilio]);
 
-  function handleGuardar() {
+  function handleGuardar(e?: FormEvent) {
+    e?.preventDefault();
     if (!form.ciudadId) return;
     guardar.mutate(
       {
@@ -81,6 +82,11 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
           <DialogDescription>Solo la ciudad es obligatoria; el resto ayuda a ubicar la casa.</DialogDescription>
         </DialogHeader>
 
+        {/* Bug real (2026-08-15, mismo patron de KAN-202): sin un <form>,
+            Enter en cualquier campo de texto no hacia nada -- solo funcionaba
+            con el mouse/boton "Guardar". Relevante en movil, donde el boton
+            "Ir"/"Listo" del teclado virtual dispara el submit del form. */}
+        <form onSubmit={handleGuardar} className="contents">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="domicilio_ciudad">Ciudad *</Label>
@@ -139,10 +145,11 @@ export function DomicilioAnfitrionDialog({ open, onOpenChange, cdpId, iglesiaId,
         </div>
 
         <DialogFooter>
-          <Button type="button" onClick={handleGuardar} disabled={guardar.isPending || !form.ciudadId}>
+          <Button type="submit" disabled={guardar.isPending || !form.ciudadId}>
             {guardar.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
