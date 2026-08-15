@@ -8,11 +8,16 @@ interface Props {
   iglesiaId: string | undefined;
   onSeleccionar: (persona: PersonaBusqueda) => void;
   excluirIds?: string[];
+  /** Q-MR-12 (2026-08-15): si se pasa, prioriza miembros de esta Casa de Paz
+   * antes de caer a toda la iglesia (ver buscarPersonas en
+   * casas-de-paz.service.ts). Opcional -- sin esto, busca en toda la
+   * iglesia directamente, como antes (cargos de Red/Departamento). */
+  cdpId?: string;
 }
 
-export function BuscadorPersona({ iglesiaId, onSeleccionar, excluirIds = [] }: Props) {
+export function BuscadorPersona({ iglesiaId, onSeleccionar, excluirIds = [], cdpId }: Props) {
   const [texto, setTexto] = useState('');
-  const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, texto);
+  const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, texto, undefined, cdpId);
   const filtrados = resultados.filter((p) => !excluirIds.includes(p.id));
 
   return (

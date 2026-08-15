@@ -54,6 +54,11 @@ interface Props {
    * Líder vigente) aparezca como opción al asignar un cargo no exclusivo
    * (ej. Sublíder) -- REQ-CDP-6. Opcional, no cambia a quien no lo pasa. */
   excluirIdsExtra?: string[];
+  /** Q-MR-12 (2026-08-15): id de la Casa de Paz para priorizar sus propios
+   * miembros en la búsqueda (ver BuscadorPersona/buscarPersonas). Opcional
+   * -- cargos de Red/Departamento no lo pasan y buscan en toda la iglesia
+   * directamente, como siempre. */
+  cdpId?: string;
   /** Bug real KAN-10x (2026-08-10): cuando se pasa `onPinChange`, este
    * diálogo pedía OTP siempre, sin mirar el switch de OTP por iglesia
    * (estructura_organigrama.otp_requerido) -- a diferencia de los demás
@@ -81,6 +86,7 @@ export function AsignarCargoDialog({
   onPinChange,
   excluirIdsExtra = [],
   otpRequerido = true,
+  cdpId,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
@@ -239,6 +245,7 @@ export function AsignarCargoDialog({
                 iglesiaId={iglesiaId}
                 excluirIds={[...vigentes.map((v) => v.persona_id), ...(excluirIdsExtra ?? [])]}
                 onSeleccionar={manejarSeleccionPersona}
+                cdpId={cdpId}
               />
             )
           )}

@@ -394,6 +394,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           titulo={dialogoCargo.titulo}
           exclusivo={dialogoCargo.exclusivo}
           iglesiaId={iglesiaId}
+          cdpId={casaDePaz.id}
           vigentes={vigentes}
           cargandoVigentes={cargandoVigentes}
           asignando={asignarCargo.isPending}

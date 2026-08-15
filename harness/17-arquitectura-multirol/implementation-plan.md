@@ -72,8 +72,8 @@ La épica no se considera terminada hasta que la matriz de pruebas pase en vivo 
 - [x] Probar en vivo con cuentas reales (KAN-152: bug de rol activo
       persistido, reproducido y corregido con la cuenta real de Super Admin;
       3 iglesias reales auditadas y reparadas retroactivamente).
-- [ ] Resolver Q-MR-12 antes de cerrar la épica -- pendiente exclusivo del
-      owner, no bloquea el resto del trabajo técnico.
+- [x] Resolver Q-MR-12 (2026-08-15): busca prioritariamente en la propia CdP,
+      cae a toda la iglesia si no hay resultados ahí. Implementado.
 
 ### Seguimiento 2026-08-15
 

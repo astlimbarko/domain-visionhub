@@ -510,6 +510,7 @@ export function GestionSubliderVista() {
           titulo="Asignar sublíder"
           exclusivo={false}
           iglesiaId={iglesiaActivaId}
+          cdpId={cdpActiva}
           vigentes={sublideres}
           cargandoVigentes={cargandoSublideres}
           asignando={asignarCargoCdp.isPending}
@@ -529,6 +530,7 @@ export function GestionSubliderVista() {
           titulo={`Anfitrión de ${nombreCdpActiva ?? 'la Casa de Paz'}`}
           exclusivo
           iglesiaId={iglesiaActivaId}
+          cdpId={cdpActiva}
           vigentes={anfitrion}
           cargandoVigentes={cargandoAnfitrion}
           asignando={asignarCargoCdp.isPending}

@@ -23,15 +23,22 @@
 
 Todo cargo nuevo debe responder antes de implementarse: ¿tiene panel propio?, ¿cuál es su alcance?, ¿puede tener múltiples asignaciones?, ¿qué rutas y datos ve?, ¿qué color e identidad visual usa? Sin esas respuestas no se agrega al selector ni al sidebar.
 
-## Pendientes descubiertos en KAN-135
-
-- **Q-MR-12 — Personas para cargos CdP.** ¿Líder y Sublíder de Casa de Paz
-  pueden buscar/crear personas de toda la iglesia o únicamente ver miembros de
-  su CdP? El frontend actual dice “toda la iglesia”, pero el contexto canónico
-  es CdP. No cambiar `persona`/`fn_buscar_personas` hasta decisión del owner.
-
 ## Cerrado durante KAN-135
 
 - **Q-MR-13 — Aprobaciones de Red.** Resuelta mediante autorización
   transaccional ligada a la solicitud pendiente y coincidencia exacta del
   payload. El Líder aprobador no recibe permisos de Supervisor.
+- **Q-MR-12 — Personas para cargos CdP.** Decisión del owner (2026-08-15):
+  busca prioritariamente entre los miembros de la propia Casa de Paz; si ahí
+  no aparece nadie, cae a toda la iglesia (puede visitar la CdP alguien de
+  otra y hay que poder anotarlo igual). No se tocó `persona`/RLS -- la
+  visibilidad de toda la iglesia se mantiene a propósito (`pol_persona_select`
+  ya scopeaba solo por `iglesia_id`, sin restricción de CdP). Implementado en
+  el frontend: `buscarPersonas` (`casas-de-paz.service.ts`) acepta un
+  `cdpId` opcional y hace una primera consulta acotada a esa CdP
+  (`casa_de_paz_membresia!inner`, `es_principal=true`); si no hay resultados,
+  cae a la consulta de toda la iglesia de siempre. Propagado desde
+  `BuscadorPersona` → `AsignarCargoDialog` → los 3 lugares donde se asigna
+  Líder/Sublíder/Anfitrión de CdP (Constructor, `GestionRedVista.tsx`,
+  `GestionEstructuraVista.tsx`) y la autogestión del propio Líder de CdP
+  (`GestionSubliderVista.tsx`).

@@ -495,6 +495,7 @@ export function GestionRedVista() {
           titulo={dialogoCdp.titulo}
           exclusivo={dialogoCdp.exclusivo}
           iglesiaId={iglesiaActivaId}
+          cdpId={dialogoCdp.cdpId}
           vigentes={vigentesCdp}
           cargandoVigentes={cargandoVigentesCdp}
           asignando={asignarCargoCdp.isPending}
