@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Mail, Search, X } from 'lucide-react';
 import {
   Dialog,
@@ -16,6 +16,13 @@ import { CampoOtp } from '@/components/shared/CampoOtp';
 import { AvatarPersona, COLORES_AVATAR } from '@/components/shared/AvatarIniciales';
 import { BuscadorPersona } from './BuscadorPersona';
 import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
+
+/** Bug real (2026-08-15): mostraba `nombre_completo` a lo bruto -- para una
+ * persona sin nombre cargado (sin membresía completa) eso rendereaba una
+ * línea vacía. Cae al correo, igual que ya hace el resto de la app. */
+function etiquetaCargoVigente(v: CargoVigente): string {
+  return v.nombre_completo.trim() || v.correo || 'Sin nombre';
+}
 
 interface Props {
   open: boolean;
@@ -103,18 +110,33 @@ export function AsignarCargoDialog({
     setCorreoInvitar('');
   }
 
+  // Bug real (2026-08-15): antes solo confirmaba si la iglesia tenía OTP
+  // activado -- con OTP apagado, la X quitaba al instante sin avisar. Ahora
+  // siempre pide confirmación; el campo de OTP adentro del cuadro de
+  // confirmación sigue siendo condicional (solo aparece si hace falta).
   function manejarClicQuitar(v: CargoVigente) {
-    if (requiereOtp) {
-      setAQuitar(v);
-    } else {
-      onQuitar(v.id);
-    }
+    setAQuitar(v);
   }
 
   function confirmarBaja() {
     if (!aQuitar || !pinValido) return;
     onQuitar(aQuitar.id, pin);
     setAQuitar(null);
+  }
+
+  // Bug real (2026-08-15): sin un <form>, Enter en el input de correo o de
+  // OTP no hacía nada (solo funcionaba con el mouse) -- un <form> hace que
+  // el navegador dispare "submit" con Enter en cualquier input de texto de
+  // adentro, sin depender de que cada input tenga su propio manejador.
+  function manejarSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (aQuitar) {
+      confirmarBaja();
+    } else if (modo === 'invitar') {
+      enviarInvitacion();
+    } else if (personaElegida) {
+      confirmarAsignacion();
+    }
   }
 
   return (
@@ -129,6 +151,7 @@ export function AsignarCargoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <form onSubmit={manejarSubmit} className="contents">
         <div className="flex flex-col gap-3">
           {cargandoVigentes ? (
             <Skeleton className="h-8 w-full" />
@@ -137,8 +160,8 @@ export function AsignarCargoDialog({
               {vigentes.map((v, i) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
                   <span className="flex min-w-0 items-center gap-2">
-                    <AvatarPersona nombre={v.nombre_completo} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
-                    <span className="truncate">{v.nombre_completo}</span>
+                    <AvatarPersona nombre={etiquetaCargoVigente(v)} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
+                    <span className="truncate">{etiquetaCargoVigente(v)}</span>
                   </span>
                   <Button
                     type="button"
@@ -160,7 +183,7 @@ export function AsignarCargoDialog({
           {aQuitar && (
             <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
               <p className="text-sm text-foreground">
-                ¿Dar de baja a <span className="font-medium">{aQuitar.nombre_completo}</span>?
+                ¿Dar de baja a <span className="font-medium">{etiquetaCargoVigente(aQuitar)}</span>?
               </p>
               {requiereOtp && onPinChange && <CampoOtp value={pin ?? ''} onChange={onPinChange} />}
               {quitando && (
@@ -246,7 +269,7 @@ export function AsignarCargoDialog({
             <Button type="button" variant="ghost" onClick={() => setAQuitar(null)} disabled={quitando}>
               Cancelar
             </Button>
-            <Button type="button" variant="destructive" onClick={confirmarBaja} disabled={quitando || !pinValido}>
+            <Button type="submit" variant="destructive" disabled={quitando || !pinValido}>
               {quitando ? 'Dando de baja...' : 'Confirmar baja'}
             </Button>
           </DialogFooter>
@@ -254,11 +277,11 @@ export function AsignarCargoDialog({
           (modo === 'invitar' ? invitable : !!personaElegida) && (
             <DialogFooter>
               {modo === 'buscar' ? (
-                <Button type="button" onClick={confirmarAsignacion} disabled={asignando || !personaElegida || !pinValido}>
+                <Button type="submit" disabled={asignando || !personaElegida || !pinValido}>
                   {asignando ? 'Asignando...' : 'Confirmar'}
                 </Button>
               ) : (
-                <Button type="button" className="gap-1.5" onClick={enviarInvitacion} disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                <Button type="submit" className="gap-1.5" disabled={invitando || !correoInvitar.trim() || !pinValido}>
                   {invitando && <Spinner className="h-3.5 w-3.5" />}
                   {invitando ? 'Enviando...' : 'Invitar'}
                 </Button>
@@ -266,6 +289,7 @@ export function AsignarCargoDialog({
             </DialogFooter>
           )
         )}
+        </form>
       </DialogContent>
     </Dialog>
   );
