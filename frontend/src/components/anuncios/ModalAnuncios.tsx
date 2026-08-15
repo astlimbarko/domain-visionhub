@@ -40,9 +40,6 @@ export function ModalAnuncios() {
           style={{ maxWidth: esVertical ? '380px' : '480px' }}
         >
           <DialogPrimitive.Title className="sr-only">{anuncioActual.titulo}</DialogPrimitive.Title>
-          {anuncioActual.mensaje && (
-            <DialogPrimitive.Description className="sr-only">{anuncioActual.mensaje}</DialogPrimitive.Description>
-          )}
 
           <div className="overflow-hidden rounded-3xl bg-card shadow-2xl shadow-black/20 ring-1 ring-foreground/10">
             <div
@@ -76,10 +73,9 @@ export function ModalAnuncios() {
               </DialogPrimitive.Close>
             </div>
 
-            {(anuncioActual.titulo || anuncioActual.mensaje) && (
-              <div className="space-y-1 p-4">
+            {anuncioActual.titulo && (
+              <div className="p-4">
                 <p className="font-heading text-sm font-semibold tracking-tight text-foreground">{anuncioActual.titulo}</p>
-                {anuncioActual.mensaje && <p className="text-[13px] text-muted-foreground">{anuncioActual.mensaje}</p>}
               </div>
             )}
           </div>

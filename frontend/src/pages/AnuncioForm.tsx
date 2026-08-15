@@ -9,19 +9,26 @@
 // una sola oracion en lenguaje llano ("Este anuncio lo van a ver los <roles>
 // de <zona>") + lista real de personas en vivo debajo -- nada que haga
 // falta explicar, se ve el resultado directo antes de publicar.
+//
+// Sin campo de mensaje (2026-08-15, pedido explicito del owner): el sistema
+// esta pensado para anuncios solo con imagen, no texto libre -- el mensaje
+// nunca se pidio en el formulario real de anuncios.txt (solo titulo interno
+// + imagen). Cada seccion lleva su franja de color (TarjetaHeader, mismo
+// patron que el resto de VisionHub) -- antes el formulario se veia plano.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Megaphone, Users } from 'lucide-react';
+import { ArrowLeft, CalendarClock, ImageIcon, Megaphone, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { AMBAR, AZUL, MARINO } from '@/components/dashboard/DashboardUI';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
@@ -98,7 +105,6 @@ export function AnuncioForm() {
   const [redIds, setRedIds] = useState<string[]>([]);
   const [cdpIds, setCdpIds] = useState<string[]>([]);
   const [titulo, setTitulo] = useState('');
-  const [mensaje, setMensaje] = useState('');
   const [rolesSeleccionados, setRolesSeleccionados] = useState<RolDestinatarioAnuncio[]>([]);
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -121,7 +127,6 @@ export function AnuncioForm() {
     setRedIds(anuncio?.redes.map((r) => r.id) ?? (capacidad?.puede_iglesia ? [] : (capacidad?.redes.map((r) => r.id).slice(0, 1) ?? [])));
     setCdpIds(anuncio?.casas_de_paz.map((c) => c.id) ?? []);
     setTitulo(anuncio?.titulo ?? '');
-    setMensaje(anuncio?.mensaje ?? '');
     setRolesSeleccionados(anuncio?.roles_destinatarios ?? []);
     setFechaInicio(anuncio?.fecha_publicacion ? aInputDatetimeLocal(anuncio.fecha_publicacion) : '');
     setFechaFin(anuncio?.fecha_fin ? aInputDatetimeLocal(anuncio.fecha_fin) : '');
@@ -253,7 +258,7 @@ export function AnuncioForm() {
           redIds,
           cdpIds,
           titulo: titulo.trim(),
-          mensaje: mensaje.trim() || null,
+          mensaje: null,
           imagenPath,
           imagenOrientacion: orientacion,
           rolesDestinatarios: rolesSeleccionados,
@@ -272,7 +277,7 @@ export function AnuncioForm() {
           redIds,
           cdpIds,
           titulo: titulo.trim(),
-          mensaje: mensaje.trim() || null,
+          mensaje: null,
           imagenPath,
           imagenOrientacion: orientacion,
           rolesDestinatarios: rolesSeleccionados,
@@ -333,53 +338,47 @@ export function AnuncioForm() {
         />
       </div>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="anuncio_titulo">Título (uso interno)</Label>
-          <Input
-            id="anuncio_titulo"
-            className={CAMPO_ESTILO}
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            placeholder="Ej. Retiro anual de líderes"
-            maxLength={150}
-          />
-        </div>
+      <section className="max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={ImageIcon} color={AMBAR} titulo="Contenido" descripcion="Título interno y la imagen que se va a mostrar." />
+        <div className="flex flex-col gap-4 p-5">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="anuncio_titulo">Título (uso interno)</Label>
+            <Input
+              id="anuncio_titulo"
+              className={CAMPO_ESTILO}
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Ej. Retiro anual de líderes"
+              maxLength={150}
+            />
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="anuncio_mensaje">Mensaje (opcional, se muestra debajo de la imagen)</Label>
-          <Textarea
-            id="anuncio_mensaje"
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-            placeholder="Texto corto opcional"
-            rows={2}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="anuncio_imagen">Imagen</Label>
-          <Input
-            id="anuncio_imagen"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className={CAMPO_ESTILO}
-            onChange={(e) => handleArchivo(e.target.files?.[0] ?? null)}
-          />
-          {errorImagen && <p className="text-[12px] text-destructive">{errorImagen}</p>}
-          {orientacionDetectada && !errorImagen && (
-            <p className="text-[12px] text-muted-foreground">Detectada: {orientacionDetectada === 'CUADRADA' ? 'cuadrada (1:1)' : 'vertical'}</p>
-          )}
-          {imagenAMostrar && (
-            <img src={imagenAMostrar} alt="Vista previa" className="mt-1 h-40 w-auto rounded-xl border border-border/60 object-cover" />
-          )}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="anuncio_imagen">Imagen</Label>
+            <Input
+              id="anuncio_imagen"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className={CAMPO_ESTILO}
+              onChange={(e) => handleArchivo(e.target.files?.[0] ?? null)}
+            />
+            {errorImagen && <p className="text-[12px] text-destructive">{errorImagen}</p>}
+            {orientacionDetectada && !errorImagen && (
+              <p className="text-[12px] text-muted-foreground">Detectada: {orientacionDetectada === 'CUADRADA' ? 'cuadrada (1:1)' : 'vertical'}</p>
+            )}
+            {imagenAMostrar && (
+              <img src={imagenAMostrar} alt="Vista previa" className="mt-1 h-40 w-auto rounded-xl border border-border/60 object-cover" />
+            )}
+          </div>
         </div>
       </section>
 
       {/* "Quien lo ve" -- una sola oracion en lenguaje llano en vez de dos
           campos tecnicos separados (Alcance/Destinatarios), + lista real de
           personas en vivo debajo. Pedido explicito del owner 2026-08-15. */}
-      <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
+      <section className="max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Users} color={AZUL} titulo="Quién lo ve" descripcion="Elegí los roles y la zona de la iglesia." />
+        <div className="flex flex-col gap-3 p-5">
         <p className="text-sm font-semibold text-foreground">Este anuncio lo van a ver...</p>
 
         <div className="flex flex-wrap gap-1.5">
@@ -493,9 +492,12 @@ export function AnuncioForm() {
             <p className="text-[13px] text-muted-foreground">Nadie coincide todavía con esta combinación.</p>
           )}
         </div>
+        </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 max-w-2xl">
+      <section className="max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={CalendarClock} color={MARINO} titulo="Cuándo se muestra" descripcion="Fecha de inicio y duración del anuncio." />
+        <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="anuncio_fecha_inicio">Fecha de inicio (opcional, por defecto ahora)</Label>
           <Input
@@ -540,6 +542,7 @@ export function AnuncioForm() {
             Mostrar de nuevo a quienes ya lo vieron
           </label>
         )}
+        </div>
       </section>
 
       <div className="sticky bottom-0 flex justify-end gap-2 border-t border-border/60 bg-background/95 py-3 backdrop-blur-sm max-w-2xl">
