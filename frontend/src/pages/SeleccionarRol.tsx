@@ -14,12 +14,25 @@ import { iniciales } from '@/components/shared/AvatarIniciales';
 import { ROUTES } from '@/utils/constants';
 import { rutaInicialParaContexto } from '@/utils/paneles-contexto';
 
+/** Trunca un correo largo conservando el dominio visible en vez de cortarlo
+ * a lo bruto (ej. "juan.perez.gonzalez…@somoscdv.com") -- así el saludo no
+ * se rompe ni queda ilegible cuando no hay nombre cargado todavía. */
+function truncarCorreo(correo: string, maxLargo = 26): string {
+  if (correo.length <= maxLargo) return correo;
+  const arroba = correo.lastIndexOf('@');
+  const dominio = arroba === -1 ? '' : correo.slice(arroba);
+  const espacioLocal = maxLargo - dominio.length - 1;
+  if (!dominio || espacioLocal < 3) return `${correo.slice(0, maxLargo - 1)}…`;
+  return `${correo.slice(0, espacioLocal)}…${dominio}`;
+}
+
 export function SeleccionarRol() {
   const navigate = useNavigate();
   const [mostrandoAyuda, setMostrandoAyuda] = useState(false);
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
+  const correo = useAuthStore((s) => s.correo);
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const logout = useAuthStore((s) => s.logout);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
@@ -59,7 +72,10 @@ export function SeleccionarRol() {
     navigate(rutaInicialParaContexto(opcion.contexto), { replace: true });
   }
 
-  const primerNombre = nombreCompleto?.split(' ')[0];
+  const primerNombre = nombreCompleto?.trim() ? nombreCompleto.trim().split(' ')[0] : null;
+  // Si la persona todavía no cargó su nombre (recién asignada, sin membresía
+  // completa), el saludo cae al correo con el que inició sesión.
+  const saludo = primerNombre ?? (correo ? truncarCorreo(correo) : null);
   const cantidad = opcionesContextuales?.length ?? 0;
 
   return (
@@ -106,8 +122,11 @@ export function SeleccionarRol() {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[12px] font-bold text-white shadow-lg shadow-black/10">
                 {nombreCompleto ? iniciales(nombreCompleto) : null}
               </div>
-              <h1 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">
-                {primerNombre ? `Bienvenido, ${primerNombre}` : 'Bienvenido'}
+              <h1
+                className="mt-1 w-full truncate px-2 text-lg font-extrabold tracking-tight text-foreground"
+                title={saludo && correo ? correo : undefined}
+              >
+                {saludo ? `Bienvenido, ${saludo}` : 'Bienvenido'}
               </h1>
               {opcionesContextuales !== undefined && (
                 <p className="text-[12.5px] text-muted-foreground">
