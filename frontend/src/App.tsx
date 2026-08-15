@@ -265,11 +265,11 @@ function App() {
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 
             {/* Anuncios (KAN-101): la pagina se autoprotege leyendo su propia
-                capacidad vía fn_anuncio_mi_capacidad; sin ítem de nav
-                todavía, solo accesible por URL directa (mismo criterio que
-                tuvo Estructura Organizacional para Líder de Red antes de
-                KAN-78). Crear/editar en pagina propia (2026-08-15, pedido
-                del owner: mas control que un modal). */}
+                capacidad vía fn_anuncio_mi_capacidad. Item de nav en
+                permisos.ts para Pastor/Supervisor/Líder de Red/Supervisor
+                de Red; Casa de Paz sin acceso todavía (pedido del owner).
+                Crear/editar en pagina propia (2026-08-15, pedido del
+                owner: mas control que un modal). */}
             <Route path={ROUTES.ANUNCIOS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <Anuncios />

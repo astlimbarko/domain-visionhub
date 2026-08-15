@@ -22,6 +22,7 @@ import {
   Footprints,
   Network,
   Heart,
+  Megaphone,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -189,6 +190,11 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
+  // KAN-101 (2026-08-15): visible para Pastor/Supervisor/Líder de Red y
+  // Supervisor de Red -- pedido explícito del owner, todos los roles menos
+  // Casa de Paz "por ahora" (se suma más adelante cuando el resto del
+  // equipo use la app). Mismo naranja que usa la propia pantalla.
+  { icon: Megaphone, label: 'Anuncios', path: ROUTES.ANUNCIOS, color: '#ff9500' },
   // Amarillo institucional de Evangelismo (DEPARTAMENTO_META, frontend-style
   // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
   // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación

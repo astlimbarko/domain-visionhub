@@ -1,10 +1,11 @@
 // VisionHub -- KAN-101 (T3): pantalla de gestion de anuncios.
 //
-// Sin item de nav todavia -- se llega por URL directa, mismo criterio que
-// tuvo Estructura Organizacional para Lider de Red antes de KAN-78. El
-// propio guard de acceso vive aca adentro (useCapacidadAnuncio), no en
-// RequiereRol. Crear/editar viven en pagina propia (AnuncioForm.tsx,
-// 2026-08-15, pedido explicito del owner: mas control que un modal).
+// Item de nav en permisos.ts (2026-08-15) para Pastor/Supervisor/Lider de
+// Red/Supervisor de Red -- todavia no para Casa de Paz (pedido explicito
+// del owner, "por ahora"). El propio guard de acceso vive aca adentro
+// (useCapacidadAnuncio), no en RequiereRol. Crear/editar viven en pagina
+// propia (AnuncioForm.tsx, pedido explicito del owner: mas control que un
+// modal).
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
