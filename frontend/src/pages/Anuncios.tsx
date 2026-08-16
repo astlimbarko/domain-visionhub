@@ -69,10 +69,12 @@ function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: strin
 
 /** Vista ampliada al hacer clic en la miniatura -- imagen completa, sin
  * recortar (pedido explicito del owner 2026-08-15). Rediseñado 2026-08-16
- * (mismo pedido que ModalAnuncios): mas grande, esquinas rectas, sombra
- * marcada hacia el fondo, boton de cerrar visible/elegante -- por eso usa
+ * (mismo pedido que ModalAnuncios, incluida la 2da vuelta -- sin borde
+ * blanco a los costados y X debajo de la imagen en vez de encima): usa
  * DialogPrimitive.Content directo en vez del DialogContent generico (ese
- * trae esquinas redondeadas y un boton de cerrar "ghost" fijos). */
+ * trae esquinas redondeadas y un boton de cerrar "ghost" fijos), y
+ * `inline-flex` (no `flex` con ancho por defecto) para que el marco se
+ * ajuste al tamaño real ya escalado de la imagen. */
 function ImagenAnuncioAmpliada({
   imagenPath,
   titulo,
@@ -89,23 +91,26 @@ function ImagenAnuncioAmpliada({
         <DialogOverlay className="bg-black/60" />
         <DialogPrimitive.Content
           data-slot="dialog-content"
-          className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          className="fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
         >
           <DialogPrimitive.Title className="sr-only">{titulo}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">Vista ampliada de la imagen del anuncio.</DialogPrimitive.Description>
-          <div className="relative flex items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10" style={{ maxHeight: '82vh' }}>
-            {url && <img src={url} alt={titulo} className="max-w-full object-contain" style={{ maxHeight: '82vh' }} />}
-            <DialogPrimitive.Close asChild>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute top-3 right-3 rounded-full border border-white/30 bg-black/60 text-white shadow-lg backdrop-blur-sm hover:bg-black/80"
-                aria-label="Cerrar"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </DialogPrimitive.Close>
+          <div
+            className="relative inline-flex max-w-full items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+            style={{ maxHeight: '82vh' }}
+          >
+            {url && <img src={url} alt={titulo} className="block max-w-full object-contain" style={{ maxHeight: '82vh' }} />}
           </div>
+          <DialogPrimitive.Close asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="rounded-full border border-white/30 bg-black/60 text-white shadow-lg backdrop-blur-sm hover:bg-black/80"
+              aria-label="Cerrar"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </Dialog>
