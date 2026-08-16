@@ -11,6 +11,7 @@ import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-c
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
+import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
 
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -95,6 +96,14 @@ export function PrivateLayout() {
     <AppShell>
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
+      {/* T5/T6 (KAN-106/107): pedido explicito del owner 2026-08-16 -- son
+          "anuncios de inicio de sesion", tienen que verse siempre al
+          ingresar, por delante del formulario de membresia si tambien
+          aplica (antes esperaba a que no hubiera membresia pendiente, lo
+          que podia dejarlo sin mostrarse por sesiones enteras). Montado
+          siempre; ModalAnuncios ya usa z-index mas alto para quedar
+          arriba de MembresiaObligatoria cuando coinciden. */}
+      <ModalAnuncios />
     </AppShell>
   );
 }

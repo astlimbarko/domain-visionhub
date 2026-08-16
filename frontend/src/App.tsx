@@ -52,6 +52,7 @@ const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').t
 const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.Jovenes })));
 const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
 const Anuncios = lazy(() => import('@/pages/Anuncios').then((m) => ({ default: m.Anuncios })));
+const AnuncioForm = lazy(() => import('@/pages/AnuncioForm').then((m) => ({ default: m.AnuncioForm })));
 
 function CargandoPagina() {
   return <ContenidoCargando />;
@@ -263,16 +264,25 @@ function App() {
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 
-            {/* Anuncios (KAN-101): sin RequiereRol/permisos.ts a propósito --
-                permisos.ts está prohibido de tocar esta sesión (KAN-129 en
-                curso en paralelo). La página se autoprotege leyendo su propia
-                capacidad vía fn_anuncio_mi_capacidad; sin ítem de nav
-                todavía, solo accesible por URL directa (mismo criterio que
-                tuvo Estructura Organizacional para Líder de Red antes de
-                KAN-78). */}
+            {/* Anuncios (KAN-101): la pagina se autoprotege leyendo su propia
+                capacidad vía fn_anuncio_mi_capacidad. Item de nav en
+                permisos.ts para Pastor/Supervisor/Líder de Red/Supervisor
+                de Red; Casa de Paz sin acceso todavía (pedido del owner).
+                Crear/editar en pagina propia (2026-08-15, pedido del
+                owner: mas control que un modal). */}
             <Route path={ROUTES.ANUNCIOS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <Anuncios />
+              </Suspense>
+            } />
+            <Route path={ROUTES.ANUNCIO_NUEVO} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <AnuncioForm />
+              </Suspense>
+            } />
+            <Route path={ROUTES.ANUNCIO_EDITAR} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <AnuncioForm />
               </Suspense>
             } />
           </Route>

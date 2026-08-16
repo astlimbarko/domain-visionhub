@@ -1,11 +1,14 @@
 import { supabase } from './supabase';
 import type {
+  AlcanceTipoAnuncio,
   AnuncioGestion,
   AnuncioPendiente,
   CapacidadAnuncio,
   DatosEditarAnuncio,
   DatosNuevoAnuncio,
+  EncargadoAnuncio,
   OrientacionImagenAnuncio,
+  PersonaDestinataria,
   RolDestinatarioAnuncio,
 } from '@/types/anuncio.types';
 
@@ -22,14 +25,40 @@ export async function obtenerCapacidadAnuncio(iglesiaId: string): Promise<Capaci
 
 export async function obtenerRolesDisponiblesAnuncio(
   iglesiaId: string,
-  redId: string | null
+  alcanceTipo: AlcanceTipoAnuncio,
+  redIds: string[],
+  cdpIds: string[]
 ): Promise<RolDestinatarioAnuncio[]> {
   const { data, error } = await supabase.rpc('fn_anuncio_roles_disponibles', {
     p_iglesia_id: iglesiaId,
-    p_red_id: redId,
+    p_alcance_tipo: alcanceTipo,
+    p_red_ids: alcanceTipo === 'RED' ? redIds : null,
+    p_cdp_ids: alcanceTipo === 'CDP' ? cdpIds : null,
   });
   if (error) throw error;
   return (data ?? []) as RolDestinatarioAnuncio[];
+}
+
+/** Quién vería de verdad este anuncio con este alcance+roles, antes de
+ * guardarlo -- lista real de personas para el "se lo va a llegar a..." del
+ * formulario (2026-08-15, pedido del owner: nada que haga falta explicar,
+ * se ve el resultado directamente). */
+export async function previsualizarDestinatariosAnuncio(
+  iglesiaId: string,
+  alcanceTipo: AlcanceTipoAnuncio,
+  redIds: string[],
+  cdpIds: string[],
+  roles: RolDestinatarioAnuncio[]
+): Promise<PersonaDestinataria[]> {
+  const { data, error } = await supabase.rpc('fn_anuncio_previsualizar_destinatarios', {
+    p_iglesia_id: iglesiaId,
+    p_alcance_tipo: alcanceTipo,
+    p_red_ids: alcanceTipo === 'RED' ? redIds : null,
+    p_cdp_ids: alcanceTipo === 'CDP' ? cdpIds : null,
+    p_roles: roles,
+  });
+  if (error) throw error;
+  return (data ?? []) as PersonaDestinataria[];
 }
 
 export async function obtenerMisAnunciosGestion(iglesiaId: string, redId?: string | null): Promise<AnuncioGestion[]> {
@@ -74,7 +103,9 @@ export async function eliminarImagenAnuncio(imagenPath: string): Promise<void> {
 export async function crearAnuncio(datos: DatosNuevoAnuncio): Promise<string> {
   const { data, error } = await supabase.rpc('fn_anuncio_crear', {
     p_iglesia_id: datos.iglesiaId,
-    p_red_id: datos.redId,
+    p_alcance_tipo: datos.alcanceTipo,
+    p_red_ids: datos.alcanceTipo === 'RED' ? datos.redIds : null,
+    p_cdp_ids: datos.alcanceTipo === 'CDP' ? datos.cdpIds : null,
     p_titulo: datos.titulo,
     p_mensaje: datos.mensaje,
     p_imagen_path: datos.imagenPath,
@@ -82,6 +113,7 @@ export async function crearAnuncio(datos: DatosNuevoAnuncio): Promise<string> {
     p_roles_destinatarios: datos.rolesDestinatarios,
     p_fecha_publicacion: datos.fechaPublicacion ?? undefined,
     p_fecha_fin: datos.fechaFin ?? null,
+    p_es_borrador: datos.esBorrador,
   });
   if (error) throw error;
   return data as string;
@@ -90,6 +122,9 @@ export async function crearAnuncio(datos: DatosNuevoAnuncio): Promise<string> {
 export async function actualizarAnuncio(datos: DatosEditarAnuncio): Promise<string> {
   const { data, error } = await supabase.rpc('fn_anuncio_actualizar', {
     p_anuncio_id: datos.anuncioId,
+    p_alcance_tipo: datos.alcanceTipo,
+    p_red_ids: datos.alcanceTipo === 'RED' ? datos.redIds : null,
+    p_cdp_ids: datos.alcanceTipo === 'CDP' ? datos.cdpIds : null,
     p_titulo: datos.titulo,
     p_mensaje: datos.mensaje,
     p_imagen_path: datos.imagenPath,
@@ -97,9 +132,20 @@ export async function actualizarAnuncio(datos: DatosEditarAnuncio): Promise<stri
     p_roles_destinatarios: datos.rolesDestinatarios,
     p_fecha_publicacion: datos.fechaPublicacion ?? null,
     p_fecha_fin: datos.fechaFin ?? null,
+    p_mostrar_nuevamente: datos.mostrarNuevamente,
   });
   if (error) throw error;
   return data as string;
+}
+
+/** Publica un borrador (o reprograma la fecha de publicacion) -- unico
+ * camino para apagar es_borrador, separado de guardar (SS26 anuncios.txt). */
+export async function publicarAnuncio(anuncioId: string, fechaPublicacion?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_anuncio_publicar', {
+    p_anuncio_id: anuncioId,
+    p_fecha_publicacion: fechaPublicacion ?? undefined,
+  });
+  if (error) throw error;
 }
 
 export async function toggleActivoAnuncio(anuncioId: string, activo: boolean): Promise<void> {
@@ -107,8 +153,44 @@ export async function toggleActivoAnuncio(anuncioId: string, activo: boolean): P
   if (error) throw error;
 }
 
+/** Sube o baja un anuncio un lugar en el orden (SS23 anuncios.txt, pedido
+ * explicito del owner 2026-08-15) -- intercambia `prioridad` con el vecino
+ * inmediato en fn_mis_anuncios_gestion/fn_anuncios_pendientes. */
+export async function moverPrioridadAnuncio(anuncioId: string, direccion: 'SUBIR' | 'BAJAR'): Promise<void> {
+  const { error } = await supabase.rpc('fn_anuncio_mover_prioridad', { p_anuncio_id: anuncioId, p_direccion: direccion });
+  if (error) throw error;
+}
+
 export async function eliminarAnuncio(anuncioId: string): Promise<void> {
   const { error } = await supabase.rpc('fn_anuncio_eliminar', { p_anuncio_id: anuncioId });
+  if (error) throw error;
+}
+
+// ---- Encargado de Anuncios (2026-08-15, KAN-103): cargo delegado que el ---
+// Supervisor de la Vision en Accion (o Pastor) puede otorgar a 0..N personas.
+
+export async function listarEncargadosAnuncio(iglesiaId: string): Promise<EncargadoAnuncio[]> {
+  const { data, error } = await supabase.rpc('fn_anuncio_listar_encargados', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return (data ?? []) as EncargadoAnuncio[];
+}
+
+export async function asignarEncargadoAnuncio(iglesiaId: string, personaId: string, otp: string): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_anuncio_asignar_encargado', {
+    p_iglesia_id: iglesiaId,
+    p_persona_id: personaId,
+    p_otp: otp,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function quitarEncargadoAnuncio(iglesiaId: string, personaId: string, otp: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_anuncio_quitar_encargado', {
+    p_iglesia_id: iglesiaId,
+    p_persona_id: personaId,
+    p_otp: otp,
+  });
   if (error) throw error;
 }
 

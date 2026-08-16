@@ -22,6 +22,7 @@ import {
   Footprints,
   Network,
   Heart,
+  Megaphone,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -96,6 +97,14 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.VISITAS,
+  // KAN-101 (2026-08-15): Líder/Supervisor de Red puede crear anuncios para
+  // su propia Red (fn_anuncio_puede_administrar_alcance ya lo valida server-
+  // side) -- sin esto el guard de PrivateLayout.puedeAcceder rechazaba la
+  // ruta aunque el backend lo permitiera, dejando /anuncios inalcanzable
+  // incluso por URL directa (bug real encontrado probando en vivo).
+  ROUTES.ANUNCIOS,
+  ROUTES.ANUNCIO_NUEVO,
+  ROUTES.ANUNCIO_EDITAR,
 ];
 
 // El Supervisor no carga reportes (igual que el Líder de Red): supervisa,
@@ -118,6 +127,12 @@ const RUTAS_SUPERVISOR: string[] = [
   // Resumen del Constructor (2026-08-11) -- mismo nivel que Pastor, ver
   // paneles-contexto.ts.
   ROUTES.CONSTRUCTOR_RESUMEN,
+  // KAN-101 (2026-08-15): Supervisor/Pastor gestionan anuncios de iglesia
+  // completa (paridad, ver fn_anuncio_es_supervisor). RUTAS_PASTOR hereda
+  // este arreglo, así que un solo agregado cubre ambos.
+  ROUTES.ANUNCIOS,
+  ROUTES.ANUNCIO_NUEVO,
+  ROUTES.ANUNCIO_EDITAR,
 ];
 
 // 2026-08-09: paridad completa con Supervisor (pedido explícito del
@@ -175,6 +190,14 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
   { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
+  // KAN-101 (2026-08-15): visible para Pastor/Supervisor/Líder de Red y
+  // Supervisor de Red -- pedido explícito del owner, todos los roles menos
+  // Casa de Paz "por ahora" (se suma más adelante cuando el resto del
+  // equipo use la app). Mismo naranja que usa la propia pantalla.
+  // "Anuncios" a secas sonaba a que se iba a anunciar hacia otro lado
+  // (pedido explicito del owner 2026-08-16) -- son avisos que se muestran
+  // al iniciar sesion en VisionHub, no algo que se publica afuera.
+  { icon: Megaphone, label: 'Anuncios de Sesión', path: ROUTES.ANUNCIOS, color: '#ff9500' },
   // Amarillo institucional de Evangelismo (DEPARTAMENTO_META, frontend-style
   // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
   // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación

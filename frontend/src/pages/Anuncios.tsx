@@ -1,16 +1,21 @@
 // VisionHub -- KAN-101 (T3): pantalla de gestion de anuncios.
 //
-// Sin item de nav todavia (permisos.ts esta prohibido para esta sesion, ver
-// KAN-101) -- se llega por URL directa, mismo criterio que tuvo Estructura
-// Organizacional para Lider de Red antes de KAN-78. El propio guard de
-// acceso vive aca adentro (useCapacidadAnuncio), no en RequiereRol.
+// Item de nav en permisos.ts (2026-08-15) para Pastor/Supervisor/Lider de
+// Red/Supervisor de Red -- todavia no para Casa de Paz (pedido explicito
+// del owner, "por ahora"). El propio guard de acceso vive aca adentro
+// (useCapacidadAnuncio), no en RequiereRol. Crear/editar viven en pagina
+// propia (AnuncioForm.tsx, pedido explicito del owner: mas control que un
+// modal).
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { Dialog as DialogPrimitive } from 'radix-ui';
 import { toast } from 'sonner';
-import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ImageOff, Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -18,13 +23,26 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogOverlay,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { AnuncioFormDialog } from '@/components/anuncios/AnuncioFormDialog';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { ImagenAnuncioZoom } from '@/components/anuncios/ImagenAnuncioZoom';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
-import { useCapacidadAnuncio, useEliminarAnuncio, useMisAnunciosGestion, useToggleActivoAnuncio, useUrlFirmadaAnuncio } from '@/hooks/useAnuncios';
+import {
+  useAsignarEncargadoAnuncio,
+  useCapacidadAnuncio,
+  useEliminarAnuncio,
+  useEncargadosAnuncio,
+  useMisAnunciosGestion,
+  useMoverPrioridadAnuncio,
+  useQuitarEncargadoAnuncio,
+  useToggleActivoAnuncio,
+  useUrlFirmadaAnuncio,
+} from '@/hooks/useAnuncios';
 import { ROUTES } from '@/utils/constants';
 import type { AnuncioGestion, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
@@ -36,34 +54,154 @@ const ETIQUETA_ROL_CORTA: Record<RolDestinatarioAnuncio, string> = {
   MIEMBRO: 'Miembro',
 };
 
-function MiniaturaAnuncio({ imagenPath }: { imagenPath: string }) {
-  const { data: url } = useUrlFirmadaAnuncio(imagenPath);
+function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: string; titulo: string; onAmpliar: () => void }) {
+  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
   return (
-    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
-      {url && <img src={url} alt="" className="h-full w-full object-cover" />}
-    </div>
+    <button
+      type="button"
+      onClick={onAmpliar}
+      disabled={!url}
+      className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-opacity hover:opacity-90 disabled:cursor-default"
+      aria-label={`Ver imagen completa de "${titulo}"`}
+    >
+      {isLoading ? (
+        <Spinner className="h-4 w-4 text-muted-foreground" />
+      ) : isError || !url ? (
+        <ImageOff className="h-4 w-4 text-muted-foreground" />
+      ) : (
+        <img src={url} alt="" className="h-full w-full object-cover" />
+      )}
+    </button>
   );
+}
+
+/** Vista ampliada al hacer clic en la miniatura -- imagen completa, sin
+ * recortar (pedido explicito del owner 2026-08-15). Rediseñado 2026-08-16
+ * (mismo pedido que ModalAnuncios, incluida la 2da vuelta -- sin borde
+ * blanco a los costados, X debajo de la imagen en vez de encima, y zoom con
+ * rueda del mouse/pellizco/doble clic via ImagenAnuncioZoom): usa
+ * DialogPrimitive.Content directo en vez del DialogContent generico (ese
+ * trae esquinas redondeadas y un boton de cerrar "ghost" fijos). */
+function ImagenAnuncioAmpliada({
+  imagenPath,
+  titulo,
+  onOpenChange,
+}: {
+  imagenPath: string;
+  titulo: string;
+  onOpenChange: (open: boolean) => void;
+}) {
+  // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
+  // servidor falla) -- misma logica que ModalAnuncios, ver su comentario.
+  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogOverlay className="bg-black/60" />
+        <DialogPrimitive.Content
+          data-slot="dialog-content"
+          className="fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+        >
+          <DialogPrimitive.Title className="sr-only">{titulo}</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">Vista ampliada de la imagen del anuncio.</DialogPrimitive.Description>
+          {isLoading ? (
+            <div className="flex h-48 w-48 items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <Spinner className="h-6 w-6 text-muted-foreground" />
+            </div>
+          ) : isError || !url ? (
+            <div className="flex h-48 w-64 max-w-full flex-col items-center justify-center gap-2 overflow-hidden bg-muted p-6 text-center shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <ImageOff className="h-6 w-6 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
+            </div>
+          ) : (
+            <ImagenAnuncioZoom
+              src={url}
+              alt={titulo}
+              maxWidthCss={672}
+              maxHeightRatio={0.82}
+              maxHeightCapPx={Infinity}
+              className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+            />
+          )}
+          <DialogPrimitive.Close asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="rounded-full border border-white/30 bg-black/60 text-white shadow-lg backdrop-blur-sm hover:bg-black/80"
+              aria-label="Cerrar"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </Dialog>
+  );
+}
+
+function etiquetaAlcance(anuncio: AnuncioGestion): string {
+  if (anuncio.alcance_tipo === 'IGLESIA') return 'Toda la iglesia';
+  if (anuncio.alcance_tipo === 'RED') {
+    if (anuncio.redes.length === 0) return 'Red';
+    if (anuncio.redes.length === 1) return anuncio.redes[0].nombre;
+    return `${anuncio.redes.length} Redes`;
+  }
+  if (anuncio.casas_de_paz.length === 0) return 'Casa de Paz';
+  if (anuncio.casas_de_paz.length === 1) return anuncio.casas_de_paz[0].lider_nombre ?? 'Casa de Paz sin líder';
+  return `${anuncio.casas_de_paz.length} Casas de Paz`;
 }
 
 function FilaAnuncio({
   anuncio,
+  puedeSubir,
+  puedeBajar,
   onEditar,
   onEliminar,
+  onAmpliarImagen,
 }: {
   anuncio: AnuncioGestion;
+  puedeSubir: boolean;
+  puedeBajar: boolean;
   onEditar: () => void;
   onEliminar: () => void;
+  onAmpliarImagen: () => void;
 }) {
   const toggleActivo = useToggleActivoAnuncio();
+  const mover = useMoverPrioridadAnuncio();
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
-      <MiniaturaAnuncio imagenPath={anuncio.imagen_path} />
+      <div className="flex shrink-0 flex-col gap-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!puedeSubir || mover.isPending}
+          onClick={() => mover.mutate({ anuncioId: anuncio.id, direccion: 'SUBIR' })}
+          aria-label="Subir prioridad"
+        >
+          <ArrowUp className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!puedeBajar || mover.isPending}
+          onClick={() => mover.mutate({ anuncioId: anuncio.id, direccion: 'BAJAR' })}
+          aria-label="Bajar prioridad"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <MiniaturaAnuncio imagenPath={anuncio.imagen_path} titulo={anuncio.titulo} onAmpliar={onAmpliarImagen} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-foreground">{anuncio.titulo}</p>
+          {anuncio.es_borrador && (
+            <Badge variant="outline" className="shrink-0 text-[11px] text-amber-600">Borrador</Badge>
+          )}
           <Badge variant="outline" className="shrink-0 text-[11px] text-muted-foreground">
-            {anuncio.red_nombre ?? 'Toda la iglesia'}
+            {etiquetaAlcance(anuncio)}
           </Badge>
         </div>
         <div className="mt-1 flex flex-wrap gap-1">
@@ -102,14 +240,15 @@ function FilaAnuncio({
 }
 
 export function Anuncios() {
+  const navigate = useNavigate();
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const { data: capacidad, isLoading: cargandoCapacidad } = useCapacidadAnuncio(iglesiaActivaId ?? undefined);
   const { data: anuncios = [], isLoading: cargandoAnuncios } = useMisAnunciosGestion(iglesiaActivaId ?? undefined);
   const eliminar = useEliminarAnuncio();
 
-  const [mostrarForm, setMostrarForm] = useState(false);
-  const [anuncioEditar, setAnuncioEditar] = useState<AnuncioGestion | null>(null);
   const [anuncioEliminar, setAnuncioEliminar] = useState<AnuncioGestion | null>(null);
+  const [anuncioAmpliar, setAnuncioAmpliar] = useState<AnuncioGestion | null>(null);
+  const [mostrarEncargados, setMostrarEncargados] = useState(false);
 
   if (!iglesiaActivaId) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
@@ -124,7 +263,7 @@ export function Anuncios() {
     );
   }
 
-  const puedeCrear = !!capacidad && (capacidad.puede_iglesia || capacidad.redes.length > 0);
+  const puedeCrear = !!capacidad && (capacidad.puede_iglesia || capacidad.redes.length > 0 || capacidad.casas_de_paz.length > 0);
 
   if (!puedeCrear) {
     return (
@@ -132,7 +271,7 @@ export function Anuncios() {
         <SeccionIconHeader icon={Megaphone} color="#ff9500" titulo="Anuncios" descripcion="Comunicá información a tu Red o a toda la iglesia." />
         <ProximamentePlaceholder
           titulo="Sin acceso"
-          descripcion="Solo el Supervisor de la Visión en Acción, el Líder de Red y el Supervisor de Red pueden crear anuncios."
+          descripcion="Solo el Pastor, el Supervisor de la Visión en Acción, un Encargado de Anuncios, el Líder de Red y el Supervisor de Red pueden crear anuncios."
         />
       </div>
     );
@@ -142,17 +281,18 @@ export function Anuncios() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <SeccionIconHeader icon={Megaphone} color="#ff9500" titulo="Anuncios" descripcion="Se muestran como modal al ingresar a VisionHub." />
-        <Button
-          type="button"
-          className="shrink-0 gap-1.5"
-          onClick={() => {
-            setAnuncioEditar(null);
-            setMostrarForm(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Anuncio
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          {capacidad?.puede_designar_encargados && (
+            <Button type="button" variant="outline" className="gap-1.5" onClick={() => setMostrarEncargados(true)}>
+              <UserCog className="h-4 w-4" />
+              Encargados
+            </Button>
+          )}
+          <Button type="button" className="gap-1.5" onClick={() => navigate(ROUTES.ANUNCIO_NUEVO)}>
+            <Plus className="h-4 w-4" />
+            Anuncio
+          </Button>
+        </div>
       </div>
 
       {cargandoAnuncios ? (
@@ -161,29 +301,18 @@ export function Anuncios() {
         <ProximamentePlaceholder titulo="Todavía no hay anuncios" descripcion="Creá el primero con el botón de arriba." />
       ) : (
         <div className="flex flex-col gap-2">
-          {anuncios.map((a) => (
+          {anuncios.map((a, i) => (
             <FilaAnuncio
               key={a.id}
               anuncio={a}
-              onEditar={() => {
-                setAnuncioEditar(a);
-                setMostrarForm(true);
-              }}
+              puedeSubir={i > 0}
+              puedeBajar={i < anuncios.length - 1}
+              onEditar={() => navigate(ROUTES.ANUNCIO_EDITAR.replace(':anuncioId', a.id))}
               onEliminar={() => setAnuncioEliminar(a)}
+              onAmpliarImagen={() => setAnuncioAmpliar(a)}
             />
           ))}
         </div>
-      )}
-
-      {capacidad && (
-        <AnuncioFormDialog
-          open={mostrarForm}
-          onOpenChange={setMostrarForm}
-          iglesiaId={iglesiaActivaId}
-          capacidad={capacidad}
-          anuncio={anuncioEditar}
-          onGuardado={() => setAnuncioEditar(null)}
-        />
       )}
 
       <Dialog open={!!anuncioEliminar} onOpenChange={(open) => !open && setAnuncioEliminar(null)}>
@@ -216,6 +345,141 @@ export function Anuncios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {capacidad?.puede_designar_encargados && (
+        <GestionarEncargadosDialog open={mostrarEncargados} onOpenChange={setMostrarEncargados} iglesiaId={iglesiaActivaId} />
+      )}
+
+      {anuncioAmpliar && (
+        <ImagenAnuncioAmpliada
+          imagenPath={anuncioAmpliar.imagen_path}
+          titulo={anuncioAmpliar.titulo}
+          onOpenChange={(open) => !open && setAnuncioAmpliar(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Encargado de Anuncios (2026-08-15, KAN-103): cargo delegado que el
+ * Supervisor de la Visión en Acción (o el Pastor) puede otorgar a 0..N
+ * personas, sin importar su rol organizacional -- si no hay nadie designado,
+ * Supervisor/Pastor conservan la capacidad completa (default sin cambios).
+ */
+function GestionarEncargadosDialog({
+  open,
+  onOpenChange,
+  iglesiaId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  iglesiaId: string;
+}) {
+  const { data: encargados = [], isLoading } = useEncargadosAnuncio(iglesiaId);
+  const asignar = useAsignarEncargadoAnuncio();
+  const quitar = useQuitarEncargadoAnuncio();
+  const [otp, setOtp] = useState('');
+  const [personaAAgregar, setPersonaAAgregar] = useState<{ id: string; nombre_completo: string } | null>(null);
+
+  function manejarAgregar() {
+    if (!personaAAgregar || otp.length !== 6) return;
+    asignar.mutate(
+      { iglesiaId, personaId: personaAAgregar.id, otp },
+      {
+        onSuccess: () => {
+          toast.success(`${personaAAgregar.nombre_completo} ahora es Encargado de Anuncios`);
+          setPersonaAAgregar(null);
+          setOtp('');
+        },
+        onError: (e) => toast.error(e.message || 'No se pudo asignar el cargo'),
+      }
+    );
+  }
+
+  function manejarQuitar(personaId: string, nombre: string) {
+    if (otp.length !== 6) {
+      toast.error('Ingresá el código de confirmación primero');
+      return;
+    }
+    quitar.mutate(
+      { iglesiaId, personaId, otp },
+      {
+        onSuccess: () => {
+          toast.success(`${nombre} ya no es Encargado de Anuncios`);
+          setOtp('');
+        },
+        onError: (e) => toast.error(e.message || 'No se pudo quitar el cargo'),
+      }
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Encargados de Anuncios</DialogTitle>
+          <DialogDescription>
+            Personas designadas para gestionar los anuncios de la iglesia en tu nombre. Sin nadie designado, vos
+            conservás el control total.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          {isLoading ? (
+            <Skeleton className="h-16 w-full rounded-xl" />
+          ) : encargados.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground">Todavía no hay nadie designado.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {encargados.map((e) => (
+                <div key={e.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm">
+                  {e.nombre}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive"
+                    disabled={quitar.isPending}
+                    onClick={() => manejarQuitar(e.persona_id, e.nombre)}
+                    aria-label="Quitar"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3">
+            <BuscadorPersona
+              iglesiaId={iglesiaId}
+              excluirIds={encargados.map((e) => e.persona_id)}
+              onSeleccionar={(p) => setPersonaAAgregar(p)}
+            />
+            {personaAAgregar && (
+              <p className="text-[12px] text-muted-foreground">Agregar a <strong>{personaAAgregar.nombre_completo}</strong>:</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Input
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="Código de confirmación (6 dígitos)"
+              className={CAMPO_ESTILO}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" disabled={!personaAAgregar || otp.length !== 6 || asignar.isPending} onClick={manejarAgregar}>
+            {asignar.isPending ? 'Agregando...' : 'Agregar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
