@@ -21,7 +21,7 @@
 // sesion", por delante del formulario de membresia si tambien aplica. Zoom
 // (rueda del mouse, pellizco tactil, doble clic/toque) via ImagenAnuncioZoom.
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { XIcon } from 'lucide-react';
+import { ImageOff, XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -34,7 +34,13 @@ const MAX_ALTO_CAP_PX = 720;
 
 export function ModalAnuncios() {
   const { anuncioActual, cerrarAnuncioActual, cerrando } = useAnunciosPendientes();
-  const { data: imagenUrl, isLoading: cargandoImagen } = useUrlFirmadaAnuncio(anuncioActual?.imagen_path);
+  // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
+  // servidor falla) -- sin esto, si la URL firmada fallaba (Storage caido,
+  // etc.) el bloque de abajo caia al `: null` silencioso, dejando la X
+  // flotando sin ningun contexto. Nunca bloquea el resto de la app (las 3
+  // formas de cerrar -- X, Escape, clic afuera -- funcionan igual), pero
+  // sin este aviso se veia como un modal roto en vez de "algo fallo".
+  const { data: imagenUrl, isLoading: cargandoImagen, isError: fallaImagen } = useUrlFirmadaAnuncio(anuncioActual?.imagen_path);
 
   if (!anuncioActual) return null;
 
@@ -63,7 +69,12 @@ export function ModalAnuncios() {
             <div className="flex h-48 w-48 items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
               <Spinner className="h-6 w-6 text-muted-foreground" />
             </div>
-          ) : imagenUrl ? (
+          ) : fallaImagen || !imagenUrl ? (
+            <div className="flex h-48 w-64 max-w-full flex-col items-center justify-center gap-2 overflow-hidden bg-muted p-6 text-center shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <ImageOff className="h-6 w-6 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
+            </div>
+          ) : (
             <ImagenAnuncioZoom
               src={imagenUrl}
               alt={anuncioActual.titulo}
@@ -72,7 +83,7 @@ export function ModalAnuncios() {
               maxHeightCapPx={MAX_ALTO_CAP_PX}
               className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
             />
-          ) : null}
+          )}
 
           {/* X fuera de la imagen, no encima (pedido explicito 2026-08-16). */}
           <DialogPrimitive.Close asChild>

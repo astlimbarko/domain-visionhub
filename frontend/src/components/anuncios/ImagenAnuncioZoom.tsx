@@ -12,19 +12,35 @@
 // objetivo del fix anterior a esto), con el zoom montado encima.
 import { useEffect, useState } from 'react';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 
+type EstadoImagen =
+  | { status: 'cargando' }
+  | { status: 'error' }
+  | { status: 'listo'; width: number; height: number };
+
+/** Si el servidor/archivo falla algun dia (imagen borrada, Storage caido,
+ * red del usuario), `img.onload` nunca dispara -- sin `onerror` el visor se
+ * quedaba con el spinner girando para siempre, sin avisar nada (hallazgo
+ * real del owner 2026-08-16). Con el estado "error" explicito, el llamador
+ * muestra un aviso corto en vez de una espera infinita -- nunca bloquea el
+ * resto de la app (el boton de cerrar del modal es independiente de esto,
+ * siempre queda disponible), solo evita la confusion de un spinner sin fin. */
 function useTamanioNatural(src: string | undefined) {
-  const [tamanio, setTamanio] = useState<{ width: number; height: number } | null>(null);
+  const [estado, setEstado] = useState<EstadoImagen>({ status: 'cargando' });
 
   useEffect(() => {
-    setTamanio(null);
+    setEstado({ status: 'cargando' });
     if (!src) return;
     let vigente = true;
     const img = new Image();
     img.onload = () => {
-      if (vigente) setTamanio({ width: img.naturalWidth, height: img.naturalHeight });
+      if (vigente) setEstado({ status: 'listo', width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      if (vigente) setEstado({ status: 'error' });
     };
     img.src = src;
     return () => {
@@ -32,7 +48,7 @@ function useTamanioNatural(src: string | undefined) {
     };
   }, [src]);
 
-  return tamanio;
+  return estado;
 }
 
 /** Limites disponibles para la imagen, en px reales -- replica en JS los
@@ -73,9 +89,9 @@ export function ImagenAnuncioZoom({
   className?: string;
 }) {
   const { maxWidth, maxHeight } = useLimitesImagen(maxWidthCss, maxHeightRatio, maxHeightCapPx);
-  const natural = useTamanioNatural(src);
+  const estado = useTamanioNatural(src);
 
-  if (!natural) {
+  if (estado.status === 'cargando') {
     return (
       <div className={cn('flex h-48 w-48 items-center justify-center', className)}>
         <Spinner className="h-6 w-6 text-muted-foreground" />
@@ -83,9 +99,18 @@ export function ImagenAnuncioZoom({
     );
   }
 
-  const escala = Math.min(maxWidth / natural.width, maxHeight / natural.height, 1);
-  const width = Math.round(natural.width * escala);
-  const height = Math.round(natural.height * escala);
+  if (estado.status === 'error') {
+    return (
+      <div className={cn('flex h-48 w-64 max-w-full flex-col items-center justify-center gap-2 p-6 text-center', className)}>
+        <ImageOff className="h-6 w-6 text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
+      </div>
+    );
+  }
+
+  const escala = Math.min(maxWidth / estado.width, maxHeight / estado.height, 1);
+  const width = Math.round(estado.width * escala);
+  const height = Math.round(estado.height * escala);
 
   return (
     <div className={className} style={{ width, height }}>

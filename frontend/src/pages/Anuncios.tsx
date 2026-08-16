@@ -10,11 +10,12 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ImageOff, Megaphone, Pencil, Plus, Trash2, UserCog, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -54,16 +55,22 @@ const ETIQUETA_ROL_CORTA: Record<RolDestinatarioAnuncio, string> = {
 };
 
 function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: string; titulo: string; onAmpliar: () => void }) {
-  const { data: url } = useUrlFirmadaAnuncio(imagenPath);
+  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
   return (
     <button
       type="button"
       onClick={onAmpliar}
       disabled={!url}
-      className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted transition-opacity hover:opacity-90 disabled:cursor-default"
+      className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-opacity hover:opacity-90 disabled:cursor-default"
       aria-label={`Ver imagen completa de "${titulo}"`}
     >
-      {url && <img src={url} alt="" className="h-full w-full object-cover" />}
+      {isLoading ? (
+        <Spinner className="h-4 w-4 text-muted-foreground" />
+      ) : isError || !url ? (
+        <ImageOff className="h-4 w-4 text-muted-foreground" />
+      ) : (
+        <img src={url} alt="" className="h-full w-full object-cover" />
+      )}
     </button>
   );
 }
@@ -84,7 +91,9 @@ function ImagenAnuncioAmpliada({
   titulo: string;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { data: url } = useUrlFirmadaAnuncio(imagenPath);
+  // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
+  // servidor falla) -- misma logica que ModalAnuncios, ver su comentario.
+  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -95,7 +104,16 @@ function ImagenAnuncioAmpliada({
         >
           <DialogPrimitive.Title className="sr-only">{titulo}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">Vista ampliada de la imagen del anuncio.</DialogPrimitive.Description>
-          {url && (
+          {isLoading ? (
+            <div className="flex h-48 w-48 items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <Spinner className="h-6 w-6 text-muted-foreground" />
+            </div>
+          ) : isError || !url ? (
+            <div className="flex h-48 w-64 max-w-full flex-col items-center justify-center gap-2 overflow-hidden bg-muted p-6 text-center shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <ImageOff className="h-6 w-6 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
+            </div>
+          ) : (
             <ImagenAnuncioZoom
               src={url}
               alt={titulo}
