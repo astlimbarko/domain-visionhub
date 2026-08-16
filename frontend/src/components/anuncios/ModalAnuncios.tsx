@@ -18,14 +18,19 @@
 // sombra/contorno marcado hacia el fondo en vez de una sombra tenue, boton
 // de cerrar mas visible/elegante, y z-index por encima de MembresiaObligatoria
 // -- ahora se muestra siempre al ingresar, "son anuncios de inicio de
-// sesion", por delante del formulario de membresia si tambien aplica.
+// sesion", por delante del formulario de membresia si tambien aplica. Zoom
+// (rueda del mouse, pellizco tactil, doble clic/toque) via ImagenAnuncioZoom.
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { ImagenAnuncioZoom } from '@/components/anuncios/ImagenAnuncioZoom';
 import { useAnunciosPendientes } from '@/hooks/useAnunciosPendientes';
 import { useUrlFirmadaAnuncio } from '@/hooks/useAnuncios';
+
+const MAX_ALTO_RATIO = 0.78;
+const MAX_ALTO_CAP_PX = 720;
 
 export function ModalAnuncios() {
   const { anuncioActual, cerrarAnuncioActual, cerrando } = useAnunciosPendientes();
@@ -50,28 +55,24 @@ export function ModalAnuncios() {
 
           {/* Sin marco/titulo debajo (pedido explicito 2026-08-16): la
               imagen es el anuncio, se muestra directa sin borde blanco.
-              `inline-flex` (no `flex`+w-full) para que el contorno/sombra se
-              ajuste al tamaño real ya escalado de la imagen -- con w-full el
-              contenedor quedaba con el ancho fijo del modal aunque la
-              imagen (acotada por el alto maximo) rindiera mas angosta,
-              dejando el bg-muted como franja blanca a los costados. */}
-          <div
-            className="relative inline-flex max-w-full items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
-            style={{ maxHeight: 'min(78dvh, 720px)' }}
-          >
-            {cargandoImagen ? (
-              <div className="flex h-48 w-48 items-center justify-center">
-                <Spinner className="h-6 w-6 text-muted-foreground" />
-              </div>
-            ) : imagenUrl ? (
-              <img
-                src={imagenUrl}
-                alt={anuncioActual.titulo}
-                className="block max-w-full object-contain"
-                style={{ maxHeight: 'min(78dvh, 720px)' }}
-              />
-            ) : null}
-          </div>
+              ImagenAnuncioZoom mide el tamaño real de la imagen y calcula el
+              encaje exacto (mismo motivo que antes: object-contain con
+              ancho fijo dejaba el bg-muted como franja blanca a los
+              costados), y monta el zoom encima. */}
+          {cargandoImagen ? (
+            <div className="flex h-48 w-48 items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
+              <Spinner className="h-6 w-6 text-muted-foreground" />
+            </div>
+          ) : imagenUrl ? (
+            <ImagenAnuncioZoom
+              src={imagenUrl}
+              alt={anuncioActual.titulo}
+              maxWidthCss={esVertical ? 460 : 580}
+              maxHeightRatio={MAX_ALTO_RATIO}
+              maxHeightCapPx={MAX_ALTO_CAP_PX}
+              className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+            />
+          ) : null}
 
           {/* X fuera de la imagen, no encima (pedido explicito 2026-08-16). */}
           <DialogPrimitive.Close asChild>

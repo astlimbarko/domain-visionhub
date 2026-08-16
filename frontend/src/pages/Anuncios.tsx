@@ -28,6 +28,7 @@ import {
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { ImagenAnuncioZoom } from '@/components/anuncios/ImagenAnuncioZoom';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -70,11 +71,10 @@ function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: strin
 /** Vista ampliada al hacer clic en la miniatura -- imagen completa, sin
  * recortar (pedido explicito del owner 2026-08-15). Rediseñado 2026-08-16
  * (mismo pedido que ModalAnuncios, incluida la 2da vuelta -- sin borde
- * blanco a los costados y X debajo de la imagen en vez de encima): usa
+ * blanco a los costados, X debajo de la imagen en vez de encima, y zoom con
+ * rueda del mouse/pellizco/doble clic via ImagenAnuncioZoom): usa
  * DialogPrimitive.Content directo en vez del DialogContent generico (ese
- * trae esquinas redondeadas y un boton de cerrar "ghost" fijos), y
- * `inline-flex` (no `flex` con ancho por defecto) para que el marco se
- * ajuste al tamaño real ya escalado de la imagen. */
+ * trae esquinas redondeadas y un boton de cerrar "ghost" fijos). */
 function ImagenAnuncioAmpliada({
   imagenPath,
   titulo,
@@ -95,12 +95,16 @@ function ImagenAnuncioAmpliada({
         >
           <DialogPrimitive.Title className="sr-only">{titulo}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">Vista ampliada de la imagen del anuncio.</DialogPrimitive.Description>
-          <div
-            className="relative inline-flex max-w-full items-center justify-center overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
-            style={{ maxHeight: '82vh' }}
-          >
-            {url && <img src={url} alt={titulo} className="block max-w-full object-contain" style={{ maxHeight: '82vh' }} />}
-          </div>
+          {url && (
+            <ImagenAnuncioZoom
+              src={url}
+              alt={titulo}
+              maxWidthCss={672}
+              maxHeightRatio={0.82}
+              maxHeightCapPx={Infinity}
+              className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+            />
+          )}
           <DialogPrimitive.Close asChild>
             <Button
               variant="secondary"
