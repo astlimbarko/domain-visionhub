@@ -12,6 +12,13 @@
 // primero manda). Antes usaba `object-cover` + aspect-ratio fijo (1/1 o
 // 3/4), que SI recortaba cualquier imagen cuya proporcion real no calzara
 // exacto con esos valores -- justo lo que este ticket pedia corregir.
+//
+// Rediseño 2026-08-16 (pedido explicito del owner): mas grande, esquinas
+// rectas en vez de redondeadas (para no ocultar detalles cerca del borde),
+// sombra/contorno marcado hacia el fondo en vez de una sombra tenue, boton
+// de cerrar mas visible/elegante, y z-index por encima de MembresiaObligatoria
+// -- ahora se muestra siempre al ingresar, "son anuncios de inicio de
+// sesion", por delante del formulario de membresia si tambien aplica.
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
@@ -31,20 +38,20 @@ export function ModalAnuncios() {
   return (
     <Dialog open onOpenChange={(open) => !open && cerrarAnuncioActual()}>
       <DialogPortal>
-        <DialogOverlay className="bg-black/50" />
+        <DialogOverlay className="z-[60] bg-black/60" />
         <DialogPrimitive.Content
           data-slot="dialog-content"
           onEscapeKeyDown={cerrarAnuncioActual}
           onPointerDownOutside={cerrarAnuncioActual}
-          className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
-          style={{ maxWidth: esVertical ? '380px' : '480px' }}
+          className="fixed top-1/2 left-1/2 z-[60] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          style={{ maxWidth: esVertical ? '460px' : '580px' }}
         >
           <DialogPrimitive.Title className="sr-only">{anuncioActual.titulo}</DialogPrimitive.Title>
 
-          <div className="overflow-hidden rounded-3xl bg-card shadow-2xl shadow-black/20 ring-1 ring-foreground/10">
+          <div className="overflow-hidden bg-card shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
             <div
               className="relative flex w-full items-center justify-center bg-muted"
-              style={{ maxHeight: 'min(65dvh, 560px)' }}
+              style={{ maxHeight: 'min(78dvh, 720px)' }}
             >
               {cargandoImagen ? (
                 <div className="flex h-48 w-full items-center justify-center">
@@ -55,20 +62,20 @@ export function ModalAnuncios() {
                   src={imagenUrl}
                   alt={anuncioActual.titulo}
                   className="w-full object-contain"
-                  style={{ maxHeight: 'min(65dvh, 560px)' }}
+                  style={{ maxHeight: 'min(78dvh, 720px)' }}
                 />
               ) : null}
 
               <DialogPrimitive.Close asChild>
                 <Button
                   variant="secondary"
-                  size="icon-sm"
-                  className="absolute top-3 right-3 rounded-full bg-black/40 text-white shadow-md backdrop-blur-sm hover:bg-black/60"
+                  size="icon"
+                  className="absolute top-3 right-3 rounded-full border border-white/30 bg-black/60 text-white shadow-lg backdrop-blur-sm hover:bg-black/80"
                   onClick={cerrarAnuncioActual}
                   disabled={cerrando}
                   aria-label="Cerrar anuncio"
                 >
-                  <XIcon className="h-4 w-4" />
+                  <XIcon className="h-5 w-5" />
                 </Button>
               </DialogPrimitive.Close>
             </div>

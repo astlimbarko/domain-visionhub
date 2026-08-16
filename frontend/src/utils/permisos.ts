@@ -194,7 +194,10 @@ const CATALOGO_NAV: NavItem[] = [
   // Supervisor de Red -- pedido explícito del owner, todos los roles menos
   // Casa de Paz "por ahora" (se suma más adelante cuando el resto del
   // equipo use la app). Mismo naranja que usa la propia pantalla.
-  { icon: Megaphone, label: 'Anuncios', path: ROUTES.ANUNCIOS, color: '#ff9500' },
+  // "Anuncios" a secas sonaba a que se iba a anunciar hacia otro lado
+  // (pedido explicito del owner 2026-08-16) -- son avisos que se muestran
+  // al iniciar sesion en VisionHub, no algo que se publica afuera.
+  { icon: Megaphone, label: 'Anuncios de Sesión', path: ROUTES.ANUNCIOS, color: '#ff9500' },
   // Amarillo institucional de Evangelismo (DEPARTAMENTO_META, frontend-style
   // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
   // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación

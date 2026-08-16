@@ -96,10 +96,14 @@ export function PrivateLayout() {
     <AppShell>
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
-      {/* T5/T6 (KAN-106/107): un solo modal a la vez -- si hay membresia
-          pendiente, ese modal tiene prioridad y los anuncios esperan a la
-          siguiente vez que se re-evalue el gate. */}
-      {!membresiaPendiente && <ModalAnuncios />}
+      {/* T5/T6 (KAN-106/107): pedido explicito del owner 2026-08-16 -- son
+          "anuncios de inicio de sesion", tienen que verse siempre al
+          ingresar, por delante del formulario de membresia si tambien
+          aplica (antes esperaba a que no hubiera membresia pendiente, lo
+          que podia dejarlo sin mostrarse por sesiones enteras). Montado
+          siempre; ModalAnuncios ya usa z-index mas alto para quedar
+          arriba de MembresiaObligatoria cuando coinciden. */}
+      <ModalAnuncios />
     </AppShell>
   );
 }
