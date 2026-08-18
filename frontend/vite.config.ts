@@ -43,6 +43,20 @@ export default defineConfig({
             { name: 'vendor-supabase', test: /node_modules[\\/]@supabase[\\/]/ },
             { name: 'vendor-tanstack', test: /node_modules[\\/]@tanstack[\\/]/ },
             { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
+            // Estos 3 caian en el balde catch-all 'vendor' de abajo, mezclados
+            // con paquetes livianos usados en el login/dashboard (ej.
+            // lucide-react) -- como un chunk es un solo archivo, eso forzaba
+            // a descargar @xyflow/react + jspdf + html-to-image + framer-motion
+            // enteros en la carga inicial aunque solo se usan en paginas ya
+            // lazy (Constructor, exportar PDF/imagen, GestionSubliderVista)
+            // que la mayoria de sesiones nunca abre en el primer login (bug
+            // real de rendimiento, reportado 2026-08-17). Separados en su
+            // propio chunk, solo se piden cuando esa pagina puntual carga.
+            { name: 'vendor-flow', test: /node_modules[\\/]@xyflow[\\/]/ },
+            { name: 'vendor-pdf', test: /node_modules[\\/](jspdf|html-to-image)[\\/]/ },
+            { name: 'vendor-motion', test: /node_modules[\\/]framer-motion[\\/]/ },
+            // Solo se usa en el zoom de imagen de Anuncios (ImagenAnuncioZoom.tsx).
+            { name: 'vendor-zoom', test: /node_modules[\\/]react-zoom-pan-pinch[\\/]/ },
             { name: 'vendor', test: /node_modules[\\/]/ },
           ],
         },
