@@ -82,7 +82,18 @@ export function useCargoVigenteCdp(cdpId: string | undefined, codigo: CargoCdpCo
 
 function useInvalidarEstructura() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['estructura'] });
+  // El Constructor (EstructuraOrganizacional.tsx) lee con la clave
+  // ['estructura-organizacional', iglesiaId], NO con ['estructura'] -- ambos
+  // prefijos son namespaces distintos para React Query, invalidar uno no
+  // invalida el otro. Sin esto, asignar/quitar cargo o guardar domicilio de
+  // una Casa de Paz desde el panel del Constructor (que reusa estos hooks
+  // viejos) persistía bien en la base pero el lienzo seguía mostrando el
+  // estado anterior ("Líder sin asignar") hasta el proximo refetch natural
+  // -- bug real reportado 2026-08-17, parecía que la relación no se guardaba.
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['estructura'] });
+    queryClient.invalidateQueries({ queryKey: ['estructura-organizacional'] });
+  };
 }
 
 export function useCrearRed(iglesiaId: string | undefined) {
