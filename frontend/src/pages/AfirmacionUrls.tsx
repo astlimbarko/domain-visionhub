@@ -3,6 +3,7 @@ import { MARINO } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { useAuthStore } from '@/store/auth.store';
 import { PanelUrlsAfirmacion } from '@/components/afirmacion/PanelUrlsAfirmacion';
+import { InterruptorRegistroUrlAfirmacion } from '@/components/afirmacion/InterruptorRegistroUrlAfirmacion';
 
 export function AfirmacionUrls() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
@@ -13,6 +14,8 @@ export function AfirmacionUrls() {
 
   return (
     <div className="flex flex-col gap-6">
+      <InterruptorRegistroUrlAfirmacion iglesiaId={iglesiaActivaId} />
+
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Link2}

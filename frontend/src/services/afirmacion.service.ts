@@ -93,3 +93,15 @@ export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string): 
   if (error) throw error;
   return data as EstadisticasPersonasAfirmacion;
 }
+
+// Pedido explícito del owner (2026-08-21): el interruptor general
+// REGISTRO_URL_ACTIVO solo se veía en el Panel de Configuración -- si
+// alguien miraba el panel de Afirmación con todos los enlaces individuales
+// en ACTIVO, no había forma de notar desde ahí que el interruptor general
+// seguía apagado. Solo lectura -- el cambio en sí sigue yendo por
+// fn_set_configuracion (panel-supervisor.service.ts), sin tocar permisos.
+export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_config_registro_url', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as boolean;
+}

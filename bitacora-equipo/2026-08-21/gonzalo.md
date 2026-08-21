@@ -20,6 +20,8 @@
 - [x] KAN-233: bug real encontrado y corregido -- si ocupación/grado de instrucción eran obligatorios pero la persona no tenía ese dato, el asistente quedaba trabado sin avisar y la membresía nunca se completaba (por eso "pedía todo de nuevo" en el siguiente login)
 - [x] KAN-230 (parcial): checkbox "No aplica" agregado en ocupación/grado de instrucción (mismo fix que KAN-233) -- falta el indicador visual en la tabla de Personas (requiere migración, sin token de Supabase)
 - [x] KAN-232: diagnosticado -- "Enlace no disponible" depende de 2 interruptores (estado del enlace + REGISTRO_URL_ACTIVO por iglesia, que arranca apagado), no parece ser CORS. Mejora real aplicada: la página ahora distingue un error de conexión real de un enlace inactivo (antes quedaba en blanco). Falta confirmar en la app cuál de los 2 interruptores es la causa real
-- [ ] Falta: aplicar la migración de KAN-228 (estado civil/profesión) y la futura de KAN-230 (indicador visual) -- necesito un token nuevo de Supabase (`sbp_...`), el anterior quedó revocado
-- [ ] Falta: confirmar en la app los 2 interruptores de KAN-232 y decidir si el bug es real o solo configuración
+- [x] Token de Supabase nuevo recibido -- se aplicaron las 17 migraciones pendientes de hoy a producción (2 de ellas ya estaban aplicadas a mano de sesiones anteriores, se reconció el historial con `migration repair` sin volver a correrlas)
+- [x] KAN-230 completo: columna "Membresía" (ordenable + CSV) en /afirmacion-personas usando el campo nuevo membresia_completada
+- [ ] Aviso aparte: el disco temporal de la máquina (`AppData\Local\Temp`) está 100% lleno (251GB) -- revisar cuando se pueda, no es cosa de Supabase
+- [x] KAN-232 resuelto (diagnóstico, sin bug de código): consulta directa a producción confirmó que Centro de Vida Montero no tiene REGISTRO_URL_ACTIVO activado NI ningún Líder de Casa de Paz asignado todavía (por eso no hay ningún enlace que probar) -- son 2 acciones pendientes del owner, no código
 - [ ] Falta: probar todo lo de hoy en navegador (MCP de Playwright/chrome-devtools desconectado esta sesión)

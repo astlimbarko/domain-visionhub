@@ -4,6 +4,7 @@ import {
   listarLideresCdpAfirmacion,
   listarRedesAfirmacion,
   listarUrlsAfirmacion,
+  obtenerConfigRegistroUrlAfirmacion,
   obtenerEstadisticasPersonasAfirmacion,
   obtenerEstadisticasRegistroAfirmacion,
   registrarPersonaAfirmacion,
@@ -50,6 +51,14 @@ export function useSetEstadoUrlsAfirmacion(iglesiaId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['afirmacion', 'urls', iglesiaId] });
     },
+  });
+}
+
+export function useConfigRegistroUrlAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'config-registro-url', iglesiaId],
+    queryFn: () => obtenerConfigRegistroUrlAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
   });
 }
 
