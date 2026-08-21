@@ -23,5 +23,6 @@
 - [x] Token de Supabase nuevo recibido -- se aplicaron las 17 migraciones pendientes de hoy a producción (2 de ellas ya estaban aplicadas a mano de sesiones anteriores, se reconció el historial con `migration repair` sin volver a correrlas)
 - [x] KAN-230 completo: columna "Membresía" (ordenable + CSV) en /afirmacion-personas usando el campo nuevo membresia_completada
 - [ ] Aviso aparte: el disco temporal de la máquina (`AppData\Local\Temp`) está 100% lleno (251GB) -- revisar cuando se pueda, no es cosa de Supabase
-- [x] KAN-232 resuelto (diagnóstico, sin bug de código): consulta directa a producción confirmó que Centro de Vida Montero no tiene REGISTRO_URL_ACTIVO activado NI ningún Líder de Casa de Paz asignado todavía (por eso no hay ningún enlace que probar) -- son 2 acciones pendientes del owner, no código
+- [x] KAN-232 resuelto (confirmado en vivo): era el interruptor REGISTRO_URL_ACTIVO apagado, también en Centro de Vida Genesis (no Montero) -- sin bug de CORS ni de Docker real, solo faltaba activarlo
+- [x] KAN-236: interruptor "Registro público por URL activo" ahora también visible/editable desde /afirmacion-urls (antes solo en Panel de Configuración) -- para que esto no se repita sin darse cuenta
 - [ ] Falta: probar todo lo de hoy en navegador (MCP de Playwright/chrome-devtools desconectado esta sesión)
