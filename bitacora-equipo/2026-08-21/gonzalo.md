@@ -25,4 +25,6 @@
 - [ ] Aviso aparte: el disco temporal de la máquina (`AppData\Local\Temp`) está 100% lleno (251GB) -- revisar cuando se pueda, no es cosa de Supabase
 - [x] KAN-232 resuelto (confirmado en vivo): era el interruptor REGISTRO_URL_ACTIVO apagado, también en Centro de Vida Genesis (no Montero) -- sin bug de CORS ni de Docker real, solo faltaba activarlo
 - [x] KAN-236: interruptor "Registro público por URL activo" ahora también visible/editable desde /afirmacion-urls (antes solo en Panel de Configuración) -- para que esto no se repita sin darse cuenta
+- [x] Merge a master: PR #33 (`feature/membresia` → `master`), 20 commits, aprobado por el owner ("estaremos listos para el deploy")
+- [ ] Falta: rebuild + deploy manual del frontend en somoscdv.com (el merge a master no despliega solo, ver harness/DEPLOY.md)
 - [ ] Falta: probar todo lo de hoy en navegador (MCP de Playwright/chrome-devtools desconectado esta sesión)
