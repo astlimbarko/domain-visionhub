@@ -1,32 +1,63 @@
 // VisionHub -- plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216).
 // Tabla de todas las personas de la iglesia, no un dashboard: fila de KPIs
-// arriba + tabla ordenable (click en el header de columna) y filtrable por
-// texto libre. Reusa fn_buscar_personas (ya existe, ahora con red_nombre y
-// via_registro) via el hook compartido useBuscarPersonas -- mismo camino que
-// ya usa pages/Personas.tsx para el resto de los roles.
+// arriba + tabla con los datos principales, ordenable (click en el header
+// de columna) y filtrable por texto libre. Reusa fn_buscar_personas (ya
+// existe, ahora con red_nombre y via_registro) via el hook compartido
+// useBuscarPersonas -- mismo camino que ya usa pages/Personas.tsx para el
+// resto de los roles.
+//
+// Pedido explícito del owner (2026-08-21): la tabla se queda con los datos
+// principales (si mostrás todo en una sola hoja se vuelve pesado) -- click
+// en una fila abre la ficha completa (FichaPersonaSheet, ya existe y se usa
+// en pages/Personas.tsx). Paginación de 50 en 50, exportar a CSV, y más
+// indicadores en la fila de KPIs.
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, FileText, QrCode, Search, Users } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  QrCode,
+  Search,
+  Users,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AZUL, MARINO, KpiMosaico, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, KpiMosaico, MARINO, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
 import { useBuscarPersonas } from '@/hooks/usePersonas';
+import { buscarPersonas } from '@/services/persona.service';
 import { useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import type { PersonaResultadoBusqueda } from '@/types/persona.types';
 
-const POR_PAGINA = 20;
+const POR_PAGINA = 50;
+// Tope razonable para una exportación completa -- una iglesia real no tiene
+// decenas de miles de miembros; evita pedir un tamaño de página ilimitado.
+const LIMITE_EXPORTACION = 5000;
 
-type ColumnaOrden = 'nombre_completo' | 'edad' | 'red_nombre' | 'casa_de_paz_etiqueta' | 'estado_sigla';
+type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'red_nombre' | 'casa_de_paz_etiqueta' | 'estado_sigla';
 type DireccionOrden = 'asc' | 'desc';
 
 const VIA_REGISTRO_LABEL: Record<'URL' | 'FORMULARIO', string> = {
   URL: 'URL',
   FORMULARIO: 'Formulario',
+};
+
+const ESTADO_LABEL: Record<string, string> = {
+  SIM: 'Simpatizantes',
+  NC: 'Nuevos Convertidos',
+  CRE: 'Creyentes',
+  RE: 'Reconciliados',
 };
 
 function comparar(a: PersonaResultadoBusqueda, b: PersonaResultadoBusqueda, columna: ColumnaOrden) {
@@ -63,12 +94,40 @@ function EncabezadoOrdenable({
   );
 }
 
+// CSV con BOM (Excel en Windows no detecta UTF-8 sin esto -- tildes/ñ salían
+// mal) y comillas en todos los campos de texto para no romperse con comas.
+function celdaCsv(valor: string | number | null): string {
+  if (valor === null) return '';
+  return `"${String(valor).replaceAll('"', '""')}"`;
+}
+
+function filasACsv(filas: PersonaResultadoBusqueda[]): string {
+  const encabezados = ['Nombre', 'Sexo', 'Edad', 'CI', 'Correo', 'Red', 'Casa de Paz', 'Estado', 'Teléfono', 'Vía'];
+  const lineas = filas.map((p) =>
+    [
+      celdaCsv(p.nombre_completo),
+      celdaCsv(p.sexo === 'M' ? 'Masculino' : 'Femenino'),
+      celdaCsv(p.edad),
+      celdaCsv(p.ci),
+      celdaCsv(p.correo),
+      celdaCsv(p.red_nombre),
+      celdaCsv(p.casa_de_paz_etiqueta),
+      celdaCsv(p.estado_sigla),
+      celdaCsv(p.telefono_principal),
+      celdaCsv(p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro] : null),
+    ].join(',')
+  );
+  return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
+}
+
 export function AfirmacionPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [pagina, setPagina] = useState(1);
   const [orden, setOrden] = useState<{ columna: ColumnaOrden; direccion: DireccionOrden } | null>(null);
+  const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setTexto(textoInput), 300);
@@ -78,7 +137,7 @@ export function AfirmacionPersonas() {
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
   const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(iglesiaActivaId);
-  const { data, isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, false, false, pagina);
+  const { data, isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, false, false, pagina, POR_PAGINA);
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -97,20 +156,46 @@ export function AfirmacionPersonas() {
     });
   }
 
+  async function exportarCsv() {
+    if (!iglesiaActivaId) return;
+    setExportando(true);
+    try {
+      const { resultados: todas } = await buscarPersonas(iglesiaActivaId, texto, false, false, 1, LIMITE_EXPORTACION);
+      const csv = filasACsv(todas);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `personas-${new Date().toISOString().slice(0, 10)}.csv`;
+      enlace.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('No se pudo exportar el CSV');
+    } finally {
+      setExportando(false);
+    }
+  }
+
   const porEstado = estadisticas?.por_estado ?? {};
 
   return (
     <div className="flex flex-col gap-6">
       {cargandoEstadisticas || cargandoRegistro ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KpiMosaico icon={Users} label="Total de personas" color={AZUL} compact>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          <KpiMosaico icon={Users} label="Total" color={AZUL} compact>
             {estadisticas?.total ?? 0}
+          </KpiMosaico>
+          <KpiMosaico icon={Users} label="Hombres" color="var(--chart-1)" compact>
+            {estadisticas?.hombres ?? 0}
+          </KpiMosaico>
+          <KpiMosaico icon={Users} label="Mujeres" color="var(--chart-4)" compact>
+            {estadisticas?.mujeres ?? 0}
           </KpiMosaico>
           <KpiMosaico icon={QrCode} label="Por URL" color={MARINO} compact>
             {estadisticasRegistro?.por_url ?? 0}
@@ -118,9 +203,11 @@ export function AfirmacionPersonas() {
           <KpiMosaico icon={FileText} label="Por formulario" color={VERDE} compact>
             {estadisticasRegistro?.por_formulario ?? 0}
           </KpiMosaico>
-          <KpiMosaico icon={Users} label="Creyentes" color="var(--chart-3)" compact>
-            {porEstado.CRE ?? 0}
-          </KpiMosaico>
+          {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
+            <KpiMosaico key={sigla} icon={Users} label={ESTADO_LABEL[sigla]} color="var(--chart-3)" compact>
+              {porEstado[sigla] ?? 0}
+            </KpiMosaico>
+          ))}
         </div>
       )}
 
@@ -129,7 +216,13 @@ export function AfirmacionPersonas() {
           icon={Users}
           color={AZUL}
           titulo="Personas"
-          descripcion="Todas las personas de la iglesia, ordenables y filtrables."
+          descripcion="Datos principales -- click en una fila para ver la ficha completa."
+          accion={
+            <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
+              <Download className="h-3.5 w-3.5" />
+              {exportando ? 'Exportando...' : 'Exportar CSV'}
+            </Button>
+          }
         />
         <div className="flex flex-col gap-4 p-5">
           <div className="relative w-full sm:max-w-xs">
@@ -156,7 +249,9 @@ export function AfirmacionPersonas() {
                     <EncabezadoOrdenable columna="nombre_completo" ordenActual={orden} onOrdenar={ordenarPor}>
                       Nombre
                     </EncabezadoOrdenable>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
+                    <EncabezadoOrdenable columna="sexo" ordenActual={orden} onOrdenar={ordenarPor}>
+                      Sexo
+                    </EncabezadoOrdenable>
                     <EncabezadoOrdenable columna="edad" ordenActual={orden} onOrdenar={ordenarPor}>
                       Edad
                     </EncabezadoOrdenable>
@@ -176,7 +271,11 @@ export function AfirmacionPersonas() {
                 </thead>
                 <tbody>
                   {filasOrdenadas.map((p) => (
-                    <tr key={p.id} className="border-t border-border/50 hover:bg-muted/30">
+                    <tr
+                      key={p.id}
+                      onClick={() => setPersonaSeleccionadaId(p.id)}
+                      className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
+                    >
                       <td className="px-3 py-2.5 font-medium">{p.nombre_completo}</td>
                       <td className="px-3 py-2.5 text-muted-foreground">{p.sexo === 'M' ? 'M' : 'F'}</td>
                       <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{p.edad ?? '—'}</td>
@@ -230,6 +329,8 @@ export function AfirmacionPersonas() {
           )}
         </div>
       </section>
+
+      <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
     </div>
   );
 }

@@ -80,5 +80,7 @@ export interface EstadisticasRegistroAfirmacion {
 // `estado` (SIM/NC/CRE/RE/DA/DI) o 'SIN_ESTADO'.
 export interface EstadisticasPersonasAfirmacion {
   total: number;
+  hombres: number;
+  mujeres: number;
   por_estado: Record<string, number>;
 }
