@@ -98,9 +98,44 @@ export interface DatosMembresiaExtendida {
   // -- no hay forma anon-safe de listar los ministerios de una iglesia
   // puntual todavía. Solo se manda en los flujos autenticados.
   ministerios?: string[];
+
+  // Censo de cargos (plan panel Afirmación 2026-08-20, punto 4/4). Campo
+  // puramente informativo/autodeclarado -- nunca toca persona_cargo,
+  // red_cargo, casa_de_paz_cargo ni departamento_cargo (esas son las tablas
+  // operativas reales, con sus propias reglas de exclusividad y permisos).
+  // efesio_tipo undefined = "Ninguno". cargo_* son independientes entre sí.
+  // rango_miembro solo aplica si la persona no marcó ningún cargo -- ver
+  // SeccionCargoRangoMembresia.
+  efesio_tipo?: EfesioTipo;
+  cargo_ministro?: boolean;
+  cargo_anciano?: boolean;
+  cargo_diacono?: boolean;
+  cargo_mentor?: boolean;
+  cargo_sub_mentor?: boolean;
+  cargo_lider_cdp?: boolean;
+  cargo_sublider_cdp?: boolean;
+  rango_miembro?: RangoMiembro;
 }
 
 export const DATOS_MEMBRESIA_EXTENDIDA_VACIO: DatosMembresiaExtendida = {};
+
+export type EfesioTipo = 'APOSTOL' | 'PROFETA' | 'PASTOR' | 'EVANGELISTA' | 'MAESTRO';
+
+export const OPCIONES_EFESIO: { value: EfesioTipo; label: string }[] = [
+  { value: 'APOSTOL', label: 'Apóstol' },
+  { value: 'PROFETA', label: 'Profeta' },
+  { value: 'PASTOR', label: 'Pastor' },
+  { value: 'EVANGELISTA', label: 'Evangelista' },
+  { value: 'MAESTRO', label: 'Maestro' },
+];
+
+export type RangoMiembro = 'DISCIPULO' | 'AFIRMADO' | 'CREYENTE';
+
+export const OPCIONES_RANGO_MIEMBRO: { value: RangoMiembro; label: string; descripcion: string }[] = [
+  { value: 'CREYENTE', label: 'Creyente', descripcion: 'Solo asiste a los servicios y Casas de Paz' },
+  { value: 'DISCIPULO', label: 'Discípulo', descripcion: 'Tiene un mentor y asiste a un discipulado' },
+  { value: 'AFIRMADO', label: 'Afirmado', descripcion: 'Es bautizado o fue al retiro SIL (Sanidad Interior y Liberación)' },
+];
 
 // KAN-126 (fn_mi_membresia_incompleta): superset de InvitacionPendiente
 // (invitacion-lider.types.ts) -- acá `rol` cubre cualquier rol_sistema_enum

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import {
+  SeccionCargoRangoMembresia,
   SeccionFamiliaMinisteriosMembresia,
   SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
@@ -415,9 +416,15 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
+                id: 'cargo-rango',
+                titulo: 'Cargo y posición',
+                validar: () => guardarPasoSiCorresponde(6, extendido),
+                contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
                 id: 'familia',
                 titulo: 'Familia',
-                validar: () => guardarPasoSiCorresponde(6, extendido),
+                validar: () => guardarPasoSiCorresponde(7, extendido),
                 contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
               },
             ]}

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  SeccionCargoRangoMembresia,
   SeccionFamiliaMinisteriosMembresia,
   SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
@@ -135,6 +136,11 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       id: 'mentor-bautismo',
       titulo: 'Mentor y Bautismo',
       contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'cargo-rango',
+      titulo: 'Cargo y posición',
+      contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'familia',

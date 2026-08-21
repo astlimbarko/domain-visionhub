@@ -30,12 +30,16 @@ import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import {
+  OPCIONES_EFESIO,
   OPCIONES_PRECISION_FECHA,
+  OPCIONES_RANGO_MIEMBRO,
   TIPOS_RELACION_FAMILIA,
   type DatosMembresiaExtendida,
+  type EfesioTipo,
   type FamiliarInput,
   type FechaConPrecision,
   type PrecisionFecha,
+  type RangoMiembro,
 } from '@/types/membresia-extendida.types';
 
 interface MinisterioOpcion {
@@ -320,6 +324,110 @@ export function SeccionMentorBautismoMembresia({ value, onChange }: SeccionProps
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const NINGUNO = '__ninguno__';
+
+/**
+ * Censo de cargos (plan panel Afirmación 2026-08-20, punto 4/4). Puramente
+ * informativo/autodeclarado -- no toca persona_cargo/casa_de_paz_cargo/
+ * red_cargo/departamento_cargo (las tablas operativas reales, con sus
+ * propias reglas de exclusividad y permisos: por ejemplo solo el Pastor
+ * asigna un Efesio real, y Líder de CdP dispara una URL pública). Efesio es
+ * un combobox único (una persona es un solo tipo a la vez); el resto de
+ * cargos son checks independientes entre sí.
+ *
+ * "Discípulo/Afirmado/Creyente" es el rango de un miembro sin ningún
+ * liderazgo -- se oculta apenas la persona marca cualquier cargo arriba
+ * (si tiene un cargo "alto", ya no tiene "rango bajo"). `formulario_version`
+ * ('v1' hoy) queda guardado junto al resto para poder retirar esta pregunta
+ * puntual el día que el sistema ya tenga datos reales que consultar en vez
+ * de autodeclarados.
+ */
+export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
+  const tieneCargo =
+    !!value.efesio_tipo ||
+    !!value.cargo_ministro ||
+    !!value.cargo_anciano ||
+    !!value.cargo_diacono ||
+    !!value.cargo_mentor ||
+    !!value.cargo_sub_mentor ||
+    !!value.cargo_lider_cdp ||
+    !!value.cargo_sublider_cdp;
+
+  function toggleCargo(campo: keyof DatosMembresiaExtendida, marcado: boolean) {
+    actualizarValor(value, onChange, campo, marcado as never);
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Label>Efesio</Label>
+        <p className="text-xs text-muted-foreground">Apóstol, Profeta, Pastor, Evangelista o Maestro -- elegí uno, o "Ninguno".</p>
+        <Select
+          value={value.efesio_tipo ?? NINGUNO}
+          onValueChange={(v) => actualizarValor(value, onChange, 'efesio_tipo', v === NINGUNO ? undefined : (v as EfesioTipo))}
+        >
+          <SelectTrigger className={cn('w-full sm:max-w-xs', CAMPO_ESTILO)}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NINGUNO}>Ninguno</SelectItem>
+            {OPCIONES_EFESIO.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Otros cargos</Label>
+        <p className="text-xs text-muted-foreground">Marcá todos los que correspondan -- no son excluyentes entre sí.</p>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {(
+            [
+              ['cargo_ministro', 'Ministro'],
+              ['cargo_anciano', 'Anciano'],
+              ['cargo_diacono', 'Diácono'],
+              ['cargo_mentor', 'Mentor'],
+              ['cargo_sub_mentor', 'Sub mentor'],
+              ['cargo_lider_cdp', 'Líder de CdPz'],
+              ['cargo_sublider_cdp', 'Sub líder de CdPz'],
+            ] as const
+          ).map(([campo, etiqueta]) => (
+            <label key={campo} className="flex items-center gap-2 text-sm">
+              <Checkbox checked={!!value[campo]} onCheckedChange={(v) => toggleCargo(campo, v === true)} />
+              {etiqueta}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {!tieneCargo && (
+        <div className="flex flex-col gap-2">
+          <Label>Posición en la iglesia</Label>
+          <p className="text-xs text-muted-foreground">Para quienes todavía no tienen ningún cargo o liderazgo.</p>
+          <Select
+            value={value.rango_miembro ?? NINGUNO}
+            onValueChange={(v) => actualizarValor(value, onChange, 'rango_miembro', v === NINGUNO ? undefined : (v as RangoMiembro))}
+          >
+            <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent>
+              {OPCIONES_RANGO_MIEMBRO.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label} — {o.descripcion}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
