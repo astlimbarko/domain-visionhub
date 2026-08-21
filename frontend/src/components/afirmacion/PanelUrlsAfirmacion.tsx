@@ -220,7 +220,11 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
                         className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2 transition-all hover:border-primary/30 hover:bg-muted/50"
                       >
                         <Checkbox checked={seleccionadas.has(u.url_id)} onCheckedChange={() => toggleSeleccion(u.url_id)} />
-                        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                        {/* w-full en mobile: sin esto, el nombre/enlace competia por
+                            espacio con los 3 botones + badge de estado (todos de ancho
+                            fijo) y se comprimia hasta ser invisible en vez de pasar a su
+                            propia linea -- confirmado en vivo a 390px de ancho. */}
+                        <div className="flex min-w-0 w-full items-baseline gap-2 sm:w-auto sm:flex-1">
                           <span className="truncate text-sm font-semibold">
                             {u.lider_cdp_nombre}
                             {etiquetaAporta && <span className="font-normal text-muted-foreground"> ({u.casa_de_paz_etiqueta})</span>}

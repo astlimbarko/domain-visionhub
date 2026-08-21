@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
@@ -184,7 +183,6 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <Label>Líder de Casa de Paz *</Label>
         <SelectorLiderCdp
           iglesiaId={iglesiaId}
           value={casaDePazCargoId}
@@ -193,7 +191,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
             setIntentoSinLider(false);
           }}
         />
-        {intentoSinLider && <p className="text-sm text-destructive">Elegí un líder de Casa de Paz antes de enviar.</p>}
+        {intentoSinLider && <p className="text-sm text-destructive">Elegí una Red y un líder de Casa de Paz antes de enviar.</p>}
       </div>
 
       <FormularioPaginado

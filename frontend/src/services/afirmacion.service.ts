@@ -7,6 +7,7 @@ import type {
   EstadisticasRegistroAfirmacion,
   EstadoUrl,
   LiderCdpAfirmacion,
+  RedAfirmacion,
   RegistrarPersonaAfirmacionResponse,
   SetEstadoUrlResponse,
 } from '@/types/afirmacion.types';
@@ -37,6 +38,13 @@ export async function obtenerCamposObligatoriosMembresia(iglesiaId: string): Pro
 
 export async function listarLideresCdpAfirmacion(iglesiaId: string): Promise<LiderCdpAfirmacion[]> {
   const { data, error } = await supabase.rpc('fn_listar_lideres_cdp_afirmacion', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export async function listarRedesAfirmacion(iglesiaId: string): Promise<RedAfirmacion[]> {
+  const { data, error } = await supabase.rpc('fn_listar_redes_afirmacion', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data ?? [];
 }

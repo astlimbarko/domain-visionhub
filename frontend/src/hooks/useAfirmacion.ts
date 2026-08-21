@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
+  listarRedesAfirmacion,
   listarUrlsAfirmacion,
   obtenerEstadisticasPersonasAfirmacion,
   obtenerEstadisticasRegistroAfirmacion,
@@ -14,6 +15,15 @@ export function useLideresCdpAfirmacion(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['afirmacion', 'lideres-cdp', iglesiaId],
     queryFn: () => listarLideresCdpAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export function useRedesAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'redes', iglesiaId],
+    queryFn: () => listarRedesAfirmacion(iglesiaId as string),
     enabled: !!iglesiaId,
   });
 }

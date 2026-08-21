@@ -7,7 +7,15 @@ export interface LiderCdpAfirmacion {
   lider_nombre: string;
   casa_de_paz_id: string;
   cdp_etiqueta: string;
+  red_id: string | null;
   red_nombre: string | null;
+  zona: string | null;
+}
+
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export interface RedAfirmacion {
+  id: string;
+  nombre: string;
 }
 
 // KAN-123: extiende con los campos ampliados, incluye Ministerios (flujo
