@@ -89,7 +89,11 @@ export interface PersonaResultadoBusqueda {
   estado_nombre: string | null;
   casa_de_paz_id: string | null;
   casa_de_paz_etiqueta: string | null;
+  /** Plan panel Afirmación 2026-08-20, punto 3/4. */
+  red_nombre: string | null;
   telefono_principal: string | null;
+  /** 'URL' | 'FORMULARIO' | null (null = no vino de ningún camino de Afirmación). */
+  via_registro: 'URL' | 'FORMULARIO' | null;
   /** Total de filas que matchean el filtro (sin paginar) -- igual en cada fila, `count(*) OVER()`. */
   total: number;
 }

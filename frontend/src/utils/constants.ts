@@ -46,6 +46,9 @@ export const ROUTES = {
   // que tienen lider vigente + URL (eso ya lo cubren AFIRMACION_URLS y el
   // selector del formulario).
   AFIRMACION_CASAS_DE_PAZ: '/afirmacion-casas-de-paz',
+  // Plan panel Afirmación 2026-08-20, punto 3/4: tabla de todas las personas
+  // de la iglesia con KPIs, ordenable/filtrable.
+  AFIRMACION_PERSONAS: '/afirmacion-personas',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

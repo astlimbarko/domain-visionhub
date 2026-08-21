@@ -74,3 +74,10 @@ export interface EstadisticasRegistroAfirmacion {
   por_url: number;
   por_formulario: number;
 }
+
+// Plan panel Afirmación 2026-08-20, punto 3/4. Claves de por_estado: sigla de
+// `estado` (SIM/NC/CRE/RE/DA/DI) o 'SIN_ESTADO'.
+export interface EstadisticasPersonasAfirmacion {
+  total: number;
+  por_estado: Record<string, number>;
+}

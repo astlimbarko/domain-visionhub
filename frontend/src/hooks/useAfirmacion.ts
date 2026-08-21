@@ -3,6 +3,7 @@ import {
   listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
   listarUrlsAfirmacion,
+  obtenerEstadisticasPersonasAfirmacion,
   obtenerEstadisticasRegistroAfirmacion,
   registrarPersonaAfirmacion,
   setEstadoUrlsAfirmacion,
@@ -56,6 +57,15 @@ export function useEstadisticasRegistroAfirmacion(iglesiaId: string | undefined)
   return useQuery({
     queryKey: ['afirmacion', 'estadisticas-registro', iglesiaId],
     queryFn: () => obtenerEstadisticasRegistroAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// KAN-216: totales de personas para /afirmacion-personas.
+export function useEstadisticasPersonasAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'estadisticas-personas', iglesiaId],
+    queryFn: () => obtenerEstadisticasPersonasAfirmacion(iglesiaId as string),
     enabled: !!iglesiaId,
   });
 }

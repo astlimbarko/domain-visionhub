@@ -3,6 +3,7 @@ import type {
   CasaDePazAfirmacion,
   CasaPazUrlAfirmacion,
   DatosPersonaAfirmacion,
+  EstadisticasPersonasAfirmacion,
   EstadisticasRegistroAfirmacion,
   EstadoUrl,
   LiderCdpAfirmacion,
@@ -76,4 +77,11 @@ export async function obtenerEstadisticasRegistroAfirmacion(iglesiaId: string): 
   const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_registro', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data as EstadisticasRegistroAfirmacion;
+}
+
+// Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.
+export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string): Promise<EstadisticasPersonasAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as EstadisticasPersonasAfirmacion;
 }
