@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -42,20 +43,35 @@ const GRADOS_INSTRUCCION = [
   'DOCTORADO',
 ] as const;
 
+// KAN-230/233: ver el mismo comentario en FormularioMembresiaPublico.tsx --
+// "No aplica" exime ocupación/grado de instrucción de la validación aunque
+// la iglesia los pida obligatorios (ninguno de los dos se exige a nivel de
+// base de datos, a diferencia de ci/fecha_nacimiento).
 function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios']) {
-  return z.object({
-    primer_nombre: z.string().trim().min(1),
-    segundo_nombre: z.string().trim().optional(),
-    primer_apellido: z.string().trim().min(1),
-    segundo_apellido: z.string().trim().optional(),
-    sexo: z.enum(['M', 'F']),
-    fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
-    ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
-    correo: z.union([z.string().email(), z.literal('')]).optional(),
-    estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
-    ocupacion: obligatorios.ocupacion ? z.string().trim().min(1) : z.string().trim().optional(),
-    grado_instruccion: obligatorios.grado_instruccion ? z.string().min(1) : z.string().optional(),
-  });
+  return z
+    .object({
+      primer_nombre: z.string().trim().min(1),
+      segundo_nombre: z.string().trim().optional(),
+      primer_apellido: z.string().trim().min(1),
+      segundo_apellido: z.string().trim().optional(),
+      sexo: z.enum(['M', 'F']),
+      fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
+      ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
+      correo: z.union([z.string().email(), z.literal('')]).optional(),
+      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      ocupacion: z.string().trim().optional(),
+      ocupacion_no_aplica: z.boolean().optional(),
+      grado_instruccion: z.string().optional(),
+      grado_instruccion_no_aplica: z.boolean().optional(),
+    })
+    .superRefine((val, ctx) => {
+      if (obligatorios.ocupacion && !val.ocupacion_no_aplica && !val.ocupacion?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ocupacion'], message: 'Requerido' });
+      }
+      if (obligatorios.grado_instruccion && !val.grado_instruccion_no_aplica && !val.grado_instruccion) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['grado_instruccion'], message: 'Requerido' });
+      }
+    });
 }
 
 const NOMBRE_ROL: Record<RolInvitable, string> = {
@@ -153,8 +169,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       ci: valores.ci || undefined,
       correo: valores.correo || undefined,
       estado_civil: valores.estado_civil || undefined,
-      ocupacion: valores.ocupacion || undefined,
-      grado_instruccion: valores.grado_instruccion || undefined,
+      ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
+      grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
       // KAN-123: campos ampliados. Ministerios queda fuera acá -- ninguno de
       // los 2 caminos (invitación ni caso general) trae iglesia_id al
       // frontend (ver comentario en membresia-extendida.types.ts).
@@ -194,6 +210,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const sexoActual = watch('sexo');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
+  const ocupacionNoAplica = watch('ocupacion_no_aplica');
+  const gradoNoAplica = watch('grado_instruccion_no_aplica');
 
   return (
     <Dialog open onOpenChange={() => {}}>
@@ -361,8 +379,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   const valores = getValues();
                   return guardarPasoSiCorresponde(3, {
                     estado_civil: valores.estado_civil || undefined,
-                    ocupacion: valores.ocupacion || undefined,
-                    grado_instruccion: valores.grado_instruccion || undefined,
+                    ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
+                    ocupacion_no_aplica: valores.ocupacion_no_aplica || undefined,
+                    grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
+                    grado_instruccion_no_aplica: valores.grado_instruccion_no_aplica || undefined,
                   });
                 },
                 contenido: (
@@ -386,19 +406,43 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="ocupacion">Ocupación {invitacion.campos_obligatorios.ocupacion && '*'}</Label>
-                      <Input id="ocupacion" className={CAMPO_ESTILO} {...register('ocupacion')} />
+                      <Label htmlFor="ocupacion">
+                        Ocupación {invitacion.campos_obligatorios.ocupacion && !ocupacionNoAplica && '*'}
+                      </Label>
+                      <Input
+                        id="ocupacion"
+                        className={CAMPO_ESTILO}
+                        disabled={ocupacionNoAplica}
+                        placeholder={ocupacionNoAplica ? 'No aplica' : undefined}
+                        {...register('ocupacion')}
+                      />
                       {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
+                      {invitacion.campos_obligatorios.ocupacion && (
+                        <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                          <Checkbox
+                            checked={!!ocupacionNoAplica}
+                            onCheckedChange={(v) => {
+                              const marcado = v === true;
+                              setValue('ocupacion_no_aplica', marcado, { shouldValidate: true });
+                              if (marcado) setValue('ocupacion', '', { shouldValidate: true });
+                            }}
+                          />
+                          No aplica
+                        </label>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label>Grado de instrucción {invitacion.campos_obligatorios.grado_instruccion && '*'}</Label>
+                      <Label>
+                        Grado de instrucción {invitacion.campos_obligatorios.grado_instruccion && !gradoNoAplica && '*'}
+                      </Label>
                       <Select
                         value={gradoActual ?? ''}
+                        disabled={gradoNoAplica}
                         onValueChange={(v) => setValue('grado_instruccion', v as FormValues['grado_instruccion'], { shouldValidate: true })}
                       >
                         <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
-                          <SelectValue placeholder="—" />
+                          <SelectValue placeholder={gradoNoAplica ? 'No aplica' : '—'} />
                         </SelectTrigger>
                         <SelectContent>
                           {GRADOS_INSTRUCCION.map((g) => (
@@ -409,6 +453,19 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                         </SelectContent>
                       </Select>
                       {errors.grado_instruccion && <p className="text-sm text-destructive">Requerido</p>}
+                      {invitacion.campos_obligatorios.grado_instruccion && (
+                        <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                          <Checkbox
+                            checked={!!gradoNoAplica}
+                            onCheckedChange={(v) => {
+                              const marcado = v === true;
+                              setValue('grado_instruccion_no_aplica', marcado, { shouldValidate: true });
+                              if (marcado) setValue('grado_instruccion', '', { shouldValidate: true });
+                            }}
+                          />
+                          No aplica
+                        </label>
+                      )}
                     </div>
                   </div>
                 ),

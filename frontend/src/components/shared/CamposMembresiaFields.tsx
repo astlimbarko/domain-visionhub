@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { FieldErrors, FieldValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -50,7 +51,13 @@ export interface CamposMembresiaValues extends FieldValues {
   correo?: string;
   estado_civil?: string;
   ocupacion?: string;
+  // KAN-230/233: si la persona no tiene ese dato (jubilado, menor de edad,
+  // etc.), el checkbox "No aplica" deja pasar la validación aunque la
+  // iglesia lo tenga marcado como obligatorio -- antes el asistente quedaba
+  // trabado sin avisar con claridad, y la membresía nunca se completaba.
+  ocupacion_no_aplica?: boolean;
   grado_instruccion?: string;
+  grado_instruccion_no_aplica?: boolean;
 }
 
 interface Props<T extends CamposMembresiaValues> {
@@ -60,6 +67,8 @@ interface Props<T extends CamposMembresiaValues> {
   sexoActual: string | undefined;
   estadoCivilActual: string | undefined;
   gradoActual: string | undefined;
+  ocupacionNoAplica: boolean | undefined;
+  gradoNoAplica: boolean | undefined;
   setValue: UseFormSetValue<T>;
 }
 
@@ -70,6 +79,8 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
   sexoActual,
   estadoCivilActual,
   gradoActual,
+  ocupacionNoAplica,
+  gradoNoAplica,
   setValue,
 }: Props<T>) {
   const { t } = useTranslation();
@@ -151,22 +162,42 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
 
       <div className="flex flex-col gap-1">
         <Label htmlFor="ocupacion">
-          {t('registroPublico.campos.ocupacion')} {camposObligatorios.ocupacion && '*'}
+          {t('registroPublico.campos.ocupacion')} {camposObligatorios.ocupacion && !ocupacionNoAplica && '*'}
         </Label>
-        <Input id="ocupacion" className={CAMPO_ESTILO} {...register('ocupacion' as never)} />
+        <Input
+          id="ocupacion"
+          className={CAMPO_ESTILO}
+          disabled={ocupacionNoAplica}
+          placeholder={ocupacionNoAplica ? 'No aplica' : undefined}
+          {...register('ocupacion' as never)}
+        />
         {errors.ocupacion && <p className="text-sm text-destructive">Requerido</p>}
+        {camposObligatorios.ocupacion && (
+          <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+            <Checkbox
+              checked={!!ocupacionNoAplica}
+              onCheckedChange={(v) => {
+                const marcado = v === true;
+                setValue('ocupacion_no_aplica' as never, marcado as never, { shouldValidate: true });
+                if (marcado) setValue('ocupacion' as never, '' as never, { shouldValidate: true });
+              }}
+            />
+            No aplica
+          </label>
+        )}
       </div>
 
       <div className="flex flex-col gap-1 sm:col-span-2">
         <Label>
-          {t('registroPublico.campos.gradoInstruccion')} {camposObligatorios.grado_instruccion && '*'}
+          {t('registroPublico.campos.gradoInstruccion')} {camposObligatorios.grado_instruccion && !gradoNoAplica && '*'}
         </Label>
         <Select
           value={gradoActual ?? ''}
+          disabled={gradoNoAplica}
           onValueChange={(v) => setValue('grado_instruccion' as never, v as never, { shouldValidate: true })}
         >
           <SelectTrigger className={cn("w-full", CAMPO_ESTILO)}>
-            <SelectValue placeholder="—" />
+            <SelectValue placeholder={gradoNoAplica ? 'No aplica' : '—'} />
           </SelectTrigger>
           <SelectContent>
             {GRADOS_INSTRUCCION.map((g) => (
@@ -177,6 +208,19 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
           </SelectContent>
         </Select>
         {errors.grado_instruccion && <p className="text-sm text-destructive">Requerido</p>}
+        {camposObligatorios.grado_instruccion && (
+          <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+            <Checkbox
+              checked={!!gradoNoAplica}
+              onCheckedChange={(v) => {
+                const marcado = v === true;
+                setValue('grado_instruccion_no_aplica' as never, marcado as never, { shouldValidate: true });
+                if (marcado) setValue('grado_instruccion' as never, '' as never, { shouldValidate: true });
+              }}
+            />
+            No aplica
+          </label>
+        )}
       </div>
     </div>
   );
