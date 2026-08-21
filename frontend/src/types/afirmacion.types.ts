@@ -7,6 +7,7 @@ export interface LiderCdpAfirmacion {
   lider_nombre: string;
   casa_de_paz_id: string;
   cdp_etiqueta: string;
+  red_nombre: string | null;
 }
 
 // KAN-123: extiende con los campos ampliados, incluye Ministerios (flujo
