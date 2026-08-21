@@ -3,6 +3,7 @@ import type {
   CasaDePazAfirmacion,
   CasaPazUrlAfirmacion,
   DatosPersonaAfirmacion,
+  EstadisticasRegistroAfirmacion,
   EstadoUrl,
   LiderCdpAfirmacion,
   RegistrarPersonaAfirmacionResponse,
@@ -68,4 +69,11 @@ export async function listarCasasDePazAfirmacion(iglesiaId: string): Promise<Cas
   const { data, error } = await supabase.rpc('fn_listar_casas_de_paz_afirmacion', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data ?? [];
+}
+
+// Plan panel Afirmación 2026-08-20, punto 1/4 (KAN-214): registros por URL vs. formulario interno.
+export async function obtenerEstadisticasRegistroAfirmacion(iglesiaId: string): Promise<EstadisticasRegistroAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_registro', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as EstadisticasRegistroAfirmacion;
 }

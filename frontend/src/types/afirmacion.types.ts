@@ -68,3 +68,9 @@ export interface CasaDePazAfirmacion {
   lider_cdp_nombre: string | null;
   tiene_lider_vigente: boolean;
 }
+
+// Plan panel Afirmación 2026-08-20, punto 1/4.
+export interface EstadisticasRegistroAfirmacion {
+  por_url: number;
+  por_formulario: number;
+}

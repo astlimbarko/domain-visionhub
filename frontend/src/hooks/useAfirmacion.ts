@@ -3,6 +3,7 @@ import {
   listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
   listarUrlsAfirmacion,
+  obtenerEstadisticasRegistroAfirmacion,
   registrarPersonaAfirmacion,
   setEstadoUrlsAfirmacion,
 } from '@/services/afirmacion.service';
@@ -46,6 +47,15 @@ export function useCasasDePazAfirmacion(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['afirmacion', 'casas-de-paz', iglesiaId],
     queryFn: () => listarCasasDePazAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// KAN-214: registros por URL vs. formulario interno de Afirmación.
+export function useEstadisticasRegistroAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'estadisticas-registro', iglesiaId],
+    queryFn: () => obtenerEstadisticasRegistroAfirmacion(iglesiaId as string),
     enabled: !!iglesiaId,
   });
 }

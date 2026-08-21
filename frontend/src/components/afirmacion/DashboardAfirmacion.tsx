@@ -10,9 +10,9 @@
  * un estilo propio y acotado a Afirmacion.
  */
 import type { LucideIcon } from 'lucide-react';
-import { Link2, Link2Off, Network, Users } from 'lucide-react';
+import { FileText, Link2, Link2Off, Network, QrCode, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLideresCdpAfirmacion, useUrlsAfirmacion } from '@/hooks/useAfirmacion';
+import { useEstadisticasRegistroAfirmacion, useLideresCdpAfirmacion, useUrlsAfirmacion } from '@/hooks/useAfirmacion';
 
 interface Props {
   iglesiaId: string;
@@ -48,13 +48,20 @@ function Estadistica({
 export function DashboardAfirmacion({ iglesiaId }: Props) {
   const { data: lideres = [], isLoading: cargandoLideres } = useLideresCdpAfirmacion(iglesiaId);
   const { data: urls = [], isLoading: cargandoUrls } = useUrlsAfirmacion(iglesiaId);
+  const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(iglesiaId);
 
-  if (cargandoLideres || cargandoUrls) {
+  if (cargandoLideres || cargandoUrls || cargandoRegistro) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-3xl" />
-        ))}
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-3xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Skeleton className="h-32 w-full rounded-3xl" />
+          <Skeleton className="h-32 w-full rounded-3xl" />
+        </div>
       </div>
     );
   }
@@ -62,6 +69,9 @@ export function DashboardAfirmacion({ iglesiaId }: Props) {
   const activas = urls.filter((u) => u.estado === 'ACTIVO').length;
   const inactivas = urls.filter((u) => u.estado !== 'ACTIVO').length;
   const redesCubiertas = new Set(urls.map((u) => u.red_id).filter(Boolean)).size;
+  const porUrl = estadisticasRegistro?.por_url ?? 0;
+  const porFormulario = estadisticasRegistro?.por_formulario ?? 0;
+  const totalRegistros = porUrl + porFormulario;
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,6 +80,23 @@ export function DashboardAfirmacion({ iglesiaId }: Props) {
         <Estadistica titulo="URLs activas" valor={activas} subtitulo={`de ${urls.length} en total`} icon={Link2} color="var(--chart-2)" />
         <Estadistica titulo="URLs inactivas" valor={inactivas} subtitulo="pendientes de activar" icon={Link2Off} color="var(--chart-3)" />
         <Estadistica titulo="Redes cubiertas" valor={redesCubiertas} subtitulo="con al menos 1 URL" icon={Network} color="var(--chart-4)" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Estadistica
+          titulo="Registrados por URL"
+          valor={porUrl}
+          subtitulo={totalRegistros > 0 ? `${Math.round((porUrl / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
+          icon={QrCode}
+          color="var(--brand-navy-soft)"
+        />
+        <Estadistica
+          titulo="Registrados por formulario"
+          valor={porFormulario}
+          subtitulo={totalRegistros > 0 ? `${Math.round((porFormulario / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
+          icon={FileText}
+          color="var(--chart-1)"
+        />
       </div>
 
       {urls.length === 0 && (
