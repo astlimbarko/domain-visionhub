@@ -3,8 +3,11 @@ import type {
   CasaDePazAfirmacion,
   CasaPazUrlAfirmacion,
   DatosPersonaAfirmacion,
+  EstadisticasPersonasAfirmacion,
+  EstadisticasRegistroAfirmacion,
   EstadoUrl,
   LiderCdpAfirmacion,
+  RedAfirmacion,
   RegistrarPersonaAfirmacionResponse,
   SetEstadoUrlResponse,
 } from '@/types/afirmacion.types';
@@ -39,6 +42,13 @@ export async function listarLideresCdpAfirmacion(iglesiaId: string): Promise<Lid
   return data ?? [];
 }
 
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export async function listarRedesAfirmacion(iglesiaId: string): Promise<RedAfirmacion[]> {
+  const { data, error } = await supabase.rpc('fn_listar_redes_afirmacion', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function registrarPersonaAfirmacion(
   datos: DatosPersonaAfirmacion,
   casaDePazCargoId: string,
@@ -68,4 +78,30 @@ export async function listarCasasDePazAfirmacion(iglesiaId: string): Promise<Cas
   const { data, error } = await supabase.rpc('fn_listar_casas_de_paz_afirmacion', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data ?? [];
+}
+
+// Plan panel Afirmación 2026-08-20, punto 1/4 (KAN-214): registros por URL vs. formulario interno.
+export async function obtenerEstadisticasRegistroAfirmacion(iglesiaId: string): Promise<EstadisticasRegistroAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_registro', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as EstadisticasRegistroAfirmacion;
+}
+
+// Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.
+export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string): Promise<EstadisticasPersonasAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as EstadisticasPersonasAfirmacion;
+}
+
+// Pedido explícito del owner (2026-08-21): el interruptor general
+// REGISTRO_URL_ACTIVO solo se veía en el Panel de Configuración -- si
+// alguien miraba el panel de Afirmación con todos los enlaces individuales
+// en ACTIVO, no había forma de notar desde ahí que el interruptor general
+// seguía apagado. Solo lectura -- el cambio en sí sigue yendo por
+// fn_set_configuracion (panel-supervisor.service.ts), sin tocar permisos.
+export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_config_registro_url', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return data as boolean;
 }

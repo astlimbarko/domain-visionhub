@@ -7,6 +7,15 @@ export interface LiderCdpAfirmacion {
   lider_nombre: string;
   casa_de_paz_id: string;
   cdp_etiqueta: string;
+  red_id: string | null;
+  red_nombre: string | null;
+  zona: string | null;
+}
+
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export interface RedAfirmacion {
+  id: string;
+  nombre: string;
 }
 
 // KAN-123: extiende con los campos ampliados, incluye Ministerios (flujo
@@ -67,4 +76,22 @@ export interface CasaDePazAfirmacion {
   lider_red_nombre: string | null;
   lider_cdp_nombre: string | null;
   tiene_lider_vigente: boolean;
+}
+
+// Plan panel Afirmación 2026-08-20, punto 1/4.
+export interface EstadisticasRegistroAfirmacion {
+  por_url: number;
+  por_formulario: number;
+}
+
+// Plan panel Afirmación 2026-08-20, punto 3/4. Claves de por_estado: sigla de
+// `estado` (SIM/NC/CRE/RE/DA/DI) o 'SIN_ESTADO'. Claves de por_estado_civil:
+// EstadoCivil (SOLTERO/CASADO/VIUDO/DIVORCIADO) o 'SIN_ESTADO_CIVIL'.
+export interface EstadisticasPersonasAfirmacion {
+  total: number;
+  hombres: number;
+  mujeres: number;
+  por_estado: Record<string, number>;
+  con_profesion: number;
+  por_estado_civil: Record<string, number>;
 }

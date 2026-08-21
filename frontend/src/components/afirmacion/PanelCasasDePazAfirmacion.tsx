@@ -7,10 +7,11 @@
  * el módulo se sienta consistente.
  */
 import { useMemo, useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Home, Network, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AZUL, MARINO } from '@/components/dashboard/DashboardUI';
 import { cn } from '@/lib/utils';
 import { useCasasDePazAfirmacion } from '@/hooks/useAfirmacion';
 import type { CasaDePazAfirmacion } from '@/types/afirmacion.types';
@@ -91,13 +92,19 @@ export function PanelCasasDePazAfirmacion({ iglesiaId }: Props) {
         {grupos.map((grupo) => {
           const colapsado = colapsadas.has(grupo.clave);
           return (
-            <div key={grupo.clave} className="overflow-hidden rounded-2xl border border-border/50 bg-card/40">
+            <div key={grupo.clave} className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
               <button
                 type="button"
                 onClick={() => toggleGrupo(grupo.clave)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
               >
                 <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', colapsado && '-rotate-90')} />
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}
+                >
+                  <Network className="h-4 w-4" style={{ color: AZUL }} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{grupo.redNombre}</p>
                   {grupo.liderRedNombre && <p className="truncate text-xs text-muted-foreground">Líder de Red: {grupo.liderRedNombre}</p>}
@@ -108,12 +115,18 @@ export function PanelCasasDePazAfirmacion({ iglesiaId }: Props) {
               </button>
 
               {!colapsado && (
-                <div className="flex flex-col gap-2 border-t border-border/50 p-2.5">
+                <div className="flex flex-col gap-2 border-t border-border/60 p-2.5">
                   {grupo.items.map((c) => (
                     <div
                       key={c.casa_de_paz_id}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/40 bg-background/60 px-3.5 py-2"
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2 transition-colors hover:bg-muted/50"
                     >
+                      <div
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `color-mix(in oklab, ${MARINO} 12%, transparent)` }}
+                      >
+                        <Home className="h-3.5 w-3.5" style={{ color: MARINO }} />
+                      </div>
                       <div className="min-w-0 flex-1">
                         <span className="truncate text-sm font-semibold">{c.casa_de_paz_etiqueta}</span>
                         {!c.activo && <span className="ml-2 text-[11px] text-muted-foreground">(inactiva)</span>}

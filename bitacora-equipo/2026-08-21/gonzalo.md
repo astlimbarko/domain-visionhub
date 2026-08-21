@@ -1,0 +1,28 @@
+# Gonzalo — 2026-08-21
+
+- [x] KAN-218: cooldown de OTP bajado de 120s a 60s (estándar de la industria)
+- [x] KAN-219: correo de confirmación al completar el formulario de membresía (URL pública, Afirmación interno, MembresiaObligatoria) — nueva Edge Function + RPC, verificado en vivo con correo real
+- [x] KAN-220: navbar — el menú de cuenta ya no repite el rol del panel, solo el nombre (un solo componente compartido, aplica a todos los roles)
+- [x] Probado en vivo el registro por URL de Casa de Paz completo (/registro/freddy-aramayo) — funciona bien, ya se abre y navega directo
+- [x] KAN-221: fix real, el mensaje final del registro por URL decía "quedó registrado en ." vacío (usaba nombre crudo de CdP en vez de fn_etiqueta_cdp)
+- [x] KAN-222: formulario interno de Afirmación ahora muestra la Red al elegir el líder de CdP (antes solo el público la mostraba)
+- [x] KAN-223: rediseño visual de "URL de membresía" (se veía pálido) + botón "Abrir" para probar el enlace directo
+- [x] KAN-224: tabla de Personas — click en fila abre la ficha completa (reusa FichaPersonaSheet), paginación a 50, Sexo ordenable, exportar a CSV, KPIs ampliados a 9 indicadores (hombres/mujeres, por estado)
+- [x] KAN-225: bug real encontrado y corregido — fn_listar_redes fallaba ("relation red does not exist") por una función anidada (fn_redes_incompletas) sin calificar sus tablas; afectaba también a Gestión de Redes en otros roles
+- [x] Responsividad móvil (390px) verificada en todo lo de hoy — encontrado y corregido un bug real en URL de membresía (fila se achicaba a invisible en vez de hacer wrap)
+- [x] KAN-226: formulario interno de Afirmación — ahora se elige primero la Red y recién aparecen los líderes de esa Red, con su zona como segundo dato
+- [ ] Falta: probar "Enlace no disponible" del URL de membresía desde otro dispositivo (el owner sospecha que hay que reiniciar la imagen Docker) — queda para mañana
+- [x] KAN-227: ficha de persona con 3 modos — resumen liviano (identidad/estado/contacto), extendido (overlay con todos los datos, solo lectura) y editor (lápiz, con Guardar en pie fijo + confirmación)
+- [x] KAN-228: KPIs de Personas rediseñados a chips minimalistas (paleta azul/teal) + 5 indicadores nuevos (profesión, estado civil) — falta aplicar la migración a producción (sin token de Supabase esta sesión)
+- [x] KAN-229: modal de Membresía dividido de 7 a 9 pasos (Formación → Discipulados + Seminario/Universidad; Familia → Cónyuge + Familia/Ministerios), en los 3 flujos que lo usan
+- [ ] Falta: probar en navegador todo lo de hoy (MCP de Playwright/chrome-devtools desconectado esta sesión) y aplicar la migración 20260821150000 en cuanto haya token de Supabase
+- [x] KAN-231: Formación cargaba lento -- el catálogo se pedía recién al llegar a ese paso, ahora se precarga apenas se abre el formulario (3 flujos)
+- [x] KAN-233: bug real encontrado y corregido -- si ocupación/grado de instrucción eran obligatorios pero la persona no tenía ese dato, el asistente quedaba trabado sin avisar y la membresía nunca se completaba (por eso "pedía todo de nuevo" en el siguiente login)
+- [x] KAN-230 (parcial): checkbox "No aplica" agregado en ocupación/grado de instrucción (mismo fix que KAN-233) -- falta el indicador visual en la tabla de Personas (requiere migración, sin token de Supabase)
+- [x] KAN-232: diagnosticado -- "Enlace no disponible" depende de 2 interruptores (estado del enlace + REGISTRO_URL_ACTIVO por iglesia, que arranca apagado), no parece ser CORS. Mejora real aplicada: la página ahora distingue un error de conexión real de un enlace inactivo (antes quedaba en blanco). Falta confirmar en la app cuál de los 2 interruptores es la causa real
+- [x] Token de Supabase nuevo recibido -- se aplicaron las 17 migraciones pendientes de hoy a producción (2 de ellas ya estaban aplicadas a mano de sesiones anteriores, se reconció el historial con `migration repair` sin volver a correrlas)
+- [x] KAN-230 completo: columna "Membresía" (ordenable + CSV) en /afirmacion-personas usando el campo nuevo membresia_completada
+- [ ] Aviso aparte: el disco temporal de la máquina (`AppData\Local\Temp`) está 100% lleno (251GB) -- revisar cuando se pueda, no es cosa de Supabase
+- [x] KAN-232 resuelto (confirmado en vivo): era el interruptor REGISTRO_URL_ACTIVO apagado, también en Centro de Vida Genesis (no Montero) -- sin bug de CORS ni de Docker real, solo faltaba activarlo
+- [x] KAN-236: interruptor "Registro público por URL activo" ahora también visible/editable desde /afirmacion-urls (antes solo en Panel de Configuración) -- para que esto no se repita sin darse cuenta
+- [ ] Falta: probar todo lo de hoy en navegador (MCP de Playwright/chrome-devtools desconectado esta sesión)

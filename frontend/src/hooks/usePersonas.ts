@@ -9,10 +9,11 @@ export function useBuscarPersonas(
   incluirOcultas: boolean,
   excluirSemillas = false,
   pagina = 1,
+  porPagina?: number,
 ) {
   return useQuery({
-    queryKey: ['personas', 'buscar', iglesiaId, texto, incluirOcultas, excluirSemillas, pagina],
-    queryFn: () => personaService.buscarPersonas(iglesiaId as string, texto, incluirOcultas, excluirSemillas, pagina),
+    queryKey: ['personas', 'buscar', iglesiaId, texto, incluirOcultas, excluirSemillas, pagina, porPagina],
+    queryFn: () => personaService.buscarPersonas(iglesiaId as string, texto, incluirOcultas, excluirSemillas, pagina, porPagina),
     enabled: !!iglesiaId,
   });
 }

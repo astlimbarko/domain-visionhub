@@ -163,15 +163,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     : undefined;
 
   const cargoLabel = panelContexto?.titulo ?? '';
-  // KAN-73/KAN-152: `fn_mi_titulo` resuelve el cargo por prioridad fija
-  // (Pastor > Supervisor > cargo de menor orden), sin mirar el rol activo --
-  // alguien Pastor Y Líder de Red en la misma iglesia veía siempre "Pastor"
-  // en el menú de cuenta aunque hubiera elegido entrar como Líder de Red.
-  // `cargoLabel` ya viene del contexto realmente activo (mismo dato que usa
-  // el navbar/sidebar), así que reemplaza al título de la RPC en vez de
-  // combinarse con él.
-  const tituloMostrado = esOscuro ? null : cargoLabel || null;
-  const textoUsuario = nombreCompleto ? tituloMostrado ? `${nombreCompleto} — ${tituloMostrado}` : nombreCompleto : (correo ?? '');
+  // El menú de cuenta (botón de perfil arriba a la derecha) muestra solo el
+  // nombre -- el rol del panel activo ya se ve en el título de la sección
+  // (cargoLabel, líneas de arriba/sidebar), repetirlo ahí era redundante
+  // (pedido explícito del owner, 2026-08-21).
+  const textoUsuario = nombreCompleto || correo || '';
   // El sidebar se obtiene exclusivamente del contexto elegido. Las demás
   // capacidades permanecen en el selector y nunca se suman a este menú.
   const navItems = panelContexto?.navItems ?? [];

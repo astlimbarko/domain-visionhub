@@ -20,6 +20,7 @@ export async function buscarPersonas(
   incluirOcultas = false,
   excluirSemillas = false,
   pagina = 1,
+  porPagina = PERSONAS_POR_PAGINA,
 ): Promise<ResultadoBusquedaPersonas> {
   const { data, error } = await supabase.rpc('fn_buscar_personas', {
     p_iglesia_id: iglesiaId,
@@ -27,7 +28,7 @@ export async function buscarPersonas(
     p_incluir_ocultas: incluirOcultas,
     p_excluir_semillas: excluirSemillas,
     p_pagina: pagina,
-    p_por_pagina: PERSONAS_POR_PAGINA,
+    p_por_pagina: porPagina,
   });
   if (error) throw error;
   const resultados = data ?? [];

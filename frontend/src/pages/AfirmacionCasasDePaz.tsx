@@ -1,3 +1,6 @@
+import { Home } from 'lucide-react';
+import { AZUL } from '@/components/dashboard/DashboardUI';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { useAuthStore } from '@/store/auth.store';
 import { PanelCasasDePazAfirmacion } from '@/components/afirmacion/PanelCasasDePazAfirmacion';
 
@@ -10,14 +13,17 @@ export function AfirmacionCasasDePaz() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">Casas de Paz</h1>
-        <p className="text-sm text-muted-foreground">Todas las Casas de Paz de la iglesia, organizadas por Red.</p>
-      </div>
-
-      <div className="glass-card-elevated rounded-2xl p-5 sm:p-6">
-        <PanelCasasDePazAfirmacion iglesiaId={iglesiaActivaId} />
-      </div>
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Home}
+          color={AZUL}
+          titulo="Casas de Paz"
+          descripcion="Todas las Casas de Paz de la iglesia, organizadas por Red."
+        />
+        <div className="p-5">
+          <PanelCasasDePazAfirmacion iglesiaId={iglesiaActivaId} />
+        </div>
+      </section>
     </div>
   );
 }

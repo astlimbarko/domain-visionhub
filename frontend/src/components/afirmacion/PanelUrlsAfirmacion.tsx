@@ -7,11 +7,12 @@
  */
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronDown, Copy, Search } from 'lucide-react';
+import { ChevronDown, Copy, ExternalLink, Network, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AZUL } from '@/components/dashboard/DashboardUI';
 import { cn } from '@/lib/utils';
 import { rutaRegistroPublico } from '@/utils/constants';
 import { obtenerUrlBase } from '@/utils/app-url';
@@ -103,6 +104,12 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
     );
   }
 
+  // Pedido explícito del owner (2026-08-21): poder navegar/probar el
+  // enlace directamente en vez de tener que copiarlo y pegarlo a mano.
+  function abrirUrl(slug: string) {
+    window.open(`${obtenerUrlBase()}${rutaRegistroPublico(slug)}`, '_blank', 'noopener,noreferrer');
+  }
+
   function cambiarEstado(ids: string[], estado: EstadoUrl) {
     if (ids.length === 0) return;
     mutacion.mutate(
@@ -177,13 +184,19 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
         {grupos.map((grupo) => {
           const colapsado = colapsadas.has(grupo.clave);
           return (
-            <div key={grupo.clave} className="overflow-hidden rounded-2xl border border-border/50 bg-card/40">
+            <div key={grupo.clave} className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
               <button
                 type="button"
                 onClick={() => toggleGrupo(grupo.clave)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
               >
                 <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', colapsado && '-rotate-90')} />
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}
+                >
+                  <Network className="h-4 w-4" style={{ color: AZUL }} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{grupo.redNombre}</p>
                   {grupo.liderRedNombre && <p className="truncate text-xs text-muted-foreground">Líder de Red: {grupo.liderRedNombre}</p>}
@@ -194,7 +207,7 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
               </button>
 
               {!colapsado && (
-                <div className="flex flex-col gap-2 border-t border-border/50 p-2.5">
+                <div className="flex flex-col gap-2 border-t border-border/60 p-2.5">
                   {grupo.items.map((u) => {
                     // La etiqueta de CdP por defecto ES el nombre del lider (fn_etiqueta_cdp,
                     // 23_etiqueta_cdp.sql) -- solo difiere si hay nombre manual o el lider
@@ -204,10 +217,14 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
                     return (
                       <div
                         key={u.url_id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/40 bg-background/60 px-3.5 py-2 transition-all hover:border-primary/20 hover:shadow-sm"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2 transition-all hover:border-primary/30 hover:bg-muted/50"
                       >
                         <Checkbox checked={seleccionadas.has(u.url_id)} onCheckedChange={() => toggleSeleccion(u.url_id)} />
-                        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                        {/* w-full en mobile: sin esto, el nombre/enlace competia por
+                            espacio con los 3 botones + badge de estado (todos de ancho
+                            fijo) y se comprimia hasta ser invisible en vez de pasar a su
+                            propia linea -- confirmado en vivo a 390px de ancho. */}
+                        <div className="flex min-w-0 w-full items-baseline gap-2 sm:w-auto sm:flex-1">
                           <span className="truncate text-sm font-semibold">
                             {u.lider_cdp_nombre}
                             {etiquetaAporta && <span className="font-normal text-muted-foreground"> ({u.casa_de_paz_etiqueta})</span>}
@@ -226,6 +243,15 @@ export function PanelUrlsAfirmacion({ iglesiaId }: Props) {
                         </span>
                         <Button variant="ghost" size="icon" aria-label="Copiar enlace" onClick={() => copiarUrl(u.slug)}>
                           <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Abrir enlace en una pestaña nueva"
+                          title="Abrir para navegar/probar"
+                          onClick={() => abrirUrl(u.slug)}
+                        >
+                          <ExternalLink className="h-4 w-4" />
                         </Button>
                         {u.estado === 'ACTIVO' ? (
                           <Button size="sm" variant="outline" disabled={mutacion.isPending} onClick={() => cambiarEstado([u.url_id], 'INACTIVO')}>

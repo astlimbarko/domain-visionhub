@@ -6,34 +6,54 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  SeccionCargoRangoMembresia,
+  SeccionConyugeMembresia,
+  SeccionDiscipuladosMembresia,
   SeccionFamiliaMinisteriosMembresia,
-  SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
+import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useRegistrarPersonaViaUrl } from '@/hooks/useRegistroPublico';
 import { usePersistenciaLocal, limpiarPersistenciaLocal } from '@/hooks/usePersistenciaLocal';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { CamposObligatorios, DatosRegistroPublico } from '@/types/registro-publico.types';
 
+// KAN-230/233: ocupación y grado de instrucción tienen un checkbox "No
+// aplica" que exime la validación aunque la iglesia los pida obligatorios
+// -- ninguno de los dos se exige a nivel de base de datos (a diferencia de
+// ci/fecha_nacimiento), así que dejarlos vacíos es seguro. Antes, si la
+// persona no tenía ese dato, el asistente quedaba trabado sin poder avanzar
+// y la membresía nunca llegaba a completarse.
 function construirEsquema(obligatorios: CamposObligatorios) {
-  return z.object({
-    primer_nombre: z.string().trim().min(1),
-    segundo_nombre: z.string().trim().optional(),
-    primer_apellido: z.string().trim().min(1),
-    segundo_apellido: z.string().trim().optional(),
-    sexo: z.enum(['M', 'F']),
-    fecha_nacimiento: obligatorios.fecha_nacimiento
-      ? z.string().min(1)
-      : z.string().optional(),
-    ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
-    correo: z.union([z.string().email(), z.literal('')]).optional(),
-    estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
-    ocupacion: obligatorios.ocupacion ? z.string().trim().min(1) : z.string().trim().optional(),
-    grado_instruccion: obligatorios.grado_instruccion
-      ? z.string().min(1)
-      : z.string().optional(),
-  });
+  return z
+    .object({
+      primer_nombre: z.string().trim().min(1),
+      segundo_nombre: z.string().trim().optional(),
+      primer_apellido: z.string().trim().min(1),
+      segundo_apellido: z.string().trim().optional(),
+      sexo: z.enum(['M', 'F']),
+      fecha_nacimiento: obligatorios.fecha_nacimiento
+        ? z.string().min(1)
+        : z.string().optional(),
+      ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
+      correo: z.union([z.string().email(), z.literal('')]).optional(),
+      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      ocupacion: z.string().trim().optional(),
+      ocupacion_no_aplica: z.boolean().optional(),
+      grado_instruccion: z.string().optional(),
+      grado_instruccion_no_aplica: z.boolean().optional(),
+    })
+    .superRefine((val, ctx) => {
+      if (obligatorios.ocupacion && !val.ocupacion_no_aplica && !val.ocupacion?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ocupacion'], message: 'Requerido' });
+      }
+      if (obligatorios.grado_instruccion && !val.grado_instruccion_no_aplica && !val.grado_instruccion) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['grado_instruccion'], message: 'Requerido' });
+      }
+    });
 }
 
 interface Props {
@@ -66,6 +86,9 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
 
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
 
+  // KAN-231: prefetch temprano, ver mismo comentario en MembresiaObligatoria.tsx.
+  useTiposDiscipulado();
+
   usePersistenciaLocal(storageKey, { base: watch(), extendido }, (guardado) => {
     reset(guardado.base as FormValues);
     setExtendido(guardado.extendido);
@@ -84,14 +107,17 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       ci: valores.ci || undefined,
       correo: valores.correo || undefined,
       estado_civil: valores.estado_civil as DatosRegistroPublico['estado_civil'],
-      ocupacion: valores.ocupacion || undefined,
-      grado_instruccion: valores.grado_instruccion as DatosRegistroPublico['grado_instruccion'],
+      ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
+      grado_instruccion: valores.grado_instruccion_no_aplica
+        ? undefined
+        : (valores.grado_instruccion as DatosRegistroPublico['grado_instruccion']),
       ...extendido,
     };
 
     try {
       const resultado = await mutacion.mutateAsync(datos);
       limpiarPersistenciaLocal(storageKey);
+      void notificarMembresiaCompletada(resultado.persona_id);
       onExito({ nombreCompleto: resultado.nombre_completo, casaDePazNombre: resultado.casa_de_paz_nombre });
     } catch (e) {
       const error = e as { message?: string } | null;
@@ -107,6 +133,8 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
   const sexoActual = watch('sexo');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
+  const ocupacionNoAplica = watch('ocupacion_no_aplica');
+  const gradoNoAplica = watch('grado_instruccion_no_aplica');
 
   const pasos: PasoFormularioPaginado[] = [
     {
@@ -122,19 +150,36 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
           sexoActual={sexoActual}
           estadoCivilActual={estadoCivilActual}
           gradoActual={gradoActual}
+          ocupacionNoAplica={ocupacionNoAplica}
+          gradoNoAplica={gradoNoAplica}
           setValue={setValue}
         />
       ),
     },
     {
-      id: 'formacion',
-      titulo: 'Formación',
-      contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+      id: 'discipulados',
+      titulo: 'Discipulados',
+      contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'seminario-universidad',
+      titulo: 'Seminario y Universidad',
+      contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'mentor-bautismo',
       titulo: 'Mentor y Bautismo',
       contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'cargo-rango',
+      titulo: 'Cargo y posición',
+      contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'conyuge',
+      titulo: 'Cónyuge',
+      contenido: <SeccionConyugeMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'familia',

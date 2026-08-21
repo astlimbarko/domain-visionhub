@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
-import { CheckCircle2, Link2Off } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Link2Off } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useResolverUrlRegistro } from '@/hooks/useRegistroPublico';
@@ -10,7 +11,7 @@ import { FormularioMembresiaPublico } from '@/components/registro-publico/Formul
 export function RegistroPublico() {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
-  const { data, isLoading } = useResolverUrlRegistro(slug);
+  const { data, isLoading, isError, refetch, isFetching } = useResolverUrlRegistro(slug);
   const [exito, setExito] = useState<{ nombreCompleto: string; casaDePazNombre: string } | null>(null);
 
   return (
@@ -24,7 +25,22 @@ export function RegistroPublico() {
           </CardContent>
         )}
 
-        {!isLoading && data && !data.admite_registro && (
+        {/* Distinto del caso "no disponible" (enlace inactivo, RPC respondió
+            bien): acá la consulta en sí falló -- red, CORS, servidor caído.
+            Antes esto quedaba como una tarjeta en blanco, indistinguible del
+            "no disponible" real. */}
+        {!isLoading && isError && (
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <CardTitle className="text-lg">{t('registroPublico.errorCarga.titulo')}</CardTitle>
+            <CardDescription>{t('registroPublico.errorCarga.mensaje')}</CardDescription>
+            <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+              {isFetching ? t('acciones.cargando') : t('acciones.reintentar')}
+            </Button>
+          </CardContent>
+        )}
+
+        {!isLoading && !isError && data && !data.admite_registro && (
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <Link2Off className="h-10 w-10 text-muted-foreground" />
             <CardTitle className="text-lg">{t('registroPublico.noDisponible.titulo')}</CardTitle>

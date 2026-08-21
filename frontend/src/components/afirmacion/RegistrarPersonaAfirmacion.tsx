@@ -4,19 +4,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  SeccionCargoRangoMembresia,
+  SeccionConyugeMembresia,
+  SeccionDiscipuladosMembresia,
   SeccionFamiliaMinisteriosMembresia,
-  SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { SelectorLiderCdp } from '@/components/afirmacion/SelectorLiderCdp';
 import { obtenerCamposObligatoriosMembresia } from '@/services/afirmacion.service';
 import { useRegistrarPersonaAfirmacion } from '@/hooks/useAfirmacion';
 import { useMinisterios } from '@/hooks/useMinisterios';
+import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { DatosPersonaAfirmacion } from '@/types/afirmacion.types';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
@@ -28,20 +32,35 @@ const OBLIGATORIOS_POR_DEFECTO: CamposObligatorios = {
   grado_instruccion: false,
 };
 
+// KAN-230/233: ver el mismo comentario en FormularioMembresiaPublico.tsx --
+// "No aplica" exime ocupación/grado de instrucción de la validación aunque
+// la iglesia los pida obligatorios (ninguno de los dos se exige a nivel de
+// base de datos).
 function construirEsquema(obligatorios: CamposObligatorios) {
-  return z.object({
-    primer_nombre: z.string().trim().min(1),
-    segundo_nombre: z.string().trim().optional(),
-    primer_apellido: z.string().trim().min(1),
-    segundo_apellido: z.string().trim().optional(),
-    sexo: z.enum(['M', 'F']),
-    fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
-    ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
-    correo: z.union([z.string().email(), z.literal('')]).optional(),
-    estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
-    ocupacion: obligatorios.ocupacion ? z.string().trim().min(1) : z.string().trim().optional(),
-    grado_instruccion: obligatorios.grado_instruccion ? z.string().min(1) : z.string().optional(),
-  });
+  return z
+    .object({
+      primer_nombre: z.string().trim().min(1),
+      segundo_nombre: z.string().trim().optional(),
+      primer_apellido: z.string().trim().min(1),
+      segundo_apellido: z.string().trim().optional(),
+      sexo: z.enum(['M', 'F']),
+      fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
+      ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
+      correo: z.union([z.string().email(), z.literal('')]).optional(),
+      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      ocupacion: z.string().trim().optional(),
+      ocupacion_no_aplica: z.boolean().optional(),
+      grado_instruccion: z.string().optional(),
+      grado_instruccion_no_aplica: z.boolean().optional(),
+    })
+    .superRefine((val, ctx) => {
+      if (obligatorios.ocupacion && !val.ocupacion_no_aplica && !val.ocupacion?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ocupacion'], message: 'Requerido' });
+      }
+      if (obligatorios.grado_instruccion && !val.grado_instruccion_no_aplica && !val.grado_instruccion) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['grado_instruccion'], message: 'Requerido' });
+      }
+    });
 }
 
 interface Props {
@@ -72,6 +91,8 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
 
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
   const { data: ministerios = [] } = useMinisterios(iglesiaId);
+  // KAN-231: prefetch temprano, ver mismo comentario en MembresiaObligatoria.tsx.
+  useTiposDiscipulado();
 
   const mutacion = useRegistrarPersonaAfirmacion();
 
@@ -91,14 +112,17 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       ci: valores.ci || undefined,
       correo: valores.correo || undefined,
       estado_civil: valores.estado_civil as DatosPersonaAfirmacion['estado_civil'],
-      ocupacion: valores.ocupacion || undefined,
-      grado_instruccion: valores.grado_instruccion as DatosPersonaAfirmacion['grado_instruccion'],
+      ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
+      grado_instruccion: valores.grado_instruccion_no_aplica
+        ? undefined
+        : (valores.grado_instruccion as DatosPersonaAfirmacion['grado_instruccion']),
       // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
       ...extendido,
     };
 
     try {
       const resultado = await mutacion.mutateAsync({ datos, casaDePazCargoId });
+      void notificarMembresiaCompletada(resultado.persona_id);
       toast.success(`${resultado.nombre_completo} quedó registrado en ${resultado.casa_de_paz_nombre}.`);
       reset();
       setExtendido(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
@@ -122,6 +146,8 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   const sexoActual = watch('sexo');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
+  const ocupacionNoAplica = watch('ocupacion_no_aplica');
+  const gradoNoAplica = watch('grado_instruccion_no_aplica');
 
   if (cargandoConfig) {
     return <Skeleton className="h-80 w-full rounded-2xl" />;
@@ -146,19 +172,36 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
           sexoActual={sexoActual}
           estadoCivilActual={estadoCivilActual}
           gradoActual={gradoActual}
+          ocupacionNoAplica={ocupacionNoAplica}
+          gradoNoAplica={gradoNoAplica}
           setValue={setValue}
         />
       ),
     },
     {
-      id: 'formacion',
-      titulo: 'Formación',
-      contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+      id: 'discipulados',
+      titulo: 'Discipulados',
+      contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'seminario-universidad',
+      titulo: 'Seminario y Universidad',
+      contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'mentor-bautismo',
       titulo: 'Mentor y Bautismo',
       contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'cargo-rango',
+      titulo: 'Cargo y posición',
+      contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'conyuge',
+      titulo: 'Cónyuge',
+      contenido: <SeccionConyugeMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'familia',
@@ -176,7 +219,6 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <Label>Líder de Casa de Paz *</Label>
         <SelectorLiderCdp
           iglesiaId={iglesiaId}
           value={casaDePazCargoId}
@@ -185,7 +227,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
             setIntentoSinLider(false);
           }}
         />
-        {intentoSinLider && <p className="text-sm text-destructive">Elegí un líder de Casa de Paz antes de enviar.</p>}
+        {intentoSinLider && <p className="text-sm text-destructive">Elegí una Red y un líder de Casa de Paz antes de enviar.</p>}
       </div>
 
       <FormularioPaginado

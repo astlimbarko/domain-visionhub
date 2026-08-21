@@ -119,3 +119,36 @@ export function KpiMosaico({
     </div>
   );
 }
+
+/**
+ * Chip de indicador mínimo: para filas con muchos KPIs chicos (ej. censo
+ * demográfico) donde el mosaico de color pleno pesa demasiado. Mismo patrón
+ * que una fila de lista (ícono circular con tinte de color, `color-mix ...
+ * 14%`) en vez de degradado -- pensado para que entren muchos por fila.
+ */
+export function KpiChip({
+  icon: Icon,
+  label,
+  color,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+        style={{ background: `color-mix(in oklab, ${color} 14%, transparent)`, color }}
+      >
+        <Icon className="h-4 w-4" strokeWidth={2.2} />
+      </span>
+      <div className="min-w-0">
+        <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
+        <p className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}

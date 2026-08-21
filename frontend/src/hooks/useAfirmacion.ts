@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
+  listarRedesAfirmacion,
   listarUrlsAfirmacion,
+  obtenerConfigRegistroUrlAfirmacion,
+  obtenerEstadisticasPersonasAfirmacion,
+  obtenerEstadisticasRegistroAfirmacion,
   registrarPersonaAfirmacion,
   setEstadoUrlsAfirmacion,
 } from '@/services/afirmacion.service';
@@ -12,6 +16,15 @@ export function useLideresCdpAfirmacion(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['afirmacion', 'lideres-cdp', iglesiaId],
     queryFn: () => listarLideresCdpAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// Plan panel Afirmación 2026-08-21: selector de Red antes que el de líder.
+export function useRedesAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'redes', iglesiaId],
+    queryFn: () => listarRedesAfirmacion(iglesiaId as string),
     enabled: !!iglesiaId,
   });
 }
@@ -41,11 +54,37 @@ export function useSetEstadoUrlsAfirmacion(iglesiaId: string | undefined) {
   });
 }
 
+export function useConfigRegistroUrlAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'config-registro-url', iglesiaId],
+    queryFn: () => obtenerConfigRegistroUrlAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
 // KAN-127: todas las Casas de Paz de la iglesia (con o sin líder vigente).
 export function useCasasDePazAfirmacion(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['afirmacion', 'casas-de-paz', iglesiaId],
     queryFn: () => listarCasasDePazAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// KAN-214: registros por URL vs. formulario interno de Afirmación.
+export function useEstadisticasRegistroAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'estadisticas-registro', iglesiaId],
+    queryFn: () => obtenerEstadisticasRegistroAfirmacion(iglesiaId as string),
+    enabled: !!iglesiaId,
+  });
+}
+
+// KAN-216: totales de personas para /afirmacion-personas.
+export function useEstadisticasPersonasAfirmacion(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['afirmacion', 'estadisticas-personas', iglesiaId],
+    queryFn: () => obtenerEstadisticasPersonasAfirmacion(iglesiaId as string),
     enabled: !!iglesiaId,
   });
 }
