@@ -12,3 +12,8 @@
 - [x] Responsividad móvil (390px) verificada en todo lo de hoy — encontrado y corregido un bug real en URL de membresía (fila se achicaba a invisible en vez de hacer wrap)
 - [x] KAN-226: formulario interno de Afirmación — ahora se elige primero la Red y recién aparecen los líderes de esa Red, con su zona como segundo dato
 - [ ] Falta: probar "Enlace no disponible" del URL de membresía desde otro dispositivo (el owner sospecha que hay que reiniciar la imagen Docker) — queda para mañana
+- [x] KAN-227: ficha de persona con 3 modos — resumen liviano (identidad/estado/contacto), extendido (overlay con todos los datos, solo lectura) y editor (lápiz, con Guardar en pie fijo + confirmación)
+- [x] KAN-228: KPIs de Personas rediseñados a chips minimalistas (paleta azul/teal) + 5 indicadores nuevos (profesión, estado civil) — falta aplicar la migración a producción (sin token de Supabase esta sesión)
+- [x] KAN-229: modal de Membresía dividido de 7 a 9 pasos (Formación → Discipulados + Seminario/Universidad; Familia → Cónyuge + Familia/Ministerios), en los 3 flujos que lo usan
+- [ ] Falta: probar en navegador todo lo de hoy (MCP de Playwright/chrome-devtools desconectado esta sesión) y aplicar la migración 20260821150000 en cuanto haya token de Supabase
+- [ ] KAN-230/231/232/233 creados (Tareas por hacer, sin trabajar): indicador de membresía completa/incompleta en Personas + campos "no aplica"; página de Formación lenta; bug real del enlace de registro de CdP ("Enlace no disponible"); el modal de Membresía vuelve a pedir datos ya llenados

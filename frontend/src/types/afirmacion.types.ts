@@ -85,10 +85,13 @@ export interface EstadisticasRegistroAfirmacion {
 }
 
 // Plan panel Afirmación 2026-08-20, punto 3/4. Claves de por_estado: sigla de
-// `estado` (SIM/NC/CRE/RE/DA/DI) o 'SIN_ESTADO'.
+// `estado` (SIM/NC/CRE/RE/DA/DI) o 'SIN_ESTADO'. Claves de por_estado_civil:
+// EstadoCivil (SOLTERO/CASADO/VIUDO/DIVORCIADO) o 'SIN_ESTADO_CIVIL'.
 export interface EstadisticasPersonasAfirmacion {
   total: number;
   hombres: number;
   mujeres: number;
   por_estado: Record<string, number>;
+  con_profesion: number;
+  por_estado_civil: Record<string, number>;
 }

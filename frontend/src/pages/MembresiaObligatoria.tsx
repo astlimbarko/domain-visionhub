@@ -13,9 +13,11 @@ import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import {
   SeccionCargoRangoMembresia,
+  SeccionConyugeMembresia,
+  SeccionDiscipuladosMembresia,
   SeccionFamiliaMinisteriosMembresia,
-  SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
@@ -406,27 +408,39 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 ),
               },
               {
-                id: 'formacion',
-                titulo: 'Formación',
+                id: 'discipulados',
+                titulo: 'Discipulados',
                 validar: () => guardarPasoSiCorresponde(4, extendido),
-                contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+                contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'seminario-universidad',
+                titulo: 'Seminario y Universidad',
+                validar: () => guardarPasoSiCorresponde(5, extendido),
+                contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'mentor-bautismo',
                 titulo: 'Mentor y Bautismo',
-                validar: () => guardarPasoSiCorresponde(5, extendido),
+                validar: () => guardarPasoSiCorresponde(6, extendido),
                 contenido: <SeccionMentorBautismoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'cargo-rango',
                 titulo: 'Cargo y posición',
-                validar: () => guardarPasoSiCorresponde(6, extendido),
+                validar: () => guardarPasoSiCorresponde(7, extendido),
                 contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'conyuge',
+                titulo: 'Cónyuge',
+                validar: () => guardarPasoSiCorresponde(8, extendido),
+                contenido: <SeccionConyugeMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'familia',
                 titulo: 'Familia',
-                validar: () => guardarPasoSiCorresponde(7, extendido),
+                validar: () => guardarPasoSiCorresponde(9, extendido),
                 contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
               },
             ]}

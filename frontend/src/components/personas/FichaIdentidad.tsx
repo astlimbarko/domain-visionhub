@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useActualizarIdentidad, useGuardarDetalle } from '@/hooks/usePersonas';
 import {
   DISCIPULADO_NIVEL_LABELS,
@@ -23,13 +23,20 @@ interface Props {
   puedeEditar: boolean;
 }
 
-export function FichaIdentidad({ personaId, ficha, puedeEditar }: Props) {
+/** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaEditorSheet
+ * (pedido del owner: se veía "en el medio" de la hoja) -- este handle expone
+ * la acción para que el pie lo dispare sin que FichaIdentidad renderice su
+ * propio botón. */
+export interface FichaIdentidadHandle {
+  guardar: () => Promise<void>;
+}
+
+export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function FichaIdentidad({ personaId, ficha, puedeEditar }, ref) {
   const [form, setForm] = useState(() => construirForm(ficha));
   useEffect(() => setForm(construirForm(ficha)), [ficha]);
 
   const actualizarIdentidad = useActualizarIdentidad(personaId);
   const guardarDetalle = useGuardarDetalle(personaId);
-  const guardando = actualizarIdentidad.isPending || guardarDetalle.isPending;
 
   async function guardar() {
     // El censo va primero: si estado_civil pasa a CASADO en este mismo guardado,
@@ -62,6 +69,8 @@ export function FichaIdentidad({ personaId, ficha, puedeEditar }: Props) {
       toast.error(e instanceof Error ? e.message : 'No se pudo guardar');
     }
   }
+
+  useImperativeHandle(ref, () => ({ guardar }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -214,15 +223,9 @@ export function FichaIdentidad({ personaId, ficha, puedeEditar }: Props) {
           </label>
         </div>
       )}
-
-      {puedeEditar && (
-        <Button type="button" onClick={guardar} disabled={guardando || !form.primerNombre.trim() || !form.primerApellido.trim()} className="w-fit">
-          {guardando ? 'Guardando...' : 'Guardar cambios'}
-        </Button>
-      )}
     </div>
   );
-}
+});
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (

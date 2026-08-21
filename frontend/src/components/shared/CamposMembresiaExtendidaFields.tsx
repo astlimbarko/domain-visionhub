@@ -133,8 +133,10 @@ interface SeccionProps {
   onChange: (v: DatosMembresiaExtendida) => void;
 }
 
-// Página 1: Discipulados + Seminario + Universidad del Rey Jesús.
-export function SeccionFormacionMembresia({ value, onChange }: SeccionProps) {
+// Página 1a: Discipulados realizados (separado de Seminario/Universidad --
+// KAN-228, paso demasiado denso cuando se marcan varios discipulados con
+// fecha cada uno).
+export function SeccionDiscipuladosMembresia({ value, onChange }: SeccionProps) {
   const { data: tiposDiscipulado = [], isLoading } = useTiposDiscipulado();
   const seleccionados = value.discipulados ?? [];
 
@@ -165,34 +167,39 @@ export function SeccionFormacionMembresia({ value, onChange }: SeccionProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Label>Discipulados realizados</Label>
-        {isLoading ? (
-          <Skeleton className="h-24 w-full rounded-lg" />
-        ) : (
-          <div className="flex flex-col gap-2">
-            {tiposDiscipulado.map((tipo) => (
-              <div key={tipo.id} className="flex flex-col gap-2 rounded-lg border border-border p-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={estaSeleccionado(tipo.id)}
-                    onCheckedChange={(v) => alternarDiscipulado(tipo.id, v === true)}
-                  />
-                  {tipo.nombre}
-                </label>
-                {estaSeleccionado(tipo.id) && (
-                  <CampoFechaConPrecision
-                    valor={seleccionados.find((d) => d.tipo_discipulado_id === tipo.id) ?? {}}
-                    onChange={(fecha) => actualizarFechaDiscipulado(tipo.id, fecha)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col gap-2">
+      <Label>Discipulados realizados</Label>
+      {isLoading ? (
+        <Skeleton className="h-24 w-full rounded-lg" />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {tiposDiscipulado.map((tipo) => (
+            <div key={tipo.id} className="flex flex-col gap-2 rounded-lg border border-border p-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={estaSeleccionado(tipo.id)}
+                  onCheckedChange={(v) => alternarDiscipulado(tipo.id, v === true)}
+                />
+                {tipo.nombre}
+              </label>
+              {estaSeleccionado(tipo.id) && (
+                <CampoFechaConPrecision
+                  valor={seleccionados.find((d) => d.tipo_discipulado_id === tipo.id) ?? {}}
+                  onChange={(fecha) => actualizarFechaDiscipulado(tipo.id, fecha)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
+// Página 1b: Seminario + Universidad del Rey Jesús.
+export function SeccionSeminarioUniversidadMembresia({ value, onChange }: SeccionProps) {
+  return (
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <label className="flex items-center gap-2 text-sm font-medium">
           <Checkbox
@@ -494,24 +501,49 @@ function FilaFamiliar({
   );
 }
 
-// Página 3: Cónyuge + Familia + Ministerios (Ministerios es opcional --
-// null/undefined en el flujo público, ver KAN-125).
-export function SeccionFamiliaMinisteriosMembresia({
-  value,
-  onChange,
-  ministerios,
-}: SeccionProps & { ministerios?: MinisterioOpcion[] }) {
+// Página 3a: Cónyuge, separado de Familia/Ministerios (KAN-228 -- paso
+// propio, más liviano).
+export function SeccionConyugeMembresia({ value, onChange }: SeccionProps) {
   const [tieneConyuge, setTieneConyuge] = useState(
     (value.familiares ?? []).some((f) => f.tipo_relacion_codigo === 'CONYUGE')
   );
 
   const conyuge = (value.familiares ?? []).find((f) => f.tipo_relacion_codigo === 'CONYUGE');
-  const otrosFamiliares = (value.familiares ?? []).filter((f) => f.tipo_relacion_codigo !== 'CONYUGE');
 
   function setConyuge(f: FamiliarInput | null) {
     const resto = (value.familiares ?? []).filter((x) => x.tipo_relacion_codigo !== 'CONYUGE');
     actualizarValor(value, onChange, 'familiares', f ? [f, ...resto] : resto);
   }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Checkbox
+          checked={tieneConyuge}
+          onCheckedChange={(v) => {
+            const marcado = v === true;
+            setTieneConyuge(marcado);
+            if (!marcado) setConyuge(null);
+            else setConyuge({ tipo_relacion_codigo: 'CONYUGE', nombre_familiar: '', es_miembro: false });
+          }}
+        />
+        ¿Tiene cónyuge?
+      </label>
+      {tieneConyuge && conyuge && <FilaFamiliar familiar={conyuge} onChange={setConyuge} etiquetaTipoFija="Cónyuge" />}
+    </div>
+  );
+}
+
+// Página 3b: Familia + Ministerios (Cónyuge quedó en su propio paso,
+// SeccionConyugeMembresia -- Ministerios es opcional, null/undefined en el
+// flujo público, ver KAN-125).
+export function SeccionFamiliaMinisteriosMembresia({
+  value,
+  onChange,
+  ministerios,
+}: SeccionProps & { ministerios?: MinisterioOpcion[] }) {
+  const conyuge = (value.familiares ?? []).find((f) => f.tipo_relacion_codigo === 'CONYUGE');
+  const otrosFamiliares = (value.familiares ?? []).filter((f) => f.tipo_relacion_codigo !== 'CONYUGE');
 
   function actualizarFamiliares(nuevos: FamiliarInput[]) {
     actualizarValor(value, onChange, 'familiares', conyuge ? [conyuge, ...nuevos] : nuevos);
@@ -525,24 +557,6 @@ export function SeccionFamiliaMinisteriosMembresia({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <Checkbox
-            checked={tieneConyuge}
-            onCheckedChange={(v) => {
-              const marcado = v === true;
-              setTieneConyuge(marcado);
-              if (!marcado) setConyuge(null);
-              else setConyuge({ tipo_relacion_codigo: 'CONYUGE', nombre_familiar: '', es_miembro: false });
-            }}
-          />
-          ¿Tiene cónyuge?
-        </label>
-        {tieneConyuge && conyuge && (
-          <FilaFamiliar familiar={conyuge} onChange={setConyuge} etiquetaTipoFija="Cónyuge" />
-        )}
-      </div>
-
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Label>Familia</Label>

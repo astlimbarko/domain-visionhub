@@ -16,12 +16,15 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Briefcase,
   ChevronLeft,
   ChevronRight,
   Download,
   FileText,
+  Heart,
   QrCode,
   Search,
+  User,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AZUL, KpiMosaico, MARINO, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, KpiChip, TEAL } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
@@ -38,6 +41,7 @@ import { useBuscarPersonas } from '@/hooks/usePersonas';
 import { buscarPersonas } from '@/services/persona.service';
 import { useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import type { PersonaResultadoBusqueda } from '@/types/persona.types';
 
 const POR_PAGINA = 50;
@@ -177,36 +181,45 @@ export function AfirmacionPersonas() {
   }
 
   const porEstado = estadisticas?.por_estado ?? {};
+  const porEstadoCivil = estadisticas?.por_estado_civil ?? {};
 
   return (
     <div className="flex flex-col gap-6">
       {cargandoEstadisticas || cargandoRegistro ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-          <KpiMosaico icon={Users} label="Total" color={AZUL} compact>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <KpiChip icon={Users} label="Total" color={AZUL}>
             {estadisticas?.total ?? 0}
-          </KpiMosaico>
-          <KpiMosaico icon={Users} label="Hombres" color="var(--chart-1)" compact>
+          </KpiChip>
+          <KpiChip icon={User} label="Hombres" color={AZUL}>
             {estadisticas?.hombres ?? 0}
-          </KpiMosaico>
-          <KpiMosaico icon={Users} label="Mujeres" color="var(--chart-4)" compact>
+          </KpiChip>
+          <KpiChip icon={User} label="Mujeres" color={TEAL}>
             {estadisticas?.mujeres ?? 0}
-          </KpiMosaico>
-          <KpiMosaico icon={QrCode} label="Por URL" color={MARINO} compact>
+          </KpiChip>
+          <KpiChip icon={QrCode} label="Por URL" color={AZUL}>
             {estadisticasRegistro?.por_url ?? 0}
-          </KpiMosaico>
-          <KpiMosaico icon={FileText} label="Por formulario" color={VERDE} compact>
+          </KpiChip>
+          <KpiChip icon={FileText} label="Por formulario" color={TEAL}>
             {estadisticasRegistro?.por_formulario ?? 0}
-          </KpiMosaico>
+          </KpiChip>
           {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
-            <KpiMosaico key={sigla} icon={Users} label={ESTADO_LABEL[sigla]} color="var(--chart-3)" compact>
+            <KpiChip key={sigla} icon={Users} label={ESTADO_LABEL[sigla]} color={AZUL}>
               {porEstado[sigla] ?? 0}
-            </KpiMosaico>
+            </KpiChip>
+          ))}
+          <KpiChip icon={Briefcase} label="Con profesión" color={TEAL}>
+            {estadisticas?.con_profesion ?? 0}
+          </KpiChip>
+          {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
+            <KpiChip key={codigo} icon={Heart} label={ESTADO_CIVIL_LABELS[codigo]} color={AZUL}>
+              {porEstadoCivil[codigo] ?? 0}
+            </KpiChip>
           ))}
         </div>
       )}

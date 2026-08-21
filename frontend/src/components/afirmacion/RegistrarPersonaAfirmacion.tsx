@@ -8,9 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
   SeccionCargoRangoMembresia,
+  SeccionConyugeMembresia,
+  SeccionDiscipuladosMembresia,
   SeccionFamiliaMinisteriosMembresia,
-  SeccionFormacionMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { SelectorLiderCdp } from '@/components/afirmacion/SelectorLiderCdp';
@@ -153,9 +155,14 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       ),
     },
     {
-      id: 'formacion',
-      titulo: 'Formación',
-      contenido: <SeccionFormacionMembresia value={extendido} onChange={setExtendido} />,
+      id: 'discipulados',
+      titulo: 'Discipulados',
+      contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'seminario-universidad',
+      titulo: 'Seminario y Universidad',
+      contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'mentor-bautismo',
@@ -166,6 +173,11 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       id: 'cargo-rango',
       titulo: 'Cargo y posición',
       contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'conyuge',
+      titulo: 'Cónyuge',
+      contenido: <SeccionConyugeMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'familia',
