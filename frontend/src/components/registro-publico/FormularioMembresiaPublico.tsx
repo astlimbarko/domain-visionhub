@@ -14,6 +14,7 @@ import {
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
+import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useRegistrarPersonaViaUrl } from '@/hooks/useRegistroPublico';
 import { usePersistenciaLocal, limpiarPersistenciaLocal } from '@/hooks/usePersistenciaLocal';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
@@ -69,6 +70,9 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
   } = useForm<FormValues>({ resolver: zodResolver(esquema) });
 
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
+
+  // KAN-231: prefetch temprano, ver mismo comentario en MembresiaObligatoria.tsx.
+  useTiposDiscipulado();
 
   usePersistenciaLocal(storageKey, { base: watch(), extendido }, (guardado) => {
     reset(guardado.base as FormValues);

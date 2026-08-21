@@ -19,6 +19,7 @@ import { SelectorLiderCdp } from '@/components/afirmacion/SelectorLiderCdp';
 import { obtenerCamposObligatoriosMembresia } from '@/services/afirmacion.service';
 import { useRegistrarPersonaAfirmacion } from '@/hooks/useAfirmacion';
 import { useMinisterios } from '@/hooks/useMinisterios';
+import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { DatosPersonaAfirmacion } from '@/types/afirmacion.types';
@@ -75,6 +76,8 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
 
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(DATOS_MEMBRESIA_EXTENDIDA_VACIO);
   const { data: ministerios = [] } = useMinisterios(iglesiaId);
+  // KAN-231: prefetch temprano, ver mismo comentario en MembresiaObligatoria.tsx.
+  useTiposDiscipulado();
 
   const mutacion = useRegistrarPersonaAfirmacion();
 

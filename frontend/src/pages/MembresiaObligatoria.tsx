@@ -22,7 +22,7 @@ import {
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
-import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
+import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
@@ -117,6 +117,12 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(
     (datosGuardados as DatosMembresiaExtendida | undefined) ?? DATOS_MEMBRESIA_EXTENDIDA_VACIO
   );
+
+  // KAN-231: prefetch en cuanto se abre el modal, no recién al llegar al
+  // paso de Discipulados -- el catálogo tarda lo mismo, pero así el viaje
+  // de red ya terminó (o va bien encaminado) mientras la persona llena los
+  // primeros pasos, en vez de sentirse "lento" recién al llegar ahí.
+  useTiposDiscipulado();
 
   const mutacionInvitacion = useCompletarMembresia();
   const mutacionGeneral = useCompletarMembresiaGeneral();
