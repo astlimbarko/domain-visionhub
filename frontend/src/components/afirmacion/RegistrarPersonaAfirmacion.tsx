@@ -18,6 +18,7 @@ import { SelectorLiderCdp } from '@/components/afirmacion/SelectorLiderCdp';
 import { obtenerCamposObligatoriosMembresia } from '@/services/afirmacion.service';
 import { useRegistrarPersonaAfirmacion } from '@/hooks/useAfirmacion';
 import { useMinisterios } from '@/hooks/useMinisterios';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { DatosPersonaAfirmacion } from '@/types/afirmacion.types';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
@@ -100,6 +101,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
 
     try {
       const resultado = await mutacion.mutateAsync({ datos, casaDePazCargoId });
+      void notificarMembresiaCompletada(resultado.persona_id);
       toast.success(`${resultado.nombre_completo} quedó registrado en ${resultado.casa_de_paz_nombre}.`);
       reset();
       setExtendido(DATOS_MEMBRESIA_EXTENDIDA_VACIO);

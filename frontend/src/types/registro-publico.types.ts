@@ -54,6 +54,7 @@ export interface DatosRegistroPublico extends DatosMembresiaExtendida {
 }
 
 export interface RegistrarPersonaViaUrlResponse {
+  persona_id: string;
   nombre_completo: string;
   casa_de_paz_nombre: string;
 }

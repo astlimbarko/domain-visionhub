@@ -47,3 +47,16 @@ export async function guardarPasoMembresiaGeneral(paso: number, datos: Record<st
   const { error } = await supabase.rpc('fn_guardar_paso_membresia_general', { p_paso: paso, p_datos: datos });
   if (error) throw error;
 }
+
+// Pedido explícito del owner (2026-08-21): al completar el formulario de
+// membresía (los 3 flujos -- URL pública, Afirmación interno,
+// MembresiaObligatoria), avisar por correo a la dirección escrita. Callable
+// sin sesión (el flujo público es anónimo) -- nunca bloquea el alta si
+// falla, mismo criterio que notificarAsignacionCargo* de estructura.service.ts.
+export async function notificarMembresiaCompletada(personaId: string): Promise<void> {
+  try {
+    await supabase.functions.invoke('notificar-membresia-completada', { body: { personaId } });
+  } catch (e) {
+    console.error('notificarMembresiaCompletada: no se pudo avisar por correo', e);
+  }
+}

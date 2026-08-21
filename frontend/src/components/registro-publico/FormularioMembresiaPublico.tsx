@@ -14,6 +14,7 @@ import {
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { useRegistrarPersonaViaUrl } from '@/hooks/useRegistroPublico';
 import { usePersistenciaLocal, limpiarPersistenciaLocal } from '@/hooks/usePersistenciaLocal';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { CamposObligatorios, DatosRegistroPublico } from '@/types/registro-publico.types';
 
@@ -93,6 +94,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
     try {
       const resultado = await mutacion.mutateAsync(datos);
       limpiarPersistenciaLocal(storageKey);
+      void notificarMembresiaCompletada(resultado.persona_id);
       onExito({ nombreCompleto: resultado.nombre_completo, casaDePazNombre: resultado.casa_de_paz_nombre });
     } catch (e) {
       const error = e as { message?: string } | null;

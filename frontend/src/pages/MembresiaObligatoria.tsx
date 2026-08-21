@@ -21,6 +21,7 @@ import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral } from '@/hooks/useMembresiaExtendida';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
@@ -160,6 +161,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       }
       const persona = await obtenerPersonaActual();
       completarMembresiaLocal(persona?.id ?? '', persona?.nombre_completo ?? '');
+      if (persona?.id) void notificarMembresiaCompletada(persona.id);
       toast.success('Membresía completada');
     } catch (e) {
       const error = e as { message?: string } | null;
