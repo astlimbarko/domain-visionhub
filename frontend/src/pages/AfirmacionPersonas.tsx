@@ -19,6 +19,8 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
+  CircleCheck,
   Download,
   FileText,
   Heart,
@@ -32,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AZUL, KpiChip, TEAL } from '@/components/dashboard/DashboardUI';
+import { AZUL, KpiChip, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
@@ -49,7 +51,14 @@ const POR_PAGINA = 50;
 // decenas de miles de miembros; evita pedir un tamaño de página ilimitado.
 const LIMITE_EXPORTACION = 5000;
 
-type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'red_nombre' | 'casa_de_paz_etiqueta' | 'estado_sigla';
+type ColumnaOrden =
+  | 'nombre_completo'
+  | 'sexo'
+  | 'edad'
+  | 'red_nombre'
+  | 'casa_de_paz_etiqueta'
+  | 'estado_sigla'
+  | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
 
 const VIA_REGISTRO_LABEL: Record<'URL' | 'FORMULARIO', string> = {
@@ -106,7 +115,7 @@ function celdaCsv(valor: string | number | null): string {
 }
 
 function filasACsv(filas: PersonaResultadoBusqueda[]): string {
-  const encabezados = ['Nombre', 'Sexo', 'Edad', 'CI', 'Correo', 'Red', 'Casa de Paz', 'Estado', 'Teléfono', 'Vía'];
+  const encabezados = ['Nombre', 'Sexo', 'Edad', 'CI', 'Correo', 'Red', 'Casa de Paz', 'Estado', 'Teléfono', 'Vía', 'Membresía'];
   const lineas = filas.map((p) =>
     [
       celdaCsv(p.nombre_completo),
@@ -119,6 +128,7 @@ function filasACsv(filas: PersonaResultadoBusqueda[]): string {
       celdaCsv(p.estado_sigla),
       celdaCsv(p.telefono_principal),
       celdaCsv(p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro] : null),
+      celdaCsv(p.membresia_completada ? 'Completa' : 'Incompleta'),
     ].join(',')
   );
   return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
@@ -280,6 +290,9 @@ export function AfirmacionPersonas() {
                     </EncabezadoOrdenable>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
+                    <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
+                      Membresía
+                    </EncabezadoOrdenable>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,6 +319,19 @@ export function AfirmacionPersonas() {
                       </td>
                       <td className="px-3 py-2.5 text-muted-foreground">{p.telefono_principal ?? '—'}</td>
                       <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro] : '—'}</td>
+                      <td className="px-3 py-2.5">
+                        {p.membresia_completada ? (
+                          <Badge variant="secondary" className="gap-1 rounded-full text-[10px]">
+                            <CircleCheck className="h-3 w-3" style={{ color: VERDE }} />
+                            Completa
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 rounded-full text-[10px] text-muted-foreground">
+                            <CircleAlert className="h-3 w-3" />
+                            Incompleta
+                          </Badge>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

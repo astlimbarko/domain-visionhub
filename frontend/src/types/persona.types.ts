@@ -94,6 +94,8 @@ export interface PersonaResultadoBusqueda {
   telefono_principal: string | null;
   /** 'URL' | 'FORMULARIO' | null (null = no vino de ningún camino de Afirmación). */
   via_registro: 'URL' | 'FORMULARIO' | null;
+  /** KAN-230: si la persona ya terminó su formulario de Membresía. */
+  membresia_completada: boolean;
   /** Total de filas que matchean el filtro (sin paginar) -- igual en cada fila, `count(*) OVER()`. */
   total: number;
 }

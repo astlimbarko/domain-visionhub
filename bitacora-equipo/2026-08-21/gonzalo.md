@@ -16,4 +16,10 @@
 - [x] KAN-228: KPIs de Personas rediseñados a chips minimalistas (paleta azul/teal) + 5 indicadores nuevos (profesión, estado civil) — falta aplicar la migración a producción (sin token de Supabase esta sesión)
 - [x] KAN-229: modal de Membresía dividido de 7 a 9 pasos (Formación → Discipulados + Seminario/Universidad; Familia → Cónyuge + Familia/Ministerios), en los 3 flujos que lo usan
 - [ ] Falta: probar en navegador todo lo de hoy (MCP de Playwright/chrome-devtools desconectado esta sesión) y aplicar la migración 20260821150000 en cuanto haya token de Supabase
-- [ ] KAN-230/231/232/233 creados (Tareas por hacer, sin trabajar): indicador de membresía completa/incompleta en Personas + campos "no aplica"; página de Formación lenta; bug real del enlace de registro de CdP ("Enlace no disponible"); el modal de Membresía vuelve a pedir datos ya llenados
+- [x] KAN-231: Formación cargaba lento -- el catálogo se pedía recién al llegar a ese paso, ahora se precarga apenas se abre el formulario (3 flujos)
+- [x] KAN-233: bug real encontrado y corregido -- si ocupación/grado de instrucción eran obligatorios pero la persona no tenía ese dato, el asistente quedaba trabado sin avisar y la membresía nunca se completaba (por eso "pedía todo de nuevo" en el siguiente login)
+- [x] KAN-230 (parcial): checkbox "No aplica" agregado en ocupación/grado de instrucción (mismo fix que KAN-233) -- falta el indicador visual en la tabla de Personas (requiere migración, sin token de Supabase)
+- [x] KAN-232: diagnosticado -- "Enlace no disponible" depende de 2 interruptores (estado del enlace + REGISTRO_URL_ACTIVO por iglesia, que arranca apagado), no parece ser CORS. Mejora real aplicada: la página ahora distingue un error de conexión real de un enlace inactivo (antes quedaba en blanco). Falta confirmar en la app cuál de los 2 interruptores es la causa real
+- [ ] Falta: aplicar la migración de KAN-228 (estado civil/profesión) y la futura de KAN-230 (indicador visual) -- necesito un token nuevo de Supabase (`sbp_...`), el anterior quedó revocado
+- [ ] Falta: confirmar en la app los 2 interruptores de KAN-232 y decidir si el bug es real o solo configuración
+- [ ] Falta: probar todo lo de hoy en navegador (MCP de Playwright/chrome-devtools desconectado esta sesión)
