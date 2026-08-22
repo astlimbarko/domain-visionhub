@@ -40,13 +40,13 @@ interface Props {
   quitando?: boolean;
   invitable?: boolean;
   invitando?: boolean;
-  /** KAN-206 (2026-08-15): si el correo ya tenía cuenta, el asignador la
-   * asigna directo en el mismo paso (sin mandar invitación real) -- cuando
-   * eso pasa, `onInvitar` puede devolver `{ yaExistia: true }` para que el
-   * diálogo muestre la confirmación adentro suyo y se cierre solo, en vez
-   * de un toast con el modal quedando abierto. Devolver `void`/nada omite
-   * ese comportamiento (ej. invitación nueva real, todavía sin cuenta). */
-  onInvitar?: (correo: string) => void | Promise<{ yaExistia?: boolean } | void>;
+  /** KAN-24x (2026-08-22): si el correo ya tenía cuenta con una Persona
+   * vinculada, `onInvitar` puede devolver `{ personaExistente: {id, nombre} }`
+   * en vez de asignar directo -- el diálogo muestra "Ya existe, ¿confirmás
+   * asignarla?" y recién al confirmar llama a `onAsignar` (mismo callback
+   * que ya usa la búsqueda manual). Devolver `void`/nada es una invitación
+   * nueva real (todavía sin cuenta), sigue el flujo de siempre. */
+  onInvitar?: (correo: string) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
   /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
    * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
    * correo, o quitar a alguien quedan detrás de un paso de confirmación con
@@ -99,6 +99,7 @@ export function AsignarCargoDialog({
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
   const [invitadoOk, setInvitadoOk] = useState(false);
+  const [personaExistente, setPersonaExistente] = useState<{ id: string; nombre: string } | null>(null);
   const cierreAutomaticoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requiereOtp = onPinChange !== undefined && otpRequerido;
@@ -108,7 +109,8 @@ export function AsignarCargoDialog({
   // confirmación del intento anterior.
   useEffect(() => {
     if (!open && invitadoOk) setInvitadoOk(false);
-  }, [open, invitadoOk]);
+    if (!open && personaExistente) setPersonaExistente(null);
+  }, [open, invitadoOk, personaExistente]);
 
   useEffect(() => () => {
     if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
@@ -128,23 +130,29 @@ export function AsignarCargoDialog({
     setPersonaElegida(null);
   }
 
-  // KAN-206: si la persona ya tenía cuenta, se asignó directo en el mismo
-  // paso -- en vez de un toast chico con el modal quedando abierto (con el
-  // botón "Invitar" todavía visible), se muestra la confirmación adentro
-  // del propio modal y se cierra solo. Una invitación nueva de verdad
-  // (todavía sin cuenta) sigue el flujo de siempre (toast, modal abierto).
+  // KAN-24x: si el correo ya tenía cuenta con una Persona vinculada,
+  // `onInvitar` devuelve `personaExistente` en vez de asignar directo -- se
+  // pide confirmación explícita (mostrando el nombre) antes de asignar. Una
+  // invitación nueva de verdad (todavía sin cuenta) sigue el flujo de
+  // siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
     const resultado = onInvitar(correoInvitar.trim().toLowerCase());
     setCorreoInvitar('');
     if (resultado && typeof resultado.then === 'function') {
       resultado.then((r) => {
-        if (r?.yaExistia) {
-          setInvitadoOk(true);
-          cierreAutomaticoRef.current = setTimeout(() => onOpenChange(false), 1800);
-        }
+        if (r?.personaExistente) setPersonaExistente(r.personaExistente);
       });
     }
+  }
+
+  // Confirmar la reasignación reusa exactamente el mismo `onAsignar` que ya
+  // usa la búsqueda manual ("Persona existente") -- mismo permiso, mismo
+  // aviso por correo si el caller ya lo dispara ahí.
+  function confirmarAsignarExistente() {
+    if (!personaExistente) return;
+    onAsignar({ id: personaExistente.id, nombre_completo: personaExistente.nombre } as PersonaBusqueda);
+    setPersonaExistente(null);
   }
 
   // Bug real (2026-08-15): antes solo confirmaba si la iglesia tenía OTP
@@ -169,6 +177,8 @@ export function AsignarCargoDialog({
     e.preventDefault();
     if (aQuitar) {
       confirmarBaja();
+    } else if (personaExistente) {
+      confirmarAsignarExistente();
     } else if (modo === 'invitar') {
       enviarInvitacion();
     } else if (personaElegida) {
@@ -244,7 +254,23 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && invitable && (
+          {!aQuitar && personaExistente && (
+            <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <p className="text-sm text-foreground">
+                Ya existe una cuenta con ese correo, asociada a{' '}
+                <span className="font-medium">{personaExistente.nombre?.trim() || 'una persona sin nombre cargado'}</span>.
+                ¿Confirmás asignarla igual?
+              </p>
+              {asignando && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Spinner className="h-3.5 w-3.5" />
+                  Asignando...
+                </p>
+              )}
+            </div>
+          )}
+
+          {!aQuitar && !personaExistente && invitable && (
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
@@ -269,7 +295,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && modo === 'buscar' && (
+          {!aQuitar && !personaExistente && modo === 'buscar' && (
             personaElegida ? (
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                 <span className="truncate">{personaElegida.nombre_completo}</span>
@@ -287,7 +313,7 @@ export function AsignarCargoDialog({
             )
           )}
 
-          {!aQuitar && modo === 'invitar' && invitable && (
+          {!aQuitar && !personaExistente && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
                 Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
@@ -302,11 +328,11 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
+          {!aQuitar && !personaExistente && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
             <CampoOtp value={pin ?? ''} onChange={onPinChange} />
           )}
 
-          {!aQuitar && asignando && (
+          {!aQuitar && !personaExistente && asignando && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Spinner className="h-3.5 w-3.5" />
               Asignando...
@@ -321,6 +347,15 @@ export function AsignarCargoDialog({
             </Button>
             <Button type="submit" variant="destructive" disabled={quitando || !pinValido}>
               {quitando ? 'Dando de baja...' : 'Confirmar baja'}
+            </Button>
+          </DialogFooter>
+        ) : personaExistente ? (
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setPersonaExistente(null)} disabled={asignando}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={asignando}>
+              {asignando ? 'Asignando...' : 'Confirmar'}
             </Button>
           </DialogFooter>
         ) : (

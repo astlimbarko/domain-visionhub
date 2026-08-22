@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Mail, X } from 'lucide-react';
+import { Mail, RefreshCw, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
+import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
 import { mensajeError } from './estructura.service';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -37,6 +38,24 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
   const { data: vigentes = [] } = useCargoVigenteDepartamento(esFuncional ? departamento.id : undefined);
   const vigente = vigentes[0];
   const quitarCargo = useQuitarCargoDepartamento(departamento.id);
+
+  const { data: invitaciones = [] } = useInvitacionesDepartamento(esFuncional ? iglesiaId : undefined);
+  const invitacionPendiente = invitaciones.find((i) => i.departamento_id === departamento.id && i.estado === 'PENDIENTE');
+  const reenviarInvitacion = useReenviarInvitacionLider();
+  const cancelarInvitacion = useCancelarInvitacionLider();
+  const [cancelandoInvitacion, setCancelandoInvitacion] = useState(false);
+
+  function handleCancelarInvitacion() {
+    if (!invitacionPendiente) return;
+    cancelarInvitacion.mutate(invitacionPendiente.id, {
+      onSuccess: () => {
+        toast.success('Invitación cancelada');
+        setCancelandoInvitacion(false);
+        void queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });
+      },
+      onError: (e) => { toast.error(mensajeError(e, 'No se pudo cancelar')); setCancelandoInvitacion(false); },
+    });
+  }
 
   useEffect(() => {
     const cerrarConEscape = (evento: KeyboardEvent) => {
@@ -139,6 +158,40 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                 >
                   Quitar cargo
                 </button>
+              </div>
+            )}
+            {esFuncional && invitacionPendiente && (
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                <span className="text-xs text-slate-500">Invitación pendiente: {invitacionPendiente.correo}</span>
+                {cancelandoInvitacion ? (
+                  <span className="flex shrink-0 items-center gap-2 text-xs">
+                    <button type="button" onClick={() => setCancelandoInvitacion(false)} className="relative cursor-pointer font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']">No</button>
+                    <button type="button" disabled={cancelarInvitacion.isPending} onClick={handleCancelarInvitacion} className="relative cursor-pointer font-semibold text-red-600 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']">
+                      {cancelarInvitacion.isPending ? 'Cancelando...' : 'Sí, cancelar'}
+                    </button>
+                  </span>
+                ) : (
+                  <span className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={reenviarInvitacion.isPending}
+                      onClick={() => reenviarInvitacion.mutate(invitacionPendiente.id, {
+                        onSuccess: () => toast.success('Invitación reenviada'),
+                        onError: () => toast.error('No se pudo reenviar'),
+                      })}
+                      className="relative flex cursor-pointer items-center gap-1 text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Reenviar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCancelandoInvitacion(true)}
+                      className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
+                    >
+                      Cancelar
+                    </button>
+                  </span>
+                )}
               </div>
             )}
           </section>
