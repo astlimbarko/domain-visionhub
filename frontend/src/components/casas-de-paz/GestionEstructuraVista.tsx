@@ -201,14 +201,13 @@ export function GestionEstructuraVista() {
   async function manejarInvitarCdp(correo: string) {
     if (!dialogoCdp) return;
     try {
-      const resultado = await invitarLider.mutateAsync({
+      await invitarLider.mutateAsync({
         correo,
         rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP',
         redId: null,
         casaDePazId: dialogoCdp.cdpId,
       });
       toast.success(`Invitación enviada a ${correo}`);
-      return resultado;
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
       if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
