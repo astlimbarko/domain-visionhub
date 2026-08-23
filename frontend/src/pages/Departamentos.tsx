@@ -13,7 +13,7 @@ import {
   usePanelConfiguracion,
   useQuitarCargoDepartamento,
 } from '@/hooks/usePanelSupervisor';
-import { useInvitacionesDepartamento, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import { useCancelarInvitacionLider, useInvitacionesDepartamento, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { useAuthStore } from '@/store/auth.store';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAsignarCargoGlobal, useCargoVigenteGlobal, useQuitarCargoGlobal } from '@/hooks/useRolesGlobalesDatos';
@@ -51,6 +51,8 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
   const quitarCargo = useQuitarCargoDepartamento(departamento.id);
   const invitarLider = useInvitarLider();
   const reenviarInvitacion = useReenviarInvitacionLider();
+  const cancelarInvitacion = useCancelarInvitacionLider();
+  const [cancelando, setCancelando] = useState(false);
 
   async function handleAsignar(persona: { id: string; nombre_completo: string }) {
     if (!cargoLiderDepartamento) return;
@@ -63,17 +65,27 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
     }
   }
 
-  function handleInvitar(correo: string) {
-    invitarLider.mutate(
-      { correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id, pin },
-      {
-        onSuccess: () => {
-          toast.success(`Invitación enviada a ${correo}`);
-          setPin('');
-        },
-        onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
-      }
-    );
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio.
+  async function handleInvitar(correo: string) {
+    try {
+      await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id, pin });
+      toast.success(`Invitación enviada a ${correo}`);
+      setPin('');
+    } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
+      manejarErrorCargo(e, 'No se pudo invitar');
+    }
+  }
+
+  function handleCancelarInvitacion(invitacionId: string) {
+    cancelarInvitacion.mutate(invitacionId, {
+      onSuccess: () => { toast.success('Invitación cancelada'); setCancelando(false); },
+      onError: (e) => { manejarErrorCargo(e, 'No se pudo cancelar'); setCancelando(false); },
+    });
   }
 
   function handleQuitar(id: string, pinQuitar?: string) {
@@ -120,22 +132,50 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
             <Mail className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">Invitación pendiente: {invitacionPendiente.correo}</span>
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 shrink-0 gap-1 px-2 text-[11px]"
-            disabled={reenviarInvitacion.isPending}
-            onClick={() =>
-              reenviarInvitacion.mutate(invitacionPendiente.id, {
-                onSuccess: () => toast.success('Invitación reenviada'),
-                onError: () => toast.error('No se pudo reenviar'),
-              })
-            }
-          >
-            <RefreshCw className="h-3 w-3" />
-            Reenviar
-          </Button>
+          {cancelando ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground">¿Cancelar?</span>
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={() => setCancelando(false)}>No</Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-7 px-2 text-[11px]"
+                disabled={cancelarInvitacion.isPending}
+                onClick={() => handleCancelarInvitacion(invitacionPendiente.id)}
+              >
+                Sí
+              </Button>
+            </div>
+          ) : (
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 px-2 text-[11px]"
+                disabled={reenviarInvitacion.isPending}
+                onClick={() =>
+                  reenviarInvitacion.mutate(invitacionPendiente.id, {
+                    onSuccess: () => toast.success('Invitación reenviada'),
+                    onError: () => toast.error('No se pudo reenviar'),
+                  })
+                }
+              >
+                <RefreshCw className="h-3 w-3" />
+                Reenviar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 px-2 text-[11px] text-destructive hover:text-destructive"
+                onClick={() => setCancelando(true)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

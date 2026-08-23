@@ -117,6 +117,7 @@ function ResumenCargo({
   const etiqueta = responsable?.etiqueta ?? 'Sin asignar';
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [correoNuevo, setCorreoNuevo] = useState('');
+  const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -202,14 +203,31 @@ function ResumenCargo({
               >
                 Corregir correo
               </button>
-              <button
-                type="button"
-                disabled={procesando}
-                onClick={() => onCancelarInvitacion(responsable.invitacionId as string)}
-                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
-              >
-                Cancelar designación
-              </button>
+              {confirmandoCancelar ? (
+                <span className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500">¿Seguro?</span>
+                  <button type="button" onClick={() => setConfirmandoCancelar(false)} className="relative cursor-pointer font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-slate-700">
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    disabled={procesando}
+                    onClick={() => { onCancelarInvitacion(responsable.invitacionId as string); setConfirmandoCancelar(false); }}
+                    className="relative cursor-pointer font-semibold text-red-600 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-800 disabled:opacity-50"
+                  >
+                    Sí, cancelar
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={procesando}
+                  onClick={() => setConfirmandoCancelar(true)}
+                  className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
+                >
+                  Cancelar designación
+                </button>
+              )}
             </>
           ) : (
             <button

@@ -124,18 +124,21 @@ export function GestionSubliderVista() {
     }
   }
 
-  // KAN-206: si el correo ya tenia cuenta, se devuelve { yaExistia: true }
-  // para que AsignarCargoDialog muestre la confirmacion adentro suyo y se
-  // cierre solo, en vez de un toast con el modal quedando abierto.
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio.
   async function manejarInvitar(correo: string) {
     if (!cdpActiva) return;
     try {
       const resultado = await invitarLider.mutateAsync(
         { correo, rol: 'SUBLIDER_CDP', redId: null, casaDePazId: cdpActiva },
       );
-      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      toast.success(`Invitación enviada a ${correo}`);
       return resultado;
     } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
       manejarError(e, 'No se pudo invitar');
     }
   }

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { MapPin, X } from 'lucide-react';
+import { MapPin, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
-import { useInvitarLider } from '@/hooks/useInvitacionLider';
+import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import {
   useAsignarCargoCdp,
   useCargoVigenteCdp,
@@ -98,6 +98,18 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const asignarCargo = useAsignarCargoCdp(iglesiaId);
   const quitarCargo = useQuitarCargoCdp();
   const invitarLider = useInvitarLider();
+  const { data: invitacionesLider = [] } = useInvitacionesLider(iglesiaId);
+  const invitacionesPendientes = invitacionesLider.filter((inv) => inv.casa_de_paz_id === casaDePaz.id && inv.estado === 'PENDIENTE');
+  const reenviarInvitacion = useReenviarInvitacionLider();
+  const cancelarInvitacion = useCancelarInvitacionLider();
+  const [cancelandoInvitacionId, setCancelandoInvitacionId] = useState<string | null>(null);
+
+  function handleCancelarInvitacion(invitacionId: string) {
+    cancelarInvitacion.mutate(invitacionId, {
+      onSuccess: () => { toast.success('Invitación cancelada'); setCancelandoInvitacionId(null); void invalidarEstructura(); },
+      onError: (e) => { manejarErrorCargo(e, 'No se pudo cancelar'); setCancelandoInvitacionId(null); },
+    });
+  }
 
   const lider = casaDePaz.lideres[0];
   const anfitrion = casaDePaz.anfitriones[0];
@@ -187,21 +199,23 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     });
   }
 
-  // KAN-206 (2026-08-15): si el correo ya tenia cuenta, el backend asigna
-  // directo en el mismo paso -- en vez de un toast con el modal quedando
-  // abierto, se devuelve `{ yaExistia: true }` para que AsignarCargoDialog
-  // muestre la confirmacion adentro suyo y se cierre solo. Una invitacion
-  // nueva de verdad (todavia sin cuenta) sigue avisando por toast.
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio. Una invitacion nueva de verdad (todavia sin
+  // cuenta) sigue avisando por toast.
   async function handleInvitar(correo: string) {
     if (!dialogoCargo) return;
     try {
       const resultado = await invitarLider.mutateAsync(
         { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
       );
-      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
+      toast.success(`Invitación enviada a ${correo}`);
       void invalidarEstructura();
       return resultado;
     } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
       manejarErrorCargo(e, 'No se pudo invitar');
     }
   }
@@ -326,6 +340,48 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
               </button>
             </div>
           </section>
+
+          {invitacionesPendientes.length > 0 && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-bold tracking-wide text-amber-700 uppercase">Invitaciones pendientes</p>
+              <ul className="mt-2 flex flex-col gap-2">
+                {invitacionesPendientes.map((inv) => (
+                  <li key={inv.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate text-amber-800">{inv.correo}</span>
+                    {cancelandoInvitacionId === inv.id ? (
+                      <span className="flex shrink-0 items-center gap-2 text-xs">
+                        <button type="button" onClick={() => setCancelandoInvitacionId(null)} className="relative cursor-pointer font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']">No</button>
+                        <button type="button" disabled={cancelarInvitacion.isPending} onClick={() => handleCancelarInvitacion(inv.id)} className="relative cursor-pointer font-semibold text-red-600 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']">
+                          {cancelarInvitacion.isPending ? 'Cancelando...' : 'Sí, cancelar'}
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={reenviarInvitacion.isPending}
+                          onClick={() => reenviarInvitacion.mutate(inv.id, {
+                            onSuccess: () => toast.success('Invitación reenviada'),
+                            onError: () => toast.error('No se pudo reenviar'),
+                          })}
+                          className="relative flex cursor-pointer items-center gap-1 text-xs font-semibold text-blue-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-['']"
+                        >
+                          <RefreshCw className="h-3 w-3" /> Reenviar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCancelandoInvitacionId(inv.id)}
+                          className="relative cursor-pointer text-xs font-semibold text-amber-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
+                        >
+                          Cancelar
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
