@@ -207,12 +207,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   async function handleInvitar(correo: string) {
     if (!dialogoCargo) return;
     try {
-      const resultado = await invitarLider.mutateAsync(
+      await invitarLider.mutateAsync(
         { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
       );
       toast.success(`Invitación enviada a ${correo}`);
       void invalidarEstructura();
-      return resultado;
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
       if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };

@@ -131,11 +131,10 @@ export function GestionSubliderVista() {
   async function manejarInvitar(correo: string) {
     if (!cdpActiva) return;
     try {
-      const resultado = await invitarLider.mutateAsync(
+      await invitarLider.mutateAsync(
         { correo, rol: 'SUBLIDER_CDP', redId: null, casaDePazId: cdpActiva },
       );
       toast.success(`Invitación enviada a ${correo}`);
-      return resultado;
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
       if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
