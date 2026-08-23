@@ -22,6 +22,14 @@ export const TEAL = 'color-mix(in oklab, var(--chart-2) 55%, var(--chart-1))';
 /** Degradado sólido y elegante: mismo tono, apenas más profundo, sin pastel ni neón. */
 export const mosaico = (c: string) => `linear-gradient(150deg, color-mix(in oklab, ${c} 92%, #000) 0%, color-mix(in oklab, ${c} 70%, #000) 100%)`;
 
+/** Variantes de GRADIENTE_HERO/DEGRADADO_IDENTIDAD derivadas de un color propio
+ * (ej. el de la Red) en vez del navy institucional fijo -- mismo estilo
+ * diagonal oscuro→claro, solo cambia el tono base. */
+const gradienteHeroColor = (c: string) =>
+  `linear-gradient(120deg, color-mix(in oklab, ${c} 85%, #000) 0%, ${c} 55%, color-mix(in oklab, ${c} 55%, #fff) 100%)`;
+const degradadoIdentidadColor = (c: string) =>
+  `linear-gradient(135deg, ${c} 0%, color-mix(in oklab, ${c} 52%, #fff) 100%)`;
+
 /** Banner de identidad del dashboard: degradado navy → blanco con el sello en degradado. */
 export function DashboardHero({
   icon: Icon,
@@ -29,6 +37,7 @@ export function DashboardHero({
   title,
   subtitle,
   actions,
+  color,
 }: {
   icon: LucideIcon;
   eyebrow: string;
@@ -36,16 +45,23 @@ export function DashboardHero({
   /** Línea chica opcional bajo el título (ej. nombre de quien lidera). No afecta a los dashboards que no la pasan. */
   subtitle?: ReactNode;
   actions?: ReactNode;
+  /** Color propio opcional (ej. el elegido para la Red en el Constructor) --
+   * si se pasa, reemplaza el degradado navy institucional por uno derivado
+   * de este color. Sin esto, se mantiene el degradado uniforme de siempre
+   * (Supervisor/Pastor, que administran varias Redes, no lo pasan). */
+  color?: string;
 }) {
+  const fondo = color ? gradienteHeroColor(color) : GRADIENTE_HERO;
+  const fondoSello = color ? degradadoIdentidadColor(color) : DEGRADADO_IDENTIDAD;
   return (
     <div
       className="relative overflow-hidden rounded-3xl px-6 py-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:px-8"
-      style={{ background: GRADIENTE_HERO }}
+      style={{ background: fondo }}
     >
       <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
       <div className="relative flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: fondoSello }}>
             <Icon className="h-8 w-8 text-white" strokeWidth={2} />
           </div>
           <div className="flex min-w-0 flex-col gap-1">

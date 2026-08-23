@@ -121,6 +121,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         icon={Users}
         eyebrow="Casa de Paz"
         title={casa_de_paz.nombre ?? 'Tu Casa de Paz'}
+        color={casa_de_paz.red_color && casa_de_paz.red_color.toUpperCase() !== '#FFFFFF' ? casa_de_paz.red_color : undefined}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>

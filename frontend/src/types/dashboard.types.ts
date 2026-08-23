@@ -69,6 +69,8 @@ export interface DashboardLiderCdp {
     id: string;
     nombre: string | null;
     red: string | null;
+    /** Color de la Red a la que pertenece esta CdP (elegido en el Constructor) -- usado para el banner del dashboard. */
+    red_color: string | null;
     miembros_total: number;
     ultima_reunion: string | null;
   };
@@ -95,7 +97,7 @@ export interface CasaDePazRedResumen {
 }
 
 export interface DashboardLiderRed {
-  red: { id: string; nombre: string };
+  red: { id: string; nombre: string; color: string | null };
   kpi: {
     cdp_activas: number;
     miembros_totales: number;
