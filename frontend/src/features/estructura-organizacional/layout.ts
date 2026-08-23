@@ -184,7 +184,17 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     );
   } else {
     for (const [indiceRed, red] of datos.redes.entries()) {
-      const casas = datos.casasDePaz.filter((casa) => casa.redId === red.id);
+      // Pedido del owner (2026-08-22): si el Líder de Red también lidera una
+      // de las Casas de Paz de su propia Red, esa CdP va primera en la
+      // columna -- no se mezcla con el resto en orden alfabético.
+      const idsLideresRed = new Set(red.lideres.map((lider) => lider.id));
+      const casas = datos.casasDePaz
+        .filter((casa) => casa.redId === red.id)
+        .sort((a, b) => {
+          const aLideraRed = a.lideres.some((lider) => idsLideresRed.has(lider.id)) ? 0 : 1;
+          const bLideraRed = b.lideres.some((lider) => idsLideresRed.has(lider.id)) ? 0 : 1;
+          return aLideraRed - bLideraRed;
+        });
       const colorRed = colorRedVisible(red.color, indiceRed);
       // Colores claros de Red (ej. amarillo) usados tal cual como linea
       // quedaban poco visibles sobre el fondo claro del lienzo/grupo -- se
