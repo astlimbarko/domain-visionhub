@@ -13,10 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
+import { AZUL, VERDE, AMBAR, MORADO, gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { Timeline, type TimelineItem } from '@/components/shared/Timeline';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { usePersonasDeRed } from '@/hooks/usePersonas';
+import { useRedes } from '@/hooks/useCasasDePaz';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import type { PersonaDeRed } from '@/types/persona.types';
 
 const GRIS = '#8e8e93';
@@ -88,6 +90,13 @@ interface Props {
  */
 export function PersonasDeRedVista({ redId }: Props) {
   const { data: personas = [], isLoading } = usePersonasDeRed(redId);
+  const { contextoActivo } = useContextoActivo();
+  const iglesiaId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : undefined;
+  const { data: redes = [] } = useRedes(iglesiaId);
+  const colorRedInfo = redes.find((r) => r.id === redId)?.color;
+  // KAN-251: color elegido para la Red en el Constructor -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
+  const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
 
   const [texto, setTexto] = useState('');
   const [estado, setEstado] = useState('TODOS');
@@ -162,11 +171,11 @@ export function PersonasDeRedVista({ redId }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Hero: composición de la Red ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl px-6 py-6 sm:px-8" style={{ background: 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
-        <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: INDIGO }} />
+      <div className="relative overflow-hidden rounded-3xl px-6 py-6 sm:px-8" style={{ background: colorRed ? gradienteHeroColor(colorRed) : 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
+        <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: colorRed ?? INDIGO }} />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={{ background: `linear-gradient(135deg, ${INDIGO}, color-mix(in oklab, ${INDIGO} 70%, #000))`, boxShadow: `0 10px 22px -8px color-mix(in oklab, ${INDIGO} 70%, transparent)` }}>
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : `linear-gradient(135deg, ${INDIGO}, color-mix(in oklab, ${INDIGO} 70%, #000))`, boxShadow: '0 10px 22px -8px rgba(0, 0, 0, 0.35)' }}>
               <Users className="h-7 w-7 text-white" strokeWidth={2.1} />
             </span>
             <div>

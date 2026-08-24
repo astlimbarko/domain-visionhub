@@ -32,7 +32,9 @@ import {
   useCdpPerfil,
   useDomicilioCdp,
   useQuitarCargoCdp,
+  useRedes,
 } from '@/hooks/useCasasDePaz';
+import { gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { useInvitarLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from './AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from './DomicilioAnfitrionDialog';
@@ -71,6 +73,11 @@ export function GestionSubliderVista() {
 
   const { data: perfil } = useCdpPerfil(cdpActiva);
   const nombreCdpActiva = perfil?.nombre;
+  const { data: redes = [] } = useRedes(iglesiaActivaId);
+  const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
+  // KAN-251: color elegido para la Red en el Constructor -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
+  const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
   const { data: cargos = [] } = useCargos();
   const { data: sublideres = [], isLoading: cargandoSublideres } = useCargoVigenteCdp(cdpActiva, 'SUBLIDER_CDP');
   const { data: anfitrion = [], isLoading: cargandoAnfitrion } = useCargoVigenteCdp(cdpActiva, 'ANFITRION');
@@ -195,13 +202,13 @@ export function GestionSubliderVista() {
       {/* ============ Encabezado ============ */}
       <div
         className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
-        style={{ background: GRADIENTE_HERO }}
+        style={{ background: colorRed ? gradienteHeroColor(colorRed) : GRADIENTE_HERO }}
       >
         <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
         <div className="relative flex flex-col gap-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : DEGRADADO_IDENTIDAD }}>
                 <Home className="h-8 w-8 text-white" />
               </div>
               <div className="flex flex-col gap-1.5">

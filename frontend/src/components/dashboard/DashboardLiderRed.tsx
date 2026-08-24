@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
-import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico, mosaico } from './DashboardUI';
+import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico, degradadoIdentidadColor } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { useAuthStore } from '@/store/auth.store';
@@ -161,7 +161,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           />
           <div className="flex flex-wrap gap-2 p-5">
             {sinReporte.map((c) => (
-              <span key={c.id} className="rounded-full px-3 py-1 text-[12px] font-semibold text-white" style={{ backgroundColor: AMBAR }}>
+              <span key={c.id} className="max-w-full rounded-full px-3 py-1 text-[12px] font-semibold break-words text-white" style={{ backgroundColor: AMBAR }}>
                 {c.etiqueta}
               </span>
             ))}
@@ -188,15 +188,17 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
                     <span
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
                       style={{
-                        background: colorRed ? mosaico(colorRed) : DEGRADADO_IDENTIDAD,
-                        boxShadow: `0 8px 16px -8px color-mix(in oklab, ${colorRed ?? 'var(--chart-1)'} 55%, transparent)`,
+                        background: colorRed ? degradadoIdentidadColor(colorRed) : DEGRADADO_IDENTIDAD,
+                        boxShadow: '0 8px 16px -8px rgba(0, 0, 0, 0.35)',
                       }}
                     >
                       <SelloCasaDePaz className="h-6 w-6" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{c.etiqueta}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      {/* Bug real (2026-08-23): nombre de líder cortado con
+                          "..." en celulares angostos -- se envuelve completo. */}
+                      <p className="text-sm leading-snug font-semibold break-words text-foreground">{c.etiqueta}</p>
+                      <p className="text-[11px] break-words text-muted-foreground">
                         {c.ultima_asistencia != null ? `${c.ultima_asistencia} asistentes` : 'Sin reporte'}
                         {c.ultima_fecha ? ` · ${fechaLocal(c.ultima_fecha)}` : ''}
                       </p>

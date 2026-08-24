@@ -198,7 +198,7 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
   const capaSuave = texto ? `color-mix(in oklab, ${texto} 16%, transparent)` : undefined;
   const bordeSuave = texto ? `color-mix(in oklab, ${texto} 20%, transparent)` : undefined;
   const lider = data.responsables?.[0];
-  const supervisor = data.supervisores?.[0];
+  const supervisores = (data.supervisores ?? []).slice(0, 2);
 
   return (
     <div
@@ -241,7 +241,15 @@ function NodoRed({ data, selected }: { data: DatosNodoEstructura; selected: bool
         <span className={`mb-1 block text-[9px] font-bold tracking-[0.12em] uppercase ${texto ? '' : 'text-slate-500'}`} style={texto ? { color: texto } : undefined}>
           Supervisor de Red
         </span>
-        <ResumenPersonaRed persona={supervisor} texto={texto} />
+        {supervisores.length > 0 ? (
+          <div className="space-y-1.5">
+            {supervisores.map((supervisor) => (
+              <ResumenPersonaRed key={supervisor.id} persona={supervisor} texto={texto} />
+            ))}
+          </div>
+        ) : (
+          <ResumenPersonaRed texto={texto} />
+        )}
       </div>
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-white/65" />
     </div>

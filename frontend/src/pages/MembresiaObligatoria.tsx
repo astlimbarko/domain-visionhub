@@ -268,13 +268,13 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive"
+                  className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto"
                   onClick={saltar}
                 >
                   Saltar
                 </Button>
               ) : (
-                <Button type="button" variant="outline" className="gap-1.5" onClick={salir}>
+                <Button type="button" variant="outline" className="w-full gap-1.5 sm:w-auto" onClick={salir}>
                   <LogOut className="h-4 w-4" />
                   Salir sin completar
                 </Button>

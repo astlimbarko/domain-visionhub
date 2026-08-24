@@ -22,13 +22,20 @@ export function ConstructorResumen() {
   const rolUI = useRolUI();
 
   const { data, isLoading, isError } = useEstructuraOrganizacional(iglesiaId);
-  const { data: iglesiasHijas = [], isLoading: cargandoHijas } = useIglesiasHijas(iglesiaId);
+  // fn_mis_iglesias_hijas exige ser Pastor o Supervisor (IGLESIA_FUERA_DE_ALCANCE
+  // para cualquier otro rol) -- Líder/Supervisor de Red no administra iglesias
+  // hijas/satélite, así que ni tiene sentido mostrárselas. Sin este chequeo la
+  // query igual se disparaba para ellos y fallaba con un error de permiso
+  // (bug real, 2026-08-21, encontrado al agregarles acceso a esta pantalla).
+  const puedeVerIglesiasHijas = rolUI === 'PASTOR' || rolUI === 'SUPERVISOR';
+  const { data: iglesiasHijas = [], isLoading: cargandoHijas } = useIglesiasHijas(puedeVerIglesiasHijas ? iglesiaId : undefined);
 
   if (rolUI === null) return <Skeleton className="h-96 w-full rounded-2xl" />;
-  // Autoprotegida, mismo patrón que EstructuraOrganizacional.tsx -- Pastor y
-  // Supervisor son los únicos con un ítem de nav que apunta acá
-  // (paneles-contexto.ts, mismo nivel, KAN-86).
-  if (rolUI !== 'PASTOR' && rolUI !== 'SUPERVISOR') return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Autoprotegida, mismo patrón que EstructuraOrganizacional.tsx -- Pastor,
+  // Supervisor y Líder/Supervisor de Red (rolUI 'LIDER_RED') son los únicos
+  // con un ítem de nav que apunta acá (paneles-contexto.ts, mismo nivel,
+  // KAN-86 + KAN-78 + pedido del owner 2026-08-21 para Líder/Supervisor de Red).
+  if (rolUI !== 'PASTOR' && rolUI !== 'SUPERVISOR' && rolUI !== 'LIDER_RED') return <Navigate to={ROUTES.DASHBOARD} replace />;
   if (!iglesiaId) return <Navigate to={ROUTES.DASHBOARD} replace />;
 
   if (isError) {

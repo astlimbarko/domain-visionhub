@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Bell, ClipboardList, LayoutDashboard, Settings2, SlidersHorizontal, Users, Wallet } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -15,8 +16,10 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import {
+  useActivarMoneda,
   useCambiarMonedaDefecto,
   useMonedasActivas,
+  useMonedasCatalogo,
   usePanelConfiguracion,
   useSetConfiguracion,
 } from '@/hooks/usePanelSupervisor';
@@ -63,8 +66,10 @@ export function PanelSupervisor() {
 
   const { data: panel, isLoading } = usePanelConfiguracion(iglesiaActivaId);
   const { data: monedas } = useMonedasActivas(iglesiaActivaId);
+  const { data: catalogoMonedas } = useMonedasCatalogo(iglesiaActivaId);
   const setConfig = useSetConfiguracion(iglesiaActivaId);
   const cambiarMoneda = useCambiarMonedaDefecto(iglesiaActivaId);
+  const activarMonedaMut = useActivarMoneda(iglesiaActivaId);
 
   // Como Super Admin, cada cambio pide el PIN antes de aplicarse -- se
   // pausa la funcion async hasta que el dialogo se confirme o se cancele.
@@ -93,6 +98,16 @@ export function PanelSupervisor() {
       toast.success('Moneda por defecto actualizada. No afecta los ingresos ya registrados.');
     } catch {
       toast.error('No se pudo cambiar la moneda');
+    }
+  }
+
+  async function handleActivarMoneda(monedaId: string) {
+    try {
+      const pin = await pedirPin();
+      await activarMonedaMut.mutateAsync({ monedaId, pin });
+      toast.success('Moneda activada. Ya podés usarla al enviar reportes.');
+    } catch {
+      toast.error('No se pudo activar la moneda');
     }
   }
 
@@ -130,6 +145,24 @@ export function PanelSupervisor() {
               ))}
             </SelectContent>
           </Select>
+
+          {catalogoMonedas?.some((m) => !m.activaEnIglesia) && (
+            <div className="mt-4 flex flex-col gap-1.5 border-t border-border/60 pt-4">
+              <Label>Activar otra moneda</Label>
+              <Select value="" onValueChange={handleActivarMoneda}>
+                <SelectTrigger className="w-full sm:w-56">
+                  <SelectValue placeholder="Elegí una moneda del catálogo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {catalogoMonedas.filter((m) => !m.activaEnIglesia).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.simbolo} {m.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </section>
     ),

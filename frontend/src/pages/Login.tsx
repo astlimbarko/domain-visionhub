@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { iniciarSesion, iniciarSesionConGoogle } from '@/services/auth.service';
@@ -74,7 +75,7 @@ export function Login() {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contrasena" className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">{t('auth.contrasena')}</Label>
-            <Input id="contrasena" type="password" autoComplete="current-password" placeholder="••••••••"
+            <PasswordInput id="contrasena" autoComplete="current-password" placeholder="••••••••"
               className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
               {...register('contrasena')} />
           </div>

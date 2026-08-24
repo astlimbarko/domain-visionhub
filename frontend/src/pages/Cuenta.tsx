@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { CheckCircle2, Circle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL } from '@/components/dashboard/DashboardUI';
@@ -66,7 +66,7 @@ export function Cuenta() {
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Lock} color={AZUL} titulo="Cambiar contraseña" descripcion="Usá una contraseña que no repitas en otro lado" />
         <form onSubmit={formContrasena.handleSubmit(onSubmitContrasena)} className="flex flex-col gap-3 p-5">
-          <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Nueva</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('contrasena')} />{formContrasena.formState.errors.contrasena && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.contrasena.message}</p>}</div>
+          <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Nueva</Label><PasswordInput autoComplete="new-password" className={inputCls} {...formContrasena.register('contrasena')} />{formContrasena.formState.errors.contrasena && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.contrasena.message}</p>}</div>
 
           {nuevaContrasena && (
             <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/40 p-3">
@@ -86,7 +86,7 @@ export function Cuenta() {
             </div>
           )}
 
-          <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><Input type="password" autoComplete="new-password" className={inputCls} {...formContrasena.register('confirmar')} />{formContrasena.formState.errors.confirmar && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.confirmar.message}</p>}</div>
+          <div className="flex flex-col gap-1"><Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label><PasswordInput autoComplete="new-password" className={inputCls} {...formContrasena.register('confirmar')} />{formContrasena.formState.errors.confirmar && <p className="text-[11px] text-destructive">{formContrasena.formState.errors.confirmar.message}</p>}</div>
           <Button type="submit" disabled={enviandoContrasena} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoContrasena ? 'Guardando...' : 'Guardar'}</Button>
         </form>
       </section>

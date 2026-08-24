@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
+import { textoLegibleSobre, mezclarHaciaNegro } from '@/features/estructura-organizacional/contraste';
 
 export { DEGRADADO_IDENTIDAD };
 
@@ -23,12 +24,32 @@ export const TEAL = 'color-mix(in oklab, var(--chart-2) 55%, var(--chart-1))';
 export const mosaico = (c: string) => `linear-gradient(150deg, color-mix(in oklab, ${c} 92%, #000) 0%, color-mix(in oklab, ${c} 70%, #000) 100%)`;
 
 /** Variantes de GRADIENTE_HERO/DEGRADADO_IDENTIDAD derivadas de un color propio
- * (ej. el de la Red) en vez del navy institucional fijo -- mismo estilo
- * diagonal oscuro→claro, solo cambia el tono base. */
-const gradienteHeroColor = (c: string) =>
-  `linear-gradient(120deg, color-mix(in oklab, ${c} 85%, #000) 0%, ${c} 55%, color-mix(in oklab, ${c} 55%, #fff) 100%)`;
-const degradadoIdentidadColor = (c: string) =>
-  `linear-gradient(135deg, ${c} 0%, color-mix(in oklab, ${c} 52%, #fff) 100%)`;
+ * (ej. el de la Red) en vez del navy institucional fijo. El texto del banner
+ * es blanco siempre -- si el color elegido es demasiado claro para eso
+ * (mismo criterio que `textoLegibleSobre`, ya usado en el lienzo del
+ * Constructor para las tarjetas de Red), se oscurece lo necesario; si no,
+ * se muestra casi puro para que el color elegido se note de verdad.
+ *
+ * Bug real (2026-08-22): la primera versión usaba `color-mix(in oklab, ...)`
+ * para mezclar hacia negro/blanco -- funciona en el degradado navy fijo de
+ * siempre (por eso nunca se había notado), pero para un color elegido
+ * libremente en el Constructor terminaba sin notarse el cambio. Se reescribe
+ * con matemática de color en JS plano (`mezclarHaciaNegro`, mismo mecanismo
+ * que ya usa `colorLegibleSobreBlanco` en el lienzo del Constructor) --
+ * devuelve un hex real, sin depender de soporte CSS de mezcla de colores. */
+export const gradienteHeroColor = (c: string) =>
+  textoLegibleSobre(c) === '#ffffff'
+    ? `linear-gradient(120deg, ${c} 0%, ${mezclarHaciaNegro(c, 0.35)} 100%)`
+    : `linear-gradient(120deg, ${mezclarHaciaNegro(c, 0.55)} 0%, ${mezclarHaciaNegro(c, 0.7)} 100%)`;
+
+/** Igual que `mosaico()` pero conservando el color elegido casi puro cuando
+ * ya es lo bastante oscuro para texto blanco -- `mosaico()` oscurece fuerte
+ * siempre (pensado para los 4 colores fijos del sistema), lo que aplastaba
+ * la identidad de un color de Red elegido libremente. */
+export const degradadoIdentidadColor = (c: string) =>
+  textoLegibleSobre(c) === '#ffffff'
+    ? `linear-gradient(135deg, ${c} 0%, ${mezclarHaciaNegro(c, 0.4)} 100%)`
+    : `linear-gradient(135deg, ${mezclarHaciaNegro(c, 0.55)} 0%, ${mezclarHaciaNegro(c, 0.65)} 100%)`;
 
 /** Banner de identidad del dashboard: degradado navy → blanco con el sello en degradado. */
 export function DashboardHero({
@@ -60,14 +81,18 @@ export function DashboardHero({
     >
       <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
       <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: fondoSello }}>
             <Icon className="h-8 w-8 text-white" strokeWidth={2} />
           </div>
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-[11px] font-semibold tracking-[0.18em] text-white/55 uppercase">{eyebrow}</span>
-            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
-            {subtitle && <p className="truncate text-[13px] text-white/70">{subtitle}</p>}
+            {/* Bug real (2026-08-23): con `truncate` un nombre largo (de Red,
+                CdP o líder) quedaba cortado con "..." en celulares angostos --
+                ahora se envuelve en varias líneas en vez de recortarse, para
+                que se lea completo sin importar el ancho de pantalla. */}
+            <h1 className="text-2xl leading-tight font-bold tracking-tight break-words sm:text-3xl">{title}</h1>
+            {subtitle && <p className="text-[13px] break-words text-white/70">{subtitle}</p>}
           </div>
         </div>
         {actions}

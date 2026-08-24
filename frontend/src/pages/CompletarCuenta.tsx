@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/services/supabase';
@@ -97,12 +97,12 @@ export function CompletarCuenta() {
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Contraseña nueva</Label>
-                <Input type="password" autoComplete="new-password" placeholder="Mínimo 8 caracteres" className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50" {...register('contrasena')} />
+                <PasswordInput autoComplete="new-password" placeholder="Mínimo 8 caracteres" className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50" {...register('contrasena')} />
                 {errors.contrasena && <p className="text-[11px] text-destructive">{errors.contrasena.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Confirmar</Label>
-                <Input type="password" autoComplete="new-password" placeholder="••••••••" className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50" {...register('confirmar')} />
+                <PasswordInput autoComplete="new-password" placeholder="••••••••" className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50" {...register('confirmar')} />
                 {errors.confirmar && <p className="text-[11px] text-destructive">{errors.confirmar.message}</p>}
               </div>
               <Button type="submit" disabled={enviando} className="mt-2 h-11 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 active:scale-[0.98]">{enviando ? 'Guardando...' : 'Guardar y entrar'}</Button>

@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
+import { useRedes } from '@/hooks/useCasasDePaz';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import {
   Select,
@@ -64,7 +65,7 @@ const esquema = z.object({
   comentarios: z.string().optional(),
   total_ofrendas: z.string().min(1, 'El total de ofrendas es obligatorio, aunque sea 0'),
   total_diezmos: z.string().optional(),
-  moneda_id: z.string().min(1),
+  moneda_id: z.string().min(1, 'Seleccioná una moneda'),
 });
 
 type FormValues = z.infer<typeof esquema>;
@@ -78,6 +79,11 @@ export function Reportes() {
   const iglesiaActivaId = contextoCdp?.iglesiaId;
   const cdpActiva = contextoCdp?.cdpId;
   const queryClient = useQueryClient();
+  const { data: redes = [] } = useRedes(iglesiaActivaId);
+  const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
+  // KAN-251: color elegido para la Red en el Constructor -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
+  const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
 
   const hoy = aISO(new Date());
 
@@ -312,21 +318,25 @@ export function Reportes() {
 
       if (evangelizadosPendientes.length > 0) {
         try {
-          for (const ev of evangelizadosPendientes) {
-            await crearEvangelizado({
-              casa_de_paz_id: cdpActiva,
-              iglesia_id: iglesiaActivaId,
-              fecha: valores.fecha_reunion,
-              persona_id: ev.persona_id,
-              primer_nombre: ev.primer_nombre,
-              primer_apellido: ev.primer_apellido,
-              sexo: ev.sexo,
-              domicilio: ev.domicilio,
-              telefono: ev.telefono,
-              fecha_nacimiento: ev.fecha_nacimiento,
-              tipo_evangelismo_id: ev.tipo_evangelismo_id,
-            });
-          }
+          // Cada evangelizado es independiente del resto -- antes se creaban
+          // uno por uno en serie (N round-trips seguidos), ahora en paralelo.
+          await Promise.all(
+            evangelizadosPendientes.map((ev) =>
+              crearEvangelizado({
+                casa_de_paz_id: cdpActiva,
+                iglesia_id: iglesiaActivaId,
+                fecha: valores.fecha_reunion,
+                persona_id: ev.persona_id,
+                primer_nombre: ev.primer_nombre,
+                primer_apellido: ev.primer_apellido,
+                sexo: ev.sexo,
+                domicilio: ev.domicilio,
+                telefono: ev.telefono,
+                fecha_nacimiento: ev.fecha_nacimiento,
+                tipo_evangelismo_id: ev.tipo_evangelismo_id,
+              })
+            )
+          );
           queryClient.invalidateQueries({ queryKey: ['evangelismo'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         } catch {
@@ -381,6 +391,7 @@ export function Reportes() {
         icon={ClipboardList}
         eyebrow="Reporte semanal"
         title="Reporte de la reunión"
+        color={colorRed ?? undefined}
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
@@ -680,7 +691,7 @@ export function Reportes() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Moneda</Label>
-                    <Select value={monedaId ?? ''} onValueChange={(v) => setValue('moneda_id', v)}>
+                    <Select value={monedaId ?? ''} onValueChange={(v) => setValue('moneda_id', v, { shouldValidate: true })}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
@@ -692,6 +703,15 @@ export function Reportes() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.moneda_id ? (
+                      <p className="text-sm text-destructive">
+                        {monedas.length === 0
+                          ? 'No hay monedas activas para esta iglesia. Pedile a tu Pastor o Supervisor que active una en el Panel.'
+                          : errors.moneda_id.message}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">Obligatorio</p>
+                    )}
                   </div>
                 </div>
           </div>

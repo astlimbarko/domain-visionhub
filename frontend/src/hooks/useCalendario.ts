@@ -20,6 +20,11 @@ export function useMisCasasDePaz(personaId: string | null) {
     queryKey: ['calendario', 'mis-cdp', personaId],
     queryFn: () => obtenerMisCasasDePaz(personaId as string),
     enabled: !!personaId,
+    // Los cargos de CdP de una persona casi no cambian en medio de una
+    // sesion, y esta query es un waterfall (cargo + N RPC de etiqueta) que
+    // bloquea el render de Evangelismo/Calendario -- sin esto se repetia en
+    // cada navegacion de ida y vuelta a esas paginas (default global 30s).
+    staleTime: 1000 * 60 * 10,
   });
 }
 

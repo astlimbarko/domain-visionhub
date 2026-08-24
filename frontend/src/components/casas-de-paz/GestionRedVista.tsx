@@ -33,8 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { TEAL, AZUL, MORADO, AMBAR } from '@/components/dashboard/DashboardUI';
+import { TEAL, AZUL, MORADO, AMBAR, gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { obtenerUrlBase } from '@/utils/app-url';
 import { ROUTES } from '@/utils/constants';
@@ -55,7 +56,12 @@ import {
 } from '@/hooks/useCasasDePaz';
 import { useDeshacerFusionCdp, useFusionarCdp, useFusionesCdp } from '@/hooks/useFusion';
 import { useMultiplicarCdp, useMultiplicacionesCdp } from '@/hooks/useMultiplicacion';
-import { useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import {
+  useCancelarInvitacionLider,
+  useInvitacionesLider,
+  useInvitarLider,
+  useReenviarInvitacionLider,
+} from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
@@ -101,6 +107,10 @@ export function GestionRedVista() {
 
   const { data: todasRedes = [] } = useRedes(iglesiaActivaId);
   const redInfo = todasRedes.find((r) => r.id === redActiva);
+  // KAN-251: color elegido para la Red en el Constructor -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura),
+  // en ese caso se mantiene el degradado navy institucional de siempre.
+  const colorRed = redInfo?.color && redInfo.color.toUpperCase() !== '#FFFFFF' ? redInfo.color : null;
 
   const { data: cargos = [] } = useCargos();
   const { data: cdps = [], isLoading: cargandoCdps } = useCdps(iglesiaActivaId, redActiva);
@@ -136,6 +146,7 @@ export function GestionRedVista() {
   const [mostrarMultiplicar, setMostrarMultiplicar] = useState(false);
   const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
   const [cdpAEliminar, setCdpAEliminar] = useState<{ id: string; etiqueta: string }>();
+  const [invitacionACancelar, setInvitacionACancelar] = useState<{ id: string; correo: string }>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
   const [dialogoCdp, setDialogoCdp] = useState<CargoDialogoCdp | null>(null);
 
@@ -151,6 +162,7 @@ export function GestionRedVista() {
   const multiplicarCdp = useMultiplicarCdp();
   const invitarLider = useInvitarLider();
   const reenviarInvitacionLider = useReenviarInvitacionLider();
+  const cancelarInvitacionLider = useCancelarInvitacionLider();
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(dialogoRed ? redActiva : undefined, dialogoRed?.codigo ?? 'LIDER_RED');
   const { data: vigentesCdp = [], isLoading: cargandoVigentesCdp } = useCargoVigenteCdp(dialogoCdp?.cdpId, dialogoCdp?.codigo ?? 'LIDER_CDP');
@@ -186,6 +198,16 @@ export function GestionRedVista() {
   }
   function manejarReenviar(id: string) {
     reenviarInvitacionLider.mutate(id, { onSuccess: () => toast.success('Invitación reenviada'), onError: (e) => manejarError(e, 'No se pudo reenviar') });
+  }
+  function manejarCancelarInvitacion() {
+    if (!invitacionACancelar) return;
+    cancelarInvitacionLider.mutate(invitacionACancelar.id, {
+      onSuccess: () => {
+        toast.success('Invitación cancelada');
+        setInvitacionACancelar(undefined);
+      },
+      onError: (e) => manejarError(e, 'No se pudo cancelar la invitación'),
+    });
   }
   function manejarRestablecer(correo: string) {
     solicitarRecuperacionContrasena(correo, `${obtenerUrlBase()}${ROUTES.COMPLETAR_CUENTA}`)
@@ -263,11 +285,11 @@ export function GestionRedVista() {
       </div>
 
       {/* ── Identidad de la Red (hero) ─────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl px-6 py-6" style={{ background: 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
-        <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: TEAL }} />
+      <div className="relative overflow-hidden rounded-3xl px-6 py-6" style={{ background: colorRed ? gradienteHeroColor(colorRed) : 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
+        <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: colorRed ?? TEAL }} />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={{ background: `linear-gradient(135deg, ${TEAL}, color-mix(in oklab, ${TEAL} 70%, #000))`, boxShadow: `0 10px 22px -8px color-mix(in oklab, ${TEAL} 70%, transparent)` }}>
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : `linear-gradient(135deg, ${TEAL}, color-mix(in oklab, ${TEAL} 70%, #000))`, boxShadow: '0 10px 22px -8px rgba(0, 0, 0, 0.35)' }}>
               <Network className="h-7 w-7 text-white" strokeWidth={2.1} />
             </span>
             <div>
@@ -291,7 +313,16 @@ export function GestionRedVista() {
         </div>
       </div>
 
-      {/* ── Casas de Paz de la Red (foco principal, escalable) ─────────────────── */}
+      {/* ── Secciones en pestañas: antes iban todas apiladas y obligaban a bajar
+          mucho para llegar a Invitaciones -- ahora solo una a la vez. ────── */}
+      <Tabs defaultValue="cdps">
+        <TabsList>
+          <TabsTrigger value="cdps"><Home /> Casas de Paz</TabsTrigger>
+          <TabsTrigger value="operaciones"><GitMerge /> Fusiones y Multiplicaciones</TabsTrigger>
+          <TabsTrigger value="invitaciones"><Mail /> Invitaciones</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cdps">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Home}
@@ -388,7 +419,9 @@ export function GestionRedVista() {
           )}
         </div>
       </section>
+        </TabsContent>
 
+        <TabsContent value="operaciones">
       {/* ── Operaciones especiales (solo entre CdP de la red) ──────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -434,13 +467,17 @@ export function GestionRedVista() {
           </div>
         </section>
       </div>
+        </TabsContent>
 
+        <TabsContent value="invitaciones">
       {/* ── Invitaciones (acotadas a la red) ───────────────────────────────────── */}
-      {invitacionesRed.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="De las Casas de Paz de tu Red" />
-          <div className="flex flex-col gap-2 p-5">
-            {invitacionesRed.map((inv) => (
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Mail} color={AMBAR} titulo="Invitaciones a líderes" descripcion="De las Casas de Paz de tu Red" />
+        <div className="flex flex-col gap-2 p-5">
+          {invitacionesRed.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin invitaciones todavía.</p>
+          ) : (
+            invitacionesRed.map((inv) => (
               <div key={inv.id} className="flex flex-col gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{inv.correo}</p>
@@ -451,6 +488,14 @@ export function GestionRedVista() {
                     <>
                       <Badge variant="outline" className="border-amber-500 text-amber-600">Pendiente</Badge>
                       <Button variant="ghost" size="sm" className="gap-1.5" disabled={reenviarInvitacionLider.isPending} onClick={() => manejarReenviar(inv.id)}><RefreshCw className="h-3.5 w-3.5" /> Reenviar</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                        onClick={() => setInvitacionACancelar({ id: inv.id, correo: inv.correo })}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                      </Button>
                     </>
                   ) : (
                     <>
@@ -460,10 +505,12 @@ export function GestionRedVista() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            ))
+          )}
+        </div>
+      </section>
+        </TabsContent>
+      </Tabs>
 
       {/* ── Diálogos ───────────────────────────────────────────────────────────── */}
       <CrearCdpDialog
@@ -544,6 +591,20 @@ export function GestionRedVista() {
         }
         procesando={eliminarCdp.isPending}
         onConfirmar={manejarEliminarCdp}
+      />
+
+      <ConfirmarCambioDialog
+        open={!!invitacionACancelar}
+        onOpenChange={(open) => !open && setInvitacionACancelar(undefined)}
+        titulo="Eliminar invitación"
+        descripcion={
+          invitacionACancelar
+            ? `¿Seguro que querés eliminar la invitación pendiente a "${invitacionACancelar.correo}"? El enlace que se le envió deja de funcionar.`
+            : undefined
+        }
+        procesando={cancelarInvitacionLider.isPending}
+        requiereMotivo={false}
+        onConfirmar={manejarCancelarInvitacion}
       />
     </div>
   );

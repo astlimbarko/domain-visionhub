@@ -93,10 +93,28 @@ function arista(id: string, source: string, target: string, color = '#64748b'): 
   };
 }
 
-export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
+export function crearGrafoEstructura(
+  datos: EstructuraOrganizacionalDatos,
+  // Pedido del owner (2026-08-21): Líder/Supervisor de Red solo deben ver SU
+  // propia Red (o Redes, si lidera/supervisa más de una) y las Casas de Paz
+  // de esa Red -- nada más. Ni Departamentos (otra rama administrativa) ni
+  // Pastor/Supervisor de la Visión en Acción, ni el resto de las Redes de la
+  // iglesia (antes se veían en modo lectura, KAN-78; ahora ni eso).
+  opciones?: {
+    ocultarDepartamentos?: boolean;
+    ocultarPastorSupervisor?: boolean;
+    /** Si se pasa, solo se arman los nodos de estas Redes (y sus CdP) -- el resto ni se calcula. */
+    soloRedesIds?: Set<string>;
+  },
+): {
   nodes: Node<DatosNodoEstructura>[];
   edges: Edge[];
 } {
+  const ocultarDepartamentos = opciones?.ocultarDepartamentos ?? false;
+  const ocultarPastorSupervisor = opciones?.ocultarPastorSupervisor ?? false;
+  const redesVisibles = opciones?.soloRedesIds
+    ? datos.redes.filter((red) => opciones.soloRedesIds!.has(red.id))
+    : datos.redes;
   const nodes: Node<DatosNodoEstructura>[] = [];
   const edges: Edge[] = [];
   // Alto de cada fila de Casa de Paz en el lienzo. Antes 110 alcanzaba,
@@ -106,9 +124,9 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   const ALTO_FILA_CDP = 135;
   const maximoCasasPorRed = Math.max(
     0,
-    ...datos.redes.map((red) => datos.casasDePaz.filter((casa) => casa.redId === red.id).length),
+    ...redesVisibles.map((red) => datos.casasDePaz.filter((casa) => casa.redId === red.id).length),
   );
-  const cantidadColumnasRed = Math.max(datos.redes.length, 1);
+  const cantidadColumnasRed = Math.max(redesVisibles.length, 1);
   const anchoGrupoRedes = Math.max(535, 50 + cantidadColumnasRed * 270);
   // +1 fila: cada Red ahora suma un boton "+ Nueva Casa de Paz" despues de
   // su ultima Casa de Paz real (bug real 2026-08-07, encontrado por el
@@ -117,45 +135,57 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
   const altoGrupoRedes = 300 + (maximoCasasPorRed + 1) * ALTO_FILA_CDP;
 
   nodes.push(
-    nodo('pastor', 0, 0, {
-      tipo: 'PASTOR_SLOT',
-      titulo: 'Pastor',
-      subtitulo: resumenResponsables(datos.pastores, 'Pastor sin asignar'),
-      etiquetaRol: 'Pastor',
-      responsables: datos.pastores,
-      buscable: `Pastor ${datos.pastores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
-    }),
-    nodo('supervisor', 285, 0, {
-      tipo: 'SUPERVISOR_SLOT',
-      titulo: 'Supervisor de la Visión en Acción',
-      subtitulo: resumenResponsables(datos.supervisores, 'Supervisor sin asignar'),
-      etiquetaRol: 'Supervisor',
-      responsables: datos.supervisores,
-      buscable: `Supervisor de la Visión en Acción ${datos.supervisores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
-    }),
-    nodo('grupo-departamentos', 590, -250, {
-      tipo: 'GRUPO_DEPARTAMENTOS',
-      titulo: 'Departamentos',
-      ancho: 1035,
-      alto: 190,
-    }),
+    ...(ocultarPastorSupervisor
+      ? []
+      : [
+          nodo('pastor', 0, 0, {
+            tipo: 'PASTOR_SLOT' as const,
+            titulo: 'Pastor',
+            subtitulo: resumenResponsables(datos.pastores, 'Pastor sin asignar'),
+            etiquetaRol: 'Pastor',
+            responsables: datos.pastores,
+            buscable: `Pastor ${datos.pastores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
+          }),
+          nodo('supervisor', 285, 0, {
+            tipo: 'SUPERVISOR_SLOT' as const,
+            titulo: 'Supervisor de la Visión en Acción',
+            subtitulo: resumenResponsables(datos.supervisores, 'Supervisor sin asignar'),
+            etiquetaRol: 'Supervisor',
+            responsables: datos.supervisores,
+            buscable: `Supervisor de la Visión en Acción ${datos.supervisores.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
+          }),
+        ]),
+    ...(ocultarDepartamentos
+      ? []
+      : [
+          nodo('grupo-departamentos', 590, -250, {
+            tipo: 'GRUPO_DEPARTAMENTOS' as const,
+            titulo: 'Departamentos',
+            ancho: 1035,
+            alto: 190,
+          }),
+        ]),
     nodo('grupo-redes', 590, 100, {
       tipo: 'GRUPO_REDES',
       titulo: 'Redes de Casas de Paz',
-      subtitulo: datos.redes.length === 0 ? 'Sin redes creadas' : `${datos.redes.length} redes`,
+      subtitulo: redesVisibles.length === 0 ? 'Sin redes creadas' : `${redesVisibles.length} redes`,
       ancho: anchoGrupoRedes,
       alto: altoGrupoRedes,
     }),
   );
   edges.push(
-    arista('pastor-supervisor', 'pastor', 'supervisor'),
-    arista('supervisor-departamentos', 'supervisor', 'grupo-departamentos'),
-    arista('supervisor-redes', 'supervisor', 'grupo-redes'),
+    ...(ocultarPastorSupervisor ? [] : [arista('pastor-supervisor', 'pastor', 'supervisor')]),
+    ...(ocultarDepartamentos || ocultarPastorSupervisor
+      ? []
+      : [arista('supervisor-departamentos', 'supervisor', 'grupo-departamentos')]),
+    ...(ocultarPastorSupervisor ? [] : [arista('supervisor-redes', 'supervisor', 'grupo-redes')]),
   );
 
-  const departamentos = DEPARTAMENTOS_OFICIALES.map((oficial) =>
-    datos.departamentos.find((departamento) => departamento.codigo.toUpperCase() === oficial.codigo) ?? oficial,
-  );
+  const departamentos = ocultarDepartamentos
+    ? []
+    : DEPARTAMENTOS_OFICIALES.map((oficial) =>
+        datos.departamentos.find((departamento) => departamento.codigo.toUpperCase() === oficial.codigo) ?? oficial,
+      );
   departamentos.forEach((departamento, indice) => {
     const id = `departamento:${departamento.id}`;
     const codigo = departamento.codigo.toUpperCase();
@@ -172,7 +202,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
     );
   });
 
-  if (datos.redes.length === 0) {
+  if (redesVisibles.length === 0) {
     nodes.push(
       nodo('redes-vacio', 615, 175, {
         tipo: 'RED',
@@ -183,7 +213,7 @@ export function crearGrafoEstructura(datos: EstructuraOrganizacionalDatos): {
       }),
     );
   } else {
-    for (const [indiceRed, red] of datos.redes.entries()) {
+    for (const [indiceRed, red] of redesVisibles.entries()) {
       // Pedido del owner (2026-08-22): si el Líder de Red también lidera una
       // de las Casas de Paz de su propia Red, esa CdP va primera en la
       // columna -- no se mezcla con el resto en orden alfabético.

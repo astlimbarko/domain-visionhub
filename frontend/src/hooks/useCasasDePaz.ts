@@ -77,6 +77,10 @@ export function useCargoVigenteCdp(cdpId: string | undefined, codigo: CargoCdpCo
     queryKey: ['estructura', 'cargo-cdp', cdpId, codigo],
     queryFn: () => obtenerCargoVigenteCdp(cdpId as string, codigo),
     enabled: !!cdpId,
+    // Perfil de Casa de Paz llama esto 2 veces (Sublider + Anfitrion) sin
+    // staleTime propio -- no cambia en cada visita, evita repetir la query
+    // cada vez que se vuelve a esta pantalla despues de >30s (default global).
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -215,6 +219,7 @@ export function useDomicilioCdp(cdpId: string | undefined) {
     queryKey: ['estructura', 'domicilio-cdp', cdpId],
     queryFn: () => obtenerDomicilioCdp(cdpId as string),
     enabled: !!cdpId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -232,6 +237,7 @@ export function useCdpPerfil(cdpId: string | undefined) {
     queryKey: ['estructura', 'cdp-perfil', cdpId],
     queryFn: () => obtenerCdpPerfil(cdpId as string),
     enabled: !!cdpId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
