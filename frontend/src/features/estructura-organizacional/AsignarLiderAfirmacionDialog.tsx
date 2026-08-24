@@ -68,20 +68,21 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
     }
   }
 
-  function handleInvitar(correo: string) {
-    invitarLider.mutate(
-      { correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin },
-      {
-        onSuccess: (resultado) => {
-          // KAN-16x: si el correo ya tenía cuenta, se asignó directo (no se
-          // mandó ninguna invitación) -- mensaje distinto para no confundir.
-          toast.success(resultado.yaExistia ? 'Asignado a la cuenta existente' : `Invitación enviada a ${correo}`);
-          setPin('');
-          void invalidarEstructura();
-        },
-        onError: (e) => manejarErrorCargo(e, 'No se pudo invitar'),
-      },
-    );
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio.
+  async function handleInvitar(correo: string) {
+    try {
+      await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin });
+      toast.success(`Invitación enviada a ${correo}`);
+      setPin('');
+      void invalidarEstructura();
+    } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
+      manejarErrorCargo(e, 'No se pudo invitar');
+    }
   }
 
   function handleQuitar(id: string, pinQuitar?: string) {

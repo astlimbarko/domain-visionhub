@@ -247,7 +247,11 @@ otp_length = 6
 # mismo vencimiento -- 1 hora era muy poco margen para que alguien revise su
 # correo y acepte. Afecta tambien enlaces de recuperacion de contrasena y
 # confirmacion de registro (mismo mecanismo de token en GoTrue).
-otp_expiry = 259200
+# Subido de nuevo a 5 dias (432000) a pedido del owner (2026-08-22): 3 dias
+# seguia siendo poco margen para invitaciones que se pasan por alto. Mismo
+# alcance global de siempre (recuperacion de contrasena y confirmacion de
+# registro tambien quedan en 5 dias, no hay vencimiento separado por tipo).
+otp_expiry = 432000
 
 # Use a production-ready SMTP server (Brevo).
 # La contrasena NO se commitea: se resuelve desde la variable de entorno

@@ -56,12 +56,7 @@ import {
 } from '@/hooks/useCasasDePaz';
 import { useDeshacerFusionCdp, useFusionarCdp, useFusionesCdp } from '@/hooks/useFusion';
 import { useMultiplicarCdp, useMultiplicacionesCdp } from '@/hooks/useMultiplicacion';
-import {
-  useCancelarInvitacionLider,
-  useInvitacionesLider,
-  useInvitarLider,
-  useReenviarInvitacionLider,
-} from '@/hooks/useInvitacionLider';
+import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { FusionarCdpDialog } from '@/components/casas-de-paz/FusionarCdpDialog';
@@ -146,7 +141,6 @@ export function GestionRedVista() {
   const [mostrarMultiplicar, setMostrarMultiplicar] = useState(false);
   const [deshacerCdpId, setDeshacerCdpId] = useState<string>();
   const [cdpAEliminar, setCdpAEliminar] = useState<{ id: string; etiqueta: string }>();
-  const [invitacionACancelar, setInvitacionACancelar] = useState<{ id: string; correo: string }>();
   const [dialogoRed, setDialogoRed] = useState<CargoDialogoRed | null>(null);
   const [dialogoCdp, setDialogoCdp] = useState<CargoDialogoCdp | null>(null);
 
@@ -163,6 +157,7 @@ export function GestionRedVista() {
   const invitarLider = useInvitarLider();
   const reenviarInvitacionLider = useReenviarInvitacionLider();
   const cancelarInvitacionLider = useCancelarInvitacionLider();
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null);
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(dialogoRed ? redActiva : undefined, dialogoRed?.codigo ?? 'LIDER_RED');
   const { data: vigentesCdp = [], isLoading: cargandoVigentesCdp } = useCargoVigenteCdp(dialogoCdp?.cdpId, dialogoCdp?.codigo ?? 'LIDER_CDP');
@@ -181,32 +176,30 @@ export function GestionRedVista() {
     else toast.error(generico);
   }
 
-  // KAN-206: si el correo ya tenia cuenta, se devuelve { yaExistia: true }
-  // para que AsignarCargoDialog muestre la confirmacion adentro suyo y se
-  // cierre solo, en vez de un toast con el modal quedando abierto.
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio.
   async function manejarInvitarCdp(correo: string) {
     if (!dialogoCdp) return;
     try {
-      const resultado = await invitarLider.mutateAsync(
+      await invitarLider.mutateAsync(
         { correo, rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: dialogoCdp.cdpId },
       );
-      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
-      return resultado;
+      toast.success(`Invitación enviada a ${correo}`);
     } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
       manejarError(e, 'No se pudo invitar');
     }
   }
   function manejarReenviar(id: string) {
     reenviarInvitacionLider.mutate(id, { onSuccess: () => toast.success('Invitación reenviada'), onError: (e) => manejarError(e, 'No se pudo reenviar') });
   }
-  function manejarCancelarInvitacion() {
-    if (!invitacionACancelar) return;
-    cancelarInvitacionLider.mutate(invitacionACancelar.id, {
-      onSuccess: () => {
-        toast.success('Invitación cancelada');
-        setInvitacionACancelar(undefined);
-      },
-      onError: (e) => manejarError(e, 'No se pudo cancelar la invitación'),
+  function manejarCancelar(id: string) {
+    cancelarInvitacionLider.mutate(id, {
+      onSuccess: () => { toast.success('Invitación cancelada'); setCancelandoId(null); },
+      onError: (e) => { manejarError(e, 'No se pudo cancelar'); setCancelandoId(null); },
     });
   }
   function manejarRestablecer(correo: string) {
@@ -483,19 +476,21 @@ export function GestionRedVista() {
                   <p className="truncate font-medium">{inv.correo}</p>
                   <p className="truncate text-xs text-muted-foreground">{inv.casa_de_paz_etiqueta ?? inv.red_nombre} · {new Date(inv.fecha_creacion).toLocaleDateString('es-BO')}</p>
                 </div>
+                {cancelandoId === inv.id ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">¿Cancelar esta invitación?</span>
+                    <Button variant="ghost" size="sm" disabled={cancelarInvitacionLider.isPending} onClick={() => setCancelandoId(null)}>No</Button>
+                    <Button variant="destructive" size="sm" disabled={cancelarInvitacionLider.isPending} onClick={() => manejarCancelar(inv.id)}>
+                      {cancelarInvitacionLider.isPending ? 'Cancelando...' : 'Sí, cancelar'}
+                    </Button>
+                  </div>
+                ) : (
                 <div className="flex flex-wrap items-center gap-2">
                   {inv.estado === 'PENDIENTE' ? (
                     <>
                       <Badge variant="outline" className="border-amber-500 text-amber-600">Pendiente</Badge>
                       <Button variant="ghost" size="sm" className="gap-1.5" disabled={reenviarInvitacionLider.isPending} onClick={() => manejarReenviar(inv.id)}><RefreshCw className="h-3.5 w-3.5" /> Reenviar</Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-destructive hover:text-destructive"
-                        onClick={() => setInvitacionACancelar({ id: inv.id, correo: inv.correo })}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                      </Button>
+                      <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => setCancelandoId(inv.id)}>Cancelar</Button>
                     </>
                   ) : (
                     <>
@@ -504,6 +499,7 @@ export function GestionRedVista() {
                     </>
                   )}
                 </div>
+                )}
               </div>
             ))
           )}
@@ -591,20 +587,6 @@ export function GestionRedVista() {
         }
         procesando={eliminarCdp.isPending}
         onConfirmar={manejarEliminarCdp}
-      />
-
-      <ConfirmarCambioDialog
-        open={!!invitacionACancelar}
-        onOpenChange={(open) => !open && setInvitacionACancelar(undefined)}
-        titulo="Eliminar invitación"
-        descripcion={
-          invitacionACancelar
-            ? `¿Seguro que querés eliminar la invitación pendiente a "${invitacionACancelar.correo}"? El enlace que se le envió deja de funcionar.`
-            : undefined
-        }
-        procesando={cancelarInvitacionLider.isPending}
-        requiereMotivo={false}
-        onConfirmar={manejarCancelarInvitacion}
       />
     </div>
   );

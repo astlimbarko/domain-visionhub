@@ -43,7 +43,7 @@ import {
   useMultiplicacionesCdp,
   useMultiplicacionesRed,
 } from '@/hooks/useMultiplicacion';
-import { useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { CrearCdpDialog } from '@/components/casas-de-paz/CrearCdpDialog';
 import { HistoricoCdpEliminadasVista } from '@/components/casas-de-paz/HistoricoCdpEliminadasVista';
@@ -144,6 +144,8 @@ export function GestionEstructuraVista() {
   const { data: invitacionesLider = [] } = useInvitacionesLider(iglesiaActivaId);
   const invitarLider = useInvitarLider();
   const reenviarInvitacionLider = useReenviarInvitacionLider();
+  const cancelarInvitacionLider = useCancelarInvitacionLider();
+  const [cancelandoInvitacionId, setCancelandoInvitacionId] = useState<string | null>(null);
 
   const { data: vigentesRed = [], isLoading: cargandoVigentesRed } = useCargoVigenteRed(
     dialogoRed?.redId,
@@ -192,21 +194,23 @@ export function GestionEstructuraVista() {
     }
   }
 
-  // KAN-206: si el correo ya tenia cuenta, se devuelve { yaExistia: true }
-  // para que AsignarCargoDialog muestre la confirmacion adentro suyo y se
-  // cierre solo, en vez de un toast con el modal quedando abierto.
+  // KAN-24x: si el correo ya tenia cuenta con una Persona vinculada, el
+  // backend devuelve 409 con personaId/personaNombre -- se lo pasamos a
+  // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
+  // de asignar en silencio.
   async function manejarInvitarCdp(correo: string) {
     if (!dialogoCdp) return;
     try {
-      const resultado = await invitarLider.mutateAsync({
+      await invitarLider.mutateAsync({
         correo,
         rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP',
         redId: null,
         casaDePazId: dialogoCdp.cdpId,
       });
-      if (!resultado.yaExistia) toast.success(`Invitación enviada a ${correo}`);
-      return resultado;
+      toast.success(`Invitación enviada a ${correo}`);
     } catch (e) {
+      const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
+      if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
       manejarError(e, 'No se pudo invitar');
     }
   }
@@ -229,6 +233,13 @@ export function GestionEstructuraVista() {
     reenviarInvitacionLider.mutate(invitacionId, {
       onSuccess: () => toast.success('Invitación reenviada'),
       onError: (e) => manejarError(e, 'No se pudo reenviar la invitación'),
+    });
+  }
+
+  function manejarCancelarInvitacion(invitacionId: string) {
+    cancelarInvitacionLider.mutate(invitacionId, {
+      onSuccess: () => { toast.success('Invitación cancelada'); setCancelandoInvitacionId(null); },
+      onError: (e) => { manejarError(e, 'No se pudo cancelar la invitación'); setCancelandoInvitacionId(null); },
     });
   }
 
@@ -697,6 +708,15 @@ export function GestionEstructuraVista() {
                   {new Date(inv.fecha_creacion).toLocaleDateString('es-BO')}
                 </p>
               </div>
+              {cancelandoInvitacionId === inv.id ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">¿Cancelar esta invitación?</span>
+                  <Button variant="ghost" size="sm" disabled={cancelarInvitacionLider.isPending} onClick={() => setCancelandoInvitacionId(null)}>No</Button>
+                  <Button variant="destructive" size="sm" disabled={cancelarInvitacionLider.isPending} onClick={() => manejarCancelarInvitacion(inv.id)}>
+                    {cancelarInvitacionLider.isPending ? 'Cancelando...' : 'Sí, cancelar'}
+                  </Button>
+                </div>
+              ) : (
               <div className="flex flex-wrap items-center gap-2">
                 {inv.estado === 'PENDIENTE' ? (
                   <>
@@ -713,6 +733,9 @@ export function GestionEstructuraVista() {
                       <RefreshCw className="h-3.5 w-3.5" />
                       Reenviar
                     </Button>
+                    <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => setCancelandoInvitacionId(inv.id)}>
+                      Cancelar
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -726,6 +749,7 @@ export function GestionEstructuraVista() {
                   </>
                 )}
               </div>
+              )}
             </div>
           ))}
         </div>
