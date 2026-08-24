@@ -135,8 +135,17 @@ export function useAsignarCargoRedEstructura(iglesiaId: string) {
 export function useQuitarCargoRedEstructura(iglesiaId: string) {
   const invalidar = useInvalidarEstructuraOrganizacional(iglesiaId);
   return useMutation({
-    mutationFn: ({ redId, codigo, otp }: { redId: string; codigo: CargoRedEstructura; otp?: string | null }) =>
-      quitarCargoRedEstructura(redId, codigo, otp),
+    mutationFn: ({
+      redId,
+      codigo,
+      personaId,
+      otp,
+    }: {
+      redId: string;
+      codigo: CargoRedEstructura;
+      personaId?: string | null;
+      otp?: string | null;
+    }) => quitarCargoRedEstructura(redId, codigo, personaId, otp),
     onSuccess: invalidar,
   });
 }
@@ -195,10 +204,10 @@ export function useConfigurarOtpEstructura(iglesiaId: string) {
   });
 }
 
-export function useBuscarPersonasEstructura(iglesiaId: string, texto: string) {
+export function useBuscarPersonasEstructura(iglesiaId: string, texto: string, permitirGlobal = true) {
   return useQuery({
-    queryKey: ['estructura-organizacional', iglesiaId, 'buscar-personas', texto],
-    queryFn: () => buscarPersonasEstructura(iglesiaId, texto),
+    queryKey: ['estructura-organizacional', iglesiaId, 'buscar-personas', texto, permitirGlobal],
+    queryFn: () => buscarPersonasEstructura(iglesiaId, texto, permitirGlobal),
     enabled: texto.trim().length >= 2,
     staleTime: 30_000,
   });

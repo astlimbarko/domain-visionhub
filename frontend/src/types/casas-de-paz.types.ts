@@ -2,6 +2,7 @@ export interface RedResumen {
   id: string;
   nombre: string;
   activo: boolean;
+  color: string | null;
   lider_nombre: string | null;
   encargado_departamentos_nombre: string | null;
   encargado_ministerio_nombre: string | null;

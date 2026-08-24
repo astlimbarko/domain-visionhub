@@ -65,11 +65,14 @@ function leerCamaraGuardada(iglesiaId: string): { x: number; y: number; zoom: nu
 
 function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps) {
   const { data, isLoading, error } = useEstructuraOrganizacional(iglesiaId);
-  // KAN-78: Lider de Red y Supervisor de Red (misma paridad de siempre, ver
-  // fn_es_lider_de_red) ven el lienzo completo pero solo pueden editar su
-  // propia Red -- el resto (incluida su propia tarjeta y la de Pastor/
-  // Supervisor) se ve en modo lectura, mismo criterio que ya usa el Supervisor
-  // con Pastor. `roles.redes_lider` trae exactamente las Redes que lidera en
+  // KAN-78 (2026-08-09) dejaba a Lider/Supervisor de Red ver el lienzo
+  // completo en modo lectura (todo el organigrama) y editar solo su propia
+  // Red. Acotado más (pedido del owner, 2026-08-21): ahora solo ven SU
+  // propia Red (o Redes, si lidera/supervisa más de una) y sus Casas de
+  // Paz -- ni Departamentos, ni Pastor/Supervisor de la Visión en Acción, ni
+  // el resto de las Redes de la iglesia, ni siquiera de lectura. `redesEditablesIds`
+  // (antes solo para decidir qué se puede editar) ahora también filtra qué
+  // se muestra. `roles.redes_lider` trae exactamente las Redes que lidera en
   // esta iglesia puntual (no la iglesia activa del store, que puede no
   // coincidir si esta viendo el lienzo de otra iglesia).
   const { data: misRoles } = useMisRoles(rolUI === 'LIDER_RED' ? iglesiaId : undefined);
@@ -136,8 +139,16 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
 
   const grafoBase = useMemo(() => {
     if (!data) return { nodes: [], edges: [] };
-    return crearGrafoEstructura(data);
-  }, [data]);
+    const esRolRed = rolUI === 'LIDER_RED';
+    // Pedido del owner (2026-08-21): Líder/Supervisor de Red solo ven su
+    // propia Red y sus Casas de Paz -- ni Departamentos, ni Pastor/
+    // Supervisor de la Visión, ni el resto de las Redes de la iglesia.
+    return crearGrafoEstructura(data, {
+      ocultarDepartamentos: esRolRed,
+      ocultarPastorSupervisor: esRolRed,
+      soloRedesIds: esRolRed ? redesEditablesIds : undefined,
+    });
+  }, [data, rolUI, redesEditablesIds]);
 
   useEffect(() => {
     setNodes(grafoBase.nodes);

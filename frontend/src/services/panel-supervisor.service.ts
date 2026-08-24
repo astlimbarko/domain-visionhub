@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { MonedaActiva, PanelConfiguracion } from '@/types/panel-supervisor.types';
+import type { MonedaActiva, MonedaCatalogo, PanelConfiguracion } from '@/types/panel-supervisor.types';
 import type { CargoVigente } from '@/types/casas-de-paz.types';
 
 export async function obtenerPanelConfiguracion(iglesiaId: string): Promise<PanelConfiguracion> {
@@ -49,6 +49,29 @@ export async function obtenerMonedasActivas(iglesiaId: string): Promise<MonedaAc
 
 export async function cambiarMonedaDefecto(iglesiaId: string, monedaId: string, pin?: string) {
   const { error } = await supabase.rpc('fn_cambiar_moneda_defecto', {
+    p_iglesia_id: iglesiaId,
+    p_moneda_id: monedaId,
+    p_pin: pin ?? null,
+  });
+  if (error) throw error;
+}
+
+// El catalogo (moneda) tiene SELECT abierto a cualquier authenticated
+// (16_rls.sql, pol_moneda_select) -- no hace falta RPC para leerlo, solo
+// para escribir en iglesia_moneda (ver activarMoneda).
+export async function obtenerMonedasCatalogo(iglesiaId: string): Promise<MonedaCatalogo[]> {
+  const [{ data: catalogo, error: errorCatalogo }, { data: activas, error: errorActivas }] = await Promise.all([
+    supabase.from('moneda').select('id, codigo, nombre, simbolo').order('orden'),
+    supabase.from('iglesia_moneda').select('moneda_id').eq('iglesia_id', iglesiaId).eq('activa', true),
+  ]);
+  if (errorCatalogo) throw errorCatalogo;
+  if (errorActivas) throw errorActivas;
+  const activasSet = new Set((activas ?? []).map((r) => r.moneda_id));
+  return (catalogo ?? []).map((m) => ({ ...m, activaEnIglesia: activasSet.has(m.id) }));
+}
+
+export async function activarMoneda(iglesiaId: string, monedaId: string, pin?: string) {
+  const { error } = await supabase.rpc('fn_activar_moneda', {
     p_iglesia_id: iglesiaId,
     p_moneda_id: monedaId,
     p_pin: pin ?? null,

@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
-import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico } from './DashboardUI';
+import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico, degradadoIdentidadColor } from './DashboardUI';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { useAuthStore } from '@/store/auth.store';
@@ -81,6 +81,10 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
 
   const { red, kpi, casas_de_paz, cdp_sin_reporte_semana } = data;
   const ingresos = ingresosPeriodo ?? data.ingresos ?? [];
+  // Color elegido para la Red en el Constructor (KAN-249) -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura),
+  // en ese caso se mantiene el degradado navy institucional de siempre.
+  const colorRed = red.color && red.color.toUpperCase() !== '#FFFFFF' ? red.color : null;
 
   const ingresosPorMoneda = new Map<string, number>();
   for (const i of ingresos) ingresosPorMoneda.set(i.moneda_simbolo, (ingresosPorMoneda.get(i.moneda_simbolo) ?? 0) + Number(i.total));
@@ -108,6 +112,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
         eyebrow="Red"
         title={red.nombre}
         subtitle={nombreLider ? `${esSublider ? 'Supervisor de la Red en Acción' : 'Líder'}: ${nombreLider}` : undefined}
+        color={colorRed ?? undefined}
       />
 
       {/* ── Barra de período ──────────────────────────────────────────────────── */}
@@ -156,7 +161,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           />
           <div className="flex flex-wrap gap-2 p-5">
             {sinReporte.map((c) => (
-              <span key={c.id} className="rounded-full px-3 py-1 text-[12px] font-semibold text-white" style={{ backgroundColor: AMBAR }}>
+              <span key={c.id} className="max-w-full rounded-full px-3 py-1 text-[12px] font-semibold break-words text-white" style={{ backgroundColor: AMBAR }}>
                 {c.etiqueta}
               </span>
             ))}
@@ -182,13 +187,18 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
                   >
                     <span
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
-                      style={{ background: DEGRADADO_IDENTIDAD, boxShadow: '0 8px 16px -8px color-mix(in oklab, var(--chart-1) 55%, transparent)' }}
+                      style={{
+                        background: colorRed ? degradadoIdentidadColor(colorRed) : DEGRADADO_IDENTIDAD,
+                        boxShadow: '0 8px 16px -8px rgba(0, 0, 0, 0.35)',
+                      }}
                     >
                       <SelloCasaDePaz className="h-6 w-6" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{c.etiqueta}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      {/* Bug real (2026-08-23): nombre de líder cortado con
+                          "..." en celulares angostos -- se envuelve completo. */}
+                      <p className="text-sm leading-snug font-semibold break-words text-foreground">{c.etiqueta}</p>
+                      <p className="text-[11px] break-words text-muted-foreground">
                         {c.ultima_asistencia != null ? `${c.ultima_asistencia} asistentes` : 'Sin reporte'}
                         {c.ultima_fecha ? ` · ${fechaLocal(c.ultima_fecha)}` : ''}
                       </p>

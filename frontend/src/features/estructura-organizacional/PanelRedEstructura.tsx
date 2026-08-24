@@ -95,6 +95,11 @@ interface CargoProps {
   onCorregirCorreo: (invitacionId: string, correoNuevo: string) => void;
   onCancelarInvitacion: (invitacionId: string) => void;
   procesando: boolean;
+  /** KAN-245: con hasta 2 Supervisores de Red posibles, "Cambiar" ya no
+   * tiene un reemplazo único e inequívoco -- la acción correcta pasa a ser
+   * "Quitar" + "Asignar" el otro. Líder de Red no la usa (sigue siendo
+   * single-slot con reemplazo automático en el backend). */
+  ocultarCambiar?: boolean;
 }
 
 function ResumenCargo({
@@ -106,6 +111,7 @@ function ResumenCargo({
   onCorregirCorreo,
   onCancelarInvitacion,
   procesando,
+  ocultarCambiar = false,
 }: CargoProps) {
   const pendiente = responsable?.membresiaPendiente ?? false;
   // `responsable.etiqueta` ya trae la cascada nombre -> correo -> "Persona
@@ -147,14 +153,16 @@ function ResumenCargo({
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onAbrir}
-          disabled={procesando}
-          className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {responsable ? 'Cambiar' : 'Asignar'}
-        </button>
+        {(!responsable || !ocultarCambiar) && (
+          <button
+            type="button"
+            onClick={onAbrir}
+            disabled={procesando}
+            className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {responsable ? 'Cambiar' : 'Asignar'}
+          </button>
+        )}
       </div>
       {responsable && responsable.invitacionId && corrigiendo && (
         <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
@@ -287,8 +295,11 @@ export function PanelRedEstructura({
   const [modoAsignacion, setModoAsignacion] = useState<ModoAsignacion>('base');
   const [busqueda, setBusqueda] = useState('');
   const [correo, setCorreo] = useState('');
-  const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda);
-  const [confirmandoQuitar, setConfirmandoQuitar] = useState<CargoRedEstructura | null>(null);
+  // KAN-250: designar Lider/Supervisor de Red queda acotado a la iglesia
+  // propia -- a diferencia de Pastor/Supervisor (PanelPrincipalEstructura),
+  // que sigue pudiendo buscar en todo el SaaS para Super Admin (KAN-151).
+  const { data: personas = [], isFetching } = useBuscarPersonasEstructura(iglesiaId, busqueda, false);
+  const [confirmandoQuitar, setConfirmandoQuitar] = useState<{ codigo: CargoRedEstructura; persona: PersonaEstructura } | null>(null);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [confirmandoGuardarCambios, setConfirmandoGuardarCambios] = useState(false);
   const [confirmandoReactivar, setConfirmandoReactivar] = useState(false);
@@ -306,7 +317,7 @@ export function PanelRedEstructura({
   // la app, en vez de inventar un campo de texto libre nuevo.
   const [ciudadCdpId, setCiudadCdpId] = useState('');
   const [zonaCdp, setZonaCdp] = useState('');
-  const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp);
+  const { data: personasCdp = [], isFetching: buscandoLiderCdp } = useBuscarPersonasEstructura(iglesiaId, busquedaLiderCdp, false);
 
   const colorInicialCierre = red?.color && red.color !== '#FFFFFF' ? red.color : PALETA_RED[0];
   const datosSinGuardar = modo === 'crear'
@@ -351,8 +362,7 @@ export function PanelRedEstructura({
   const redConMismoColor = redesExistentes.find(
     (otra) => otra.id !== red?.id && otra.color?.toUpperCase() === color.toUpperCase(),
   );
-  const responsableAQuitar = confirmandoQuitar === 'LIDER_RED' ? red?.lideres[0] : red?.supervisores[0];
-  const etiquetaAQuitar = responsableAQuitar?.etiqueta || 'esta persona';
+  const etiquetaAQuitar = confirmandoQuitar?.persona.etiqueta || 'esta persona';
 
   const invalidar = async () => {
     await queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
@@ -510,10 +520,10 @@ export function PanelRedEstructura({
     }
   };
 
-  const quitarCargo = async (codigo: CargoRedEstructura) => {
+  const quitarCargo = async (codigo: CargoRedEstructura, personaId?: string) => {
     if (!red || !otpValido) return;
     try {
-      await quitar.mutateAsync({ redId: red.id, codigo, otp: otp || null });
+      await quitar.mutateAsync({ redId: red.id, codigo, personaId, otp: otp || null });
       toast.success('Cargo retirado');
       setOtp('');
       setConfirmandoQuitar(null);
@@ -726,22 +736,41 @@ export function PanelRedEstructura({
                 titulo="Líder de Red"
                 responsable={red.lideres[0]}
                 onAbrir={() => abrirCargo('LIDER_RED')}
-                onQuitar={() => setConfirmandoQuitar('LIDER_RED')}
+                onQuitar={() => red.lideres[0] && setConfirmandoQuitar({ codigo: 'LIDER_RED', persona: red.lideres[0] })}
                 onReenviar={(id) => void reenviarInvitacion(id)}
                 onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
                 onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
                 procesando={procesando}
               />
-              <ResumenCargo
-                titulo="Supervisor de Red"
-                responsable={red.supervisores[0]}
-                onAbrir={() => abrirCargo('SUBLIDER_RED')}
-                onQuitar={() => setConfirmandoQuitar('SUBLIDER_RED')}
-                onReenviar={(id) => void reenviarInvitacion(id)}
-                onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
-                onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
-                procesando={procesando}
-              />
+              {/* KAN-245: hasta 2 Supervisores de Red vigentes/invitados --
+                  una tarjeta por cada uno, más una vacía para "Asignar" el
+                  siguiente mientras haya menos de 2. */}
+              {red.supervisores.map((supervisor) => (
+                <ResumenCargo
+                  key={supervisor.id}
+                  titulo="Supervisor de Red"
+                  responsable={supervisor}
+                  ocultarCambiar
+                  onAbrir={() => abrirCargo('SUBLIDER_RED')}
+                  onQuitar={() => setConfirmandoQuitar({ codigo: 'SUBLIDER_RED', persona: supervisor })}
+                  onReenviar={(id) => void reenviarInvitacion(id)}
+                  onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                  onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
+                  procesando={procesando}
+                />
+              ))}
+              {red.supervisores.length < 2 && (
+                <ResumenCargo
+                  titulo="Supervisor de Red"
+                  responsable={undefined}
+                  onAbrir={() => abrirCargo('SUBLIDER_RED')}
+                  onQuitar={() => {}}
+                  onReenviar={(id) => void reenviarInvitacion(id)}
+                  onCorregirCorreo={(id, correoNuevo) => void corregirCorreoDesignacion(id, correoNuevo)}
+                  onCancelarInvitacion={(id) => void cancelarDesignacion(id)}
+                  procesando={procesando}
+                />
+              )}
             </>
           )}
 
@@ -1095,10 +1124,10 @@ export function PanelRedEstructura({
       <ConfirmarQuitarDialog
         open={!!confirmandoQuitar}
         onOpenChange={(abierto) => { if (!abierto) setConfirmandoQuitar(null); }}
-        titulo={`¿Quitar a ${etiquetaAQuitar} de ${confirmandoQuitar === 'LIDER_RED' ? 'Líder de Red' : 'Supervisor de Red'}?`}
+        titulo={`¿Quitar a ${etiquetaAQuitar} de ${confirmandoQuitar?.codigo === 'LIDER_RED' ? 'Líder de Red' : 'Supervisor de Red'}?`}
         descripcion="Deja de tener acceso de inmediato."
         procesando={quitar.isPending}
-        onConfirmar={() => { if (confirmandoQuitar) void quitarCargo(confirmandoQuitar); }}
+        onConfirmar={() => { if (confirmandoQuitar) void quitarCargo(confirmandoQuitar.codigo, confirmandoQuitar.persona.id); }}
         otpRequerido={otpRequerido}
         otp={otp}
         onOtpChange={setOtp}

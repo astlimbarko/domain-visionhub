@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, Search, ShieldCheck, UserCog, UserX, Users } from 'lucide-react';
 import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 import { obtenerUrlBase } from '@/utils/app-url';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
@@ -30,13 +30,14 @@ import {
   useToggleUsuarioRol,
   useEliminarCuentaUsuario,
   useDashboardSuperAdmin,
+  useBuscarCuentas,
 } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
 import { EditarIglesiaDialog } from '@/components/admin/EditarIglesiaDialog';
 import { InvitarUsuarioDialog } from '@/components/admin/InvitarUsuarioDialog';
 import { EditarUsuarioDialog } from '@/components/admin/EditarUsuarioDialog';
 import type { RolSistema } from '@/types/auth.types';
-import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
+import type { CuentaBusqueda, IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
 
 const NOMBRE_ROL_CORTO: Record<RolSistema, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -121,6 +122,17 @@ export function Administracion() {
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
   const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
+  // KAN-253 (pedido del owner, 2026-08-23): "Usuarios" de arriba solo lista
+  // Pastor/Supervisor/Super Admin (ROLES_GESTIONABLES_DESDE_ADMIN) -- no hay
+  // forma de llegar a una cuenta de Líder/Sublíder de Red o CdP para
+  // eliminarla por completo (limpieza de cuentas de prueba/por error). Reusa
+  // fn_buscar_cuentas (ya existe, busca en TODAS las cuentas por cualquier
+  // rol -- lo usa hoy InvitarUsuarioDialog/PastorGestion) + la misma
+  // fn_eliminar_cuenta_usuario de siempre, sin tocar el límite ya establecido
+  // de qué se edita/remueve desde acá.
+  const [busquedaCuenta, setBusquedaCuenta] = useState('');
+  const [cuentaEliminar, setCuentaEliminar] = useState<CuentaBusqueda | null>(null);
+  const { data: cuentasEncontradas = [], isFetching: buscandoCuentas } = useBuscarCuentas(busquedaCuenta);
   // KAN-155: al crear una iglesia, si el owner elige "Asignar Pastor ahora"
   // se reabre InvitarUsuarioDialog preconfigurado en vez de reinventar el
   // buscar/invitar acá -- reusa su propio paso de confirmación de 6 dígitos.
@@ -465,6 +477,48 @@ export function Administracion() {
             ))}
           </div>
         </section>
+
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+          <TarjetaHeader
+            oscuro
+            icon={UserX}
+            color={AMBAR}
+            titulo="Eliminar cualquier cuenta"
+            descripcion="Buscá por correo -- incluye Líder/Sublíder de Red o Casa de Paz, no solo Pastor/Supervisor. Pensado para limpieza (cuentas de prueba o creadas por error)."
+          />
+          <div className="flex flex-col gap-3 p-5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                value={busquedaCuenta}
+                onChange={(e) => setBusquedaCuenta(e.target.value)}
+                placeholder="Buscar por correo..."
+                className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/30"
+              />
+            </div>
+            {busquedaCuenta.trim().length >= 2 && (
+              <div className="flex flex-col gap-1.5">
+                {buscandoCuentas && <p className="px-1 text-xs text-white/50">Buscando…</p>}
+                {!buscandoCuentas && cuentasEncontradas.length === 0 && (
+                  <p className="px-1 text-xs text-white/50">No se encontraron cuentas.</p>
+                )}
+                {cuentasEncontradas.map((c) => (
+                  <div key={c.usuario_id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-2.5">
+                    <span className="truncate text-sm text-white">{c.correo}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 gap-1.5 text-destructive hover:bg-destructive/20 hover:text-destructive"
+                      onClick={() => setCuentaEliminar(c)}
+                    >
+                      Eliminar cuenta
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
       <CrearIglesiaDialog
@@ -625,6 +679,27 @@ export function Administracion() {
               { usuarioId: usuarioEliminar.usuario_id, pin },
               {
                 onSuccess: () => { toast.success('Cuenta eliminada'); setUsuarioEliminar(null); },
+                onError: (e) => manejarError(e, 'No se pudo eliminar la cuenta'),
+              }
+            )
+          }
+        />
+      )}
+
+      {cuentaEliminar && (
+        <ConfirmarCambioDialog
+          open={!!cuentaEliminar}
+          onOpenChange={(abierto) => !abierto && setCuentaEliminar(null)}
+          titulo={`Eliminar cuenta de ${cuentaEliminar.correo}`}
+          descripcion="Elimina TODOS los cargos y personas asociadas a esta cuenta (todas las iglesias). Pensado para limpieza de cuentas de prueba o creadas por error."
+          requiereMotivo
+          oscuro
+          procesando={eliminarCuentaUsuario.isPending}
+          onConfirmar={(_motivo, pin) =>
+            eliminarCuentaUsuario.mutate(
+              { usuarioId: cuentaEliminar.usuario_id, pin },
+              {
+                onSuccess: () => { toast.success('Cuenta eliminada'); setCuentaEliminar(null); setBusquedaCuenta(''); },
                 onError: (e) => manejarError(e, 'No se pudo eliminar la cuenta'),
               }
             )

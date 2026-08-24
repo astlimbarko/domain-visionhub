@@ -18,6 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
+import { gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
+import { useRedes } from '@/hooks/useCasasDePaz';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
@@ -59,6 +61,12 @@ export function Evangelismo() {
   const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const misCasas = misCasasCrudo;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const redIdActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.redId : undefined;
+  const { data: redes = [] } = useRedes(iglesiaActivaId);
+  const colorRedInfo = redes.find((r) => r.id === redIdActiva)?.color;
+  // KAN-251: color elegido para la Red en el Constructor -- blanco es el
+  // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
+  const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
@@ -216,13 +224,13 @@ export function Evangelismo() {
           de CdP deben verse como parte de la misma sección, no como pantallas sueltas. */}
       <div
         className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
-        style={{ background: GRADIENTE_HERO }}
+        style={{ background: colorRed ? gradienteHeroColor(colorRed) : GRADIENTE_HERO }}
       >
         <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
         <div className="relative flex flex-col gap-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : DEGRADADO_IDENTIDAD }}>
                 <HeartHandshake className="h-8 w-8 text-white" />
               </div>
               <div className="flex flex-col gap-1.5">

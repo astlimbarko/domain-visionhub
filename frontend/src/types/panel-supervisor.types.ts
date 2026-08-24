@@ -35,3 +35,11 @@ export interface MonedaActiva {
   nombre: string;
   simbolo: string;
 }
+
+export interface MonedaCatalogo {
+  id: string;
+  codigo: string;
+  nombre: string;
+  simbolo: string;
+  activaEnIglesia: boolean;
+}

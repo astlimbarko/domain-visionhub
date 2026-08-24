@@ -173,45 +173,55 @@ const REUNIONES_HISTORIAL = 12;
  * replicar ese filtro aca.
  */
 export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<HistorialAsistencia> {
-  const { data: reportes, error: errorReportes } = await supabase
-    .from('casa_de_paz_reporte')
-    .select('id, fecha_reunion')
-    .eq('casa_de_paz_id', casaDePazId)
-    .order('fecha_reunion', { ascending: false })
-    .limit(REUNIONES_HISTORIAL);
+  // reportes y miembros son independientes entre si -- se piden en paralelo
+  // en vez de uno tras otro (eran 4 round-trips en serie, quedan 2).
+  const [
+    { data: reportes, error: errorReportes },
+    { data: miembros, error: errorMiembros },
+  ] = await Promise.all([
+    supabase
+      .from('casa_de_paz_reporte')
+      .select('id, fecha_reunion')
+      .eq('casa_de_paz_id', casaDePazId)
+      .order('fecha_reunion', { ascending: false })
+      .limit(REUNIONES_HISTORIAL),
+    supabase
+      .from('casa_de_paz_membresia')
+      .select(
+        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, sexo, fecha_nacimiento)'
+      )
+      .eq('casa_de_paz_id', casaDePazId)
+      .is('fecha_fin', null),
+  ]);
   if (errorReportes) throw errorReportes;
-
-  const { data: miembros, error: errorMiembros } = await supabase
-    .from('casa_de_paz_membresia')
-    .select(
-      'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, sexo, fecha_nacimiento)'
-    )
-    .eq('casa_de_paz_id', casaDePazId)
-    .is('fecha_fin', null);
   if (errorMiembros) throw errorMiembros;
 
   const reuniones = (reportes ?? []).map((r) => ({ id: r.id, fecha_reunion: r.fecha_reunion }));
   const reporteIds = reuniones.map((r) => r.id);
   const personaIds = (miembros ?? []).map((m) => m.persona_id);
 
-  let asistencias: { reporte_id: string; persona_id: string }[] = [];
-  if (reporteIds.length > 0) {
-    const { data, error } = await supabase.from('casa_de_paz_asistencia').select('reporte_id, persona_id').in('reporte_id', reporteIds);
-    if (error) throw error;
-    asistencias = data ?? [];
-  }
-
-  let telefonos: { persona_id: string; telefono: { numero: string } | { numero: string }[] | null }[] = [];
-  if (personaIds.length > 0) {
-    const { data, error } = await supabase
-      .from('telefono_asignacion')
-      .select('persona_id, telefono:telefono_id(numero)')
-      .in('persona_id', personaIds)
-      .eq('es_principal', true)
-      .is('fecha_eliminacion', null);
-    if (error) throw error;
-    telefonos = data ?? [];
-  }
+  // asistencias depende solo de reportes, telefonos depende solo de miembros
+  // -- independientes entre si, tambien en paralelo.
+  const [asistenciasRes, telefonosRes] = await Promise.all([
+    reporteIds.length > 0
+      ? supabase.from('casa_de_paz_asistencia').select('reporte_id, persona_id').in('reporte_id', reporteIds)
+      : Promise.resolve({ data: [] as { reporte_id: string; persona_id: string }[], error: null }),
+    personaIds.length > 0
+      ? supabase
+          .from('telefono_asignacion')
+          .select('persona_id, telefono:telefono_id(numero)')
+          .in('persona_id', personaIds)
+          .eq('es_principal', true)
+          .is('fecha_eliminacion', null)
+      : Promise.resolve({
+          data: [] as { persona_id: string; telefono: { numero: string } | { numero: string }[] | null }[],
+          error: null,
+        }),
+  ]);
+  if (asistenciasRes.error) throw asistenciasRes.error;
+  if (telefonosRes.error) throw telefonosRes.error;
+  const asistencias = asistenciasRes.data ?? [];
+  const telefonos = telefonosRes.data ?? [];
 
   const asistioSet = new Set(asistencias.map((a) => `${a.reporte_id}:${a.persona_id}`));
   const telefonoPorPersona = new Map<string, string>();
@@ -271,27 +281,36 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       esVisita: a.esVisita,
     }));
 
-    for (const visita of datos.visitasNuevas) {
-      const { data: persona, error: errorPersona } = await supabase
-        .from('persona')
-        .insert({
-          iglesia_id: datos.iglesia_id,
-          primer_nombre: visita.primer_nombre,
-          primer_apellido: visita.primer_apellido,
-          sexo: visita.sexo,
-        })
-        .select('id')
-        .single();
-      if (errorPersona) throw errorPersona;
-      personaIds.push({ id: persona.id, esMenor: visita.es_menor, esVisita: true });
+    // El tipo de telefono es el mismo para todas las visitas -- antes se
+    // pedia una vez por visita (N consultas identicas). Se pide una sola vez
+    // arriba del loop, y las visitas se procesan en paralelo (cada una crea
+    // una persona independiente, no hay dependencia entre iteraciones): eran
+    // hasta ~3 round-trips en serie por visita, ahora todas concurrentes.
+    const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
+    const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
 
-      if (visita.telefono?.trim()) {
-        const tipos = await obtenerTiposTelefono();
-        if (tipos[0]) {
-          await agregarTelefono(datos.iglesia_id, persona.id, tipos[0].id, visita.telefono.trim(), null, true);
+    const nuevasPersonas = await Promise.all(
+      datos.visitasNuevas.map(async (visita) => {
+        const { data: persona, error: errorPersona } = await supabase
+          .from('persona')
+          .insert({
+            iglesia_id: datos.iglesia_id,
+            primer_nombre: visita.primer_nombre,
+            primer_apellido: visita.primer_apellido,
+            sexo: visita.sexo,
+          })
+          .select('id')
+          .single();
+        if (errorPersona) throw errorPersona;
+
+        if (visita.telefono?.trim() && tipoTelefonoId) {
+          await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
         }
-      }
-    }
+
+        return { id: persona.id, esMenor: visita.es_menor, esVisita: true };
+      })
+    );
+    personaIds.push(...nuevasPersonas);
 
     if (personaIds.length > 0) {
       const { error: errorAsistencia } = await supabase.from('casa_de_paz_asistencia').insert(
@@ -343,20 +362,20 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       totalAsistentes: totales.total_asistentes,
     };
   } catch (e) {
-    // Baja lógica de mejor esfuerzo del reporte huérfano. La tabla bloquea el
-    // DELETE físico (trigger), así que se marca fecha_eliminacion. Si esto
-    // también falla, prevalece el error original.
-    //
-    // OJO: para un Líder/Sublíder de CdP este UPDATE lo rechaza la RLS
-    // (pol_casa_de_paz_reporte_update no permite que un líder marque
-    // fecha_eliminacion; borrar historial queda para operativo/supervisor), así
-    // que para ese rol la reversión no surte efecto y el reporte quedaría
-    // huérfano igual. La defensa real es no llegar hasta acá: el formulario ya
-    // valida es_menor de cada asistente sin fecha de nacimiento antes de enviar.
+    // Reversión de mejor esfuerzo del reporte huérfano, vía RPC SECURITY
+    // DEFINER (111_fix_moneda_iglesia_y_revertir_reporte.sql) en vez de un
+    // UPDATE directo -- el UPDATE directo lo bloqueaba silenciosamente la RLS
+    // para un Sublíder (pol_casa_de_paz_reporte_update exige
+    // SUBLIDER_PUEDE_EDITAR_REPORTE, apagado por defecto), sin lanzar
+    // excepción ni avisar. El RPC valida el mismo permiso que dejó crear el
+    // reporte, acotado a que sea el propio creador revirtiendo su propio
+    // reporte recién creado (ver comentario del RPC).
     try {
-      await supabase.from('casa_de_paz_reporte').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', reporteId);
-    } catch {
+      const { error: errorRevertir } = await supabase.rpc('fn_revertir_reporte_cdp', { p_reporte_id: reporteId });
+      if (errorRevertir) console.error('No se pudo revertir el reporte huérfano', errorRevertir);
+    } catch (revertError) {
       // Ignorado a propósito: no debe tapar el error real de arriba.
+      console.error('No se pudo revertir el reporte huérfano', revertError);
     }
     throw e;
   }

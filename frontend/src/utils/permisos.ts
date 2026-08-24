@@ -105,6 +105,14 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.ANUNCIOS,
   ROUTES.ANUNCIO_NUEVO,
   ROUTES.ANUNCIO_EDITAR,
+  // Resumen del Constructor (pedido del owner 2026-08-21): el lienzo
+  // completo (EstructuraOrganizacional.tsx) ya admitía Líder/Supervisor de
+  // Red desde KAN-78 -- ven todo, solo editan su propia Red -- pero nada los
+  // llevaba ahí. Sin esto, rolesPermitidosPara(ROUTES.CONSTRUCTOR_RESUMEN)
+  // seguía sin incluir 'LIDER_RED' y el guard <RequiereRol> de App.tsx
+  // rechazaba la ruta aunque paneles-contexto.ts ya les agregara el ítem de
+  // nav.
+  ROUTES.CONSTRUCTOR_RESUMEN,
 ];
 
 // El Supervisor no carga reportes (igual que el Líder de Red): supervisa,

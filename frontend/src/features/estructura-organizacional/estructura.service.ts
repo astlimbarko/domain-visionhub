@@ -72,8 +72,9 @@ interface UsuarioRolFila {
 interface InvitacionRedFila {
   id: string;
   correo: string;
-  red_id: string;
-  cargo_codigo: CargoRedEstructura;
+  red_id: string | null;
+  casa_de_paz_id: string | null;
+  cargo_codigo: string;
   estado: 'PENDIENTE' | 'COMPLETADA';
 }
 
@@ -298,6 +299,14 @@ export async function obtenerEstructuraOrganizacional(
     .filter((persona): persona is PersonaEstructura => Boolean(persona));
 
   const invitacionesPendientes = (invitacionesRedResultado.data ?? []) as InvitacionRedFila[];
+  const invitacionAPersona = (invitacion: InvitacionRedFila): PersonaEstructura => ({
+    id: `invitacion:${invitacion.id}`,
+    nombre: null,
+    correo: invitacion.correo,
+    etiqueta: invitacion.correo,
+    membresiaPendiente: true,
+    invitacionId: invitacion.id,
+  });
   const invitadosDe = (redId: string, codigo: CargoRedEstructura): PersonaEstructura[] =>
     invitacionesPendientes
       .filter((invitacion) =>
@@ -305,14 +314,18 @@ export async function obtenerEstructuraOrganizacional(
         && invitacion.cargo_codigo === codigo
         && invitacion.estado === 'PENDIENTE',
       )
-      .map((invitacion) => ({
-        id: `invitacion:${invitacion.id}`,
-        nombre: null,
-        correo: invitacion.correo,
-        etiqueta: invitacion.correo,
-        membresiaPendiente: true,
-        invitacionId: invitacion.id,
-      }));
+      .map(invitacionAPersona);
+  // KAN-252: mismo mecanismo que invitadosDe, pero para invitaciones de
+  // Lider/Sublider de Casa de Paz -- antes no se mostraban en el lienzo
+  // hasta que la persona aceptaba el correo (bug real reportado 2026-08-23).
+  const invitadosDeCdp = (casaDePazId: string, codigo: 'LIDER_CDP' | 'SUBLIDER_CDP'): PersonaEstructura[] =>
+    invitacionesPendientes
+      .filter((invitacion) =>
+        invitacion.casa_de_paz_id === casaDePazId
+        && invitacion.cargo_codigo === codigo
+        && invitacion.estado === 'PENDIENTE',
+      )
+      .map(invitacionAPersona);
   const usuarios = (usuariosResultado.data ?? []) as UsuarioRolFila[];
   const responsablesRol = (rol: string, personaIdPrincipal: string | null): PersonaEstructura[] => {
     const responsables: PersonaEstructura[] = usuarios
@@ -370,8 +383,14 @@ export async function obtenerEstructuraOrganizacional(
       id: casa.id,
       nombre: casa.nombre,
       redId: redPorCasa.get(casa.id) ?? null,
-      lideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'LIDER_CDP'),
-      sublideres: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'SUBLIDER_CDP'),
+      lideres: [
+        ...responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'LIDER_CDP'),
+        ...invitadosDeCdp(casa.id, 'LIDER_CDP'),
+      ],
+      sublideres: [
+        ...responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'SUBLIDER_CDP'),
+        ...invitadosDeCdp(casa.id, 'SUBLIDER_CDP'),
+      ],
       anfitriones: responsablesDe((cargosCdpResultado.data ?? []) as CargoEntidadFila[], 'casa_de_paz_id', casa.id, 'ANFITRION'),
       direccionBreve: direccionesPorCasa.get(casa.id) ?? null,
       eliminada: casa.fecha_eliminacion !== null,
@@ -534,12 +553,14 @@ export async function notificarAsignacionCargoDepartamento(
 export async function quitarCargoRedEstructura(
   redId: string,
   codigo: CargoRedEstructura,
+  personaId?: string | null,
   otp?: string | null,
 ): Promise<number> {
   const { data, error } = await supabase.rpc('fn_estructura_quitar_cargo_red', {
     p_red_id: redId,
     p_codigo: codigo,
     p_otp: otp ?? null,
+    p_persona_id: personaId ?? null,
   });
   if (error) throw error;
   return Number(data);
@@ -622,12 +643,17 @@ export async function crearCasaDePazEstructura(
 export async function buscarPersonasEstructura(
   iglesiaId: string,
   texto: string,
+  // KAN-250: Super Admin puede buscar en todo el SaaS (KAN-151) al designar
+  // Pastor/Supervisor -- Lider/Supervisor de Red y Lider de CdP quedan
+  // acotados a la iglesia propia (PanelRedEstructura pasa `false`).
+  permitirGlobal = true,
 ): Promise<PersonaOpcionEstructura[]> {
   const { data, error } = await supabase.rpc('fn_buscar_personas', {
     p_iglesia_id: iglesiaId,
     p_texto: texto.trim(),
     p_incluir_ocultas: false,
     p_limite: 10,
+    p_permitir_global: permitirGlobal,
   });
   if (error) throw error;
   return ((data ?? []) as PersonaBusquedaFila[]).map((persona) => ({

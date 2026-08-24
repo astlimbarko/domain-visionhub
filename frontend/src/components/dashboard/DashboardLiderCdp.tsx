@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -94,6 +94,23 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const { data: asistenciaPromedioPeriodo } = useAsistenciaPromedioPeriodo(casaDePazId, desde, hasta);
   const { data: tendenciaAsistencia = [] } = useTendenciaAsistencia(casaDePazId, granularidad, cantidad, rango ?? undefined);
 
+  // Un solo pase sobre miembros en vez de 4 .filter().length sueltos --
+  // antes de tocar el early return de abajo, para no violar Rules of Hooks.
+  const contadoresMiembros = useMemo(() => {
+    const miembros = data?.miembros ?? [];
+    let ninos = 0;
+    let verdes = 0;
+    let amarillos = 0;
+    let rojos = 0;
+    for (const m of miembros) {
+      if (m.es_menor) ninos++;
+      if (m.semaforo === 'VERDE') verdes++;
+      else if (m.semaforo === 'AMARILLO') amarillos++;
+      else if (m.semaforo === 'ROJO') rojos++;
+    }
+    return { ninos, verdes, amarillos, rojos };
+  }, [data?.miembros]);
+
   if (isLoading || !data) {
     return (
       <div className="flex flex-col gap-6">
@@ -109,10 +126,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const { casa_de_paz, kpi, miembros } = data;
 
   const totalMiembros = miembros?.length ?? 0;
-  const ninos = (miembros ?? []).filter((m) => m.es_menor).length;
-  const verdes = (miembros ?? []).filter((m) => m.semaforo === 'VERDE').length;
-  const amarillos = (miembros ?? []).filter((m) => m.semaforo === 'AMARILLO').length;
-  const rojos = (miembros ?? []).filter((m) => m.semaforo === 'ROJO').length;
+  const { ninos, verdes, amarillos, rojos } = contadoresMiembros;
   const asistenciaPromedio = asistenciaPromedioPeriodo ?? kpi.asistencia_ultima.valor ?? 0;
 
   return (
@@ -121,6 +135,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         icon={Users}
         eyebrow="Casa de Paz"
         title={casa_de_paz.nombre ?? 'Tu Casa de Paz'}
+        color={casa_de_paz.red_color && casa_de_paz.red_color.toUpperCase() !== '#FFFFFF' ? casa_de_paz.red_color : undefined}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>

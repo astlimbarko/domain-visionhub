@@ -61,7 +61,13 @@ function navContexto(contexto: ContextoActivo): NavItem[] {
   // 2026-08-09 -- mismo nivel, mismo acceso). Apunta al resumen, no directo
   // al lienzo -- desde ahí puede ver si tiene iglesias hijas/satélite y
   // entrar al Constructor de cada una por separado (2026-08-11).
-  if (contexto.rolUI === 'PASTOR' || contexto.rolUI === 'SUPERVISOR') {
+  //
+  // Líder/Supervisor de Red (rolUI 'LIDER_RED', cubre a ambos) ya podían
+  // ENTRAR al lienzo desde KAN-78 (ven todo, solo editan su propia Red) --
+  // pero no tenían ningún ítem de nav que los llevara ahí, quedaba
+  // inalcanzable salvo por URL directa. Pedido explícito del owner
+  // 2026-08-21: agregarles el mismo acceso "para que puedan visualizar".
+  if (contexto.rolUI === 'PASTOR' || contexto.rolUI === 'SUPERVISOR' || contexto.rolUI === 'LIDER_RED') {
     return [
       ...items,
       { icon: Network, label: 'Constructor', path: rutaConstructorResumen(contexto.iglesiaId), color: '#0a4174' },

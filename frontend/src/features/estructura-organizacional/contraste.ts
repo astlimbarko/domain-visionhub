@@ -33,7 +33,7 @@ function contrasteConBlanco(hex: string): number {
   return 1.05 / (luminanciaRelativa(hex) + 0.05);
 }
 
-function mezclarHaciaNegro(hex: string, cantidad: number): string {
+export function mezclarHaciaNegro(hex: string, cantidad: number): string {
   const limpio = hex.replace('#', '');
   const canal = (indice: number) => parseInt(limpio.slice(indice, indice + 2), 16) || 0;
   const mezclar = (valor: number) => Math.round(valor * (1 - cantidad));

@@ -94,11 +94,15 @@ export function FormularioPaginado({
 
       {notaPie}
 
-      <div className={cn('flex items-center gap-3 pt-1', accionExtra ? 'justify-center' : 'justify-between')}>
-        <Button type="button" variant="outline" onClick={atras} disabled={pasoActual === 0 || enviando}>
+      {/* flex-wrap + ancho completo por botón en mobile: con accionExtra son 3
+          botones sin achicarse (shrink-0/whitespace-nowrap de Button) que en
+          una fila fija desbordaban el modal en pantallas chicas, dejando
+          "Saltar" cortado o fuera de vista. */}
+      <div className={cn('flex flex-wrap items-center gap-3 pt-1', accionExtra ? 'sm:justify-center' : 'justify-between')}>
+        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={atras} disabled={pasoActual === 0 || enviando}>
           Atrás
         </Button>
-        <Button type="button" onClick={() => void siguiente()} disabled={enviando} className="min-w-32">
+        <Button type="button" onClick={() => void siguiente()} disabled={enviando} className="w-full sm:w-auto sm:min-w-32">
           {enviando ? 'Guardando...' : esUltimo ? textoFinalizar : 'Siguiente'}
         </Button>
         {accionExtra}
