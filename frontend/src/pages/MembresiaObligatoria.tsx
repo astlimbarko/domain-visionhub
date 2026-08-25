@@ -24,6 +24,7 @@ import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
+import { useMinisterios } from '@/hooks/useMinisterios';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
@@ -57,7 +58,8 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       sexo: z.enum(['M', 'F']),
       fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
       ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
-      correo: z.union([z.string().email(), z.literal('')]).optional(),
+      telefono_pais: z.string().optional(),
+      telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
       estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
@@ -73,6 +75,24 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       }
     });
 }
+
+// KAN-252: reemplaza el input "Correo" (redundante -- la persona ya inició
+// sesión con un correo) por Teléfono con código de país. Lista corta y
+// curada (no una librería de +200 países) porque las iglesias de este
+// sistema son todas de Bolivia y países vecinos -- Bolivia por defecto.
+const PAISES_TELEFONO = [
+  { codigo: '+591', nombre: 'Bolivia' },
+  { codigo: '+54', nombre: 'Argentina' },
+  { codigo: '+55', nombre: 'Brasil' },
+  { codigo: '+56', nombre: 'Chile' },
+  { codigo: '+57', nombre: 'Colombia' },
+  { codigo: '+51', nombre: 'Perú' },
+  { codigo: '+595', nombre: 'Paraguay' },
+  { codigo: '+598', nombre: 'Uruguay' },
+  { codigo: '+52', nombre: 'México' },
+  { codigo: '+34', nombre: 'España' },
+  { codigo: '+1', nombre: 'Estados Unidos' },
+] as const;
 
 const NOMBRE_ROL: Record<RolInvitable, string> = {
   LIDER_RED: 'Líder de Red',
@@ -140,6 +160,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   // primeros pasos, en vez de sentirse "lento" recién al llegar ahí.
   useTiposDiscipulado();
 
+  // KAN-252: iglesia_id ahora viaja en ambos casos (invitación real y
+  // general) -- ver fn_mi_invitacion_pendiente/fn_mi_membresia_incompleta.
+  const { data: ministerios = [] } = useMinisterios(invitacion.iglesia_id);
+
   const mutacionInvitacion = useCompletarMembresia();
   const mutacionGeneral = useCompletarMembresiaGeneral();
   const guardarPaso = useGuardarPasoMembresiaGeneral();
@@ -167,13 +191,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       sexo: valores.sexo,
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
-      correo: valores.correo || undefined,
+      telefono: valores.telefono_numero?.trim()
+        ? `${valores.telefono_pais || '+591'}${valores.telefono_numero.trim()}`
+        : undefined,
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
-      // KAN-123: campos ampliados. Ministerios queda fuera acá -- ninguno de
-      // los 2 caminos (invitación ni caso general) trae iglesia_id al
-      // frontend (ver comentario en membresia-extendida.types.ts).
+      // KAN-123/KAN-252: campos ampliados, incluye ministerios (ya viajan en
+      // `extendido.ministerios`, elegidos en el paso "Familia").
       ...extendido,
     };
 
@@ -208,6 +233,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   }
 
   const sexoActual = watch('sexo');
+  const telefonoPaisActual = watch('telefono_pais');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
@@ -337,13 +363,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'datos-personales',
                 titulo: 'Datos personales',
                 validar: async () => {
-                  const ok = await trigger(['fecha_nacimiento', 'ci', 'correo']);
+                  const ok = await trigger(['fecha_nacimiento', 'ci', 'telefono_numero']);
                   if (!ok) return false;
                   const valores = getValues();
                   return guardarPasoSiCorresponde(2, {
                     fecha_nacimiento: valores.fecha_nacimiento || undefined,
                     ci: valores.ci || undefined,
-                    correo: valores.correo || undefined,
+                    telefono_pais: valores.telefono_pais || undefined,
+                    telefono_numero: valores.telefono_numero || undefined,
                   });
                 },
                 contenido: (
@@ -363,9 +390,31 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label htmlFor="correo">Correo</Label>
-                      <Input id="correo" type="email" className={CAMPO_ESTILO} {...register('correo')} />
-                      {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
+                      <Label htmlFor="telefono_numero">Teléfono</Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={telefonoPaisActual ?? '+591'}
+                          onValueChange={(v) => setValue('telefono_pais', v)}
+                        >
+                          <SelectTrigger className={cn('w-28 shrink-0', CAMPO_ESTILO)}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAISES_TELEFONO.map((p) => (
+                              <SelectItem key={p.codigo} value={p.codigo}>
+                                {p.codigo} {p.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="telefono_numero"
+                          inputMode="numeric"
+                          className={CAMPO_ESTILO}
+                          {...register('telefono_numero')}
+                        />
+                      </div>
+                      {errors.telefono_numero && <p className="text-sm text-destructive">Solo números</p>}
                     </div>
                   </div>
                 ),
@@ -504,7 +553,13 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'familia',
                 titulo: 'Familia',
                 validar: () => guardarPasoSiCorresponde(9, extendido),
-                contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
+                contenido: (
+                  <SeccionFamiliaMinisteriosMembresia
+                    value={extendido}
+                    onChange={setExtendido}
+                    ministerios={ministerios.filter((m) => m.activo)}
+                  />
+                ),
               },
             ]}
           />

@@ -144,6 +144,7 @@ export const OPCIONES_RANGO_MIEMBRO: { value: RangoMiembro; label: string; descr
 export interface MembresiaIncompleta {
   id: string | null;
   rol: string | null;
+  iglesia_id: string;
   iglesia_nombre: string;
   destino: string | null;
   departamento_nombre?: string | null;
