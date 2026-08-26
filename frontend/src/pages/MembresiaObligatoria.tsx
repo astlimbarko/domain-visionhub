@@ -185,8 +185,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       sexo: valores.sexo,
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
+      // KAN-252: '' (no undefined) cuando no hay número -- así la clave
+      // 'telefono' sobrevive el JSON.stringify y el backend puede distinguir
+      // "esta página se mostró y se dejó vacía/marcó No tiene" (este wizard)
+      // de "el frontend viejo ni siquiera manda esta clave" (sin este campo
+      // todavía) -- de eso depende que telefono_declarado no se marque en
+      // falso para quien complete su membresía con el sitio viejo.
       telefono: valores.telefono_no_aplica || !valores.telefono_numero?.trim()
-        ? undefined
+        ? ''
         : `${valores.telefono_pais || '+591'}${valores.telefono_numero.trim()}`,
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
