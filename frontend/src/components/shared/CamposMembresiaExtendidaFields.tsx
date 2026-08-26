@@ -1,8 +1,10 @@
 /**
  * KAN-123: los 8 grupos de campos nuevos del formulario de Membresía
  * (Discipulados, Seminario, Universidad del Rey Jesús, Mentor, Bautismo,
- * Cónyuge, Familia, Ministerios), organizados en 3 secciones para el wizard
- * de KAN-124 (Formación / Mentor+Bautismo / Familia+Ministerios).
+ * Cónyuge, Familia, Ministerios). Cada grupo es hoy su propia página del
+ * wizard (KAN-124); Familia y Ministerios se separaron en 2 páginas propias
+ * (KAN-252) porque juntas, con muchos familiares, la página se hacía
+ * demasiado larga.
  *
  * Componente 100% controlado (value/onChange) y desacoplado de
  * react-hook-form a propósito: los 3 formularios que lo usan
@@ -401,8 +403,8 @@ const NINGUNO = '__ninguno__';
  * puntual el día que el sistema ya tenga datos reales que consultar en vez
  * de autodeclarados.
  */
-export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
-  const tieneCargo =
+function tieneAlgunCargo(value: DatosMembresiaExtendida): boolean {
+  return (
     !!value.efesio_tipo ||
     !!value.cargo_ministro ||
     !!value.cargo_anciano ||
@@ -411,7 +413,20 @@ export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
     !!value.cargo_sub_mentor ||
     !!value.cargo_lider_cdp ||
     !!value.cargo_sublider_cdp ||
-    !!value.cargo_lider_ministerio;
+    !!value.cargo_lider_ministerio
+  );
+}
+
+// KAN-252: true si la sección "Cargo y posición" ya tiene una respuesta --
+// algún cargo real marcado arriba, o (para quien no tiene ninguno) un rango
+// elegido explícitamente, incluyendo "Ninguno". Antes se podía dejar el
+// combobox de Posición en blanco y avanzar igual, sin quedar registrado.
+export function cargoRangoRespondido(value: DatosMembresiaExtendida): boolean {
+  return tieneAlgunCargo(value) || !!value.rango_miembro || !!value.rango_miembro_ninguno;
+}
+
+export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
+  const tieneCargo = tieneAlgunCargo(value);
 
   function toggleCargo(campo: keyof DatosMembresiaExtendida, marcado: boolean) {
     actualizarValor(value, onChange, campo, marcado as never);
@@ -466,16 +481,21 @@ export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
 
       {!tieneCargo && (
         <div className="flex flex-col gap-2">
-          <Label>Posición en la iglesia</Label>
+          <Label>Posición en la iglesia *</Label>
           <p className="text-xs text-muted-foreground">Para quienes todavía no tienen ningún cargo o liderazgo.</p>
           <Select
-            value={value.rango_miembro ?? NINGUNO}
-            onValueChange={(v) => actualizarValor(value, onChange, 'rango_miembro', v === NINGUNO ? undefined : (v as RangoMiembro))}
+            value={value.rango_miembro ?? (value.rango_miembro_ninguno ? NINGUNO : undefined)}
+            onValueChange={(v) =>
+              v === NINGUNO
+                ? onChange({ ...value, rango_miembro: undefined, rango_miembro_ninguno: true })
+                : onChange({ ...value, rango_miembro: v as RangoMiembro, rango_miembro_ninguno: false })
+            }
           >
             <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
               <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={NINGUNO}>Ninguno</SelectItem>
               {OPCIONES_RANGO_MIEMBRO.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
                   {o.label} — {o.descripcion}
@@ -587,11 +607,12 @@ export function SeccionConyugeMembresia({ value, onChange }: SeccionProps) {
 // Página 3b: Familia + Ministerios (Cónyuge quedó en su propio paso,
 // SeccionConyugeMembresia -- Ministerios es opcional, null/undefined en el
 // flujo público, ver KAN-125).
-export function SeccionFamiliaMinisteriosMembresia({
-  value,
-  onChange,
-  ministerios,
-}: SeccionProps & { ministerios?: MinisterioOpcion[] }) {
+/** KAN-252: Familia y Ministerios eran una sola sección/página -- cuando la
+ * familia tiene varios integrantes la página se vuelve muy larga. Se separó
+ * en 2 componentes independientes (2 páginas en los 3 flujos) para que cada
+ * una quede corta. `SeccionFamiliaMinisteriosMembresia` (combinada) queda
+ * disponible por si algún llamador la sigue usando tal cual. */
+export function SeccionFamiliaMembresia({ value, onChange }: SeccionProps) {
   const conyuge = (value.familiares ?? []).find((f) => f.tipo_relacion_codigo === 'CONYUGE');
   const otrosFamiliares = (value.familiares ?? []).filter((f) => f.tipo_relacion_codigo !== 'CONYUGE');
 
@@ -603,57 +624,66 @@ export function SeccionFamiliaMinisteriosMembresia({
     actualizarFamiliares([...otrosFamiliares, { tipo_relacion_codigo: 'HIJO', nombre_familiar: '', es_miembro: false }]);
   }
 
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Label>Familia</Label>
+        <Button type="button" variant="outline" size="sm" onClick={agregarFamiliar} className="gap-1">
+          <Plus className="h-3.5 w-3.5" />
+          Agregar familiar
+        </Button>
+      </div>
+      {otrosFamiliares.length === 0 && (
+        <p className="text-sm text-muted-foreground">Sin familiares agregados.</p>
+      )}
+      {otrosFamiliares.map((f, i) => (
+        <FilaFamiliar
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          familiar={f}
+          onChange={(nuevo) =>
+            actualizarFamiliares(otrosFamiliares.map((x, idx) => (idx === i ? nuevo : x)))
+          }
+          onQuitar={() => actualizarFamiliares(otrosFamiliares.filter((_, idx) => idx !== i))}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function SeccionMinisteriosMembresia({
+  value,
+  onChange,
+  ministerios,
+}: SeccionProps & { ministerios?: MinisterioOpcion[] }) {
   const idsMinisterios = value.ministerios ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <Label>Familia</Label>
-          <Button type="button" variant="outline" size="sm" onClick={agregarFamiliar} className="gap-1">
-            <Plus className="h-3.5 w-3.5" />
-            Agregar familiar
-          </Button>
+    <div className="flex flex-col gap-2">
+      <Label>Ministerios</Label>
+      {ministerios && ministerios.length > 0 ? (
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {ministerios.map((m) => (
+            <label key={m.id} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={idsMinisterios.includes(m.id)}
+                onCheckedChange={(v) =>
+                  actualizarValor(
+                    value,
+                    onChange,
+                    'ministerios',
+                    v === true ? [...idsMinisterios, m.id] : idsMinisterios.filter((id) => id !== m.id)
+                  )
+                }
+              />
+              {m.nombre}
+            </label>
+          ))}
         </div>
-        {otrosFamiliares.length === 0 && (
-          <p className="text-sm text-muted-foreground">Sin familiares agregados.</p>
-        )}
-        {otrosFamiliares.map((f, i) => (
-          <FilaFamiliar
-            // eslint-disable-next-line react/no-array-index-key
-            key={i}
-            familiar={f}
-            onChange={(nuevo) =>
-              actualizarFamiliares(otrosFamiliares.map((x, idx) => (idx === i ? nuevo : x)))
-            }
-            onQuitar={() => actualizarFamiliares(otrosFamiliares.filter((_, idx) => idx !== i))}
-          />
-        ))}
-      </div>
-
-      {ministerios && ministerios.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <Label>Ministerios</Label>
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {ministerios.map((m) => (
-              <label key={m.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={idsMinisterios.includes(m.id)}
-                  onCheckedChange={(v) =>
-                    actualizarValor(
-                      value,
-                      onChange,
-                      'ministerios',
-                      v === true ? [...idsMinisterios, m.id] : idsMinisterios.filter((id) => id !== m.id)
-                    )
-                  }
-                />
-                {m.nombre}
-              </label>
-            ))}
-          </div>
-        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Sin ministerios activos para elegir.</p>
       )}
     </div>
   );
 }
+

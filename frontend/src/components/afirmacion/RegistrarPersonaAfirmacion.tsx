@@ -7,11 +7,15 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  cargoRangoRespondido,
+  discipuladosRespondido,
+  seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
-  SeccionFamiliaMinisteriosMembresia,
+  SeccionFamiliaMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionMinisteriosMembresia,
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
@@ -181,11 +185,25 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     {
       id: 'discipulados',
       titulo: 'Discipulados',
+      validar: () => {
+        if (!discipuladosRespondido(extendido)) {
+          toast.error('Elegí al menos un discipulado, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'seminario-universidad',
       titulo: 'Seminario y Universidad',
+      validar: () => {
+        if (!seminarioUniversidadRespondido(extendido)) {
+          toast.error('Elegí Seminario, Universidad, o marcá "Ninguna"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -196,6 +214,13 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     {
       id: 'cargo-rango',
       titulo: 'Cargo y posición',
+      validar: () => {
+        if (!cargoRangoRespondido(extendido)) {
+          toast.error('Elegí tu posición en la iglesia, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -205,9 +230,14 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     },
     {
       id: 'familia',
-      titulo: 'Familia y Ministerios',
+      titulo: 'Familia',
+      contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'ministerios',
+      titulo: 'Ministerios',
       contenido: (
-        <SeccionFamiliaMinisteriosMembresia
+        <SeccionMinisteriosMembresia
           value={extendido}
           onChange={setExtendido}
           ministerios={ministerios.filter((m) => m.activo)}

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useRef, useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -13,16 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import {
+  cargoRangoRespondido,
   discipuladosRespondido,
   seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
-  SeccionFamiliaMinisteriosMembresia,
+  SeccionFamiliaMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionMinisteriosMembresia,
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
-import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
+import { FormularioPaginado, type FormularioPaginadoHandle } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useMinisterios } from '@/hooks/useMinisterios';
@@ -84,6 +86,24 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
     });
 }
 
+// KAN-252 (fix bug real): antes de esto, un campo invalido de una pagina ya
+// pasada (ej. CI/fecha_nacimiento en un borrador viejo de cuando todavia no
+// eran obligatorios) hacia que handleSubmit fallara en silencio en la
+// ultima pagina -- sin toast, sin ningun error visible (los errores de esos
+// campos quedan en una pagina que ya no se esta mostrando). Este mapa
+// permite avisar CUAL campo/pagina falta y volver ahi automaticamente.
+const PAGINA_POR_CAMPO: Record<string, { indice: number; etiqueta: string; pagina: string }> = {
+  primer_nombre: { indice: 0, etiqueta: 'Primer nombre', pagina: 'Tu nombre' },
+  primer_apellido: { indice: 0, etiqueta: 'Primer apellido', pagina: 'Tu nombre' },
+  sexo: { indice: 0, etiqueta: 'Sexo', pagina: 'Tu nombre' },
+  fecha_nacimiento: { indice: 1, etiqueta: 'Fecha de nacimiento', pagina: 'Datos personales' },
+  ci: { indice: 1, etiqueta: 'CI', pagina: 'Datos personales' },
+  telefono_numero: { indice: 1, etiqueta: 'Teléfono', pagina: 'Datos personales' },
+  estado_civil: { indice: 2, etiqueta: 'Estado civil', pagina: 'Datos generales' },
+  ocupacion: { indice: 2, etiqueta: 'Ocupación', pagina: 'Datos generales' },
+  grado_instruccion: { indice: 2, etiqueta: 'Grado de instrucción', pagina: 'Datos generales' },
+};
+
 const NOMBRE_ROL: Record<RolInvitable, string> = {
   LIDER_RED: 'Líder de Red',
   LIDER_CDP: 'Líder de Casa de Paz',
@@ -116,6 +136,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   // apellido/sexo reales), así que no hay panel posible detrás y solo queda
   // "Salir sin completar" (cierra sesión).
   const [personaCreada, setPersonaCreada] = useState(invitacion.id === null);
+  const formularioRef = useRef<FormularioPaginadoHandle>(null);
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
@@ -219,6 +240,26 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     }
   }
 
+  // KAN-252 (fix bug real): se ejecuta cuando handleSubmit rechaza el envio
+  // final -- antes esto no existia y el clic en "Completar membresía" no
+  // hacia nada visible. Avisa que campo(s) faltan y en que pagina, y vuelve
+  // ahi automaticamente (la pagina anterior no se revalida sola al volver a
+  // pasar por ella, asi que el usuario ve el campo vacio y lo puede llenar).
+  function onSubmitInvalido(errores: FieldErrors<FormValues>) {
+    const faltantes = Object.keys(errores)
+      .map((clave) => PAGINA_POR_CAMPO[clave])
+      .filter((f): f is (typeof PAGINA_POR_CAMPO)[string] => !!f);
+    if (faltantes.length === 0) {
+      toast.error('Hay datos incompletos en una página anterior, revisá el formulario');
+      return;
+    }
+    const primeraPagina = faltantes.reduce((min, f) => (f.indice < min.indice ? f : min));
+    const paginas = [...new Set(faltantes.map((f) => f.pagina))].join(', ');
+    const campos = faltantes.map((f) => f.etiqueta).join(', ');
+    toast.error(`Falta completar: ${campos} (página "${paginas}")`);
+    formularioRef.current?.irA(primeraPagina.indice);
+  }
+
   async function salir() {
     await cerrarSesion();
     logout();
@@ -240,11 +281,11 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     <Dialog open onOpenChange={() => {}} modal={false}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-lg"
+        className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-lg"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-xl">
             {nombreOCorreo ? `Completa tu Membresía, ${nombreOCorreo}` : 'Completa tu Membresía'}
           </DialogTitle>
@@ -273,12 +314,13 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             Necesitamos estos datos para continuar.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           <FormularioPaginado
+            ref={formularioRef}
             enviando={isSubmitting}
             textoFinalizar="Completar membresía y continuar"
             pasoInicial={personaCreada ? (invitacion.paso_actual ?? 1) - 1 : 0}
-            onFinalizar={handleSubmit(onSubmit)}
+            onFinalizar={handleSubmit(onSubmit, onSubmitInvalido)}
             notaPie={
               personaCreada && (
                 <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
@@ -601,7 +643,13 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'cargo-rango',
                 titulo: 'Cargo y posición',
-                validar: () => guardarPasoSiCorresponde(7, extendido),
+                validar: () => {
+                  if (!cargoRangoRespondido(extendido)) {
+                    toast.error('Elegí tu posición en la iglesia, o marcá "Ninguno"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(7, extendido);
+                },
                 contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
@@ -614,8 +662,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'familia',
                 titulo: 'Familia',
                 validar: () => guardarPasoSiCorresponde(9, extendido),
+                contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'ministerios',
+                titulo: 'Ministerios',
+                validar: () => guardarPasoSiCorresponde(10, extendido),
                 contenido: (
-                  <SeccionFamiliaMinisteriosMembresia
+                  <SeccionMinisteriosMembresia
                     value={extendido}
                     onChange={setExtendido}
                     ministerios={ministerios.filter((m) => m.activo)}

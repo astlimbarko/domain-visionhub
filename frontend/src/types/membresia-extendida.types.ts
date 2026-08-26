@@ -124,6 +124,9 @@ export interface DatosMembresiaExtendida {
   cargo_sublider_cdp?: boolean;
   cargo_lider_ministerio?: boolean;
   rango_miembro?: RangoMiembro;
+  // KAN-252: mismo criterio que discipulados_ninguno -- distingue "todavía no
+  // contestó" de "contestó que no tiene ningún cargo ni rango declarado".
+  rango_miembro_ninguno?: boolean;
 }
 
 export const DATOS_MEMBRESIA_EXTENDIDA_VACIO: DatosMembresiaExtendida = {};

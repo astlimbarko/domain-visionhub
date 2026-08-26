@@ -6,10 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  cargoRangoRespondido,
+  discipuladosRespondido,
+  seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
-  SeccionFamiliaMinisteriosMembresia,
+  SeccionFamiliaMembresia,
   SeccionMentorBautismoMembresia,
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
@@ -159,11 +162,25 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
     {
       id: 'discipulados',
       titulo: 'Discipulados',
+      validar: () => {
+        if (!discipuladosRespondido(extendido)) {
+          toast.error('Elegí al menos un discipulado, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'seminario-universidad',
       titulo: 'Seminario y Universidad',
+      validar: () => {
+        if (!seminarioUniversidadRespondido(extendido)) {
+          toast.error('Elegí Seminario, Universidad, o marcá "Ninguna"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -174,6 +191,13 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
     {
       id: 'cargo-rango',
       titulo: 'Cargo y posición',
+      validar: () => {
+        if (!cargoRangoRespondido(extendido)) {
+          toast.error('Elegí tu posición en la iglesia, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -184,7 +208,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
     {
       id: 'familia',
       titulo: 'Familia',
-      contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
+      contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
     },
   ];
 
