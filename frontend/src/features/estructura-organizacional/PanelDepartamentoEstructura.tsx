@@ -3,6 +3,7 @@ import { Mail, RefreshCw, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
@@ -150,7 +151,8 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
               )}
             </div>
             {esFuncional && lider && vigente && (
-              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+              <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
+                {!pendiente && lider.correo && <RestablecerContrasenaBoton correo={lider.correo} />}
                 <button
                   type="button"
                   onClick={() => setConfirmandoQuitar(true)}
