@@ -104,6 +104,37 @@ const PAGINA_POR_CAMPO: Record<string, { indice: number; etiqueta: string; pagin
   grado_instruccion: { indice: 2, etiqueta: 'Grado de instrucción', pagina: 'Datos generales' },
 };
 
+// KAN-252 (fix bug real): `datos_guardados` es UN SOLO blob plano que mezcla
+// identidad/censo (primer_nombre, ci, fecha_nacimiento, estado_civil...) con
+// los campos "ampliados" (discipulados, ministerios, cargo, familia...).
+// `extendido` solo debe conocer estos últimos -- si se sembrara con el blob
+// completo (como se hacía antes), cargaba también una COPIA VIEJA de ci/
+// fecha_nacimiento (la que había al abrir el formulario), y como las páginas
+// "Familia"/"Ministerios" mandan el objeto `extendido` COMPLETO al guardado
+// progresivo, esa copia vieja terminaba pisando en la base de datos el CI y
+// la fecha de nacimiento recién tipeados en la página 2 -- un bug real,
+// encontrado probando el asistente hasta el final con datos reales.
+const CAMPOS_EXTENDIDOS = [
+  'discipulados', 'discipulados_ninguno',
+  'seminario', 'seminario_anio', 'seminario_mes', 'seminario_dia', 'seminario_precision_fecha',
+  'universidad', 'universidad_anio', 'universidad_mes', 'universidad_dia', 'universidad_precision_fecha',
+  'seminario_universidad_ninguna',
+  'mentor', 'mentor_nombre_txt', 'mentor_es_miembro',
+  'bautizado', 'bautizado_en_nuestra_iglesia', 'bautismo_anio', 'bautismo_mes', 'bautismo_dia', 'bautismo_precision_fecha',
+  'familiares', 'ministerios',
+  'efesio_tipo', 'cargo_ministro', 'cargo_anciano', 'cargo_diacono', 'cargo_mentor', 'cargo_sub_mentor',
+  'cargo_lider_cdp', 'cargo_sublider_cdp', 'cargo_lider_ministerio', 'rango_miembro', 'rango_miembro_ninguno',
+] as const satisfies readonly (keyof DatosMembresiaExtendida)[];
+
+function extraerExtendido(datos: Record<string, unknown> | undefined): DatosMembresiaExtendida {
+  if (!datos) return DATOS_MEMBRESIA_EXTENDIDA_VACIO;
+  const resultado: Record<string, unknown> = {};
+  for (const campo of CAMPOS_EXTENDIDOS) {
+    if (campo in datos) resultado[campo] = datos[campo];
+  }
+  return resultado as DatosMembresiaExtendida;
+}
+
 const NOMBRE_ROL: Record<RolInvitable, string> = {
   LIDER_RED: 'Líder de Red',
   LIDER_CDP: 'Líder de Casa de Paz',
@@ -165,8 +196,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     defaultValues: datosGuardados as Partial<FormValues> | undefined,
   });
 
-  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(
-    (datosGuardados as DatosMembresiaExtendida | undefined) ?? DATOS_MEMBRESIA_EXTENDIDA_VACIO
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(() =>
+    extraerExtendido(datosGuardados as Record<string, unknown> | undefined)
   );
 
   // KAN-231: prefetch en cuanto se abre el modal, no recién al llegar al
@@ -199,6 +230,16 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   async function onSubmit(valores: FormValues) {
     const datos = {
+      // KAN-252 (fix bug real): `extendido` arranca sembrado con los MISMOS
+      // datos guardados (`datosGuardados`) que a veces incluyen, de arrastre,
+      // claves de identidad/censo (ci, fecha_nacimiento, estado_civil, etc.)
+      // -- si este spread fuera lo ÚLTIMO, esos valores viejos (de cuando se
+      // abrió el formulario) pisaban silenciosamente lo recién tipeado en
+      // esta sesión. Por eso `...extendido` va PRIMERO: solo aporta los
+      // campos ampliados reales (discipulados, ministerios, familiares,
+      // cargo/rango, mentor/bautismo) y todo lo de abajo, que sí viene fresco
+      // de react-hook-form, tiene la última palabra.
+      ...extendido,
       primer_nombre: valores.primer_nombre,
       segundo_nombre: valores.segundo_nombre || undefined,
       primer_apellido: valores.primer_apellido,
@@ -218,9 +259,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
-      // KAN-123/KAN-252: campos ampliados, incluye ministerios (ya viajan en
-      // `extendido.ministerios`, elegidos en el paso "Familia").
-      ...extendido,
     };
 
     try {

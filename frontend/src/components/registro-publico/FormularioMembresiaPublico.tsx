@@ -101,6 +101,11 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
 
   async function onSubmit(valores: FormValues) {
     const datos: DatosRegistroPublico = {
+      // KAN-252: `...extendido` primero -- si alguna vez llegara a traer una
+      // clave de identidad/censo de arrastre (ej. restaurada desde
+      // localStorage), no debe poder pisar lo recién validado por
+      // react-hook-form. Ver el mismo fix en MembresiaObligatoria.tsx.
+      ...extendido,
       primer_nombre: valores.primer_nombre,
       segundo_nombre: valores.segundo_nombre || undefined,
       primer_apellido: valores.primer_apellido,
@@ -114,7 +119,6 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       grado_instruccion: valores.grado_instruccion_no_aplica
         ? undefined
         : (valores.grado_instruccion as DatosRegistroPublico['grado_instruccion']),
-      ...extendido,
     };
 
     try {

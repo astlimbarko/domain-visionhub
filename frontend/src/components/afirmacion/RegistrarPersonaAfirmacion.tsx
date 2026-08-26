@@ -107,6 +107,11 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     }
 
     const datos: DatosPersonaAfirmacion = {
+      // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
+      // KAN-252: va primero -- no debe poder pisar lo recién validado por
+      // react-hook-form si alguna vez trajera una clave de identidad/censo
+      // de arrastre. Ver el mismo fix en MembresiaObligatoria.tsx.
+      ...extendido,
       primer_nombre: valores.primer_nombre,
       segundo_nombre: valores.segundo_nombre || undefined,
       primer_apellido: valores.primer_apellido,
@@ -120,8 +125,6 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       grado_instruccion: valores.grado_instruccion_no_aplica
         ? undefined
         : (valores.grado_instruccion as DatosPersonaAfirmacion['grado_instruccion']),
-      // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
-      ...extendido,
     };
 
     try {
