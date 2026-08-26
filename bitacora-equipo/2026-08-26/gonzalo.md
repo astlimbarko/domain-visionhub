@@ -9,3 +9,11 @@
 - [x] Verificado en vivo de punta a punta: asistente completo (10 páginas), membresía marcada completada=true con los datos correctos
 - [x] KAN-253, KAN-256, KAN-257, KAN-258, KAN-261, KAN-262 confirmados en vivo y pasados a Finalizada en Jira
 - [ ] Pendiente de antes: KAN-259 (probar en móvil), KAN-260 (encabezado no actualiza el nombre), Parte B en navegador, Mi Cuenta con pestañas
+
+## Nueva sesión: KAN-263, reenviar invitación
+
+- [x] Revisado el código de invitaciones (invitacion_lider, invitar-lider, invitar-usuario) a pedido del owner (capturas ent1.png/ent2.png): confirmado que "Reenviar" no aparece para un Líder de CdP con cuenta ya creada pero membresía sin terminar
+- [x] KAN-263 creado: el "Reenviar" existente solo mira invitacion_lider.estado=PENDIENTE, que desde KAN-252 pasa a COMPLETADA en el primer login aunque la persona nunca termine el formulario -- y Pastor/Supervisor nunca tuvo reenvío en ningún escenario
+- [x] Implementado en rama `kan-reenviar-invitacion`: 4 RPC nuevas + fn_listar_usuarios con membresia_completada, Edge Function reenviar-invitacion-cargo (reenvía el invite de Supabase si la cuenta nunca se confirmó, o un recordatorio propio por Brevo si ya se confirmó pero la membresía sigue incompleta), botón "Reenviar" compacto en los 4 paneles del Constructor
+- [x] tsc + build del frontend OK. Rama pusheada, commit hecho, KAN-263 en "En revisión"
+- [ ] Falta: aplicar la migración SQL y desplegar la Edge Function a producción (esta sesión no tenía credenciales de Supabase), y probar en vivo antes de pasar a Finalizada y mergear
