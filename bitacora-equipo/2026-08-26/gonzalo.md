@@ -5,6 +5,7 @@
 - [x] KAN-258: corregido el desborde visual de la página 7 -- el diálogo ahora tiene scroll interno acotado, título y botones Atrás/Siguiente/Saltar quedan siempre visibles
 - [x] KAN-257 (extensión): "Posición en la iglesia" ahora tiene "Ninguno" explícito y obligatorio, igual que Discipulados/Seminario
 - [x] KAN-262 (nuevo): separadas "Familia" y "Ministerios" en 2 páginas -- juntas se hacían muy largas con varios familiares
-- [x] Todo commiteado (`283d2c6`) en rama `kan252`
-- [ ] Falta: destrabar en vivo la cuenta de prueba real que quedó atascada en el paso final (CI/fecha de nacimiento vacíos), y confirmar en el navegador los 4 fixes de hoy
-- [ ] Pendiente de antes: KAN-259 (probar en móvil), KAN-260 (encabezado no actualiza el nombre), Mi Cuenta con pestañas
+- [x] Probé yo mismo en el navegador los 4 fixes con la cuenta real trabada -- encontré un SEGUNDO bug real más grave: el envío final pisaba CI/fecha de nacimiento con datos viejos (el estado de Discipulados/Ministerios se sembraba con el mismo blob que traía identidad, y se mandaba completo). Corregido de raíz (commit `a7e349c`)
+- [x] Verificado en vivo de punta a punta: asistente completo (10 páginas), membresía marcada completada=true con los datos correctos
+- [x] KAN-253, KAN-256, KAN-257, KAN-258, KAN-261, KAN-262 confirmados en vivo y pasados a Finalizada en Jira
+- [ ] Pendiente de antes: KAN-259 (probar en móvil), KAN-260 (encabezado no actualiza el nombre), Parte B en navegador, Mi Cuenta con pestañas
