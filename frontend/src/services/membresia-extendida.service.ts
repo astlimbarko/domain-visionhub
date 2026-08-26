@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { MembresiaIncompleta, TipoDiscipulado } from '@/types/membresia-extendida.types';
+import type { ActualizacionMembresiaPendiente, MembresiaIncompleta, TipoDiscipulado } from '@/types/membresia-extendida.types';
 
 // KAN-123: catálogo global de discipulados, anon-safe (fn_listar_tipos_discipulado)
 // -- se usa igual en los 3 flujos (público, invitación, Afirmación), no hace
@@ -69,6 +69,28 @@ export async function completarMembresiaGeneral(
 // todavía (eso pasa una sola vez, al finalizar con completarMembresiaGeneral).
 export async function guardarPasoMembresiaGeneral(paso: number, datos: Record<string, unknown>): Promise<void> {
   const { error } = await supabase.rpc('fn_guardar_paso_membresia_general', { p_paso: paso, p_datos: datos });
+  if (error) throw error;
+}
+
+// KAN-252 Parte B: personas que ya tenían la membresía completada ANTES de
+// que existieran Teléfono/Ministerio -- se les pide, en un modal aparte, solo
+// lo que les falte (nunca toda la ficha de nuevo). null = no falta nada.
+export async function obtenerMiActualizacionMembresiaPendiente(): Promise<ActualizacionMembresiaPendiente | null> {
+  const { data, error } = await supabase.rpc('fn_mi_actualizacion_membresia_pendiente');
+  if (error) throw error;
+  return data;
+}
+
+// p_numero null/vacío = "No tiene teléfono" (declarado explícitamente, no
+// vuelve a preguntar). Mismo criterio para ministerios: array vacío =
+// "Ninguno" declarado.
+export async function guardarActualizacionTelefono(numero: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_guardar_actualizacion_telefono', { p_numero: numero });
+  if (error) throw error;
+}
+
+export async function guardarActualizacionMinisterios(ministerioIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('fn_guardar_actualizacion_ministerios', { p_ministerio_ids: ministerioIds });
   if (error) throw error;
 }
 

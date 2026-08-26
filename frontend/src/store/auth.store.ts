@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
 import type { ContextoActivo } from '../types/contexto-activo.types';
-import type { MembresiaIncompleta } from '../types/membresia-extendida.types';
+import type { ActualizacionMembresiaPendiente, MembresiaIncompleta } from '../types/membresia-extendida.types';
 import type { RolUI } from '../utils/permisos';
 
 interface AuthState {
@@ -14,6 +14,10 @@ interface AuthState {
   iglesiaActivaId: string | null;
   esSuperAdmin: boolean;
   membresiaPendiente: MembresiaIncompleta | null;
+  /** KAN-252 Parte B: persona con membresía ya completada a la que le falta
+   * teléfono y/o ministerio (datos que no existían cuando completó su
+   * ficha). Independiente de membresiaPendiente -- no bloquea el panel. */
+  actualizacionMembresiaPendiente: ActualizacionMembresiaPendiente | null;
   /** Compatibilidad temporal; la fuente canónica nueva es contextoActivo. */
   rolActivo: RolUI | null;
   contextoActivo: ContextoActivo | null;
@@ -38,6 +42,10 @@ interface AuthState {
   /** KAN-179 (seguimiento): re-chequeo al cambiar de rol activo -- a
    * diferencia de setSesion, esto no toca ningún otro campo de la sesión. */
   setMembresiaPendiente: (m: MembresiaIncompleta | null) => void;
+  setActualizacionMembresiaPendiente: (a: ActualizacionMembresiaPendiente | null) => void;
+  /** "Ahora no" del modal de Parte B -- limpia solo local/en memoria, igual
+   * que saltarMembresiaLocal. Reaparece en el próximo login si sigue faltando. */
+  saltarActualizacionMembresiaLocal: () => void;
   logout: () => void;
 }
 
@@ -64,6 +72,7 @@ export const useAuthStore = create<AuthState>()(
       iglesiaActivaId: null,
       esSuperAdmin: false,
       membresiaPendiente: null,
+      actualizacionMembresiaPendiente: null,
       rolActivo: null,
       contextoActivo: null,
 
@@ -120,6 +129,10 @@ export const useAuthStore = create<AuthState>()(
 
       setMembresiaPendiente: (m) => set({ membresiaPendiente: m }),
 
+      setActualizacionMembresiaPendiente: (a) => set({ actualizacionMembresiaPendiente: a }),
+
+      saltarActualizacionMembresiaLocal: () => set({ actualizacionMembresiaPendiente: null }),
+
       logout: () =>
         set({
           isAuthenticated: false,
@@ -130,6 +143,7 @@ export const useAuthStore = create<AuthState>()(
           iglesiaActivaId: null,
           esSuperAdmin: false,
           membresiaPendiente: null,
+          actualizacionMembresiaPendiente: null,
           rolActivo: null,
           contextoActivo: null,
         }),

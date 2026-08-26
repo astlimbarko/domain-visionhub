@@ -5,11 +5,12 @@ import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { cerrarSesion } from '@/services/auth.service';
-import { obtenerMiMembresiaIncompleta } from '@/services/membresia-extendida.service';
+import { obtenerMiActualizacionMembresiaPendiente, obtenerMiMembresiaIncompleta } from '@/services/membresia-extendida.service';
 import { ROUTES } from '@/utils/constants';
 import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-contexto';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
+import { ActualizacionMembresiaModal } from '@/components/shared/ActualizacionMembresiaModal';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
 
@@ -17,6 +18,9 @@ export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const membresiaPendiente = useAuthStore((s) => s.membresiaPendiente);
   const setMembresiaPendiente = useAuthStore((s) => s.setMembresiaPendiente);
+  const actualizacionMembresiaPendiente = useAuthStore((s) => s.actualizacionMembresiaPendiente);
+  const setActualizacionMembresiaPendiente = useAuthStore((s) => s.setActualizacionMembresiaPendiente);
+  const saltarActualizacionMembresiaLocal = useAuthStore((s) => s.saltarActualizacionMembresiaLocal);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
@@ -43,6 +47,18 @@ export function PrivateLayout() {
       .catch(() => {});
     return () => { vigente = false; };
   }, [iglesiaContextoId, setMembresiaPendiente]);
+
+  // KAN-252 Parte B: se chequea recién cuando la membresía YA está completa
+  // (membresiaPendiente en null) -- a diferencia de ese gate, esto no
+  // bloquea el panel, solo se muestra encima (como ModalAnuncios).
+  useEffect(() => {
+    if (!isAuthenticated || membresiaPendiente) return;
+    let vigente = true;
+    obtenerMiActualizacionMembresiaPendiente()
+      .then((resultado) => { if (vigente) setActualizacionMembresiaPendiente(resultado); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, [isAuthenticated, membresiaPendiente, setActualizacionMembresiaPendiente]);
 
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
@@ -96,6 +112,15 @@ export function PrivateLayout() {
     <AppShell>
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
+      {!membresiaPendiente && actualizacionMembresiaPendiente && (
+        <ActualizacionMembresiaModal
+          iglesiaId={actualizacionMembresiaPendiente.iglesia_id}
+          faltaTelefono={actualizacionMembresiaPendiente.falta_telefono}
+          faltaMinisterio={actualizacionMembresiaPendiente.falta_ministerio}
+          onGuardado={() => setActualizacionMembresiaPendiente(null)}
+          onSaltar={saltarActualizacionMembresiaLocal}
+        />
+      )}
       {/* T5/T6 (KAN-106/107): pedido explicito del owner 2026-08-16 -- son
           "anuncios de inicio de sesion", tienen que verse siempre al
           ingresar, por delante del formulario de membresia si tambien

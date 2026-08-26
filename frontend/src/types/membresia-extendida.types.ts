@@ -172,3 +172,11 @@ export interface MembresiaIncompleta {
   paso_actual?: number;
   datos_guardados?: Record<string, unknown> | null;
 }
+
+// KAN-252 Parte B: personas que ya tenían la membresía completada antes de
+// que existieran Teléfono/Ministerio -- fn_mi_actualizacion_membresia_pendiente.
+export interface ActualizacionMembresiaPendiente {
+  iglesia_id: string;
+  falta_telefono: boolean;
+  falta_ministerio: boolean;
+}

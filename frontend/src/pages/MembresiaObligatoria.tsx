@@ -30,6 +30,7 @@ import { aceptarInvitacionLider, notificarMembresiaCompletada } from '@/services
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
+import { PAISES_TELEFONO } from '@/utils/paises-telefono';
 
 const GRADOS_INSTRUCCION = [
   'SIN_INSTRUCCION',
@@ -82,28 +83,6 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       }
     });
 }
-
-// KAN-252: reemplaza el input "Correo" (redundante -- la persona ya inició
-// sesión con un correo) por Teléfono con código de país. Lista corta y
-// curada (no una librería de +200 países) porque las iglesias de este
-// sistema son todas de Bolivia y países vecinos -- Bolivia por defecto.
-// KAN-252 (seguimiento): emoji de bandera no se ve en Windows (el SO
-// muestra las letras del código ISO en vez del emoji -- limitación de
-// Windows, no del navegador). Se usa flag-icons (SVG) en su lugar, vía la
-// clase `fi fi-<iso>` sobre un span vacío.
-const PAISES_TELEFONO = [
-  { codigo: '+591', nombre: 'Bolivia', iso: 'bo' },
-  { codigo: '+54', nombre: 'Argentina', iso: 'ar' },
-  { codigo: '+55', nombre: 'Brasil', iso: 'br' },
-  { codigo: '+56', nombre: 'Chile', iso: 'cl' },
-  { codigo: '+57', nombre: 'Colombia', iso: 'co' },
-  { codigo: '+51', nombre: 'Perú', iso: 'pe' },
-  { codigo: '+595', nombre: 'Paraguay', iso: 'py' },
-  { codigo: '+598', nombre: 'Uruguay', iso: 'uy' },
-  { codigo: '+52', nombre: 'México', iso: 'mx' },
-  { codigo: '+34', nombre: 'España', iso: 'es' },
-  { codigo: '+1', nombre: 'Estados Unidos', iso: 'us' },
-] as const;
 
 const NOMBRE_ROL: Record<RolInvitable, string> = {
   LIDER_RED: 'Líder de Red',
