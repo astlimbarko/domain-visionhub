@@ -7,11 +7,18 @@
  * todos con el mismo Page 1 (CamposMembresiaFields) + páginas de
  * CamposMembresiaExtendidaFields (KAN-123).
  */
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+
+/** KAN-252: permite que el llamador vuelva a una página puntual -- usado
+ * cuando la validación final (handleSubmit) rechaza un campo que pertenece
+ * a una página anterior ya no visible (ver onInvalid en MembresiaObligatoria). */
+export interface FormularioPaginadoHandle {
+  irA: (indice: number) => void;
+}
 
 export interface PasoFormularioPaginado {
   id: string;
@@ -40,7 +47,7 @@ interface Props {
   notaPie?: ReactNode;
 }
 
-export function FormularioPaginado({
+export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(function FormularioPaginado({
   pasos,
   onFinalizar,
   enviando = false,
@@ -49,10 +56,15 @@ export function FormularioPaginado({
   onCambiarPaso,
   accionExtra,
   notaPie,
-}: Props) {
+}, ref) {
   const [pasoActual, setPasoActual] = useState(
     Math.min(Math.max(pasoInicial, 0), pasos.length - 1)
   );
+
+  useImperativeHandle(ref, () => ({
+    irA: (indice: number) => irA(Math.min(Math.max(indice, 0), pasos.length - 1)),
+  }));
+
   const esUltimo = pasoActual === pasos.length - 1;
   const paso = pasos[pasoActual];
   const progreso = ((pasoActual + 1) / pasos.length) * 100;
@@ -79,8 +91,15 @@ export function FormularioPaginado({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
+    // KAN-258: flex-col + min-h-0 -- si un ancestro (ej. el Dialog de
+    // MembresiaObligatoria) impone una altura acotada, esto permite que solo
+    // el contenido de la pagina actual haga scroll interno mientras el
+    // titulo/progreso y los botones Atras/Siguiente quedan siempre visibles
+    // (nunca "se salen" de la pantalla). Sin un ancestro acotado (los otros
+    // 2 flujos, en pagina completa) estas clases no cambian nada -- flex-1/
+    // min-h-0 no tienen efecto fuera de un contenedor flex con altura fija.
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex shrink-0 flex-col gap-1.5">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{paso.titulo}</span>
           <span>
@@ -90,15 +109,17 @@ export function FormularioPaginado({
         <Progress value={progreso} />
       </div>
 
-      <div key={paso.id}>{paso.contenido}</div>
+      <div key={paso.id} className="min-h-0 flex-1 overflow-y-auto">
+        {paso.contenido}
+      </div>
 
-      {notaPie}
+      {notaPie && <div className="shrink-0">{notaPie}</div>}
 
       {/* flex-wrap + ancho completo por botón en mobile: con accionExtra son 3
           botones sin achicarse (shrink-0/whitespace-nowrap de Button) que en
           una fila fija desbordaban el modal en pantallas chicas, dejando
           "Saltar" cortado o fuera de vista. */}
-      <div className={cn('flex flex-wrap items-center gap-3 pt-1', accionExtra ? 'sm:justify-center' : 'justify-between')}>
+      <div className={cn('flex shrink-0 flex-wrap items-center gap-3 pt-1', accionExtra ? 'sm:justify-center' : 'justify-between')}>
         <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={atras} disabled={pasoActual === 0 || enviando}>
           Atrás
         </Button>
@@ -109,4 +130,4 @@ export function FormularioPaginado({
       </div>
     </div>
   );
-}
+});

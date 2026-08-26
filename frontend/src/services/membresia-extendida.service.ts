@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { MembresiaIncompleta, TipoDiscipulado } from '@/types/membresia-extendida.types';
+import type { ActualizacionMembresiaPendiente, MembresiaIncompleta, TipoDiscipulado } from '@/types/membresia-extendida.types';
 
 // KAN-123: catálogo global de discipulados, anon-safe (fn_listar_tipos_discipulado)
 // -- se usa igual en los 3 flujos (público, invitación, Afirmación), no hace
@@ -28,6 +28,30 @@ export async function obtenerMiMembresiaIncompleta(iglesiaId?: string): Promise<
   return data;
 }
 
+// KAN-252: crea la Persona real y asigna el cargo apenas se termina la
+// página 1 del wizard ("Tu nombre") de una invitación real (Líder de Red/
+// CdP) -- antes esto pasaba recién al TERMINAR el formulario entero, así que
+// no había panel posible detrás del modal si se salía a mitad de camino.
+// Necesita nombre/apellido/sexo reales (mismo trigger que valida el resto de
+// Persona) -- no se puede llamar antes de esa página. Idempotente (no-op si
+// ya existe Persona o no hay invitación pendiente).
+export async function aceptarInvitacionLider(datos: {
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  sexo: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc('fn_aceptar_invitacion_lider', {
+    p_primer_nombre: datos.primer_nombre,
+    p_segundo_nombre: datos.segundo_nombre ?? null,
+    p_primer_apellido: datos.primer_apellido,
+    p_segundo_apellido: datos.segundo_apellido ?? null,
+    p_sexo: datos.sexo,
+  });
+  if (error) throw error;
+}
+
 // KAN-126: completar Membresía para el caso general (usuario_rol vigente sin
 // invitación asociada, Q-8) -- fn_completar_membresia (invitación real) sigue
 // siendo la vía para invitacion_lider/invitacion_departamento, sin cambios.
@@ -45,6 +69,28 @@ export async function completarMembresiaGeneral(
 // todavía (eso pasa una sola vez, al finalizar con completarMembresiaGeneral).
 export async function guardarPasoMembresiaGeneral(paso: number, datos: Record<string, unknown>): Promise<void> {
   const { error } = await supabase.rpc('fn_guardar_paso_membresia_general', { p_paso: paso, p_datos: datos });
+  if (error) throw error;
+}
+
+// KAN-252 Parte B: personas que ya tenían la membresía completada ANTES de
+// que existieran Teléfono/Ministerio -- se les pide, en un modal aparte, solo
+// lo que les falte (nunca toda la ficha de nuevo). null = no falta nada.
+export async function obtenerMiActualizacionMembresiaPendiente(): Promise<ActualizacionMembresiaPendiente | null> {
+  const { data, error } = await supabase.rpc('fn_mi_actualizacion_membresia_pendiente');
+  if (error) throw error;
+  return data;
+}
+
+// p_numero null/vacío = "No tiene teléfono" (declarado explícitamente, no
+// vuelve a preguntar). Mismo criterio para ministerios: array vacío =
+// "Ninguno" declarado.
+export async function guardarActualizacionTelefono(numero: string | null): Promise<void> {
+  const { error } = await supabase.rpc('fn_guardar_actualizacion_telefono', { p_numero: numero });
+  if (error) throw error;
+}
+
+export async function guardarActualizacionMinisterios(ministerioIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('fn_guardar_actualizacion_ministerios', { p_ministerio_ids: ministerioIds });
   if (error) throw error;
 }
 

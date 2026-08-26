@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useRef, useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -13,21 +13,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import {
+  cargoRangoRespondido,
+  discipuladosRespondido,
+  seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
-  SeccionFamiliaMinisteriosMembresia,
+  SeccionFamiliaMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionMinisteriosMembresia,
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
-import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
+import { FormularioPaginado, type FormularioPaginadoHandle } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
-import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
-import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+import { useMinisterios } from '@/hooks/useMinisterios';
+import { aceptarInvitacionLider, notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
+import { PAISES_TELEFONO } from '@/utils/paises-telefono';
 
 const GRADOS_INSTRUCCION = [
   'SIN_INSTRUCCION',
@@ -57,8 +62,12 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       sexo: z.enum(['M', 'F']),
       fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
       ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
-      correo: z.union([z.string().email(), z.literal('')]).optional(),
-      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      telefono_pais: z.string().optional(),
+      telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
+      telefono_no_aplica: z.boolean().optional(),
+      estado_civil: obligatorios.estado_civil
+        ? z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO'])
+        : z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
       grado_instruccion: z.string().optional(),
@@ -71,7 +80,59 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       if (obligatorios.grado_instruccion && !val.grado_instruccion_no_aplica && !val.grado_instruccion) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['grado_instruccion'], message: 'Requerido' });
       }
+      if (obligatorios.telefono && !val.telefono_no_aplica && !val.telefono_numero?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['telefono_numero'], message: 'Requerido' });
+      }
     });
+}
+
+// KAN-252 (fix bug real): antes de esto, un campo invalido de una pagina ya
+// pasada (ej. CI/fecha_nacimiento en un borrador viejo de cuando todavia no
+// eran obligatorios) hacia que handleSubmit fallara en silencio en la
+// ultima pagina -- sin toast, sin ningun error visible (los errores de esos
+// campos quedan en una pagina que ya no se esta mostrando). Este mapa
+// permite avisar CUAL campo/pagina falta y volver ahi automaticamente.
+const PAGINA_POR_CAMPO: Record<string, { indice: number; etiqueta: string; pagina: string }> = {
+  primer_nombre: { indice: 0, etiqueta: 'Primer nombre', pagina: 'Tu nombre' },
+  primer_apellido: { indice: 0, etiqueta: 'Primer apellido', pagina: 'Tu nombre' },
+  sexo: { indice: 0, etiqueta: 'Sexo', pagina: 'Tu nombre' },
+  fecha_nacimiento: { indice: 1, etiqueta: 'Fecha de nacimiento', pagina: 'Datos personales' },
+  ci: { indice: 1, etiqueta: 'CI', pagina: 'Datos personales' },
+  telefono_numero: { indice: 1, etiqueta: 'Teléfono', pagina: 'Datos personales' },
+  estado_civil: { indice: 2, etiqueta: 'Estado civil', pagina: 'Datos generales' },
+  ocupacion: { indice: 2, etiqueta: 'Ocupación', pagina: 'Datos generales' },
+  grado_instruccion: { indice: 2, etiqueta: 'Grado de instrucción', pagina: 'Datos generales' },
+};
+
+// KAN-252 (fix bug real): `datos_guardados` es UN SOLO blob plano que mezcla
+// identidad/censo (primer_nombre, ci, fecha_nacimiento, estado_civil...) con
+// los campos "ampliados" (discipulados, ministerios, cargo, familia...).
+// `extendido` solo debe conocer estos últimos -- si se sembrara con el blob
+// completo (como se hacía antes), cargaba también una COPIA VIEJA de ci/
+// fecha_nacimiento (la que había al abrir el formulario), y como las páginas
+// "Familia"/"Ministerios" mandan el objeto `extendido` COMPLETO al guardado
+// progresivo, esa copia vieja terminaba pisando en la base de datos el CI y
+// la fecha de nacimiento recién tipeados en la página 2 -- un bug real,
+// encontrado probando el asistente hasta el final con datos reales.
+const CAMPOS_EXTENDIDOS = [
+  'discipulados', 'discipulados_ninguno',
+  'seminario', 'seminario_anio', 'seminario_mes', 'seminario_dia', 'seminario_precision_fecha',
+  'universidad', 'universidad_anio', 'universidad_mes', 'universidad_dia', 'universidad_precision_fecha',
+  'seminario_universidad_ninguna',
+  'mentor', 'mentor_nombre_txt', 'mentor_es_miembro',
+  'bautizado', 'bautizado_en_nuestra_iglesia', 'bautismo_anio', 'bautismo_mes', 'bautismo_dia', 'bautismo_precision_fecha',
+  'familiares', 'ministerios',
+  'efesio_tipo', 'cargo_ministro', 'cargo_anciano', 'cargo_diacono', 'cargo_mentor', 'cargo_sub_mentor',
+  'cargo_lider_cdp', 'cargo_sublider_cdp', 'cargo_lider_ministerio', 'rango_miembro', 'rango_miembro_ninguno',
+] as const satisfies readonly (keyof DatosMembresiaExtendida)[];
+
+function extraerExtendido(datos: Record<string, unknown> | undefined): DatosMembresiaExtendida {
+  if (!datos) return DATOS_MEMBRESIA_EXTENDIDA_VACIO;
+  const resultado: Record<string, unknown> = {};
+  for (const campo of CAMPOS_EXTENDIDOS) {
+    if (campo in datos) resultado[campo] = datos[campo];
+  }
+  return resultado as DatosMembresiaExtendida;
 }
 
 const NOMBRE_ROL: Record<RolInvitable, string> = {
@@ -89,19 +150,24 @@ interface Props {
 }
 
 export function MembresiaObligatoria({ invitacion }: Props) {
-  // KAN-126: invitacion.id !== null significa que vino de invitacion_lider/
-  // invitacion_departamento (caso ya existente, obligatorio, sin Saltar).
-  // invitacion.id === null es el caso general (usuario_rol vigente sin
-  // Persona, Q-8, ej. Pastor/Supervisor asignado directo desde Administración)
-  // -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general en vez
-  // de fn_completar_membresia (que exige una invitacion_lider real).
+  // KAN-126: invitacion.id !== null significa que vino de invitacion_lider
+  // (caso invitación real). invitacion.id === null es el caso general
+  // (usuario_rol vigente sin Persona, Q-8) -- ese ya tiene Persona+cargo
+  // resueltos desde el arranque.
   //
-  // KAN-179: solo el caso general se muestra como modal SOBRE el panel del
-  // rol ya cargado (PrivateLayout.tsx renderiza <AppShell> normal + este
-  // modal encima) -- el caso de invitación no tiene panel detrás todavía
-  // (el cargo real recién se crea al completar, no antes), así que sigue
-  // siendo lo único visible, igual que antes.
-  const esCasoGeneral = invitacion.id === null;
+  // KAN-252 (seguimiento): para la invitación real, la Persona y el cargo ya
+  // no se crean recién al TERMINAR el formulario -- se crean apenas se
+  // completa la página 1 ("Tu nombre"), vía fn_aceptar_invitacion_lider. Acá
+  // adentro eso se seguía con `personaCreada`: arranca en true para el caso
+  // general (ya existe desde antes) y en false para la invitación real hasta
+  // que la página 1 se envía con éxito -- de ahí en más se comporta exacto
+  // igual que el caso general (guardado progresivo, Saltar real, envío final
+  // vía fn_completar_membresia_general). Antes de ese punto no hay Persona
+  // ni cargo creados todavía (el trigger que valida Persona exige nombre/
+  // apellido/sexo reales), así que no hay panel posible detrás y solo queda
+  // "Salir sin completar" (cierra sesión).
+  const [personaCreada, setPersonaCreada] = useState(invitacion.id === null);
+  const formularioRef = useRef<FormularioPaginadoHandle>(null);
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
@@ -130,8 +196,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     defaultValues: datosGuardados as Partial<FormValues> | undefined,
   });
 
-  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(
-    (datosGuardados as DatosMembresiaExtendida | undefined) ?? DATOS_MEMBRESIA_EXTENDIDA_VACIO
+  const [extendido, setExtendido] = useState<DatosMembresiaExtendida>(() =>
+    extraerExtendido(datosGuardados as Record<string, unknown> | undefined)
   );
 
   // KAN-231: prefetch en cuanto se abre el modal, no recién al llegar al
@@ -140,15 +206,19 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   // primeros pasos, en vez de sentirse "lento" recién al llegar ahí.
   useTiposDiscipulado();
 
-  const mutacionInvitacion = useCompletarMembresia();
+  // KAN-252: iglesia_id ahora viaja en ambos casos (invitación real y
+  // general) -- ver fn_mi_invitacion_pendiente/fn_mi_membresia_incompleta.
+  const { data: ministerios = [] } = useMinisterios(invitacion.iglesia_id);
+
   const mutacionGeneral = useCompletarMembresiaGeneral();
   const guardarPaso = useGuardarPasoMembresiaGeneral();
 
   // KAN-179: guardado progresivo -- se llama al hacer clic en "Siguiente" de
-  // cada página (solo en el caso general). Si falla (ej. corte de red), avisa
-  // y NO deja avanzar -- mejor que perder en silencio lo que se tipeó.
+  // cada página, solo una vez que la Persona ya existe (personaCreada).
+  // Si falla (ej. corte de red), avisa y NO deja avanzar -- mejor que perder
+  // en silencio lo que se tipeó.
   async function guardarPasoSiCorresponde(paso: number, datos: DatosMembresiaExtendida | Record<string, unknown>) {
-    if (!esCasoGeneral) return true;
+    if (!personaCreada) return true;
     try {
       await guardarPaso.mutateAsync({ paso, datos: datos as Record<string, unknown> });
       return true;
@@ -160,6 +230,16 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   async function onSubmit(valores: FormValues) {
     const datos = {
+      // KAN-252 (fix bug real): `extendido` arranca sembrado con los MISMOS
+      // datos guardados (`datosGuardados`) que a veces incluyen, de arrastre,
+      // claves de identidad/censo (ci, fecha_nacimiento, estado_civil, etc.)
+      // -- si este spread fuera lo ÚLTIMO, esos valores viejos (de cuando se
+      // abrió el formulario) pisaban silenciosamente lo recién tipeado en
+      // esta sesión. Por eso `...extendido` va PRIMERO: solo aporta los
+      // campos ampliados reales (discipulados, ministerios, familiares,
+      // cargo/rango, mentor/bautismo) y todo lo de abajo, que sí viene fresco
+      // de react-hook-form, tiene la última palabra.
+      ...extendido,
       primer_nombre: valores.primer_nombre,
       segundo_nombre: valores.segundo_nombre || undefined,
       primer_apellido: valores.primer_apellido,
@@ -167,22 +247,22 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       sexo: valores.sexo,
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
-      correo: valores.correo || undefined,
+      // KAN-252: '' (no undefined) cuando no hay número -- así la clave
+      // 'telefono' sobrevive el JSON.stringify y el backend puede distinguir
+      // "esta página se mostró y se dejó vacía/marcó No tiene" (este wizard)
+      // de "el frontend viejo ni siquiera manda esta clave" (sin este campo
+      // todavía) -- de eso depende que telefono_declarado no se marque en
+      // falso para quien complete su membresía con el sitio viejo.
+      telefono: valores.telefono_no_aplica || !valores.telefono_numero?.trim()
+        ? ''
+        : `${valores.telefono_pais || '+591'}${valores.telefono_numero.trim()}`,
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
-      // KAN-123: campos ampliados. Ministerios queda fuera acá -- ninguno de
-      // los 2 caminos (invitación ni caso general) trae iglesia_id al
-      // frontend (ver comentario en membresia-extendida.types.ts).
-      ...extendido,
     };
 
     try {
-      if (esCasoGeneral) {
-        await mutacionGeneral.mutateAsync(datos);
-      } else {
-        await mutacionInvitacion.mutateAsync(datos);
-      }
+      await mutacionGeneral.mutateAsync(datos);
       const persona = await obtenerPersonaActual();
       completarMembresiaLocal(persona?.id ?? '', persona?.nombre_completo ?? '');
       if (persona?.id) void notificarMembresiaCompletada(persona.id);
@@ -198,6 +278,26 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     }
   }
 
+  // KAN-252 (fix bug real): se ejecuta cuando handleSubmit rechaza el envio
+  // final -- antes esto no existia y el clic en "Completar membresía" no
+  // hacia nada visible. Avisa que campo(s) faltan y en que pagina, y vuelve
+  // ahi automaticamente (la pagina anterior no se revalida sola al volver a
+  // pasar por ella, asi que el usuario ve el campo vacio y lo puede llenar).
+  function onSubmitInvalido(errores: FieldErrors<FormValues>) {
+    const faltantes = Object.keys(errores)
+      .map((clave) => PAGINA_POR_CAMPO[clave])
+      .filter((f): f is (typeof PAGINA_POR_CAMPO)[string] => !!f);
+    if (faltantes.length === 0) {
+      toast.error('Hay datos incompletos en una página anterior, revisá el formulario');
+      return;
+    }
+    const primeraPagina = faltantes.reduce((min, f) => (f.indice < min.indice ? f : min));
+    const paginas = [...new Set(faltantes.map((f) => f.pagina))].join(', ');
+    const campos = faltantes.map((f) => f.etiqueta).join(', ');
+    toast.error(`Falta completar: ${campos} (página "${paginas}")`);
+    formularioRef.current?.irA(primeraPagina.indice);
+  }
+
   async function salir() {
     await cerrarSesion();
     logout();
@@ -208,28 +308,30 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   }
 
   const sexoActual = watch('sexo');
+  const telefonoPaisActual = watch('telefono_pais');
+  const telefonoNoAplica = watch('telefono_no_aplica');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
   const gradoNoAplica = watch('grado_instruccion_no_aplica');
 
   return (
-    <Dialog open onOpenChange={() => {}}>
+    <Dialog open onOpenChange={() => {}} modal={false}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-lg"
+        className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-lg"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-xl">
             {nombreOCorreo ? `Completa tu Membresía, ${nombreOCorreo}` : 'Completa tu Membresía'}
           </DialogTitle>
           <DialogDescription>
-            {esCasoGeneral ? (
+            {personaCreada ? (
               <>
-                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu
-                ficha de Membresía.
+                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu ficha
+                de Membresía.
               </>
             ) : invitacion.rol && esRolInvitable(invitacion.rol) ? (
               <>
@@ -250,21 +352,22 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             Necesitamos estos datos para continuar.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           <FormularioPaginado
+            ref={formularioRef}
             enviando={isSubmitting}
             textoFinalizar="Completar membresía y continuar"
-            pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
-            onFinalizar={handleSubmit(onSubmit)}
+            pasoInicial={personaCreada ? (invitacion.paso_actual ?? 1) - 1 : 0}
+            onFinalizar={handleSubmit(onSubmit, onSubmitInvalido)}
             notaPie={
-              esCasoGeneral && (
+              personaCreada && (
                 <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
                   Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
                 </p>
               )
             }
             accionExtra={
-              esCasoGeneral ? (
+              personaCreada ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -288,6 +391,26 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   const ok = await trigger(['primer_nombre', 'primer_apellido', 'sexo']);
                   if (!ok) return false;
                   const valores = getValues();
+                  // KAN-252: invitación real todavía sin Persona -- se crea acá
+                  // (fn_aceptar_invitacion_lider), con estos mismos datos ya
+                  // validados. De acá en más se comporta igual que el caso
+                  // general (guardado progresivo, Saltar real).
+                  if (!personaCreada) {
+                    try {
+                      await aceptarInvitacionLider({
+                        primer_nombre: valores.primer_nombre,
+                        segundo_nombre: valores.segundo_nombre || undefined,
+                        primer_apellido: valores.primer_apellido,
+                        segundo_apellido: valores.segundo_apellido || undefined,
+                        sexo: valores.sexo,
+                      });
+                      setPersonaCreada(true);
+                      return true;
+                    } catch {
+                      toast.error('No se pudo continuar, revisá tu conexión e intentá de nuevo');
+                      return false;
+                    }
+                  }
                   return guardarPasoSiCorresponde(1, {
                     primer_nombre: valores.primer_nombre,
                     segundo_nombre: valores.segundo_nombre || undefined,
@@ -337,13 +460,15 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'datos-personales',
                 titulo: 'Datos personales',
                 validar: async () => {
-                  const ok = await trigger(['fecha_nacimiento', 'ci', 'correo']);
+                  const ok = await trigger(['fecha_nacimiento', 'ci', 'telefono_numero']);
                   if (!ok) return false;
                   const valores = getValues();
                   return guardarPasoSiCorresponde(2, {
                     fecha_nacimiento: valores.fecha_nacimiento || undefined,
                     ci: valores.ci || undefined,
-                    correo: valores.correo || undefined,
+                    telefono_pais: valores.telefono_pais || undefined,
+                    telefono_numero: valores.telefono_no_aplica ? undefined : valores.telefono_numero || undefined,
+                    telefono_no_aplica: valores.telefono_no_aplica || undefined,
                   });
                 },
                 contenido: (
@@ -363,9 +488,61 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label htmlFor="correo">Correo</Label>
-                      <Input id="correo" type="email" className={CAMPO_ESTILO} {...register('correo')} />
-                      {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
+                      <Label htmlFor="telefono_numero">
+                        Teléfono {invitacion.campos_obligatorios.telefono && !telefonoNoAplica && '*'}
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={telefonoPaisActual ?? '+591'}
+                          disabled={telefonoNoAplica}
+                          onValueChange={(v) => setValue('telefono_pais', v)}
+                        >
+                          <SelectTrigger className={cn('w-32 shrink-0', CAMPO_ESTILO)}>
+                            {/* KAN-252: children explícitos -- en la casilla cerrada
+                                solo bandera + código (el nombre completo del país
+                                queda en la lista desplegable). Sin esto, Select
+                                copia el contenido completo del SelectItem elegido
+                                (bandera + código + nombre) en la casilla, que no
+                                entra en un ancho angosto y termina achicando la
+                                bandera junto con el texto. */}
+                            <SelectValue>
+                              <span className={cn('fi', `fi-${(PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso) ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                              {telefonoPaisActual ?? '+591'}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAISES_TELEFONO.map((p) => (
+                              <SelectItem key={p.codigo} value={p.codigo}>
+                                <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                                {p.codigo}
+                                <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="telefono_numero"
+                          inputMode="numeric"
+                          className={CAMPO_ESTILO}
+                          disabled={telefonoNoAplica}
+                          placeholder={telefonoNoAplica ? 'No tiene teléfono' : undefined}
+                          {...register('telefono_numero')}
+                        />
+                      </div>
+                      {errors.telefono_numero && <p className="text-sm text-destructive">{errors.telefono_numero.message}</p>}
+                      {invitacion.campos_obligatorios.telefono && (
+                        <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                          <Checkbox
+                            checked={!!telefonoNoAplica}
+                            onCheckedChange={(v) => {
+                              const marcado = v === true;
+                              setValue('telefono_no_aplica', marcado, { shouldValidate: true });
+                              if (marcado) setValue('telefono_numero', '', { shouldValidate: true });
+                            }}
+                          />
+                          No tiene teléfono
+                        </label>
+                      )}
                     </div>
                   </div>
                 ),
@@ -374,7 +551,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'datos-generales',
                 titulo: 'Datos generales',
                 validar: async () => {
-                  const ok = await trigger(['ocupacion', 'grado_instruccion']);
+                  const ok = await trigger(['estado_civil', 'ocupacion', 'grado_instruccion']);
                   if (!ok) return false;
                   const valores = getValues();
                   return guardarPasoSiCorresponde(3, {
@@ -388,10 +565,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 contenido: (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
-                      <Label>Estado civil</Label>
+                      <Label>Estado civil {invitacion.campos_obligatorios.estado_civil && '*'}</Label>
                       <Select
                         value={estadoCivilActual ?? ''}
-                        onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
+                        onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'], { shouldValidate: true })}
                       >
                         <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
@@ -403,6 +580,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                           <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
                         </SelectContent>
                       </Select>
+                      {errors.estado_civil && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -473,13 +651,25 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'discipulados',
                 titulo: 'Discipulados',
-                validar: () => guardarPasoSiCorresponde(4, extendido),
+                validar: () => {
+                  if (!discipuladosRespondido(extendido)) {
+                    toast.error('Elegí al menos un discipulado, o marcá "Ninguno"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(4, extendido);
+                },
                 contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'seminario-universidad',
                 titulo: 'Seminario y Universidad',
-                validar: () => guardarPasoSiCorresponde(5, extendido),
+                validar: () => {
+                  if (!seminarioUniversidadRespondido(extendido)) {
+                    toast.error('Elegí Seminario, Universidad, o marcá "Ninguna"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(5, extendido);
+                },
                 contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
               },
               {
@@ -491,7 +681,13 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'cargo-rango',
                 titulo: 'Cargo y posición',
-                validar: () => guardarPasoSiCorresponde(7, extendido),
+                validar: () => {
+                  if (!cargoRangoRespondido(extendido)) {
+                    toast.error('Elegí tu posición en la iglesia, o marcá "Ninguno"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(7, extendido);
+                },
                 contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
               },
               {
@@ -504,7 +700,19 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'familia',
                 titulo: 'Familia',
                 validar: () => guardarPasoSiCorresponde(9, extendido),
-                contenido: <SeccionFamiliaMinisteriosMembresia value={extendido} onChange={setExtendido} />,
+                contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
+              },
+              {
+                id: 'ministerios',
+                titulo: 'Ministerios',
+                validar: () => guardarPasoSiCorresponde(10, extendido),
+                contenido: (
+                  <SeccionMinisteriosMembresia
+                    value={extendido}
+                    onChange={setExtendido}
+                    ministerios={ministerios.filter((m) => m.activo)}
+                  />
+                ),
               },
             ]}
           />

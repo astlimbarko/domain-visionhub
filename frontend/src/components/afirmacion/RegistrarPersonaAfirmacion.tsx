@@ -7,11 +7,15 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
+  cargoRangoRespondido,
+  discipuladosRespondido,
+  seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
-  SeccionFamiliaMinisteriosMembresia,
+  SeccionFamiliaMembresia,
   SeccionMentorBautismoMembresia,
+  SeccionMinisteriosMembresia,
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type PasoFormularioPaginado } from '@/components/shared/FormularioPaginado';
@@ -103,6 +107,11 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     }
 
     const datos: DatosPersonaAfirmacion = {
+      // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
+      // KAN-252: va primero -- no debe poder pisar lo recién validado por
+      // react-hook-form si alguna vez trajera una clave de identidad/censo
+      // de arrastre. Ver el mismo fix en MembresiaObligatoria.tsx.
+      ...extendido,
       primer_nombre: valores.primer_nombre,
       segundo_nombre: valores.segundo_nombre || undefined,
       primer_apellido: valores.primer_apellido,
@@ -116,8 +125,6 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       grado_instruccion: valores.grado_instruccion_no_aplica
         ? undefined
         : (valores.grado_instruccion as DatosPersonaAfirmacion['grado_instruccion']),
-      // KAN-123: campos ampliados, incluye Ministerios (acá sí hay iglesiaId).
-      ...extendido,
     };
 
     try {
@@ -181,11 +188,25 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     {
       id: 'discipulados',
       titulo: 'Discipulados',
+      validar: () => {
+        if (!discipuladosRespondido(extendido)) {
+          toast.error('Elegí al menos un discipulado, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
     },
     {
       id: 'seminario-universidad',
       titulo: 'Seminario y Universidad',
+      validar: () => {
+        if (!seminarioUniversidadRespondido(extendido)) {
+          toast.error('Elegí Seminario, Universidad, o marcá "Ninguna"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -196,6 +217,13 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     {
       id: 'cargo-rango',
       titulo: 'Cargo y posición',
+      validar: () => {
+        if (!cargoRangoRespondido(extendido)) {
+          toast.error('Elegí tu posición en la iglesia, o marcá "Ninguno"');
+          return false;
+        }
+        return true;
+      },
       contenido: <SeccionCargoRangoMembresia value={extendido} onChange={setExtendido} />,
     },
     {
@@ -205,9 +233,14 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
     },
     {
       id: 'familia',
-      titulo: 'Familia y Ministerios',
+      titulo: 'Familia',
+      contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
+    },
+    {
+      id: 'ministerios',
+      titulo: 'Ministerios',
       contenido: (
-        <SeccionFamiliaMinisteriosMembresia
+        <SeccionMinisteriosMembresia
           value={extendido}
           onChange={setExtendido}
           ministerios={ministerios.filter((m) => m.activo)}

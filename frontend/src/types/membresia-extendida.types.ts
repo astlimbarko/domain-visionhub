@@ -64,6 +64,10 @@ export interface FamiliarInput {
 // obligatorios como antes.
 export interface DatosMembresiaExtendida {
   discipulados?: DiscipuladoSeleccionado[];
+  // KAN-252: distingue "todavía no contestó" (undefined) de "contestó que no
+  // hizo ninguno" -- excluyente con `discipulados`, se usa para exigir una
+  // respuesta activa en vez de dejar avanzar con la lista vacía por defecto.
+  discipulados_ninguno?: boolean;
 
   seminario?: boolean;
   seminario_anio?: number;
@@ -76,6 +80,10 @@ export interface DatosMembresiaExtendida {
   universidad_mes?: number;
   universidad_dia?: number;
   universidad_precision_fecha?: PrecisionFecha;
+
+  // KAN-252: mismo criterio que discipulados_ninguno -- "Ninguna" excluyente
+  // con seminario/universidad, para exigir una respuesta activa.
+  seminario_universidad_ninguna?: boolean;
 
   // Mentor (KAN-123 Q-5): sin catálogo/cargo nuevo -- texto libre +
   // casillero autodeclarado "es miembro de la iglesia".
@@ -114,7 +122,11 @@ export interface DatosMembresiaExtendida {
   cargo_sub_mentor?: boolean;
   cargo_lider_cdp?: boolean;
   cargo_sublider_cdp?: boolean;
+  cargo_lider_ministerio?: boolean;
   rango_miembro?: RangoMiembro;
+  // KAN-252: mismo criterio que discipulados_ninguno -- distingue "todavía no
+  // contestó" de "contestó que no tiene ningún cargo ni rango declarado".
+  rango_miembro_ninguno?: boolean;
 }
 
 export const DATOS_MEMBRESIA_EXTENDIDA_VACIO: DatosMembresiaExtendida = {};
@@ -144,6 +156,7 @@ export const OPCIONES_RANGO_MIEMBRO: { value: RangoMiembro; label: string; descr
 export interface MembresiaIncompleta {
   id: string | null;
   rol: string | null;
+  iglesia_id: string;
   iglesia_nombre: string;
   destino: string | null;
   departamento_nombre?: string | null;
@@ -152,6 +165,8 @@ export interface MembresiaIncompleta {
     fecha_nacimiento: boolean;
     ocupacion: boolean;
     grado_instruccion: boolean;
+    estado_civil: boolean;
+    telefono: boolean;
   };
   /** KAN-179: solo en el caso general (id === null) -- guardado progresivo.
    * paso_actual es la última página guardada (1-indexed); datos_guardados
@@ -159,4 +174,12 @@ export interface MembresiaIncompleta {
    * para precargar el formulario en vez de arrancar de cero. */
   paso_actual?: number;
   datos_guardados?: Record<string, unknown> | null;
+}
+
+// KAN-252 Parte B: personas que ya tenían la membresía completada antes de
+// que existieran Teléfono/Ministerio -- fn_mi_actualizacion_membresia_pendiente.
+export interface ActualizacionMembresiaPendiente {
+  iglesia_id: string;
+  falta_telefono: boolean;
+  falta_ministerio: boolean;
 }
