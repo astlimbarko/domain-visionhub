@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import {
   useAsignarCargoCdp,
@@ -295,6 +296,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {lider ? 'Cambiar' : 'Asignar'}
               </button>
             </div>
+            {lider?.correo && lider.nombre && (
+              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+                <RestablecerContrasenaBoton correo={lider.correo} />
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -312,6 +318,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {anfitrion ? 'Cambiar' : 'Asignar'}
               </button>
             </div>
+            {anfitrion?.correo && anfitrion.nombre && (
+              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+                <RestablecerContrasenaBoton correo={anfitrion.correo} />
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -321,10 +332,16 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {casaDePaz.sublideres.length === 0 ? (
                   <p className="mt-1 text-sm text-slate-500">Sin sublíderes todavía.</p>
                 ) : (
-                  <ul className="mt-1.5 flex flex-col gap-1">
+                  <ul className="mt-1.5 flex flex-col gap-2">
                     {casaDePaz.sublideres.map((sub) => (
-                      <li key={sub.id} className="truncate text-sm text-slate-900">
-                        {sub.etiqueta}
+                      <li key={sub.id} className="min-w-0">
+                        <p className="truncate text-sm text-slate-900">{sub.etiqueta}</p>
+                        {sub.correo && sub.nombre && (
+                          <div className="mt-0.5 flex items-center justify-between gap-2">
+                            <span className="truncate text-xs text-slate-500">{sub.correo}</span>
+                            <RestablecerContrasenaBoton correo={sub.correo} className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700" />
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

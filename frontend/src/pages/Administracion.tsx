@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, Search, ShieldCheck, UserCog, UserX, Users } from 'lucide-react';
+import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 import { obtenerUrlBase } from '@/utils/app-url';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
-import { AZUL, AMBAR, MARINO, TEAL, KpiMosaico } from '@/components/dashboard/DashboardUI';
+import { AZUL, AMBAR, MARINO, MORADO, TEAL, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import {
   useIglesiasTodas,
   useUsuarios,
@@ -30,14 +30,13 @@ import {
   useToggleUsuarioRol,
   useEliminarCuentaUsuario,
   useDashboardSuperAdmin,
-  useBuscarCuentas,
 } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
 import { EditarIglesiaDialog } from '@/components/admin/EditarIglesiaDialog';
 import { InvitarUsuarioDialog } from '@/components/admin/InvitarUsuarioDialog';
 import { EditarUsuarioDialog } from '@/components/admin/EditarUsuarioDialog';
 import type { RolSistema } from '@/types/auth.types';
-import type { CuentaBusqueda, IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
+import type { IglesiaAdmin, UsuarioListado } from '@/types/admin.types';
 
 const NOMBRE_ROL_CORTO: Record<RolSistema, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -48,21 +47,37 @@ const NOMBRE_ROL_CORTO: Record<RolSistema, string> = {
   SUBLIDER_CDP: 'Sublíder de CdP',
 };
 
-const NOMBRE_ROL: Record<RolSistema, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  PASTOR: 'Pastor',
-  SUPERVISOR_VISION_ACCION: 'Supervisor de Visión en Acción',
-  LIDER_RED: 'Líder de Red',
-  LIDER_CDP: 'Líder de Casa de Paz',
-  SUBLIDER_CDP: 'Sublíder de Casa de Paz',
-};
-
 // Mismo limite que InvitarUsuarioDialog (owner, 2026-07-19 -- "acotar Super
 // Admin"): Lider de Red/CdP/Sublider se gestionan desde Casas de Paz, nunca
 // desde aca. Se listan igual (para que el panorama sea completo) pero sin
 // acciones de edicion/remocion -- fn_actualizar_usuario_rol/fn_toggle_usuario_rol
 // tambien lo rechazan del lado del backend.
 const ROLES_GESTIONABLES_DESDE_ADMIN: RolSistema[] = ['SUPER_ADMIN', 'PASTOR', 'SUPERVISOR_VISION_ACCION'];
+
+// KAN-254 (segunda vuelta, pedido explícito del owner): agrupar por rol ya
+// no alcanzaba -- con muchas iglesias, un solo grupo (ej. Pastor) vuelve a
+// ser una lista larga. Los grupos pasan a pestañas (una sola lista visible a
+// la vez) y, dentro de la pestaña activa, se pagina de a PAGE_SIZE_USUARIOS.
+const PAGE_SIZE_USUARIOS = 8;
+
+// KAN-254 (pedido del owner): la sección "Usuarios" mostraba una sola lista
+// plana ordenada por correo (fn_listar_usuarios) mezclando Super Admin,
+// Pastor y Supervisor de las 20+ iglesias sin ninguna separación visual --
+// se leía como "una pared de correos". Se agrupa por rol (mismo orden que
+// ROLES_GESTIONABLES_DESDE_ADMIN) con un color/ícono propio por grupo, y el
+// correo pasa a texto secundario -- la iglesia (o "Plataforma" para Super
+// Admin, que no tiene una) es lo que de verdad distingue una fila de otra
+// dentro de un mismo grupo.
+const ROL_COLOR: Record<'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR_VISION_ACCION', string> = {
+  SUPER_ADMIN: MARINO,
+  PASTOR: AZUL,
+  SUPERVISOR_VISION_ACCION: MORADO,
+};
+const ROL_ICON: Record<'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR_VISION_ACCION', typeof ShieldCheck> = {
+  SUPER_ADMIN: ShieldCheck,
+  PASTOR: Church,
+  SUPERVISOR_VISION_ACCION: UserCog,
+};
 
 interface ConfirmarIglesia {
   iglesia: IglesiaAdmin;
@@ -122,17 +137,6 @@ export function Administracion() {
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
   const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
-  // KAN-253 (pedido del owner, 2026-08-23): "Usuarios" de arriba solo lista
-  // Pastor/Supervisor/Super Admin (ROLES_GESTIONABLES_DESDE_ADMIN) -- no hay
-  // forma de llegar a una cuenta de Líder/Sublíder de Red o CdP para
-  // eliminarla por completo (limpieza de cuentas de prueba/por error). Reusa
-  // fn_buscar_cuentas (ya existe, busca en TODAS las cuentas por cualquier
-  // rol -- lo usa hoy InvitarUsuarioDialog/PastorGestion) + la misma
-  // fn_eliminar_cuenta_usuario de siempre, sin tocar el límite ya establecido
-  // de qué se edita/remueve desde acá.
-  const [busquedaCuenta, setBusquedaCuenta] = useState('');
-  const [cuentaEliminar, setCuentaEliminar] = useState<CuentaBusqueda | null>(null);
-  const { data: cuentasEncontradas = [], isFetching: buscandoCuentas } = useBuscarCuentas(busquedaCuenta);
   // KAN-155: al crear una iglesia, si el owner elige "Asignar Pastor ahora"
   // se reabre InvitarUsuarioDialog preconfigurado en vez de reinventar el
   // buscar/invitar acá -- reusa su propio paso de confirmación de 6 dígitos.
@@ -151,6 +155,25 @@ export function Administracion() {
     }
     return mapa;
   }, [usuarios]);
+  const usuariosPorRol = useMemo(() => {
+    const grupos = new Map<RolSistema, UsuarioListado[]>();
+    for (const u of usuarios) {
+      const lista = grupos.get(u.rol);
+      if (lista) lista.push(u);
+      else grupos.set(u.rol, [u]);
+    }
+    return ROLES_GESTIONABLES_DESDE_ADMIN
+      .map((rol) => ({ rol, lista: grupos.get(rol) ?? [] }))
+      .filter((grupo) => grupo.lista.length > 0);
+  }, [usuarios]);
+  const [rolActivoUsuarios, setRolActivoUsuarios] = useState<RolSistema>('SUPER_ADMIN');
+  const [paginaUsuarios, setPaginaUsuarios] = useState(1);
+  const grupoActivoUsuarios = usuariosPorRol.find((g) => g.rol === rolActivoUsuarios) ?? usuariosPorRol[0];
+  const totalPaginasUsuarios = grupoActivoUsuarios ? Math.max(1, Math.ceil(grupoActivoUsuarios.lista.length / PAGE_SIZE_USUARIOS)) : 1;
+  const paginaUsuariosActual = Math.min(paginaUsuarios, totalPaginasUsuarios);
+  const usuariosPagina = grupoActivoUsuarios
+    ? grupoActivoUsuarios.lista.slice((paginaUsuariosActual - 1) * PAGE_SIZE_USUARIOS, paginaUsuariosActual * PAGE_SIZE_USUARIOS)
+    : [];
   const { data: panorama, isLoading: cargandoPanorama } = useDashboardSuperAdmin();
   const crearIglesia = useCrearIglesia();
   const actualizarIglesia = useActualizarIglesia();
@@ -430,93 +453,119 @@ export function Administracion() {
               </Button>
             }
           />
-          <div className="flex flex-col gap-2 p-5">
+          <div className="flex flex-col gap-4 p-5">
             {cargandoUsuarios && <Skeleton className="h-24 w-full rounded-2xl bg-white/5" />}
             {!cargandoUsuarios && usuarios.length === 0 && (
               <p className="text-sm text-white/50">Todavía no hay usuarios.</p>
             )}
-            {usuarios.map((u) => (
-              <div key={u.usuario_rol_id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-white">{u.correo}</p>
-                  <p className="truncate text-sm text-white/50">
-                    {NOMBRE_ROL[u.rol]}
-                    {u.rol === 'SUPER_ADMIN' && (
-                      <span className="ml-1.5 rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
-                        {u.es_principal ? 'Principal' : 'Secundario'}
-                      </span>
-                    )}
-                    {u.iglesia_nombre && ` · ${u.iglesia_nombre}`}
-                  </p>
-                  <p className="truncate text-xs text-white/40">
-                    {u.persona_nombre ? `Asociado a ${u.persona_nombre}` : 'Sin persona asociada todavía'}
-                  </p>
-                </div>
-                {ROLES_GESTIONABLES_DESDE_ADMIN.includes(u.rol) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" className="shrink-0 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Acciones">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
-                      <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => manejarRestablecerContrasena(u.correo)} className="gap-1.5 focus:bg-white/10 focus:text-white">
-                        <KeyRound className="h-3.5 w-3.5" /> Restablecer contraseña
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
-                        Remover cargo
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setUsuarioEliminar(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
-                        Eliminar cuenta
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
 
-        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-          <TarjetaHeader
-            oscuro
-            icon={UserX}
-            color={AMBAR}
-            titulo="Eliminar cualquier cuenta"
-            descripcion="Buscá por correo -- incluye Líder/Sublíder de Red o Casa de Paz, no solo Pastor/Supervisor. Pensado para limpieza (cuentas de prueba o creadas por error)."
-          />
-          <div className="flex flex-col gap-3 p-5">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/40" />
-              <input
-                value={busquedaCuenta}
-                onChange={(e) => setBusquedaCuenta(e.target.value)}
-                placeholder="Buscar por correo..."
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pr-3 pl-9 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/30"
-              />
-            </div>
-            {busquedaCuenta.trim().length >= 2 && (
-              <div className="flex flex-col gap-1.5">
-                {buscandoCuentas && <p className="px-1 text-xs text-white/50">Buscando…</p>}
-                {!buscandoCuentas && cuentasEncontradas.length === 0 && (
-                  <p className="px-1 text-xs text-white/50">No se encontraron cuentas.</p>
-                )}
-                {cuentasEncontradas.map((c) => (
-                  <div key={c.usuario_id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-2.5">
-                    <span className="truncate text-sm text-white">{c.correo}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-destructive hover:bg-destructive/20 hover:text-destructive"
-                      onClick={() => setCuentaEliminar(c)}
+            {usuariosPorRol.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+                {usuariosPorRol.map(({ rol, lista }) => {
+                  const color = ROL_COLOR[rol as 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR_VISION_ACCION'];
+                  const IconoRol = ROL_ICON[rol as 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR_VISION_ACCION'];
+                  const activo = rol === grupoActivoUsuarios?.rol;
+                  return (
+                    <button
+                      key={rol}
+                      type="button"
+                      onClick={() => { setRolActivoUsuarios(rol); setPaginaUsuarios(1); }}
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        activo ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'
+                      }`}
                     >
-                      Eliminar cuenta
-                    </Button>
-                  </div>
-                ))}
+                      <IconoRol className="h-3.5 w-3.5" style={activo ? { color } : undefined} />
+                      {NOMBRE_ROL_CORTO[rol]}
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[10px]"
+                        style={activo ? { backgroundColor: `color-mix(in oklab, ${color} 25%, transparent)`, color } : { backgroundColor: 'rgba(255,255,255,0.08)' }}
+                      >
+                        {lista.length}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
+
+            {grupoActivoUsuarios && (() => {
+              const color = ROL_COLOR[grupoActivoUsuarios.rol as 'SUPER_ADMIN' | 'PASTOR' | 'SUPERVISOR_VISION_ACCION'];
+              return (
+                <div className="flex flex-col gap-1.5">
+                  {usuariosPagina.map((u) => (
+                    <div key={u.usuario_rol_id} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 px-4 py-2.5">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase"
+                          style={{ backgroundColor: `color-mix(in oklab, ${color} 20%, transparent)`, color }}
+                        >
+                          {(u.persona_nombre || u.correo).trim().slice(0, 1)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">
+                            {u.iglesia_nombre ?? 'Plataforma'}
+                            {u.rol === 'SUPER_ADMIN' && (
+                              <span className="ml-1.5 rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+                                {u.es_principal ? 'Principal' : 'Secundario'}
+                              </span>
+                            )}
+                          </p>
+                          <p className="truncate text-xs text-white/50">{u.correo}</p>
+                          {!u.persona_nombre && (
+                            <span className="mt-0.5 inline-block rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                              Sin persona vinculada
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {ROLES_GESTIONABLES_DESDE_ADMIN.includes(u.rol) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" className="shrink-0 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Acciones">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="border border-white/10 bg-[#0a0e1a] text-white">
+                            <DropdownMenuItem onSelect={() => setUsuarioEditar(u)} className="focus:bg-white/10 focus:text-white">Editar cargo</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => manejarRestablecerContrasena(u.correo)} className="gap-1.5 focus:bg-white/10 focus:text-white">
+                              <KeyRound className="h-3.5 w-3.5" /> Restablecer contraseña
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setUsuarioRemover(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
+                              Remover cargo
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setUsuarioEliminar(u)} className="text-destructive focus:bg-destructive/20 focus:text-destructive">
+                              Eliminar cuenta
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  ))}
+
+                  {totalPaginasUsuarios > 1 && (
+                    <div className="mt-1 flex items-center justify-between px-0.5">
+                      <button
+                        type="button"
+                        disabled={paginaUsuariosActual <= 1}
+                        onClick={() => setPaginaUsuarios((p) => Math.max(1, p - 1))}
+                        className="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        Anterior
+                      </button>
+                      <span className="text-xs text-white/40">Página {paginaUsuariosActual} de {totalPaginasUsuarios}</span>
+                      <button
+                        type="button"
+                        disabled={paginaUsuariosActual >= totalPaginasUsuarios}
+                        onClick={() => setPaginaUsuarios((p) => Math.min(totalPaginasUsuarios, p + 1))}
+                        className="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </section>
       </div>
@@ -686,26 +735,6 @@ export function Administracion() {
         />
       )}
 
-      {cuentaEliminar && (
-        <ConfirmarCambioDialog
-          open={!!cuentaEliminar}
-          onOpenChange={(abierto) => !abierto && setCuentaEliminar(null)}
-          titulo={`Eliminar cuenta de ${cuentaEliminar.correo}`}
-          descripcion="Elimina TODOS los cargos y personas asociadas a esta cuenta (todas las iglesias). Pensado para limpieza de cuentas de prueba o creadas por error."
-          requiereMotivo
-          oscuro
-          procesando={eliminarCuentaUsuario.isPending}
-          onConfirmar={(_motivo, pin) =>
-            eliminarCuentaUsuario.mutate(
-              { usuarioId: cuentaEliminar.usuario_id, pin },
-              {
-                onSuccess: () => { toast.success('Cuenta eliminada'); setCuentaEliminar(null); setBusquedaCuenta(''); },
-                onError: (e) => manejarError(e, 'No se pudo eliminar la cuenta'),
-              }
-            )
-          }
-        />
-      )}
     </div>
   );
 }

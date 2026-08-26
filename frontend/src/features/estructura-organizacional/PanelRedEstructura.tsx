@@ -25,6 +25,7 @@ import {
   useReenviarInvitacionLider,
 } from '@/hooks/useInvitacionLider';
 import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
+import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { textoLegibleSobre } from './contraste';
 import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -238,14 +239,17 @@ function ResumenCargo({
               )}
             </>
           ) : (
-            <button
-              type="button"
-              disabled={procesando}
-              onClick={onQuitar}
-              className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
-            >
-              Quitar cargo
-            </button>
+            <>
+              {responsable.correo && <RestablecerContrasenaBoton correo={responsable.correo} />}
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={onQuitar}
+                className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600 disabled:opacity-50"
+              >
+                Quitar cargo
+              </button>
+            </>
           )}
         </div>
       )}
