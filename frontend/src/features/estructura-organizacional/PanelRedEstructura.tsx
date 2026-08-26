@@ -153,22 +153,24 @@ function ResumenCargo({
                   {pendiente ? 'Membresía pendiente' : 'Cuenta confirmada'}
                 </span>
               )}
-              {responsable && !responsable.invitacionId && pendiente && (
-                <BotonReenviarInvitacion entidad={{ redId, personaId: responsable.id }} />
-              )}
             </span>
           </div>
         </div>
-        {(!responsable || !ocultarCambiar) && (
-          <button
-            type="button"
-            onClick={onAbrir}
-            disabled={procesando}
-            className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {responsable ? 'Cambiar' : 'Asignar'}
-          </button>
-        )}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          {(!responsable || !ocultarCambiar) && (
+            <button
+              type="button"
+              onClick={onAbrir}
+              disabled={procesando}
+              className="cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {responsable ? 'Cambiar' : 'Asignar'}
+            </button>
+          )}
+          {responsable && !responsable.invitacionId && pendiente && (
+            <BotonReenviarInvitacion entidad={{ redId, personaId: responsable.id }} />
+          )}
+        </div>
       </div>
       {responsable && responsable.invitacionId && corrigiendo && (
         <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">

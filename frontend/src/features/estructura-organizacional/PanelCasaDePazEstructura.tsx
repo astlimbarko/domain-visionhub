@@ -287,17 +287,19 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Líder</p>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-900">{lider?.etiqueta ?? 'Sin asignar'}</p>
                 {lider?.correo && lider.nombre && <p className="truncate text-xs text-slate-500">{lider.correo}</p>}
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDialogoCargo({ codigo: 'LIDER_CDP', titulo: 'Líder de Casa de Paz', exclusivo: true })}
+                  className="cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                >
+                  {lider ? 'Cambiar' : 'Asignar'}
+                </button>
                 {lider && !lider.invitacionId && lider.membresiaPendiente && (
                   <BotonReenviarInvitacion entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setDialogoCargo({ codigo: 'LIDER_CDP', titulo: 'Líder de Casa de Paz', exclusivo: true })}
-                className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                {lider ? 'Cambiar' : 'Asignar'}
-              </button>
             </div>
           </section>
 
@@ -325,9 +327,9 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {casaDePaz.sublideres.length === 0 ? (
                   <p className="mt-1 text-sm text-slate-500">Sin sublíderes todavía.</p>
                 ) : (
-                  <ul className="mt-1.5 flex flex-col gap-1">
+                  <ul className="mt-1.5 flex flex-col gap-1.5">
                     {casaDePaz.sublideres.map((sub) => (
-                      <li key={sub.id} className="text-sm text-slate-900">
+                      <li key={sub.id} className="flex items-center justify-between gap-2 text-sm text-slate-900">
                         <p className="truncate">{sub.etiqueta}</p>
                         {!sub.invitacionId && sub.membresiaPendiente && (
                           <BotonReenviarInvitacion entidad={{ cdpId: casaDePaz.id, personaId: sub.id }} />

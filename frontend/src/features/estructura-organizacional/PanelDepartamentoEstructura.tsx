@@ -135,20 +135,22 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                         {pendiente ? 'Membresía pendiente' : 'Cuenta confirmada'}
                       </span>
                     )}
-                    {lider && pendiente && (
-                      <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
-                    )}
                   </span>
                 </div>
               </div>
               {esFuncional ? (
-                <button
-                  type="button"
-                  onClick={() => setAsignando(true)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                >
-                  {lider ? 'Cambiar' : 'Asignar'}
-                </button>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAsignando(true)}
+                    className="cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                  >
+                    {lider ? 'Cambiar' : 'Asignar'}
+                  </button>
+                  {lider && pendiente && (
+                    <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
+                  )}
+                </div>
               ) : (
                 <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-500">Próximamente</span>
               )}
