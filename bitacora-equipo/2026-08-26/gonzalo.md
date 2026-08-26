@@ -17,5 +17,6 @@
 - [x] Implementado en rama `kan-reenviar-invitacion`: 4 RPC nuevas + fn_listar_usuarios con membresia_completada, Edge Function reenviar-invitacion-cargo (reenvía el invite de Supabase si la cuenta nunca se confirmó, o un recordatorio propio por Brevo si ya se confirmó pero la membresía sigue incompleta), botón "Reenviar" compacto en los 4 paneles del Constructor
 - [x] tsc + build del frontend OK. Rama pusheada, commit hecho, KAN-263 en "En revisión"
 - [x] Migración SQL aplicada a producción y Edge Function reenviar-invitacion-cargo desplegada (Gonzalo pasó el token de Supabase) -- verificado que las 5 funciones nuevas existen en la base real. Cambio aditivo, sin tocar nada usado por el front que ya está en producción
+- [x] Rediseño a pedido: "Reenviar" pasó de renglón de texto a un segundo botón junto a "Cambiar"/"Asignar" (los 4 paneles) -- el owner lo pidió así al ver que no se notaba
 - [ ] Falta: mergear `kan-reenviar-invitacion`, desplegar el front nuevo, y probar el botón en vivo antes de pasar KAN-263 a Finalizada
 - [x] KAN-264 (normalizar mayúsculas/minúsculas del nombre al escribirse en el formulario) y KAN-265 (corregir los nombres ya cargados en la base) creados a pedido, relacionados entre sí -- solo documentados, sin implementar todavía ("lo haremos más adelante")
