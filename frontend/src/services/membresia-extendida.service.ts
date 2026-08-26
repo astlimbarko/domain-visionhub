@@ -28,6 +28,30 @@ export async function obtenerMiMembresiaIncompleta(iglesiaId?: string): Promise<
   return data;
 }
 
+// KAN-252: crea la Persona real y asigna el cargo apenas se termina la
+// página 1 del wizard ("Tu nombre") de una invitación real (Líder de Red/
+// CdP) -- antes esto pasaba recién al TERMINAR el formulario entero, así que
+// no había panel posible detrás del modal si se salía a mitad de camino.
+// Necesita nombre/apellido/sexo reales (mismo trigger que valida el resto de
+// Persona) -- no se puede llamar antes de esa página. Idempotente (no-op si
+// ya existe Persona o no hay invitación pendiente).
+export async function aceptarInvitacionLider(datos: {
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  sexo: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc('fn_aceptar_invitacion_lider', {
+    p_primer_nombre: datos.primer_nombre,
+    p_segundo_nombre: datos.segundo_nombre ?? null,
+    p_primer_apellido: datos.primer_apellido,
+    p_segundo_apellido: datos.segundo_apellido ?? null,
+    p_sexo: datos.sexo,
+  });
+  if (error) throw error;
+}
+
 // KAN-126: completar Membresía para el caso general (usuario_rol vigente sin
 // invitación asociada, Q-8) -- fn_completar_membresia (invitación real) sigue
 // siendo la vía para invitacion_lider/invitacion_departamento, sin cambios.

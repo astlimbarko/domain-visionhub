@@ -139,6 +139,7 @@ interface SeccionProps {
 export function SeccionDiscipuladosMembresia({ value, onChange }: SeccionProps) {
   const { data: tiposDiscipulado = [], isLoading } = useTiposDiscipulado();
   const seleccionados = value.discipulados ?? [];
+  const ninguno = value.discipulados_ninguno ?? false;
 
   function estaSeleccionado(tipoId: string) {
     return seleccionados.some((d) => d.tipo_discipulado_id === tipoId);
@@ -146,7 +147,11 @@ export function SeccionDiscipuladosMembresia({ value, onChange }: SeccionProps) 
 
   function alternarDiscipulado(tipoId: string, marcado: boolean) {
     if (marcado) {
-      actualizarValor(value, onChange, 'discipulados', [...seleccionados, { tipo_discipulado_id: tipoId }]);
+      onChange({
+        ...value,
+        discipulados_ninguno: false,
+        discipulados: [...seleccionados, { tipo_discipulado_id: tipoId }],
+      });
     } else {
       actualizarValor(
         value,
@@ -166,13 +171,23 @@ export function SeccionDiscipuladosMembresia({ value, onChange }: SeccionProps) 
     );
   }
 
+  function marcarNinguno(marcado: boolean) {
+    onChange({ ...value, discipulados_ninguno: marcado, discipulados: marcado ? [] : seleccionados });
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <Label>Discipulados realizados</Label>
+      <Label>Discipulados realizados *</Label>
       {isLoading ? (
         <Skeleton className="h-24 w-full rounded-lg" />
       ) : (
         <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 rounded-lg border border-border p-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={ninguno} onCheckedChange={(v) => marcarNinguno(v === true)} />
+              Ninguno
+            </label>
+          </div>
           {tiposDiscipulado.map((tipo) => (
             <div key={tipo.id} className="flex flex-col gap-2 rounded-lg border border-border p-2">
               <label className="flex items-center gap-2 text-sm">
@@ -196,16 +211,46 @@ export function SeccionDiscipuladosMembresia({ value, onChange }: SeccionProps) 
   );
 }
 
+// KAN-252: true si la sección cumple "eligió al menos una opción" (Ninguno
+// o algún discipulado real) -- lo usan los 3 formularios que la envuelven
+// para bloquear el avance de página sin obligar a que esta sección conozca
+// nada de FormularioPaginado/toasts.
+export function discipuladosRespondido(value: DatosMembresiaExtendida): boolean {
+  return !!value.discipulados_ninguno || (value.discipulados ?? []).length > 0;
+}
+
 // Página 1b: Seminario + Universidad del Rey Jesús.
 export function SeccionSeminarioUniversidadMembresia({ value, onChange }: SeccionProps) {
+  function marcarSeminario(marcado: boolean) {
+    onChange({ ...value, seminario: marcado, seminario_universidad_ninguna: marcado ? false : value.seminario_universidad_ninguna });
+  }
+
+  function marcarUniversidad(marcado: boolean) {
+    onChange({ ...value, universidad: marcado, seminario_universidad_ninguna: marcado ? false : value.seminario_universidad_ninguna });
+  }
+
+  function marcarNinguna(marcado: boolean) {
+    onChange({
+      ...value,
+      seminario_universidad_ninguna: marcado,
+      seminario: marcado ? false : value.seminario,
+      universidad: marcado ? false : value.universidad,
+    });
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Checkbox
+          checked={value.seminario_universidad_ninguna ?? false}
+          onCheckedChange={(v) => marcarNinguna(v === true)}
+        />
+        Ninguna
+      </label>
+
       <div className="flex flex-col gap-2">
         <label className="flex items-center gap-2 text-sm font-medium">
-          <Checkbox
-            checked={value.seminario ?? false}
-            onCheckedChange={(v) => actualizarValor(value, onChange, 'seminario', v === true)}
-          />
+          <Checkbox checked={value.seminario ?? false} onCheckedChange={(v) => marcarSeminario(v === true)} />
           ¿Está o estuvo en el Seminario?
         </label>
         {value.seminario && (
@@ -231,10 +276,7 @@ export function SeccionSeminarioUniversidadMembresia({ value, onChange }: Seccio
 
       <div className="flex flex-col gap-2">
         <label className="flex items-center gap-2 text-sm font-medium">
-          <Checkbox
-            checked={value.universidad ?? false}
-            onCheckedChange={(v) => actualizarValor(value, onChange, 'universidad', v === true)}
-          />
+          <Checkbox checked={value.universidad ?? false} onCheckedChange={(v) => marcarUniversidad(v === true)} />
           ¿Cursó la Universidad del Rey Jesús?
         </label>
         {value.universidad && (
@@ -259,6 +301,12 @@ export function SeccionSeminarioUniversidadMembresia({ value, onChange }: Seccio
       </div>
     </div>
   );
+}
+
+// KAN-252: true si la sección cumple "eligió al menos una opción" (Ninguna,
+// Seminario o Universidad) -- mismo criterio que discipuladosRespondido.
+export function seminarioUniversidadRespondido(value: DatosMembresiaExtendida): boolean {
+  return !!value.seminario_universidad_ninguna || !!value.seminario || !!value.universidad;
 }
 
 // Página 2: Mentor + Bautismo.
@@ -362,7 +410,8 @@ export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
     !!value.cargo_mentor ||
     !!value.cargo_sub_mentor ||
     !!value.cargo_lider_cdp ||
-    !!value.cargo_sublider_cdp;
+    !!value.cargo_sublider_cdp ||
+    !!value.cargo_lider_ministerio;
 
   function toggleCargo(campo: keyof DatosMembresiaExtendida, marcado: boolean) {
     actualizarValor(value, onChange, campo, marcado as never);
@@ -404,6 +453,7 @@ export function SeccionCargoRangoMembresia({ value, onChange }: SeccionProps) {
               ['cargo_sub_mentor', 'Sub mentor'],
               ['cargo_lider_cdp', 'Líder de CdPz'],
               ['cargo_sublider_cdp', 'Sub líder de CdPz'],
+              ['cargo_lider_ministerio', 'Líder de Ministerio'],
             ] as const
           ).map(([campo, etiqueta]) => (
             <label key={campo} className="flex items-center gap-2 text-sm">

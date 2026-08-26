@@ -17,6 +17,11 @@ import { obtenerMiMembresiaIncompleta } from './membresia-extendida.service';
  * primero (comportamiento existente sin cambios) y solo agrega el caso de
  * cualquier usuario_rol vigente sin Persona (Q-8) -- ej. Pastor/Supervisor
  * asignado directo desde Administración, sin invitación formal.
+ *
+ * KAN-252: la invitación real (id !== null) se acepta recién en la página 1
+ * del wizard (MembresiaObligatoria), no acá -- fn_aceptar_invitacion_lider
+ * exige nombre/apellido/sexo reales (mismo trigger que valida el resto de
+ * Persona), que todavía no existen en este punto del login.
  */
 export async function construirSesionDesdeAuth() {
   const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente] = await Promise.all([

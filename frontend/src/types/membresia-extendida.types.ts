@@ -64,6 +64,10 @@ export interface FamiliarInput {
 // obligatorios como antes.
 export interface DatosMembresiaExtendida {
   discipulados?: DiscipuladoSeleccionado[];
+  // KAN-252: distingue "todavía no contestó" (undefined) de "contestó que no
+  // hizo ninguno" -- excluyente con `discipulados`, se usa para exigir una
+  // respuesta activa en vez de dejar avanzar con la lista vacía por defecto.
+  discipulados_ninguno?: boolean;
 
   seminario?: boolean;
   seminario_anio?: number;
@@ -76,6 +80,10 @@ export interface DatosMembresiaExtendida {
   universidad_mes?: number;
   universidad_dia?: number;
   universidad_precision_fecha?: PrecisionFecha;
+
+  // KAN-252: mismo criterio que discipulados_ninguno -- "Ninguna" excluyente
+  // con seminario/universidad, para exigir una respuesta activa.
+  seminario_universidad_ninguna?: boolean;
 
   // Mentor (KAN-123 Q-5): sin catálogo/cargo nuevo -- texto libre +
   // casillero autodeclarado "es miembro de la iglesia".
@@ -114,6 +122,7 @@ export interface DatosMembresiaExtendida {
   cargo_sub_mentor?: boolean;
   cargo_lider_cdp?: boolean;
   cargo_sublider_cdp?: boolean;
+  cargo_lider_ministerio?: boolean;
   rango_miembro?: RangoMiembro;
 }
 
@@ -153,6 +162,8 @@ export interface MembresiaIncompleta {
     fecha_nacimiento: boolean;
     ocupacion: boolean;
     grado_instruccion: boolean;
+    estado_civil: boolean;
+    telefono: boolean;
   };
   /** KAN-179: solo en el caso general (id === null) -- guardado progresivo.
    * paso_actual es la última página guardada (1-indexed); datos_guardados

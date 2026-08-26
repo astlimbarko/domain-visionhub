@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import {
+  discipuladosRespondido,
+  seminarioUniversidadRespondido,
   SeccionCargoRangoMembresia,
   SeccionConyugeMembresia,
   SeccionDiscipuladosMembresia,
@@ -22,10 +24,9 @@ import {
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado } from '@/components/shared/FormularioPaginado';
 import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
-import { useCompletarMembresia } from '@/hooks/useInvitacionLider';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useMinisterios } from '@/hooks/useMinisterios';
-import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+import { aceptarInvitacionLider, notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 import { useAuthStore } from '@/store/auth.store';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida, type MembresiaIncompleta } from '@/types/membresia-extendida.types';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
@@ -60,7 +61,10 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
       telefono_pais: z.string().optional(),
       telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
-      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      telefono_no_aplica: z.boolean().optional(),
+      estado_civil: obligatorios.estado_civil
+        ? z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO'])
+        : z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
       grado_instruccion: z.string().optional(),
@@ -73,6 +77,9 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       if (obligatorios.grado_instruccion && !val.grado_instruccion_no_aplica && !val.grado_instruccion) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['grado_instruccion'], message: 'Requerido' });
       }
+      if (obligatorios.telefono && !val.telefono_no_aplica && !val.telefono_numero?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['telefono_numero'], message: 'Requerido' });
+      }
     });
 }
 
@@ -80,18 +87,22 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
 // sesión con un correo) por Teléfono con código de país. Lista corta y
 // curada (no una librería de +200 países) porque las iglesias de este
 // sistema son todas de Bolivia y países vecinos -- Bolivia por defecto.
+// KAN-252 (seguimiento): emoji de bandera no se ve en Windows (el SO
+// muestra las letras del código ISO en vez del emoji -- limitación de
+// Windows, no del navegador). Se usa flag-icons (SVG) en su lugar, vía la
+// clase `fi fi-<iso>` sobre un span vacío.
 const PAISES_TELEFONO = [
-  { codigo: '+591', nombre: 'Bolivia' },
-  { codigo: '+54', nombre: 'Argentina' },
-  { codigo: '+55', nombre: 'Brasil' },
-  { codigo: '+56', nombre: 'Chile' },
-  { codigo: '+57', nombre: 'Colombia' },
-  { codigo: '+51', nombre: 'Perú' },
-  { codigo: '+595', nombre: 'Paraguay' },
-  { codigo: '+598', nombre: 'Uruguay' },
-  { codigo: '+52', nombre: 'México' },
-  { codigo: '+34', nombre: 'España' },
-  { codigo: '+1', nombre: 'Estados Unidos' },
+  { codigo: '+591', nombre: 'Bolivia', iso: 'bo' },
+  { codigo: '+54', nombre: 'Argentina', iso: 'ar' },
+  { codigo: '+55', nombre: 'Brasil', iso: 'br' },
+  { codigo: '+56', nombre: 'Chile', iso: 'cl' },
+  { codigo: '+57', nombre: 'Colombia', iso: 'co' },
+  { codigo: '+51', nombre: 'Perú', iso: 'pe' },
+  { codigo: '+595', nombre: 'Paraguay', iso: 'py' },
+  { codigo: '+598', nombre: 'Uruguay', iso: 'uy' },
+  { codigo: '+52', nombre: 'México', iso: 'mx' },
+  { codigo: '+34', nombre: 'España', iso: 'es' },
+  { codigo: '+1', nombre: 'Estados Unidos', iso: 'us' },
 ] as const;
 
 const NOMBRE_ROL: Record<RolInvitable, string> = {
@@ -109,19 +120,23 @@ interface Props {
 }
 
 export function MembresiaObligatoria({ invitacion }: Props) {
-  // KAN-126: invitacion.id !== null significa que vino de invitacion_lider/
-  // invitacion_departamento (caso ya existente, obligatorio, sin Saltar).
-  // invitacion.id === null es el caso general (usuario_rol vigente sin
-  // Persona, Q-8, ej. Pastor/Supervisor asignado directo desde Administración)
-  // -- ahí sí hay botón Saltar y se usa fn_completar_membresia_general en vez
-  // de fn_completar_membresia (que exige una invitacion_lider real).
+  // KAN-126: invitacion.id !== null significa que vino de invitacion_lider
+  // (caso invitación real). invitacion.id === null es el caso general
+  // (usuario_rol vigente sin Persona, Q-8) -- ese ya tiene Persona+cargo
+  // resueltos desde el arranque.
   //
-  // KAN-179: solo el caso general se muestra como modal SOBRE el panel del
-  // rol ya cargado (PrivateLayout.tsx renderiza <AppShell> normal + este
-  // modal encima) -- el caso de invitación no tiene panel detrás todavía
-  // (el cargo real recién se crea al completar, no antes), así que sigue
-  // siendo lo único visible, igual que antes.
-  const esCasoGeneral = invitacion.id === null;
+  // KAN-252 (seguimiento): para la invitación real, la Persona y el cargo ya
+  // no se crean recién al TERMINAR el formulario -- se crean apenas se
+  // completa la página 1 ("Tu nombre"), vía fn_aceptar_invitacion_lider. Acá
+  // adentro eso se seguía con `personaCreada`: arranca en true para el caso
+  // general (ya existe desde antes) y en false para la invitación real hasta
+  // que la página 1 se envía con éxito -- de ahí en más se comporta exacto
+  // igual que el caso general (guardado progresivo, Saltar real, envío final
+  // vía fn_completar_membresia_general). Antes de ese punto no hay Persona
+  // ni cargo creados todavía (el trigger que valida Persona exige nombre/
+  // apellido/sexo reales), así que no hay panel posible detrás y solo queda
+  // "Salir sin completar" (cierra sesión).
+  const [personaCreada, setPersonaCreada] = useState(invitacion.id === null);
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
@@ -164,15 +179,15 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   // general) -- ver fn_mi_invitacion_pendiente/fn_mi_membresia_incompleta.
   const { data: ministerios = [] } = useMinisterios(invitacion.iglesia_id);
 
-  const mutacionInvitacion = useCompletarMembresia();
   const mutacionGeneral = useCompletarMembresiaGeneral();
   const guardarPaso = useGuardarPasoMembresiaGeneral();
 
   // KAN-179: guardado progresivo -- se llama al hacer clic en "Siguiente" de
-  // cada página (solo en el caso general). Si falla (ej. corte de red), avisa
-  // y NO deja avanzar -- mejor que perder en silencio lo que se tipeó.
+  // cada página, solo una vez que la Persona ya existe (personaCreada).
+  // Si falla (ej. corte de red), avisa y NO deja avanzar -- mejor que perder
+  // en silencio lo que se tipeó.
   async function guardarPasoSiCorresponde(paso: number, datos: DatosMembresiaExtendida | Record<string, unknown>) {
-    if (!esCasoGeneral) return true;
+    if (!personaCreada) return true;
     try {
       await guardarPaso.mutateAsync({ paso, datos: datos as Record<string, unknown> });
       return true;
@@ -191,9 +206,9 @@ export function MembresiaObligatoria({ invitacion }: Props) {
       sexo: valores.sexo,
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
-      telefono: valores.telefono_numero?.trim()
-        ? `${valores.telefono_pais || '+591'}${valores.telefono_numero.trim()}`
-        : undefined,
+      telefono: valores.telefono_no_aplica || !valores.telefono_numero?.trim()
+        ? undefined
+        : `${valores.telefono_pais || '+591'}${valores.telefono_numero.trim()}`,
       estado_civil: valores.estado_civil || undefined,
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica ? undefined : valores.grado_instruccion || undefined,
@@ -203,11 +218,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     };
 
     try {
-      if (esCasoGeneral) {
-        await mutacionGeneral.mutateAsync(datos);
-      } else {
-        await mutacionInvitacion.mutateAsync(datos);
-      }
+      await mutacionGeneral.mutateAsync(datos);
       const persona = await obtenerPersonaActual();
       completarMembresiaLocal(persona?.id ?? '', persona?.nombre_completo ?? '');
       if (persona?.id) void notificarMembresiaCompletada(persona.id);
@@ -234,13 +245,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   const sexoActual = watch('sexo');
   const telefonoPaisActual = watch('telefono_pais');
+  const telefonoNoAplica = watch('telefono_no_aplica');
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
   const gradoNoAplica = watch('grado_instruccion_no_aplica');
 
   return (
-    <Dialog open onOpenChange={() => {}}>
+    <Dialog open onOpenChange={() => {}} modal={false}>
       <DialogContent
         showCloseButton={false}
         className="sm:max-w-lg"
@@ -252,10 +264,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             {nombreOCorreo ? `Completa tu Membresía, ${nombreOCorreo}` : 'Completa tu Membresía'}
           </DialogTitle>
           <DialogDescription>
-            {esCasoGeneral ? (
+            {personaCreada ? (
               <>
-                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu
-                ficha de Membresía.
+                Tu cuenta tiene un rol en <strong>{invitacion.iglesia_nombre}</strong>, falta completar tu ficha
+                de Membresía.
               </>
             ) : invitacion.rol && esRolInvitable(invitacion.rol) ? (
               <>
@@ -280,17 +292,17 @@ export function MembresiaObligatoria({ invitacion }: Props) {
           <FormularioPaginado
             enviando={isSubmitting}
             textoFinalizar="Completar membresía y continuar"
-            pasoInicial={esCasoGeneral ? (invitacion.paso_actual ?? 1) - 1 : 0}
+            pasoInicial={personaCreada ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit)}
             notaPie={
-              esCasoGeneral && (
+              personaCreada && (
                 <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
                   Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
                 </p>
               )
             }
             accionExtra={
-              esCasoGeneral ? (
+              personaCreada ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -314,6 +326,26 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   const ok = await trigger(['primer_nombre', 'primer_apellido', 'sexo']);
                   if (!ok) return false;
                   const valores = getValues();
+                  // KAN-252: invitación real todavía sin Persona -- se crea acá
+                  // (fn_aceptar_invitacion_lider), con estos mismos datos ya
+                  // validados. De acá en más se comporta igual que el caso
+                  // general (guardado progresivo, Saltar real).
+                  if (!personaCreada) {
+                    try {
+                      await aceptarInvitacionLider({
+                        primer_nombre: valores.primer_nombre,
+                        segundo_nombre: valores.segundo_nombre || undefined,
+                        primer_apellido: valores.primer_apellido,
+                        segundo_apellido: valores.segundo_apellido || undefined,
+                        sexo: valores.sexo,
+                      });
+                      setPersonaCreada(true);
+                      return true;
+                    } catch {
+                      toast.error('No se pudo continuar, revisá tu conexión e intentá de nuevo');
+                      return false;
+                    }
+                  }
                   return guardarPasoSiCorresponde(1, {
                     primer_nombre: valores.primer_nombre,
                     segundo_nombre: valores.segundo_nombre || undefined,
@@ -370,7 +402,8 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     fecha_nacimiento: valores.fecha_nacimiento || undefined,
                     ci: valores.ci || undefined,
                     telefono_pais: valores.telefono_pais || undefined,
-                    telefono_numero: valores.telefono_numero || undefined,
+                    telefono_numero: valores.telefono_no_aplica ? undefined : valores.telefono_numero || undefined,
+                    telefono_no_aplica: valores.telefono_no_aplica || undefined,
                   });
                 },
                 contenido: (
@@ -390,19 +423,34 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label htmlFor="telefono_numero">Teléfono</Label>
+                      <Label htmlFor="telefono_numero">
+                        Teléfono {invitacion.campos_obligatorios.telefono && !telefonoNoAplica && '*'}
+                      </Label>
                       <div className="flex gap-2">
                         <Select
                           value={telefonoPaisActual ?? '+591'}
+                          disabled={telefonoNoAplica}
                           onValueChange={(v) => setValue('telefono_pais', v)}
                         >
-                          <SelectTrigger className={cn('w-28 shrink-0', CAMPO_ESTILO)}>
-                            <SelectValue />
+                          <SelectTrigger className={cn('w-32 shrink-0', CAMPO_ESTILO)}>
+                            {/* KAN-252: children explícitos -- en la casilla cerrada
+                                solo bandera + código (el nombre completo del país
+                                queda en la lista desplegable). Sin esto, Select
+                                copia el contenido completo del SelectItem elegido
+                                (bandera + código + nombre) en la casilla, que no
+                                entra en un ancho angosto y termina achicando la
+                                bandera junto con el texto. */}
+                            <SelectValue>
+                              <span className={cn('fi', `fi-${(PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso) ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                              {telefonoPaisActual ?? '+591'}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {PAISES_TELEFONO.map((p) => (
                               <SelectItem key={p.codigo} value={p.codigo}>
-                                {p.codigo} {p.nombre}
+                                <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                                {p.codigo}
+                                <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -411,10 +459,25 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                           id="telefono_numero"
                           inputMode="numeric"
                           className={CAMPO_ESTILO}
+                          disabled={telefonoNoAplica}
+                          placeholder={telefonoNoAplica ? 'No tiene teléfono' : undefined}
                           {...register('telefono_numero')}
                         />
                       </div>
-                      {errors.telefono_numero && <p className="text-sm text-destructive">Solo números</p>}
+                      {errors.telefono_numero && <p className="text-sm text-destructive">{errors.telefono_numero.message}</p>}
+                      {invitacion.campos_obligatorios.telefono && (
+                        <label className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                          <Checkbox
+                            checked={!!telefonoNoAplica}
+                            onCheckedChange={(v) => {
+                              const marcado = v === true;
+                              setValue('telefono_no_aplica', marcado, { shouldValidate: true });
+                              if (marcado) setValue('telefono_numero', '', { shouldValidate: true });
+                            }}
+                          />
+                          No tiene teléfono
+                        </label>
+                      )}
                     </div>
                   </div>
                 ),
@@ -423,7 +486,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 id: 'datos-generales',
                 titulo: 'Datos generales',
                 validar: async () => {
-                  const ok = await trigger(['ocupacion', 'grado_instruccion']);
+                  const ok = await trigger(['estado_civil', 'ocupacion', 'grado_instruccion']);
                   if (!ok) return false;
                   const valores = getValues();
                   return guardarPasoSiCorresponde(3, {
@@ -437,10 +500,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                 contenido: (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
-                      <Label>Estado civil</Label>
+                      <Label>Estado civil {invitacion.campos_obligatorios.estado_civil && '*'}</Label>
                       <Select
                         value={estadoCivilActual ?? ''}
-                        onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'])}
+                        onValueChange={(v) => setValue('estado_civil', v as FormValues['estado_civil'], { shouldValidate: true })}
                       >
                         <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
                           <SelectValue placeholder="—" />
@@ -452,6 +515,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                           <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
                         </SelectContent>
                       </Select>
+                      {errors.estado_civil && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -522,13 +586,25 @@ export function MembresiaObligatoria({ invitacion }: Props) {
               {
                 id: 'discipulados',
                 titulo: 'Discipulados',
-                validar: () => guardarPasoSiCorresponde(4, extendido),
+                validar: () => {
+                  if (!discipuladosRespondido(extendido)) {
+                    toast.error('Elegí al menos un discipulado, o marcá "Ninguno"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(4, extendido);
+                },
                 contenido: <SeccionDiscipuladosMembresia value={extendido} onChange={setExtendido} />,
               },
               {
                 id: 'seminario-universidad',
                 titulo: 'Seminario y Universidad',
-                validar: () => guardarPasoSiCorresponde(5, extendido),
+                validar: () => {
+                  if (!seminarioUniversidadRespondido(extendido)) {
+                    toast.error('Elegí Seminario, Universidad, o marcá "Ninguna"');
+                    return false;
+                  }
+                  return guardarPasoSiCorresponde(5, extendido);
+                },
                 contenido: <SeccionSeminarioUniversidadMembresia value={extendido} onChange={setExtendido} />,
               },
               {
