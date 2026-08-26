@@ -6,6 +6,7 @@ import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import {
   useAsignarCargoCdp,
   useCargoVigenteCdp,
@@ -286,6 +287,9 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Líder</p>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-900">{lider?.etiqueta ?? 'Sin asignar'}</p>
                 {lider?.correo && lider.nombre && <p className="truncate text-xs text-slate-500">{lider.correo}</p>}
+                {lider && !lider.invitacionId && lider.membresiaPendiente && (
+                  <BotonReenviarInvitacion entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
+                )}
               </div>
               <button
                 type="button"
@@ -323,8 +327,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 ) : (
                   <ul className="mt-1.5 flex flex-col gap-1">
                     {casaDePaz.sublideres.map((sub) => (
-                      <li key={sub.id} className="truncate text-sm text-slate-900">
-                        {sub.etiqueta}
+                      <li key={sub.id} className="text-sm text-slate-900">
+                        <p className="truncate">{sub.etiqueta}</p>
+                        {!sub.invitacionId && sub.membresiaPendiente && (
+                          <BotonReenviarInvitacion entidad={{ cdpId: casaDePaz.id, personaId: sub.id }} />
+                        )}
                       </li>
                     ))}
                   </ul>

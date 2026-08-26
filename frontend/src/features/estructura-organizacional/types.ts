@@ -18,6 +18,17 @@ export interface PersonaEstructura {
   invitacionId?: string | null;
 }
 
+/** KAN: entidad sobre la que se pide reenviar la invitación/recordatorio --
+ * exactamente una de las 4 debe venir con valor, igual que el body de
+ * notificar-asignacion-cargo (Edge Function). */
+export interface EntidadReenvioInvitacion {
+  redId?: string;
+  cdpId?: string;
+  departamentoId?: string;
+  iglesiaId?: string;
+  personaId: string;
+}
+
 export interface DepartamentoEstructura {
   id: string;
   codigo: string;

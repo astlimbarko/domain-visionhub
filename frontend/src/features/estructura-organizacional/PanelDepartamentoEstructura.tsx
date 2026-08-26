@@ -6,6 +6,7 @@ import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { mensajeError } from './estructura.service';
 import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { DepartamentoEstructura } from './types';
@@ -131,8 +132,11 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                     )}
                     {lider && (
                       <span className="block text-[11px] text-slate-500">
-                        {pendiente ? 'Confirmación pendiente' : 'Cuenta confirmada'}
+                        {pendiente ? 'Membresía pendiente' : 'Cuenta confirmada'}
                       </span>
+                    )}
+                    {lider && pendiente && (
+                      <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
                     )}
                   </span>
                 </div>

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useInvitarUsuario } from '@/hooks/useAdmin';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import {
   useAsignarPastorEstructura,
   useAsignarSupervisorEstructura,
@@ -186,6 +187,9 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
                   <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">{etiqueta} actual</p>
                   <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.etiqueta}</p>
                   {persona.correo && persona.nombre && <p className="truncate text-xs text-slate-500">{persona.correo}</p>}
+                  {persona.membresiaPendiente && (
+                    <BotonReenviarInvitacion entidad={{ iglesiaId, personaId: persona.id }} />
+                  )}
                 </div>
                 <button
                   type="button"

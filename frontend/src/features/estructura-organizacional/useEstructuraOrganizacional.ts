@@ -19,8 +19,13 @@ import {
   quitarSupervisorEstructura,
   reactivarCasaDePazEstructura,
   reactivarRedEstructura,
+  reenviarInvitacionCargo,
 } from './estructura.service';
 import type { CargoRedEstructura, CrearRedEstructuraEntrada, PosicionNodoGuardar } from './types';
+
+export function useReenviarInvitacionCargo() {
+  return useMutation({ mutationFn: reenviarInvitacionCargo });
+}
 
 export function useEstructuraOrganizacional(iglesiaId: string | undefined) {
   return useQuery({
