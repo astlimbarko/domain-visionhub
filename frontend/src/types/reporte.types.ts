@@ -85,6 +85,27 @@ export interface ResultadoReporte {
   totalAsistentes: number;
 }
 
+/** KAN-271: datos de un reporte ya enviado, para precargar el formulario en modo edición. */
+export interface ReporteExistente {
+  id: string;
+  casa_de_paz_id: string;
+  iglesia_id: string;
+  fecha_reunion: string;
+  libro_id: string | null;
+  tema_id: string | null;
+  tema_especial_txt: string | null;
+  disertador_id: string | null;
+  disertador_nombre: string | null;
+  salio_evangelizar: boolean;
+  evangelizados_declarados: number | null;
+  testimonios: string | null;
+  comentarios: string | null;
+  totalOfrendas: number;
+  totalDiezmos: number | null;
+  monedaId: string | null;
+  asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean }[];
+}
+
 export interface ReporteReciente {
   id: string;
   casa_de_paz_id: string;

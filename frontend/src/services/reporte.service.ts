@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { calcularEdad } from '@/utils/edad';
+import { aISO } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
   HistorialAsistencia,
@@ -8,6 +9,7 @@ import type {
   MegaFiestaDelDia,
   MiembroCdp,
   NuevoReporte,
+  ReporteExistente,
   ReporteRedFila,
   ReporteReciente,
   ResultadoReporte,
@@ -379,4 +381,217 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
     }
     throw e;
   }
+}
+
+/**
+ * KAN-271: mismo límite que fn_puede_editar_reporte_cdp (7 días desde la
+ * fecha de reunión, inclusive) -- solo para decidir si se muestra el botón
+ * "Editar" en la UI (evita un click que sabemos que va a rebotar). El
+ * permiso real siempre lo valida el backend vía RLS, esto no lo reemplaza.
+ */
+export const DIAS_LIMITE_EDICION_REPORTE = 7;
+
+export function dentroDeVentanaEdicionReporte(fechaReunionISO: string, hoyISO: string = aISO(new Date())): boolean {
+  const limite = new Date(`${fechaReunionISO}T00:00:00`);
+  limite.setDate(limite.getDate() + DIAS_LIMITE_EDICION_REPORTE);
+  return hoyISO <= aISO(limite);
+}
+
+/** KAN-271: si el reporte todavía se puede editar (rol + ventana de 7 días) -- ver fn_puede_editar_reporte_cdp. */
+export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_puede_editar_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return !!data;
+}
+
+/**
+ * KAN-271: trae un reporte ya enviado para precargar el formulario en modo
+ * edición (Líder/Supervisor de Red, Líder/Sublíder de CdP, dentro de la
+ * ventana de 7 días -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
+ * acá solo se lee).
+ */
+export async function obtenerReportePorId(reporteId: string): Promise<ReporteExistente> {
+  const [{ data: reporte, error: errorReporte }, { data: asistencia, error: errorAsistencia }, { data: ingresos, error: errorIngresos }] =
+    await Promise.all([
+      supabase
+        .from('casa_de_paz_reporte')
+        .select(
+          'id, casa_de_paz_id, iglesia_id, fecha_reunion, libro_id, tema_id, tema_especial_txt, disertador_id, salio_evangelizar, evangelizados_declarados, testimonios, comentarios, disertador:disertador_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)'
+        )
+        .eq('id', reporteId)
+        .single(),
+      supabase.from('casa_de_paz_asistencia').select('persona_id, es_visita, es_menor').eq('reporte_id', reporteId).is('fecha_eliminacion', null),
+      supabase
+        .from('finanzas_ingreso')
+        .select('monto, moneda_id, tipo_ingreso:tipo_ingreso_id(codigo)')
+        .eq('reporte_id', reporteId)
+        .is('fecha_eliminacion', null),
+    ]);
+  if (errorReporte) throw errorReporte;
+  if (errorAsistencia) throw errorAsistencia;
+  if (errorIngresos) throw errorIngresos;
+
+  const disertador = Array.isArray(reporte.disertador) ? reporte.disertador[0] : reporte.disertador;
+  const disertadorNombre = disertador
+    ? [disertador.primer_nombre, disertador.segundo_nombre, disertador.primer_apellido, disertador.segundo_apellido].filter(Boolean).join(' ')
+    : null;
+
+  let totalOfrendas = 0;
+  let totalDiezmos: number | null = null;
+  let monedaId: string | null = null;
+  for (const ing of ingresos ?? []) {
+    const tipo = Array.isArray(ing.tipo_ingreso) ? ing.tipo_ingreso[0] : ing.tipo_ingreso;
+    monedaId = ing.moneda_id;
+    if (tipo?.codigo === 'OFRENDA') totalOfrendas = Number(ing.monto);
+    if (tipo?.codigo === 'DIEZMO') totalDiezmos = Number(ing.monto);
+  }
+
+  return {
+    id: reporte.id,
+    casa_de_paz_id: reporte.casa_de_paz_id,
+    iglesia_id: reporte.iglesia_id,
+    fecha_reunion: reporte.fecha_reunion,
+    libro_id: reporte.libro_id,
+    tema_id: reporte.tema_id,
+    tema_especial_txt: reporte.tema_especial_txt,
+    disertador_id: reporte.disertador_id,
+    disertador_nombre: disertadorNombre,
+    salio_evangelizar: reporte.salio_evangelizar,
+    evangelizados_declarados: reporte.evangelizados_declarados,
+    testimonios: reporte.testimonios,
+    comentarios: reporte.comentarios,
+    totalOfrendas,
+    totalDiezmos,
+    monedaId,
+    asistentes: (asistencia ?? []).map((a) => ({ personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined })),
+  };
+}
+
+/**
+ * KAN-271: edita un reporte ya enviado -- mismo flujo de datos que
+ * crearReporte (asistencia + ingresos), pero contra un reporte existente en
+ * vez de crear uno nuevo. El permiso (rol + ventana de 7 días desde
+ * fecha_reunion) lo valida RLS (fn_puede_editar_reporte_cdp); acá solo se
+ * calcula el diff de asistencia contra lo que ya estaba guardado.
+ */
+export async function actualizarReporte(reporteId: string, datos: NuevoReporte): Promise<ResultadoReporte> {
+  const { error: errorReporte } = await supabase
+    .from('casa_de_paz_reporte')
+    .update({
+      libro_id: datos.libro_id || null,
+      tema_id: datos.tema_id || null,
+      tema_especial_txt: datos.tema_especial_txt || null,
+      disertador_id: datos.disertador_id || null,
+      salio_evangelizar: datos.salio_evangelizar,
+      evangelizados_declarados: datos.evangelizados_declarados ?? null,
+      testimonios: datos.testimonios || null,
+      comentarios: datos.comentarios || null,
+    })
+    .eq('id', reporteId);
+  if (errorReporte) throw errorReporte;
+
+  const { data: existentes, error: errorExistentes } = await supabase
+    .from('casa_de_paz_asistencia')
+    .select('id, persona_id, es_visita, es_menor')
+    .eq('reporte_id', reporteId)
+    .is('fecha_eliminacion', null);
+  if (errorExistentes) throw errorExistentes;
+
+  const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
+  const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+
+  const nuevasPersonas = await Promise.all(
+    datos.visitasNuevas.map(async (visita) => {
+      const { data: persona, error: errorPersona } = await supabase
+        .from('persona')
+        .insert({ iglesia_id: datos.iglesia_id, primer_nombre: visita.primer_nombre, primer_apellido: visita.primer_apellido, sexo: visita.sexo })
+        .select('id')
+        .single();
+      if (errorPersona) throw errorPersona;
+
+      if (visita.telefono?.trim() && tipoTelefonoId) {
+        await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
+      }
+
+      return { id: persona.id, esMenor: visita.es_menor, esVisita: true };
+    })
+  );
+
+  // Un único mapa "cómo debería quedar la asistencia" -- se compara contra lo
+  // que ya estaba guardado (existentesPorPersona) para decidir altas, bajas
+  // y cambios, en vez de borrar todo y reinsertar (evita perder el historial
+  // de auditoría de filas que no cambiaron).
+  const deseados = new Map<string, { esMenor?: boolean; esVisita: boolean }>();
+  for (const a of datos.asistentesExistentes) deseados.set(a.personaId, { esMenor: a.esMenor, esVisita: a.esVisita ?? false });
+  for (const p of nuevasPersonas) deseados.set(p.id, { esMenor: p.esMenor, esVisita: true });
+
+  const existentesPorPersona = new Map((existentes ?? []).map((e) => [e.persona_id, e]));
+
+  const aQuitar = (existentes ?? []).filter((e) => !deseados.has(e.persona_id));
+  const aAgregar = Array.from(deseados.entries()).filter(([personaId]) => !existentesPorPersona.has(personaId));
+  const aActualizar = Array.from(deseados.entries()).filter(([personaId, v]) => {
+    const actual = existentesPorPersona.get(personaId);
+    return actual && (actual.es_visita !== v.esVisita || (actual.es_menor ?? undefined) !== v.esMenor);
+  });
+
+  if (aQuitar.length > 0) {
+    const { error } = await supabase
+      .from('casa_de_paz_asistencia')
+      .update({ fecha_eliminacion: new Date().toISOString() })
+      .in('id', aQuitar.map((e) => e.id));
+    if (error) throw error;
+  }
+
+  if (aAgregar.length > 0) {
+    const { error } = await supabase.from('casa_de_paz_asistencia').insert(
+      aAgregar.map(([personaId, v]) => ({
+        iglesia_id: datos.iglesia_id,
+        reporte_id: reporteId,
+        persona_id: personaId,
+        es_menor: v.esMenor ?? null,
+        es_visita: v.esVisita,
+        confirmado_manualmente: true,
+      }))
+    );
+    if (error) throw error;
+  }
+
+  for (const [personaId, v] of aActualizar) {
+    const fila = existentesPorPersona.get(personaId);
+    if (!fila) continue;
+    const { error } = await supabase
+      .from('casa_de_paz_asistencia')
+      .update({ es_visita: v.esVisita, es_menor: v.esMenor ?? null, confirmado_manualmente: true })
+      .eq('id', fila.id);
+    if (error) throw error;
+  }
+
+  const { error: errorIngresos } = await supabase.rpc('fn_registrar_ingresos_reporte', {
+    p_reporte_id: reporteId,
+    p_total_ofrendas: datos.totalOfrendas,
+    p_total_diezmos: datos.totalDiezmos ?? null,
+    p_moneda_id: datos.monedaId,
+  });
+  if (errorIngresos) throw errorIngresos;
+
+  const { data: totales, error: errorTotales } = await supabase
+    .from('v_reporte_totales')
+    .select('total_menores, total_mayores, total_asistentes')
+    .eq('reporte_id', reporteId)
+    .single();
+  if (errorTotales) throw errorTotales;
+
+  try {
+    const { error: errorRecalculo } = await supabase.rpc('fn_recalcular_estados_cdp_reporte', { p_reporte_id: reporteId });
+    if (errorRecalculo) throw errorRecalculo;
+  } catch (e) {
+    console.error('No se pudo recalcular Simpatizante/Creyente', e);
+  }
+
+  return {
+    reporteId,
+    totalMenores: totales.total_menores,
+    totalMayores: totales.total_mayores,
+    totalAsistentes: totales.total_asistentes,
+  };
 }

@@ -1,5 +1,7 @@
-import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
+import { CalendarCheck2, Flame, History, Pencil, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
@@ -9,6 +11,8 @@ import { HistorialReportesSupervisorVista } from '@/components/reporte/Historial
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
+import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
+import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
@@ -27,6 +31,7 @@ function semanasVentana(hoy: Date, n: number): { inicio: string; fin: string }[]
 }
 
 export function HistorialReportes() {
+  const navigate = useNavigate();
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
@@ -141,6 +146,21 @@ export function HistorialReportes() {
                     {r.total_asistentes} asistentes · {r.total_menores} niños / {r.total_mayores} adultos
                   </p>
                 </div>
+                {/* KAN-271: solo se muestra dentro de la ventana de 7 días -- el
+                    permiso real siempre lo valida el backend, esto evita un
+                    click que ya sabemos que va a rebotar. */}
+                {dentroDeVentanaEdicionReporte(r.fecha_reunion) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={() => navigate(rutaReporteEditar(r.id))}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                )}
               </div>
             ))}
           </div>

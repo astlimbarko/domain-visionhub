@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
 import { useDiasPlazoReporte, useReportesRedRango } from '@/hooks/useReporte';
+import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
+import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
 
@@ -114,6 +117,7 @@ interface Props {
  * solo si ya pasó el plazo de gracia desde esa fecha).
  */
 export function ControlReportesVista({ redId, accionExtra }: Props) {
+  const navigate = useNavigate();
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: cdpsTodas = [], isLoading: cargandoCdps } = useCdps(iglesiaActivaId, redId);
   const cdps = useMemo(() => cdpsTodas.filter((c) => c.activo), [cdpsTodas]);
@@ -153,9 +157,10 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
 
   // clave "cdpId:semanaInicio" -> reporte de esa semana. Un reporte por CdP y semana.
   const porCdpSemana = useMemo(() => {
-    const mapa = new Map<string, { total: number; fecha: string; estadoCarga: 'VERDE' | 'NARANJA' }>();
+    const mapa = new Map<string, { reporteId: string; total: number; fecha: string; estadoCarga: 'VERDE' | 'NARANJA' }>();
     for (const r of reportes) {
       mapa.set(`${r.casa_de_paz_id}:${inicioSemanaISO(r.fecha_reunion)}`, {
+        reporteId: r.reporte_id,
         total: r.total_asistentes,
         fecha: r.fecha_reunion,
         estadoCarga: r.estado_carga,
@@ -370,22 +375,30 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
                           const celda = porCdpSemana.get(`${c.id}:${inicioSemanaISO(fechaEsperada)}`);
                           const est = estadoCeldaFecha(c.id, fechaEsperada);
                           const { bg, fg } = coloresPorEstado(est);
+                          // KAN-271: se puede editar directo desde acá -- solo
+                          // dentro de la ventana de 7 días (el permiso real lo
+                          // valida el backend igual, esto solo decide si la
+                          // celda se muestra como clickeable).
+                          const editable = !!celda && dentroDeVentanaEdicionReporte(celda.fecha);
                           const tituloCelda =
                             est === 'PENDIENTE'
                               ? `Todavía no vence (reunión del ${fechaCorta(fechaEsperada)})`
                               : celda
-                                ? `${celda.total} asistentes · reunión ${fechaCorta(celda.fecha)}${est === 'NARANJA' ? ' · presentado con retraso' : ' · a tiempo'}`
+                                ? `${celda.total} asistentes · reunión ${fechaCorta(celda.fecha)}${est === 'NARANJA' ? ' · presentado con retraso' : ' · a tiempo'}${editable ? ' · click para editar' : ''}`
                                 : `No presentó (reunión del ${fechaCorta(fechaEsperada)})`;
                           return (
-                            <div
+                            <button
                               key={i}
-                              className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-sm font-bold tabular-nums"
+                              type="button"
+                              disabled={!editable}
+                              onClick={editable ? () => navigate(rutaReporteEditar(celda.reporteId)) : undefined}
+                              className={`flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg border-none text-sm font-bold tabular-nums ${editable ? 'cursor-pointer transition-opacity hover:opacity-75' : 'cursor-default'}`}
                               style={{ backgroundColor: bg, color: fg }}
                               title={tituloCelda}
                             >
                               <span className="text-[9px] leading-none font-medium opacity-75">{fechaCorta(fechaEsperada)}</span>
                               <span className="leading-none">{celda ? celda.total : est === 'ROJO' ? '✕' : '·'}</span>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
