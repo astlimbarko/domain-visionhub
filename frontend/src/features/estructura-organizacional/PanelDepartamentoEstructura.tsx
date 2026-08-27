@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
 import { mensajeError } from './estructura.service';
@@ -152,7 +153,11 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
             </div>
             {esFuncional && lider && vigente && (
               <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
-                {!pendiente && lider.correo && <RestablecerContrasenaBoton correo={lider.correo} />}
+                {pendiente ? (
+                  <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
+                ) : (
+                  lider.correo && <RestablecerContrasenaBoton correo={lider.correo} />
+                )}
                 <button
                   type="button"
                   onClick={() => setConfirmandoQuitar(true)}
