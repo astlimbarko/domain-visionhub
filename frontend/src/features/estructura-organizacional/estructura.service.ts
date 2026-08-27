@@ -197,7 +197,6 @@ export async function obtenerEstructuraOrganizacional(
     casasResultado.error,
     relacionesResultado.error,
     invitacionesRedResultado.error,
-    usuariosResultado.error,
     cargosResultado.error,
     cargosRedResultado.error,
     cargosCdpResultado.error,
@@ -248,6 +247,15 @@ export async function obtenerEstructuraOrganizacional(
   // respaldo, alguien recién designado y todavía sin completar su ficha de
   // Membresía (nombre vacío, KAN-179) se mostraba como "Persona sin
   // identificar" en vez de su correo -- bug real reportado 2026-08-11.
+  //
+  // KAN-270 (2026-08-26): fn_listar_usuarios exige ser Super Admin/Pastor/
+  // Supervisor de la Visión en Acción -- para Líder/Supervisor de Red (que sí
+  // tienen acceso al Constructor, KAN-78) esa llamada SIEMPRE tira
+  // ADMIN_FUERA_DE_ALCANCE. Antes ese error entraba al array de `errores` de
+  // más abajo y tumbaba todo el resumen ("No se pudo cargar el resumen de
+  // esta iglesia") -- por eso usuariosResultado.error se excluye de ese array
+  // (mismo criterio que ya tenía correosRespaldoResultado más abajo): para
+  // Líder/Supervisor de Red el respaldo alcanza igual.
   const correoPorPersonaId = new Map<string, string>();
   for (const fila of (usuariosResultado.data ?? []) as UsuarioRolFila[]) {
     if (fila.persona_id) correoPorPersonaId.set(fila.persona_id, fila.correo);
