@@ -9,4 +9,6 @@
 - [x] Reusado el backend que ya había quedado funcionando en producción (4 RPC + Edge Function) -- se volvió a incluir la migración (idempotente) para que quede en el historial de git de esta rama
 - [x] `tsc` y `npm run build` del frontend, limpios. Migración reaplicada sin error. Commiteado y pusheado a `origin/kan263-reenviar-invitacion-v2`
 - [x] Ajuste visual a pedido: el botón "Reenviar invitación" tenía fondo+borde (pastilla), se sentía invasivo -- ahora es solo texto liviano, igual estilo que "Restablecer contraseña"
-- [ ] Falta: probar en vivo en el navegador (los 4 lugares, los 2 casos) antes de mergear a `master`
+- [x] Confirmado en las 7 entidades (Líder/Supervisor de Red, Líder/Sublíder de CdP, Líder de Departamento -- Afirmación --, Pastor, Supervisor de la Visión en Acción)
+- [x] Gonzalo probó en vivo, quedó conforme -- mergeado a `master` (PR #39, commit `94583ea`)
+- [ ] Falta: desplegar el build nuevo del front a producción (somoscdv.com) antes de pasar KAN-263 a Finalizada
