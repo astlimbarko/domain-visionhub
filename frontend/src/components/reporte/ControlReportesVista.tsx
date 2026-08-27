@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ClipboardCheck, Search, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardCheck, Pencil, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -245,6 +245,14 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   const cargando = cargandoCdps || cargandoReportes;
   const grid = { gridTemplateColumns: `minmax(150px, 1.4fr) repeat(${maxColumnas}, minmax(52px, 1fr))` };
 
+  // KAN-271: hay al menos un reporte del mes que todavía está dentro de la
+  // ventana de 7 días -- se usa para mostrar la ayuda de "se puede editar"
+  // solo cuando de verdad hay algo editable a la vista.
+  const hayReporteEditable = useMemo(
+    () => reportes.some((r) => dentroDeVentanaEdicionReporte(r.fecha_reunion)),
+    [reportes]
+  );
+
   const tituloEstado =
     total === 0 ? 'Sin Casas de Paz activas' : vencidas === 0 ? 'Todavía no vence ningún reporte este mes' : todoOk ? 'Todo el mes al día' : `${rojos + naranjas} reporte${rojos + naranjas === 1 ? '' : 's'} con problema este mes`;
 
@@ -312,6 +320,18 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
               </Select>
             )}
           </div>
+
+          {/* KAN-271: aviso de que las casillas con reporte se pueden editar
+              (Líder/Supervisor de Red), para que la acción se note -- solo
+              aparece si hay al menos un reporte dentro de la ventana de 7 días. */}
+          {!cargando && hayReporteEditable && (
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] text-muted-foreground">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Pencil className="h-3 w-3" />
+              </span>
+              Tocá una casilla marcada con el lápiz para editar ese reporte (hasta 7 días después de la reunión).
+            </div>
+          )}
 
           {cargando ? (
             <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-11 w-full rounded-xl" />)}</div>
@@ -392,10 +412,19 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
                               type="button"
                               disabled={!editable}
                               onClick={editable ? () => navigate(rutaReporteEditar(celda.reporteId)) : undefined}
-                              className={`flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg border-none text-sm font-bold tabular-nums ${editable ? 'cursor-pointer transition-opacity hover:opacity-75' : 'cursor-default'}`}
+                              className={`relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg border-none text-sm font-bold tabular-nums ${editable ? 'cursor-pointer ring-1 ring-inset ring-current/25 transition hover:ring-current/60 hover:brightness-95' : 'cursor-default'}`}
                               style={{ backgroundColor: bg, color: fg }}
                               title={tituloCelda}
                             >
+                              {editable && (
+                                <span
+                                  className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-[4px]"
+                                  style={{ backgroundColor: 'color-mix(in oklab, currentColor 18%, transparent)' }}
+                                  aria-label="Editable"
+                                >
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </span>
+                              )}
                               <span className="text-[9px] leading-none font-medium opacity-75">{fechaCorta(fechaEsperada)}</span>
                               <span className="leading-none">{celda ? celda.total : est === 'ROJO' ? '✕' : '·'}</span>
                             </button>
