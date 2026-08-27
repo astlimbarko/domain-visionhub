@@ -18,6 +18,19 @@ export interface PersonaEstructura {
   invitacionId?: string | null;
 }
 
+/** KAN-263: entidad sobre la que se pide reenviar la invitación/recordatorio
+ * a alguien con membresía incompleta -- exactamente una de las 4 debe venir
+ * con valor, igual que el body de notificar-asignacion-cargo (Edge
+ * Function). Se usa cuando el responsable NO tiene invitacionId (ya es una
+ * Persona real, no un placeholder de invitación todavía pendiente). */
+export interface EntidadReenvioInvitacion {
+  redId?: string;
+  cdpId?: string;
+  departamentoId?: string;
+  iglesiaId?: string;
+  personaId: string;
+}
+
 export interface DepartamentoEstructura {
   id: string;
   codigo: string;

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useInvitarUsuario } from '@/hooks/useAdmin';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import {
   useAsignarPastorEstructura,
   useAsignarSupervisorEstructura,
@@ -187,13 +188,18 @@ export function PanelPrincipalEstructura({ tipo, iglesiaId, actuales, otpRequeri
                   <p className="mt-1 truncate text-sm font-semibold text-slate-900">{persona.etiqueta}</p>
                   {persona.correo && persona.nombre && <p className="truncate text-xs text-slate-500">{persona.correo}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setConfirmandoQuitar(persona)}
-                  className="relative shrink-0 cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
-                >
-                  Quitar cargo
-                </button>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  {persona.membresiaPendiente && (
+                    <BotonReenviarInvitacion entidad={{ iglesiaId, personaId: persona.id }} />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setConfirmandoQuitar(persona)}
+                    className="relative cursor-pointer text-xs font-semibold text-slate-500 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-red-600"
+                  >
+                    Quitar cargo
+                  </button>
+                </div>
               </div>
             </section>
           ))}

@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useInvitacionLider';
 import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { textoLegibleSobre } from './contraste';
 import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -89,6 +90,7 @@ interface Props {
 
 interface CargoProps {
   titulo: string;
+  redId: string;
   responsable?: PersonaEstructura;
   onAbrir: () => void;
   onQuitar: () => void;
@@ -105,6 +107,7 @@ interface CargoProps {
 
 function ResumenCargo({
   titulo,
+  redId,
   responsable,
   onAbrir,
   onQuitar,
@@ -240,7 +243,11 @@ function ResumenCargo({
             </>
           ) : (
             <>
-              {responsable.correo && <RestablecerContrasenaBoton correo={responsable.correo} />}
+              {responsable.membresiaPendiente ? (
+                <BotonReenviarInvitacion entidad={{ redId, personaId: responsable.id }} />
+              ) : (
+                responsable.correo && <RestablecerContrasenaBoton correo={responsable.correo} />
+              )}
               <button
                 type="button"
                 disabled={procesando}
@@ -738,6 +745,7 @@ export function PanelRedEstructura({
             <>
               <ResumenCargo
                 titulo="Líder de Red"
+                redId={red.id}
                 responsable={red.lideres[0]}
                 onAbrir={() => abrirCargo('LIDER_RED')}
                 onQuitar={() => red.lideres[0] && setConfirmandoQuitar({ codigo: 'LIDER_RED', persona: red.lideres[0] })}
@@ -753,6 +761,7 @@ export function PanelRedEstructura({
                 <ResumenCargo
                   key={supervisor.id}
                   titulo="Supervisor de Red"
+                  redId={red.id}
                   responsable={supervisor}
                   ocultarCambiar
                   onAbrir={() => abrirCargo('SUBLIDER_RED')}
@@ -766,6 +775,7 @@ export function PanelRedEstructura({
               {red.supervisores.length < 2 && (
                 <ResumenCargo
                   titulo="Supervisor de Red"
+                  redId={red.id}
                   responsable={undefined}
                   onAbrir={() => abrirCargo('SUBLIDER_RED')}
                   onQuitar={() => {}}

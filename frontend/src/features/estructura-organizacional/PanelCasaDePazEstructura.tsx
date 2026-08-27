@@ -15,6 +15,7 @@ import {
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
+import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { notificarAsignacionCargoCdp } from './estructura.service';
 import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -296,9 +297,16 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {lider ? 'Cambiar' : 'Asignar'}
               </button>
             </div>
-            {lider?.correo && lider.nombre && (
+            {lider && (lider.invitacionId || lider.membresiaPendiente || (lider.correo && lider.nombre)) && (
               <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
-                <RestablecerContrasenaBoton correo={lider.correo} />
+                {lider.invitacionId || lider.membresiaPendiente ? (
+                  <BotonReenviarInvitacion
+                    invitacionId={lider.invitacionId ?? undefined}
+                    entidad={lider.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: lider.id }}
+                  />
+                ) : (
+                  <RestablecerContrasenaBoton correo={lider.correo as string} />
+                )}
               </div>
             )}
           </section>
@@ -336,11 +344,22 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                     {casaDePaz.sublideres.map((sub) => (
                       <li key={sub.id} className="min-w-0">
                         <p className="truncate text-sm text-slate-900">{sub.etiqueta}</p>
-                        {sub.correo && sub.nombre && (
+                        {sub.invitacionId || sub.membresiaPendiente ? (
                           <div className="mt-0.5 flex items-center justify-between gap-2">
-                            <span className="truncate text-xs text-slate-500">{sub.correo}</span>
-                            <RestablecerContrasenaBoton correo={sub.correo} className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700" />
+                            {sub.correo && <span className="truncate text-xs text-slate-500">{sub.correo}</span>}
+                            <BotonReenviarInvitacion
+                              invitacionId={sub.invitacionId ?? undefined}
+                              entidad={sub.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: sub.id }}
+                              className="relative flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-semibold text-amber-700 before:absolute before:-inset-2 before:content-[''] hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
                           </div>
+                        ) : (
+                          sub.correo && sub.nombre && (
+                            <div className="mt-0.5 flex items-center justify-between gap-2">
+                              <span className="truncate text-xs text-slate-500">{sub.correo}</span>
+                              <RestablecerContrasenaBoton correo={sub.correo} className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700" />
+                            </div>
+                          )
                         )}
                       </li>
                     ))}

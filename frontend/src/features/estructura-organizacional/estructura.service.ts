@@ -1,10 +1,12 @@
 import { supabase } from '@/services/supabase';
+import { obtenerUrlBase } from '@/utils/app-url';
 import type { CargoCdpCodigo } from '@/types/casas-de-paz.types';
 import type {
   CargoRedEstructura,
   CasaDePazEstructura,
   CrearRedEstructuraEntrada,
   DepartamentoEstructura,
+  EntidadReenvioInvitacion,
   EstructuraOrganizacionalDatos,
   PersonaEstructura,
   PersonaOpcionEstructura,
@@ -50,6 +52,7 @@ interface PersonaFila {
   segundo_apellido: string | null;
   correo: string | null;
   usuario_id: string | null;
+  membresia_completada: boolean;
 }
 
 interface CargoFila { id: string; codigo: string }
@@ -67,6 +70,7 @@ interface UsuarioRolFila {
   rol: string;
   persona_id: string | null;
   persona_nombre: string | null;
+  membresia_completada: boolean | null;
 }
 
 interface InvitacionRedFila {
@@ -268,7 +272,7 @@ export async function obtenerEstructuraOrganizacional(
   if (personaIds.length > 0) {
     const { data, error } = await supabase
       .from('persona')
-      .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, usuario_id')
+      .select('id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, usuario_id, membresia_completada')
       .in('id', personaIds)
       .is('fecha_eliminacion', null);
     if (error) throw error;
@@ -283,7 +287,12 @@ export async function obtenerEstructuraOrganizacional(
             nombreAbreviado: nombreAbreviado(persona) || correo || 'Persona sin identificar',
             correo,
             etiqueta: nombrePersona(persona) || correo || 'Persona sin identificar',
-            membresiaPendiente: !persona.usuario_id,
+            // KAN-263: antes solo miraba !usuario_id -- desde que aceptar una
+            // invitación crea la Persona/cargo en el primer login
+            // (fn_aceptar_invitacion_lider, KAN-252), alguien podía tener
+            // cuenta ya creada y quedar igual "perdido" a medio formulario
+            // sin que esto lo reflejara (mostraba el punto verde igual).
+            membresiaPendiente: !persona.usuario_id || !persona.membresia_completada,
           },
         ];
       }),
@@ -345,7 +354,10 @@ export async function obtenerEstructuraOrganizacional(
         nombre,
         correo: usuario.correo,
         etiqueta: nombre ?? usuario.correo,
-        membresiaPendiente: !nombre,
+        // KAN-263: mismo criterio que arriba -- !nombre solo capta la
+        // página 1 sin completar; membresia_completada=false sigue siendo
+        // cierto aunque ya haya nombre cargado (páginas 2 en adelante).
+        membresiaPendiente: !nombre || usuario.membresia_completada === false,
       };
     });
     const principal = personaIdPrincipal ? personas.get(personaIdPrincipal) : null;
@@ -671,4 +683,26 @@ export async function buscarPersonasEstructura(
     iglesiaId: persona.iglesia_id,
     iglesiaNombre: persona.iglesia_nombre,
   }));
+}
+
+/**
+ * KAN-263: reenviar invitación/recordatorio a quien figura como responsable
+ * de una entidad (Red, Casa de Paz, Departamento, Pastor/Supervisor) pero
+ * todavía tiene la membresía incompleta -- para una Persona real (no un
+ * placeholder de invitación todavía pendiente, ese caso sigue usando
+ * reenviarInvitacionLider). Ver la Edge Function para el detalle de qué
+ * tipo de correo manda en cada caso.
+ */
+export async function reenviarInvitacionCargo(entidad: EntidadReenvioInvitacion): Promise<void> {
+  const { error } = await supabase.functions.invoke('reenviar-invitacion-cargo', {
+    body: { ...entidad, redirectTo: `${obtenerUrlBase()}/completar-cuenta` },
+  });
+  if (error) {
+    const contexto = (error as { context?: Response }).context;
+    if (contexto) {
+      const cuerpo = await contexto.json().catch(() => null);
+      throw new Error(cuerpo?.error || (error as Error).message);
+    }
+    throw error;
+  }
 }
