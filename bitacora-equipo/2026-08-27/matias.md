@@ -6,4 +6,5 @@
 - [x] Frontend: `Reportes.tsx` ahora tiene modo edición (`/reportes/:reporteId/editar`), precarga todo lo ya guardado; botón "Editar" en Historial de Reportes (Líder/Sublíder CdP) y en la grilla de Control de Reportes (Líder/Supervisor de Red), solo dentro de la ventana de 7 días
 - [x] `tsc -b`, `oxlint` y `vite build` limpios; lógica de permiso verificada contra datos reales de producción (reporte de 4 días permitido, de 13 días rechazado)
 - [x] Mergeado a `master` y desplegado en producción (verificado que el bundle en vivo coincide)
+- [x] Ajuste: el Sublíder de CdP no tenía acceso a "Historial de Reportes" (donde vive el botón Editar) -- se le agregó esa ruta a su navegación
 - [ ] Falta: probar en vivo en el navegador con las 4 cuentas de rol (no tuve acceso al navegador en esta sesión) antes de pasar KAN-271 a Finalizada
