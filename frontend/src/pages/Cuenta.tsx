@@ -9,7 +9,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL } from '@/components/dashboard/DashboardUI';
-import { establecerContrasena, obtenerCorreoActual } from '@/services/auth.service';
+import { establecerContrasena, mensajeErrorContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
 const REQUISITOS_CONTRASENA = [
@@ -46,7 +46,7 @@ export function Cuenta() {
   async function onSubmitContrasena(datos: FormContrasena) {
     setEnviandoContrasena(true);
     try { await establecerContrasena(datos.contrasena); toast.success('Contraseña actualizada'); formContrasena.reset(); }
-    catch { toast.error('Error'); } finally { setEnviandoContrasena(false); }
+    catch (e) { toast.error(mensajeErrorContrasena(e, 'No se pudo actualizar la contraseña')); } finally { setEnviandoContrasena(false); }
   }
 
   const inputCls = "h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus-visible:bg-background";

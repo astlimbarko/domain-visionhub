@@ -51,6 +51,22 @@ export async function establecerContrasena(nuevaContrasena: string) {
   if (error) throw error;
 }
 
+/**
+ * Bug real 2026-08-27: si la contraseña nueva es igual a la anterior,
+ * GoTrue rechaza el cambio (`code: "same_password"`) pero las 2 pantallas que
+ * llaman a establecerContrasena (Cuenta.tsx, CompletarCuenta.tsx) mostraban
+ * un "Error"/"No se pudo guardar" genérico, sin decir por qué -- la persona
+ * no tenía forma de saber que tenía que elegir una contraseña distinta.
+ */
+export function mensajeErrorContrasena(error: unknown, generico: string): string {
+  const codigo = (error as { code?: string })?.code;
+  const mensaje = error instanceof Error ? error.message : '';
+  if (codigo === 'same_password' || /different from the old password/i.test(mensaje)) {
+    return 'La contraseña nueva tiene que ser distinta a la anterior.';
+  }
+  return generico;
+}
+
 export async function obtenerCorreoActual(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.email ?? null;
