@@ -70,18 +70,23 @@ const RUTAS_LIDER_CDP: string[] = [
 ];
 
 // A diferencia del líder real, el sublíder tiene un alcance de navegación
-// más chico -- sin Dashboard ni Historial de Reportes (decisión del owner,
-// 2026-07-31). Acotado de nuevo 2026-08-02 (pedido explícito del owner): solo
-// [Perfil de Casa de Paz][Reportes][Historial de Asistencia][Evangelismo],
-// sin Calendario. Además de ver menos módulos, dentro de los que sí ve la
-// restricción es de acciones -- no puede modificar nada, solo subir
+// más chico -- sin Dashboard (decisión del owner, 2026-07-31). Acotado de
+// nuevo 2026-08-02 (pedido explícito del owner): solo [Perfil de Casa de
+// Paz][Reportes][Historial de Asistencia][Evangelismo], sin Calendario.
+// Historial de Reportes se suma después (KAN-271, 2026-08-27, pedido
+// explícito del owner): es desde ahí (lista "Reportes recientes") que el
+// sublíder llega al botón "Editar" de sus propios reportes, dentro de la
+// ventana de 7 días. Además de ver menos módulos, dentro de los que sí ve la
+// restricción es de acciones -- no puede modificar nada, solo subir/editar
 // reportes (eso ya notifica al Líder de CdP vigente, trg_notificar_reporte_
-// sublider en 57_notificaciones.sql) -- no puede designar/eliminar
+// sublider/trg_notificar_reporte_editado en 57_notificaciones.sql /
+// 20260827000000_kan271_editar_reporte_cdp.sql) -- no puede designar/eliminar
 // sublíderes ni modificar la CdP, tampoco editar nada de Evangelismo -- eso
 // se aplica en CasasDePaz.tsx y Evangelismo.tsx, no acá.
 const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.REPORTES,
   ROUTES.REPORTES_EDITAR,
+  ROUTES.HISTORIAL_REPORTES,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
   ROUTES.EVANGELISMO,
   ROUTES.HISTORIAL_ASISTENCIA,
