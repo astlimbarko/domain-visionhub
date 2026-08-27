@@ -18,8 +18,12 @@ interface Props {
   className?: string;
 }
 
+// Mismo estilo (texto liviano, sin fondo ni borde) que RestablecerContrasenaBoton
+// -- pedido explícito del owner: el primer diseño (pastilla con fondo/borde)
+// se sentía "invasivo" y desplazaba demasiado la tarjeta hacia abajo cuando
+// había líder + varios sublíderes pendientes a la vez.
 const ESTILO_DEFECTO =
-  "flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50";
+  "relative flex shrink-0 cursor-pointer items-center gap-1 text-xs font-semibold text-amber-700 before:absolute before:-inset-x-2 before:-inset-y-3.5 before:content-[''] hover:text-amber-900 disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * KAN-263: un solo botón "Reenviar invitación" para los 2 casos de
