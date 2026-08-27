@@ -412,21 +412,18 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
                               type="button"
                               disabled={!editable}
                               onClick={editable ? () => navigate(rutaReporteEditar(celda.reporteId)) : undefined}
-                              className={`relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg border-none text-sm font-bold tabular-nums ${editable ? 'cursor-pointer ring-1 ring-inset ring-current/25 transition hover:ring-current/60 hover:brightness-95' : 'cursor-default'}`}
+                              className={`group/celda relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg border-none text-sm font-bold tabular-nums ${editable ? 'cursor-pointer ring-1 ring-inset ring-current/15 transition-all hover:ring-current/45 hover:brightness-[0.97]' : 'cursor-default'}`}
                               style={{ backgroundColor: bg, color: fg }}
                               title={tituloCelda}
                             >
-                              {editable && (
-                                <span
-                                  className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-[4px]"
-                                  style={{ backgroundColor: 'color-mix(in oklab, currentColor 18%, transparent)' }}
-                                  aria-label="Editable"
-                                >
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </span>
-                              )}
-                              <span className="text-[9px] leading-none font-medium opacity-75">{fechaCorta(fechaEsperada)}</span>
+                              <span className="text-[9px] leading-none font-medium opacity-70">{fechaCorta(fechaEsperada)}</span>
                               <span className="leading-none">{celda ? celda.total : est === 'ROJO' ? '✕' : '·'}</span>
+                              {editable && (
+                                <Pencil
+                                  className="pointer-events-none absolute right-1 bottom-1 h-2.5 w-2.5 opacity-45 transition-opacity group-hover/celda:opacity-90"
+                                  aria-hidden
+                                />
+                              )}
                             </button>
                           );
                         })}
