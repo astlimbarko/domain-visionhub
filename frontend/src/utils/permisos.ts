@@ -61,6 +61,7 @@ export interface NavItem {
 const RUTAS_LIDER_CDP: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.REPORTES,
+  ROUTES.REPORTES_EDITAR,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.EVANGELISMO,
@@ -80,6 +81,7 @@ const RUTAS_LIDER_CDP: string[] = [
 // se aplica en CasasDePaz.tsx y Evangelismo.tsx, no acá.
 const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.REPORTES,
+  ROUTES.REPORTES_EDITAR,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
   ROUTES.EVANGELISMO,
   ROUTES.HISTORIAL_ASISTENCIA,
@@ -94,6 +96,9 @@ const RUTAS_LIDER_RED: string[] = [
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Gestión de Casas de Paz"
   ROUTES.CONTROL_REPORTES,
+  // KAN-271: puede editar (no crear) el reporte de cualquier CdP de su Red,
+  // dentro de la ventana de 7 días -- entra desde Control de Reportes.
+  ROUTES.REPORTES_EDITAR,
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
   ROUTES.VISITAS,

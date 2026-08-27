@@ -9,6 +9,12 @@ export const ROUTES = {
   CASAS_DE_PAZ: '/casas-de-paz',
   MINISTERIOS: '/ministerios',
   REPORTES: '/reportes',
+  // KAN-271: editar un reporte ya enviado -- misma pantalla que REPORTES en
+  // modo edición (useParams reporteId), pero ruta propia para que Líder/
+  // Supervisor de Red también puedan llegar a ella (no tienen una CdP
+  // "activa" como Líder/Sublíder de CdP, así que no pueden usar /reportes a
+  // secas -- acá el casa_de_paz_id/iglesia_id salen del reporte mismo).
+  REPORTES_EDITAR: '/reportes/:reporteId/editar',
   CONTROL_REPORTES: '/control-reportes',
   HISTORIAL_REPORTES: '/historial-reportes',
   HISTORIAL_ASISTENCIA: '/historial-asistencia',
@@ -75,6 +81,10 @@ export function rutaEstructuraOrganizacional(iglesiaId: string) {
 
 export function rutaConstructorResumen(iglesiaId: string) {
   return `/constructor/${iglesiaId}`;
+}
+
+export function rutaReporteEditar(reporteId: string) {
+  return `/reportes/${reporteId}/editar`;
 }
 
 /**

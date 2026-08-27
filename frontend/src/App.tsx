@@ -198,6 +198,11 @@ function App() {
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.REPORTES)}><Reportes /></RequiereRol>
               </Suspense>
             } />
+            <Route path={ROUTES.REPORTES_EDITAR} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.REPORTES_EDITAR)}><Reportes /></RequiereRol>
+              </Suspense>
+            } />
             <Route path={ROUTES.CONTROL_REPORTES} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.CONTROL_REPORTES)}><ControlReportes /></RequiereRol>

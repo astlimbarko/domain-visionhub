@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
   ClipboardList,
@@ -37,12 +38,15 @@ import {
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import {
+  useActualizarReporte,
   useCamposObligatoriosReporte,
   useCrearReporte,
   useEdadMinimaCreyente,
   useLibros,
   useMegaFiestaDelDia,
   useMiembrosCdp,
+  usePuedeEditarReporte,
+  useReportePorId,
   useTemas,
 } from '@/hooks/useReporte';
 import { crearEvangelizado } from '@/services/evangelismo.service';
@@ -50,7 +54,7 @@ import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo'
 import { BuscadorPersonaMultiple } from '@/components/reporte/BuscadorPersonaMultiple';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { aISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import type { EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -74,10 +78,21 @@ type FormValues = z.infer<typeof esquema>;
 const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
 
 export function Reportes() {
+  const { reporteId } = useParams<{ reporteId?: string }>();
+  const modoEdicion = !!reporteId;
+  const navigate = useNavigate();
   const { contextoActivo } = useContextoActivo();
   const contextoCdp = contextoActivo?.alcance === 'CDP' ? contextoActivo : null;
-  const iglesiaActivaId = contextoCdp?.iglesiaId;
-  const cdpActiva = contextoCdp?.cdpId;
+
+  // KAN-271: en modo edición, la iglesia/CdP salen del reporte que se está
+  // editando, no del contexto activo -- Líder/Supervisor de Red edita
+  // reportes de Casas de Paz que no son "su" contexto activo (ellos no
+  // tienen una, a diferencia de Líder/Sublíder de CdP).
+  const { data: reporteExistente, isLoading: cargandoReporteExistente, isError: errorReporteExistente } = useReportePorId(reporteId);
+  const { data: puedeEditar, isLoading: cargandoPuedeEditar } = usePuedeEditarReporte(reporteId);
+
+  const iglesiaActivaId = modoEdicion ? reporteExistente?.iglesia_id : contextoCdp?.iglesiaId;
+  const cdpActiva = modoEdicion ? reporteExistente?.casa_de_paz_id : contextoCdp?.cdpId;
   const queryClient = useQueryClient();
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
@@ -95,6 +110,7 @@ export function Reportes() {
   const { data: edadMinima = 12 } = useEdadMinimaCreyente(iglesiaActivaId);
   const { data: monedas = [] } = useMonedasActivas(iglesiaActivaId);
   const crear = useCrearReporte(cdpActiva);
+  const actualizar = useActualizarReporte(cdpActiva);
 
   // Un único mapa persona → { esVisita, esMenor } evita que alguien quede
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
@@ -107,6 +123,11 @@ export function Reportes() {
   const [telefonoVisita, setTelefonoVisita] = useState('');
   const [esMenorVisita, setEsMenorVisita] = useState(false);
   const [evangelizadosPendientes, setEvangelizadosPendientes] = useState<EvangelizadoPendiente[]>([]);
+  // KAN-271: en modo edición no se vuelve a pasar por el panel de "agregar
+  // evangelizado" (ya se creó su registro de Evangelismo al enviar el
+  // reporte original -- reabrirlo lo duplicaría). Solo se corrige el
+  // conteo que queda guardado en el reporte.
+  const [evangelizadosDeclaradosEdicion, setEvangelizadosDeclaradosEdicion] = useState<number | undefined>(undefined);
   const [esMegaFiesta, setEsMegaFiesta] = useState(false);
   const [disertadorNombre, setDisertadorNombre] = useState('');
 
@@ -140,6 +161,34 @@ export function Reportes() {
       setValue('moneda_id', monedas[0].moneda_id);
     }
   }, [monedas, monedaId, setValue]);
+
+  // KAN-271: precarga del formulario con los datos ya guardados, una sola
+  // vez que llega el reporte (evita pisar lo que la persona ya empezó a
+  // tocar si esta query se refetchea después). `formPrecargado` evita
+  // mostrar el formulario un instante con los defaultValues vacíos antes de
+  // que este efecto corra (se renderiza recién en el próximo commit).
+  const [formPrecargado, setFormPrecargado] = useState(false);
+  useEffect(() => {
+    if (!modoEdicion || !reporteExistente) return;
+    reset({
+      fecha_reunion: reporteExistente.fecha_reunion,
+      libro_id: reporteExistente.libro_id ?? undefined,
+      tema_id: reporteExistente.tema_id ?? undefined,
+      tema_especial_txt: reporteExistente.tema_especial_txt ?? undefined,
+      disertador_id: reporteExistente.disertador_id ?? undefined,
+      salio_evangelizar: reporteExistente.salio_evangelizar,
+      testimonios: reporteExistente.testimonios ?? undefined,
+      comentarios: reporteExistente.comentarios ?? undefined,
+      total_ofrendas: String(reporteExistente.totalOfrendas),
+      total_diezmos: reporteExistente.totalDiezmos != null ? String(reporteExistente.totalDiezmos) : undefined,
+      moneda_id: reporteExistente.monedaId ?? undefined,
+    });
+    setDisertadorNombre(reporteExistente.disertador_nombre ?? '');
+    setEvangelizadosDeclaradosEdicion(reporteExistente.evangelizados_declarados ?? undefined);
+    setAsistentes(new Map(reporteExistente.asistentes.map((a) => [a.personaId, { esVisita: a.esVisita, esMenor: a.esMenor }])));
+    setFormPrecargado(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reporteExistente, modoEdicion]);
 
   function cambiarTextoDisertador(texto: string) {
     setDisertadorNombre(texto);
@@ -292,7 +341,7 @@ export function Reportes() {
     }
 
     try {
-      const resultado = await crear.mutateAsync({
+      const datosComunes = {
         casa_de_paz_id: cdpActiva,
         iglesia_id: iglesiaActivaId,
         fecha_reunion: valores.fecha_reunion,
@@ -302,7 +351,11 @@ export function Reportes() {
         disertador_id: valores.disertador_id,
         evento_megafiesta_id: esMegaFiesta && megaFiesta ? megaFiesta.evento_id : undefined,
         salio_evangelizar: valores.salio_evangelizar,
-        evangelizados_declarados: valores.salio_evangelizar ? evangelizadosPendientes.length : undefined,
+        evangelizados_declarados: valores.salio_evangelizar
+          ? modoEdicion
+            ? evangelizadosDeclaradosEdicion
+            : evangelizadosPendientes.length
+          : undefined,
         testimonios: valores.testimonios,
         comentarios: valores.comentarios,
         asistentesExistentes: Array.from(asistentes.entries()).map(([id, v]) => ({
@@ -314,8 +367,15 @@ export function Reportes() {
         totalOfrendas: Number(valores.total_ofrendas),
         totalDiezmos: valores.total_diezmos ? Number(valores.total_diezmos) : undefined,
         monedaId: valores.moneda_id,
-      });
+      };
 
+      const resultado = modoEdicion
+        ? await actualizar.mutateAsync({ reporteId: reporteId as string, datos: datosComunes })
+        : await crear.mutateAsync(datosComunes);
+
+      // KAN-271: en edición no se vuelve a pasar por acá -- el panel de
+      // "agregar evangelizado" está oculto (evangelizadosPendientes siempre
+      // vacío), así que este bloque no se dispara nunca en modoEdicion.
       if (evangelizadosPendientes.length > 0) {
         try {
           // Cada evangelizado es independiente del resto -- antes se creaban
@@ -342,6 +402,14 @@ export function Reportes() {
         } catch {
           toast.error('El reporte se guardó, pero no se pudieron registrar todos los evangelizados');
         }
+      }
+
+      if (modoEdicion) {
+        toast.success(
+          `Reporte actualizado: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
+        );
+        navigate(-1);
+        return;
       }
 
       toast.success(
@@ -376,7 +444,27 @@ export function Reportes() {
     }
   }
 
-  if (!contextoCdp) {
+  if (modoEdicion) {
+    if (cargandoReporteExistente || cargandoPuedeEditar || !formPrecargado) {
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <Skeleton className="h-20 w-full rounded-3xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
+      );
+    }
+    if (errorReporteExistente || !reporteExistente) {
+      return <ProximamentePlaceholder titulo="Editar reporte" descripcion="No se pudo cargar este reporte." />;
+    }
+    if (!puedeEditar) {
+      return (
+        <ProximamentePlaceholder
+          titulo="Ya no se puede editar"
+          descripcion="Este reporte ya pasó la ventana de 7 días para editarlo, o no tenés permiso sobre esta Casa de Paz."
+        />
+      );
+    }
+  } else if (!contextoCdp) {
     return (
       <ProximamentePlaceholder
         titulo="Reporte de Casa de Paz"
@@ -389,8 +477,8 @@ export function Reportes() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <DashboardHero
         icon={ClipboardList}
-        eyebrow="Reporte semanal"
-        title="Reporte de la reunión"
+        eyebrow={modoEdicion ? 'Editar reporte' : 'Reporte semanal'}
+        title={modoEdicion ? `Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}` : 'Reporte de la reunión'}
         color={colorRed ?? undefined}
       />
 
@@ -407,7 +495,8 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input id="fecha_reunion" type="date" max={hoy} {...register('fecha_reunion')} />
+                    <Input id="fecha_reunion" type="date" max={hoy} disabled={modoEdicion} {...register('fecha_reunion')} />
+                    {modoEdicion && <p className="text-[11px] text-muted-foreground">La fecha de la reunión no se puede cambiar al editar.</p>}
                   </div>
 
                   {megaFiesta && (
@@ -659,7 +748,25 @@ export function Reportes() {
                     <Checkbox checked={salioEvangelizar} onCheckedChange={(v) => setValue('salio_evangelizar', v === true)} />
                     Salieron a evangelizar
                   </label>
-                  {salioEvangelizar && (
+                  {salioEvangelizar && modoEdicion && (
+                    // KAN-271: en edición no se reabre el alta de evangelizados
+                    // (ya se creó su registro de Evangelismo al enviar el
+                    // reporte original) -- solo se corrige el conteo.
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="evangelizados_declarados">Evangelizados</Label>
+                      <Input
+                        id="evangelizados_declarados"
+                        type="number"
+                        min="0"
+                        value={evangelizadosDeclaradosEdicion ?? ''}
+                        onChange={(e) => setEvangelizadosDeclaradosEdicion(e.target.value === '' ? undefined : Number(e.target.value))}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Solo corrige el conteo del reporte -- no vuelve a crear los registros de Evangelismo.
+                      </p>
+                    </div>
+                  )}
+                  {salioEvangelizar && !modoEdicion && (
                     <EvangelismoPendientePanel
                       iglesiaId={iglesiaActivaId}
                       pendientes={evangelizadosPendientes}
@@ -736,7 +843,7 @@ export function Reportes() {
 
         <Button type="submit" disabled={isSubmitting} className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:self-start sm:px-8">
           {isSubmitting && <Spinner className="h-4 w-4" />}
-          {isSubmitting ? 'Enviando...' : 'Enviar reporte'}
+          {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
         </Button>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  actualizarReporte,
   crearReporte,
   obtenerCamposObligatorios,
   obtenerDiasPlazoReporte,
@@ -9,9 +10,11 @@ import {
   obtenerLibros,
   obtenerMegaFiestaDelDia,
   obtenerMiembrosCdp,
+  obtenerReportePorId,
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
+  puedeEditarReporte,
 } from '@/services/reporte.service';
 import type { NuevoReporte } from '@/types/reporte.types';
 
@@ -121,6 +124,42 @@ export function useCrearReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       // El reporte cambia asistencia/miembros/ingresos que el Dashboard ya muestra:
       // sin esto, el Dashboard queda con datos viejos hasta el próximo refetch natural.
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+/** KAN-271: precarga de un reporte ya enviado, para el formulario en modo edición. */
+export function useReportePorId(reporteId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'por-id', reporteId],
+    queryFn: () => obtenerReportePorId(reporteId as string),
+    enabled: !!reporteId,
+  });
+}
+
+/** KAN-271: si el reporte todavía está dentro de la ventana de 7 días para ese rol. */
+export function usePuedeEditarReporte(reporteId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'puede-editar', reporteId],
+    queryFn: () => puedeEditarReporte(reporteId as string),
+    enabled: !!reporteId,
+  });
+}
+
+/** KAN-271: editar un reporte ya enviado -- mismas invalidaciones que crear, más 'reporte'/'red-rango' (Control de Reportes) y 'por-id' del propio reporte. */
+export function useActualizarReporte(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reporteId, datos }: { reporteId: string; datos: NuevoReporte }) => actualizarReporte(reporteId, datos),
+    onSuccess: (_resultado, { reporteId }) => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'red-rango'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'por-id', reporteId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario'] });
+      queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
