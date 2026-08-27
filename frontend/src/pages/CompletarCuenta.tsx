@@ -10,7 +10,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/services/supabase';
-import { establecerContrasena, vincularGoogleAInvitacion } from '@/services/auth.service';
+import { establecerContrasena, mensajeErrorContrasena, vincularGoogleAInvitacion } from '@/services/auth.service';
 import { construirSesionDesdeAuth } from '@/services/sesion.service';
 import { useAuthStore } from '@/store/auth.store';
 import { ROUTES } from '@/utils/constants';
@@ -55,7 +55,7 @@ export function CompletarCuenta() {
       queryClient.clear();
       setSesion(await construirSesionDesdeAuth());
       toast.success('Contraseña creada'); navigate(ROUTES.DASHBOARD, { replace: true });
-    } catch { toast.error('No se pudo guardar'); } finally { setEnviando(false); }
+    } catch (e) { toast.error(mensajeErrorContrasena(e, 'No se pudo guardar')); } finally { setEnviando(false); }
   }
 
   return (
