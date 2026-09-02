@@ -29,10 +29,11 @@ import { useTasaEvangelismo } from '@/hooks/useEvangelismo';
 import {
   cantidadPorDefecto,
   etiquetaCantidad,
+  etiquetaPeriodoEnFrase,
   granularidadPara,
   OPCIONES_CANTIDAD,
   PERIODOS_DASHBOARD,
-  rangoPeriodoActual,
+  rangoPeriodoConCantidad,
   type PeriodoDashboard,
 } from '@/utils/periodo-dashboard';
 
@@ -79,9 +80,14 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
   const [cantidad, setCantidad] = useState<number>(() => cantidadPorDefecto('MES'));
   const [rango, setRango] = useState<RangoFechas | null>(null);
-  const { desde, hasta } = rango ?? rangoPeriodoActual(periodo);
+  // KPIs y gráfico de tendencia comparten el mismo rango -- antes las tarjetas
+  // KPI usaban solo el período actual (rangoPeriodoActual) ignorando `cantidad`,
+  // así que elegir "Últimos 3 meses" solo movía el gráfico de abajo y los
+  // números de arriba seguían mostrando nada más que el mes en curso (pedido
+  // del owner, 2026-09-02: que todo el dashboard se mueva junto).
+  const { desde, hasta } = rango ?? rangoPeriodoConCantidad(periodo, cantidad);
   const granularidad = granularidadPara(periodo);
-  const etiquetaPeriodo = rango ? 'el rango elegido' : (PERIODOS_DASHBOARD.find((p) => p.value === periodo)?.etiqueta ?? 'este mes');
+  const etiquetaPeriodo = rango ? 'el rango elegido' : etiquetaPeriodoEnFrase(periodo, cantidad);
   const opcionesCantidad = OPCIONES_CANTIDAD[periodo];
 
   // Las opciones de cantidad dependen del período elegido (ej. Año solo tiene "1"),

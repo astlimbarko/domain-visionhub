@@ -43,6 +43,52 @@ export function rangoPeriodoActual(periodo: PeriodoDashboard, ahora = new Date()
   }
 }
 
+/**
+ * Rango [desde, hasta] que abarca `cantidad` períodos hacia atrás desde el
+ * actual (ej. período=MES, cantidad=3 → julio a septiembre completo, no solo
+ * septiembre). `hasta` es siempre el fin del período actual -- igual que
+ * `rangoPeriodoActual` -- así que con cantidad=1 el resultado es idéntico a
+ * `rangoPeriodoActual(periodo)`.
+ *
+ * Antes las tarjetas KPI del dashboard (asistencia promedio, evangelizados,
+ * etc.) usaban `rangoPeriodoActual(periodo)` sin mirar `cantidad` -- el
+ * selector "Últimos N meses" solo movía el gráfico de tendencia de abajo, no
+ * los números de arriba. Elegir "Últimos 3 meses" hacía que el gráfico
+ * mostrara jul/ago/sep pero las tarjetas KPI seguían mostrando solo
+ * septiembre, dando la sensación de que el filtro "no contaba bien" (pedido
+ * del owner, 2026-09-02: que todo el dashboard se mueva junto).
+ */
+export function rangoPeriodoConCantidad(
+  periodo: PeriodoDashboard,
+  cantidad: number,
+  ahora = new Date()
+): { desde: string; hasta: string } {
+  const actual = rangoPeriodoActual(periodo, ahora);
+  if (cantidad <= 1) return actual;
+
+  switch (periodo) {
+    case 'SEMANA': {
+      const inicio = inicioSemana(ahora);
+      inicio.setDate(inicio.getDate() - 7 * (cantidad - 1));
+      return { desde: aISO(inicio), hasta: actual.hasta };
+    }
+    case 'TRIMESTRE': {
+      const trimestre = Math.floor(ahora.getMonth() / 3);
+      const inicio = new Date(ahora.getFullYear(), trimestre * 3 - 3 * (cantidad - 1), 1);
+      return { desde: aISO(inicio), hasta: actual.hasta };
+    }
+    case 'ANIO': {
+      const inicio = new Date(ahora.getFullYear() - (cantidad - 1), 0, 1);
+      return { desde: aISO(inicio), hasta: actual.hasta };
+    }
+    case 'MES':
+    default: {
+      const inicio = new Date(ahora.getFullYear(), ahora.getMonth() - (cantidad - 1), 1);
+      return { desde: aISO(inicio), hasta: actual.hasta };
+    }
+  }
+}
+
 /** Granularidad de agrupación del gráfico de tendencia para cada período. */
 export function granularidadPara(periodo: PeriodoDashboard): GranularidadTendencia {
   switch (periodo) {
@@ -90,4 +136,19 @@ const UNIDAD_PLURAL: Record<PeriodoDashboard, string> = {
 export function etiquetaCantidad(periodo: PeriodoDashboard, cantidad: number): string {
   if (cantidad === 1) return `Último ${UNIDAD_SINGULAR[periodo]}`;
   return `Últimos ${cantidad} ${UNIDAD_PLURAL[periodo]}`;
+}
+
+/**
+ * Etiqueta para usar dentro de una frase ("Evangelizados de {esto}"), coherente
+ * con el rango real que devuelve `rangoPeriodoConCantidad` -- si cantidad=1 dice
+ * "este mes" (igual que antes), si cantidad>1 dice "los últimos 3 meses". Antes
+ * esta frase siempre decía "este mes" sin importar la cantidad elegida, aunque
+ * el número mostrado ya sumara varios meses -- confundía (owner, 2026-09-02).
+ */
+export function etiquetaPeriodoEnFrase(periodo: PeriodoDashboard, cantidad: number): string {
+  if (cantidad <= 1) {
+    const singular = UNIDAD_SINGULAR[periodo];
+    return periodo === 'SEMANA' ? 'esta semana' : `este ${singular}`;
+  }
+  return `los últimos ${cantidad} ${UNIDAD_PLURAL[periodo]}`;
 }
