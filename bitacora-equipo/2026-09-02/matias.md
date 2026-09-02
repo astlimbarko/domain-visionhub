@@ -9,4 +9,6 @@
 - [x] Frontend: botón "Anular reporte" en edición (confirmación inline), aviso de fecha duplicada al crear, `anularReporte`/`obtenerUltimaFechaReporteRed` en servicio + hooks
 - [x] Migraciones `20260902000000` (metas) y `20260902010000` (anular/unicidad) aplicadas en prod; duplicado de Lineme resuelto (queda el de 8 asistentes)
 - [x] Merge a master + build + deploy SSH de frontend (2 deploys)
-- [ ] Falta: prueba en vivo por un usuario real (supervisor viendo agosto, líder anulando un duplicado, reasignar meta) y tickets de Jira cuando habiliten Atlassian
+- [x] Fichas de persona: "no se podían editar" era el candado de frontend (solo operativos). Decisión del owner: Líder/Supervisor de Red también editan las fichas de personas de SU red. `FichaPersonaSheet.puedeEditar` ahora incluye `redes_lider` cuando la persona pertenece a esa red (RLS ya lo permitía; verificado el UPDATE impersonando líder de red). Deployado
+- [ ] Falta: parte VISUAL de las fichas ("que se vea mejor") — no se pudo ver sin la extensión de Chrome conectada; pendiente reproducir/describir
+- [ ] Falta: prueba en vivo por un usuario real (supervisor viendo agosto, líder anulando un duplicado, reasignar meta, líder de red editando una ficha) y tickets de Jira cuando habiliten Atlassian

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
+import { useMisRoles } from '@/hooks/useDashboard';
 import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
 import { FichaPersonaExtendida } from './FichaPersonaExtendida';
 import { FichaPersonaEditorSheet } from './FichaPersonaEditorSheet';
@@ -68,7 +69,18 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
     setEditorAbierto(false);
   }, [personaId]);
 
-  const puedeEditar = ficha ? (iglesias.find((i) => i.id === ficha.persona.iglesia_id)?.es_operativo ?? false) : false;
+  // Pedido del owner (2026-09-02): además de los operativos (Pastor/Supervisor
+  // de la Visión), el Líder y el Supervisor de Red pueden editar la ficha de las
+  // personas de SU Red. `redes_lider` (fn_mis_roles_dashboard) ya cubre a ambos
+  // cargos (incluye SUBLIDER_RED). El RLS de `persona`/`persona_detalle` es
+  // iglesia-wide, así que este candado del frontend es lo único que hay que
+  // ampliar. Se acota a la Red de la persona (su Casa de Paz), no a toda la
+  // iglesia -- para eso están los operativos.
+  const { data: misRoles } = useMisRoles(ficha?.persona.iglesia_id);
+  const esOperativo = ficha ? (iglesias.find((i) => i.id === ficha.persona.iglesia_id)?.es_operativo ?? false) : false;
+  const esLiderDeSuRed =
+    !!ficha?.casa_de_paz?.red_id && (misRoles?.redes_lider ?? []).some((r) => r.id === ficha.casa_de_paz?.red_id);
+  const puedeEditar = esOperativo || esLiderDeSuRed;
 
   // Cargos vigentes que quedan atados a la Red/Casa de Paz que la persona
   // deja si se traslada -- no se "llevan" a la Red nueva (ver fn_mover_persona_red).
