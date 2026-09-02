@@ -13,6 +13,7 @@ import {
   MessageSquare,
   PartyPopper,
   Plus,
+  Trash2,
   UserRound,
   Users,
   X,
@@ -39,6 +40,7 @@ import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import {
   useActualizarReporte,
+  useAnularReporte,
   useCamposObligatoriosReporte,
   useCrearReporte,
   useEdadMinimaCreyente,
@@ -110,6 +112,21 @@ export function Reportes() {
   const { data: monedas = [] } = useMonedasActivas(iglesiaActivaId);
   const crear = useCrearReporte(cdpActiva);
   const actualizar = useActualizarReporte(cdpActiva);
+  const anular = useAnularReporte(cdpActiva);
+  // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
+  const [confirmandoAnular, setConfirmandoAnular] = useState(false);
+
+  async function anularReporteActual() {
+    if (!reporteId) return;
+    try {
+      await anular.mutateAsync(reporteId);
+      toast.success('Reporte anulado');
+      navigate(-1);
+    } catch (e) {
+      const mensaje = typeof (e as { message?: string })?.message === 'string' ? (e as { message: string }).message : '';
+      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasaron 7 días o no tenés permiso)' : 'No se pudo anular el reporte');
+    }
+  }
 
   // Un único mapa persona → { esVisita, esMenor } evita que alguien quede
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
@@ -482,6 +499,11 @@ export function Reportes() {
       const mensaje = typeof error?.message === 'string' ? error.message : '';
       if (error?.code === '23514' && mensaje.includes('chk_reporte_fecha')) {
         toast.error('La fecha de la reunión no puede ser en el futuro');
+      } else if (error?.code === '23505' && mensaje.includes('uq_reporte_cdp_fecha')) {
+        // Índice único (casa_de_paz_id, fecha_reunion): ya hay un reporte para esa
+        // reunión. Antes esto dejaba crear duplicados; ahora se avisa y se apunta
+        // a editar el existente en vez de generar otro.
+        toast.error('Ya existe un reporte para esa fecha en esta Casa de Paz. Editá el existente en vez de crear otro.');
       } else if (mensaje.includes('ASISTENCIA_EDAD_INDEFINIDA')) {
         // Red de seguridad: el formulario ya obliga a declarar si cada persona
         // sin fecha de nacimiento es menor (ver pendientesEsMenor), pero por si
@@ -987,10 +1009,46 @@ export function Reportes() {
           </div>
         </section>
 
-        <Button type="submit" disabled={isSubmitting} className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:self-start sm:px-8">
-          {isSubmitting && <Spinner className="h-4 w-4" />}
-          {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button type="submit" disabled={isSubmitting} className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8">
+            {isSubmitting && <Spinner className="h-4 w-4" />}
+            {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
+          </Button>
+
+          {/* Anular reporte (solo en edición): baja lógica para sacar un reporte
+              cargado por error/duplicado. Confirmación inline en dos pasos, sin
+              diálogo bloqueante. El permiso/ventana lo valida el backend igual. */}
+          {modoEdicion && (
+            confirmandoAnular ? (
+              <div className="flex items-center gap-2 sm:ml-auto">
+                <span className="text-sm text-muted-foreground">¿Anular este reporte?</span>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="h-10 gap-2 rounded-xl"
+                  disabled={anular.isPending}
+                  onClick={anularReporteActual}
+                >
+                  {anular.isPending && <Spinner className="h-4 w-4" />}
+                  Sí, anular
+                </Button>
+                <Button type="button" variant="ghost" className="h-10 rounded-xl" onClick={() => setConfirmandoAnular(false)} disabled={anular.isPending}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11 gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive sm:ml-auto"
+                onClick={() => setConfirmandoAnular(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Anular reporte
+              </Button>
+            )
+          )}
+        </div>
       </form>
     </div>
   );

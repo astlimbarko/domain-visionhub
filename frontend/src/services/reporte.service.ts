@@ -168,6 +168,38 @@ export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<
   }));
 }
 
+/**
+ * Última fecha de reunión con reporte enviado entre un conjunto de Casas de Paz
+ * (las de una Red) -- para que Control de Reportes abra por defecto en el mes que
+ * de verdad tiene datos, no siempre el mes actual (que a principios de mes está
+ * vacío porque las reuniones todavía no pasaron, aunque haya reportes recién
+ * cargados de reuniones del mes anterior). `null` si esas CdP no tienen ningún
+ * reporte. RLS ya limita las filas a lo que el usuario puede ver.
+ */
+export async function obtenerUltimaFechaReporteRed(casaDePazIds: string[]): Promise<string | null> {
+  if (casaDePazIds.length === 0) return null;
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion')
+    .in('casa_de_paz_id', casaDePazIds)
+    .order('fecha_reunion', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.fecha_reunion ?? null;
+}
+
+/**
+ * Anula (baja lógica) un reporte ya enviado -- p. ej. un duplicado cargado por
+ * error. Mismo permiso y ventana de 7 días que la edición (KAN-271), validado
+ * server-side por `fn_anular_reporte_cdp`. Da de baja también su asistencia e
+ * ingresos (estos vía trigger de cascada).
+ */
+export async function anularReporte(reporteId: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_anular_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+}
+
 /** Fechas de reunion con reporte enviado dentro del rango -- para pintar el calendario de Historial de Reportes. */
 export async function obtenerFechasReportadas(casaDePazId: string, desde: string, hasta: string): Promise<string[]> {
   const { data, error } = await supabase

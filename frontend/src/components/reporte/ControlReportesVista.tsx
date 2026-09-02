@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Pencil, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
-import { useDiasPlazoReporte, useReportesRedRango } from '@/hooks/useReporte';
+import { useDiasPlazoReporte, useReportesRedRango, useUltimaFechaReporteRed } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
@@ -133,13 +133,38 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   const [mes, setMes] = useState(hoyDate.getMonth());
   const ahoraISO = hoyDate.toISOString();
 
+  // Al abrir, en vez de quedar siempre en el mes actual (que a principios de mes
+  // está vacío -- las reuniones todavía no pasaron -- aunque el líder de CdP haya
+  // cargado recién reportes de reuniones del mes anterior), se posiciona en el
+  // mes del último reporte de la Red. Así el supervisor/líder cae directo donde
+  // están los datos. Solo la primera vez y solo si el usuario todavía no navegó a
+  // mano (mesFijadoPorUsuario), para no pisarle la navegación después.
+  const cdpIdsParaUltima = useMemo(() => cdpsTodas.map((c) => c.id), [cdpsTodas]);
+  const { data: ultimaFechaReporte } = useUltimaFechaReporteRed(cdpIdsParaUltima);
+  const mesFijadoPorUsuario = useRef(false);
+  const mesInicializado = useRef(false);
+  useEffect(() => {
+    if (mesInicializado.current || mesFijadoPorUsuario.current || !ultimaFechaReporte) return;
+    const [a, m] = ultimaFechaReporte.split('-').map(Number);
+    // Solo saltar si el último reporte es de un mes distinto al actual (si es del
+    // mes en curso, el default ya es el correcto y no hay nada que cambiar).
+    if (a !== hoyDate.getFullYear() || m - 1 !== hoyDate.getMonth()) {
+      setAnio(a);
+      setMes(m - 1);
+    }
+    mesInicializado.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ultimaFechaReporte]);
+
   function irMesAnterior() {
+    mesFijadoPorUsuario.current = true;
     const f = new Date(anio, mes - 1, 1);
     setAnio(f.getFullYear());
     setMes(f.getMonth());
   }
 
   function irMesSiguiente() {
+    mesFijadoPorUsuario.current = true;
     const f = new Date(anio, mes + 1, 1);
     setAnio(f.getFullYear());
     setMes(f.getMonth());

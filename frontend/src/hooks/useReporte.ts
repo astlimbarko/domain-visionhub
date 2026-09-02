@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarReporte,
+  anularReporte,
   crearReporte,
   obtenerCamposObligatorios,
   obtenerDiasPlazoReporte,
@@ -14,6 +15,7 @@ import {
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
+  obtenerUltimaFechaReporteRed,
   puedeEditarReporte,
 } from '@/services/reporte.service';
 import type { NuevoReporte } from '@/types/reporte.types';
@@ -95,6 +97,15 @@ export function useReportesRedRango(casaDePazIds: string[], desde: string, hasta
   });
 }
 
+/** Última fecha con reporte de las CdP de la Red -- para abrir Control de Reportes en el mes con datos. */
+export function useUltimaFechaReporteRed(casaDePazIds: string[]) {
+  return useQuery({
+    queryKey: ['reporte', 'ultima-fecha-red', [...casaDePazIds].sort()],
+    queryFn: () => obtenerUltimaFechaReporteRed(casaDePazIds),
+    enabled: casaDePazIds.length > 0,
+  });
+}
+
 export function useHistorialReportes(casaDePazId: string | undefined, desde: string, hasta: string) {
   return useQuery({
     queryKey: ['reporte', 'historial-fechas', casaDePazId, desde, hasta],
@@ -144,6 +155,25 @@ export function usePuedeEditarReporte(reporteId: string | undefined) {
     queryKey: ['reporte', 'puede-editar', reporteId],
     queryFn: () => puedeEditarReporte(reporteId as string),
     enabled: !!reporteId,
+  });
+}
+
+/** Anular (baja lógica) un reporte -- p. ej. un duplicado. Mismas invalidaciones que editar (deja de aparecer en Control de Reportes, Historial, Dashboard, etc.). */
+export function useAnularReporte(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reporteId: string) => anularReporte(reporteId),
+    onSuccess: (_resultado, reporteId) => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'red-rango'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'ultima-fecha-red'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'por-id', reporteId] });
+      queryClient.invalidateQueries({ queryKey: ['calendario'] });
+      queryClient.invalidateQueries({ queryKey: ['finanzas'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
