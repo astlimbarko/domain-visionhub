@@ -29,6 +29,10 @@ export interface DatosPersonaAfirmacion extends DatosMembresiaExtendida {
   fecha_nacimiento?: string;
   ci?: string;
   correo?: string;
+  // Celular con prefijo de país ya compuesto (ej. "+59171234567"). Opcional --
+  // vacío/ausente = no se cargó número. Lo persiste fn_registrar_persona_afirmacion
+  // vía fn_guardar_telefono_membresia (tel WHATSAPP principal).
+  telefono?: string;
   estado_civil?: EstadoCivil;
   ocupacion?: string;
   grado_instruccion?: GradoInstruccion;

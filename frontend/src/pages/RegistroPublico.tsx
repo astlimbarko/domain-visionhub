@@ -14,8 +14,21 @@ export function RegistroPublico() {
   const { data, isLoading, isError, refetch, isFetching } = useResolverUrlRegistro(slug);
   const [exito, setExito] = useState<{ nombreCompleto: string; casaDePazNombre: string } | null>(null);
 
+  // Anclado arriba (items-start), no centrado vertical: al marcar recuadros que
+  // expanden subcampos (discipulados/seminario/bautismo con fecha), la tarjeta
+  // cambia de alto -- si estuviera centrada, se re-centraba y "saltaba" en cada
+  // tap, sobre todo en móvil, dificultando seleccionar. Anclada arriba, el alto
+  // crece hacia abajo sin mover lo ya visible.
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-4">
+    // Bug real (2026-08-27): en móvil, el gesto táctil no lograba deslizar
+    // limpio -- podía arrastrar la página en cualquier dirección en vez de
+    // solo vertical. `overflow-x-hidden` corta cualquier desborde horizontal
+    // por subpíxel (banderas/iconos que un dispositivo real renderiza distinto
+    // a un navegador de escritorio) y `touch-pan-y` le dice al navegador que
+    // el gesto en esta página es solo de scroll vertical, sin ambigüedad.
+    // Acotado a esta página (no en `html` global) para no afectar tablas con
+    // scroll horizontal en otras partes de la app.
+    <div className="flex min-h-svh touch-pan-y items-start justify-center overflow-x-hidden bg-background p-4 sm:py-10">
       <Card className="w-full max-w-2xl rounded-2xl shadow-lg">
         {isLoading && (
           <CardContent className="flex flex-col gap-4 pt-6">

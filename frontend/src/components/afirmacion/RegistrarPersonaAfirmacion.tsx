@@ -25,6 +25,7 @@ import { useRegistrarPersonaAfirmacion } from '@/hooks/useAfirmacion';
 import { useMinisterios } from '@/hooks/useMinisterios';
 import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+import { componerTelefono } from '@/utils/paises-telefono';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { DatosPersonaAfirmacion } from '@/types/afirmacion.types';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
@@ -51,6 +52,8 @@ function construirEsquema(obligatorios: CamposObligatorios) {
       fecha_nacimiento: obligatorios.fecha_nacimiento ? z.string().min(1) : z.string().optional(),
       ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
       correo: z.union([z.string().email(), z.literal('')]).optional(),
+      telefono_pais: z.string().optional(),
+      telefono_numero: z.string().optional(),
       estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
@@ -120,6 +123,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
       correo: valores.correo || undefined,
+      telefono: componerTelefono(valores.telefono_pais, valores.telefono_numero),
       estado_civil: valores.estado_civil as DatosPersonaAfirmacion['estado_civil'],
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica
@@ -155,6 +159,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
   const gradoNoAplica = watch('grado_instruccion_no_aplica');
+  const telefonoPaisActual = watch('telefono_pais');
 
   if (cargandoConfig) {
     return <Skeleton className="h-80 w-full rounded-2xl" />;
@@ -181,6 +186,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
           gradoActual={gradoActual}
           ocupacionNoAplica={ocupacionNoAplica}
           gradoNoAplica={gradoNoAplica}
+          telefonoPaisActual={telefonoPaisActual}
           setValue={setValue}
         />
       ),

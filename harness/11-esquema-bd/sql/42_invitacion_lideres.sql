@@ -325,6 +325,10 @@ $$;
 
 -- Usada por la Edge Function de reenvio: si el que llama no tiene permiso
 -- sobre esa invitacion puntual, o ya se completo, no devuelve nada.
+-- fn_es_super_admin()/fn_es_pastor_en()/fn_es_lider_cdp() agregados despues
+-- del diseño original (bug real: un Super Admin sin cargo operativo directo
+-- en la iglesia/red/CdP puntual no podia reenviar -- mismo patron que ya
+-- usa fn_puede_invitar_lider, el flujo de invitar nuevo).
 CREATE OR REPLACE FUNCTION fn_correo_invitacion_lider_si_puedo_gestionar(p_invitacion_id UUID)
 RETURNS TEXT
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -336,8 +340,11 @@ BEGIN
   SELECT * INTO v_inv FROM invitacion_lider WHERE id = p_invitacion_id AND fecha_eliminacion IS NULL;
   IF NOT FOUND OR v_inv.estado <> 'PENDIENTE' THEN RETURN NULL; END IF;
 
-  v_puede := fn_es_operativo_en(v_inv.iglesia_id)
+  v_puede := fn_es_super_admin()
+    OR fn_es_operativo_en(v_inv.iglesia_id)
+    OR fn_es_pastor_en(v_inv.iglesia_id)
     OR (v_inv.red_id IS NOT NULL AND fn_es_lider_de_red(v_inv.red_id))
+    OR (v_inv.casa_de_paz_id IS NOT NULL AND fn_es_lider_cdp(v_inv.casa_de_paz_id))
     OR (v_inv.casa_de_paz_id IS NOT NULL AND EXISTS (
           SELECT 1 FROM casa_de_paz_red cr WHERE cr.casa_de_paz_id = v_inv.casa_de_paz_id
             AND cr.fecha_eliminacion IS NULL AND fn_es_lider_de_red(cr.red_id)

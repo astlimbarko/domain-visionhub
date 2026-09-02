@@ -55,7 +55,7 @@ import { BuscadorPersonaMultiple } from '@/components/reporte/BuscadorPersonaMul
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
-import type { EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
+import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 const esquema = z.object({
@@ -68,7 +68,6 @@ const esquema = z.object({
   testimonios: z.string().optional(),
   comentarios: z.string().optional(),
   total_ofrendas: z.string().min(1, 'El total de ofrendas es obligatorio, aunque sea 0'),
-  total_diezmos: z.string().optional(),
   moneda_id: z.string().min(1, 'Seleccioná una moneda'),
 });
 
@@ -122,6 +121,16 @@ export function Reportes() {
   const [sexoVisita, setSexoVisita] = useState<'M' | 'F' | ''>('');
   const [telefonoVisita, setTelefonoVisita] = useState('');
   const [esMenorVisita, setEsMenorVisita] = useState(false);
+  // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
+  // monto y celular opcional. El total es la suma. El campo único "Total
+  // diezmos" se reemplazó por esta lista.
+  const [diezmos, setDiezmos] = useState<DiezmoLinea[]>([]);
+  const [mostrarFormDiezmante, setMostrarFormDiezmante] = useState(false);
+  const [nombreDiezmante, setNombreDiezmante] = useState('');
+  const [apellidoDiezmante, setApellidoDiezmante] = useState('');
+  const [sexoDiezmante, setSexoDiezmante] = useState<'M' | 'F' | ''>('');
+  const [telefonoDiezmante, setTelefonoDiezmante] = useState('');
+  const [montoDiezmanteManual, setMontoDiezmanteManual] = useState('');
   const [evangelizadosPendientes, setEvangelizadosPendientes] = useState<EvangelizadoPendiente[]>([]);
   // KAN-271: en modo edición no se vuelve a pasar por el panel de "agregar
   // evangelizado" (ya se creó su registro de Evangelismo al enviar el
@@ -180,9 +189,9 @@ export function Reportes() {
       testimonios: reporteExistente.testimonios ?? undefined,
       comentarios: reporteExistente.comentarios ?? undefined,
       total_ofrendas: String(reporteExistente.totalOfrendas),
-      total_diezmos: reporteExistente.totalDiezmos != null ? String(reporteExistente.totalDiezmos) : undefined,
       moneda_id: reporteExistente.monedaId ?? undefined,
     });
+    setDiezmos(reporteExistente.diezmos);
     setDisertadorNombre(reporteExistente.disertador_nombre ?? '');
     setEvangelizadosDeclaradosEdicion(reporteExistente.evangelizados_declarados ?? undefined);
     setAsistentes(new Map(reporteExistente.asistentes.map((a) => [a.personaId, { esVisita: a.esVisita, esMenor: a.esMenor }])));
@@ -254,6 +263,46 @@ export function Reportes() {
     setMostrarFormVisita(false);
   }
 
+  function agregarDiezmanteExistente(persona: PersonaBusqueda) {
+    setDiezmos((prev) => {
+      if (prev.some((d) => d.personaId === persona.id)) return prev; // ya está en la lista
+      return [...prev, { clave: crypto.randomUUID(), personaId: persona.id, nombre_completo: persona.nombre_completo, monto: 0 }];
+    });
+  }
+
+  function agregarDiezmanteManual() {
+    if (!nombreDiezmante.trim() || !apellidoDiezmante.trim() || !sexoDiezmante) return;
+    const monto = Number(montoDiezmanteManual);
+    setDiezmos((prev) => [
+      ...prev,
+      {
+        clave: crypto.randomUUID(),
+        nombre_completo: `${nombreDiezmante.trim()} ${apellidoDiezmante.trim()}`,
+        primer_nombre: nombreDiezmante.trim(),
+        primer_apellido: apellidoDiezmante.trim(),
+        sexo: sexoDiezmante,
+        telefono: telefonoDiezmante.trim() || undefined,
+        monto: Number.isFinite(monto) && monto > 0 ? monto : 0,
+      },
+    ]);
+    setNombreDiezmante('');
+    setApellidoDiezmante('');
+    setSexoDiezmante('');
+    setTelefonoDiezmante('');
+    setMontoDiezmanteManual('');
+    setMostrarFormDiezmante(false);
+  }
+
+  function cambiarMontoDiezmo(clave: string, monto: number) {
+    setDiezmos((prev) => prev.map((d) => (d.clave === clave ? { ...d, monto } : d)));
+  }
+
+  function quitarDiezmo(clave: string) {
+    setDiezmos((prev) => prev.filter((d) => d.clave !== clave));
+  }
+
+  const totalDiezmosCalc = diezmos.reduce((suma, d) => suma + (d.monto || 0), 0);
+
   const idsNuevos = Array.from(asistentes.entries())
     .filter(([, v]) => v.esVisita)
     .map(([id]) => id);
@@ -319,6 +368,12 @@ export function Reportes() {
       }
     }
 
+    const diezmoSinMonto = diezmos.find((d) => !(d.monto > 0));
+    if (diezmoSinMonto) {
+      toast.error(`Ingresá el monto del diezmo de ${diezmoSinMonto.nombre_completo}`);
+      return;
+    }
+
     // El backend exige estos campos según la configuración de la iglesia
     // (trigger fn_validar_campos_reporte) pero el formulario no lo mostraba
     // antes de intentar enviar -- se valida acá con el mismo criterio para
@@ -365,7 +420,7 @@ export function Reportes() {
         })),
         visitasNuevas,
         totalOfrendas: Number(valores.total_ofrendas),
-        totalDiezmos: valores.total_diezmos ? Number(valores.total_diezmos) : undefined,
+        diezmos,
         monedaId: valores.moneda_id,
       };
 
@@ -418,6 +473,7 @@ export function Reportes() {
       reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
       setAsistentes(new Map());
       setVisitasNuevas([]);
+      setDiezmos([]);
       setEvangelizadosPendientes([]);
       setEsMegaFiesta(false);
       setDisertadorNombre('');
@@ -781,8 +837,8 @@ export function Reportes() {
         {/* Finanzas */}
         <section className={CARD_SECCION}>
           <TarjetaHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
-          <div className="p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-5 p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="total_ofrendas">Total ofrendas *</Label>
                     <Input id="total_ofrendas" type="number" step="0.01" min="0" {...register('total_ofrendas')} />
@@ -791,10 +847,6 @@ export function Reportes() {
                     ) : (
                       <p className="text-[11px] text-muted-foreground">Obligatorio, aunque sea 0</p>
                     )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="total_diezmos">Total diezmos</Label>
-                    <Input id="total_diezmos" type="number" step="0.01" min="0" {...register('total_diezmos')} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Moneda</Label>
@@ -821,6 +873,100 @@ export function Reportes() {
                     )}
                   </div>
                 </div>
+
+            {/* Diezmos por persona: cada diezmante con su monto (+ celular
+                opcional). Se busca en la iglesia o se agrega a mano. Total = suma. */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Diezmos por persona</Label>
+                {diezmos.length > 0 && (
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Total: {monedas.find((m) => m.moneda_id === monedaId)?.simbolo ?? ''}
+                    {totalDiezmosCalc.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
+
+              <BuscadorPersonaCampo
+                iglesiaId={iglesiaActivaId}
+                valor=""
+                seleccionado={false}
+                onCambiarTexto={() => {}}
+                onSeleccionar={agregarDiezmanteExistente}
+                placeholder="Buscar diezmante por nombre..."
+              />
+
+              {diezmos.map((d) => (
+                <div key={d.clave} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+                  <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {d.nombre_completo}
+                    {!d.personaId && (
+                      <span className="text-xs text-muted-foreground">
+                        {' '}(nueva{d.telefono ? ` · ${d.telefono}` : ''})
+                      </span>
+                    )}
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-28 shrink-0"
+                    placeholder="Monto"
+                    value={d.monto || ''}
+                    onChange={(e) => cambiarMontoDiezmo(d.clave, Number(e.target.value))}
+                  />
+                  <button type="button" onClick={() => quitarDiezmo(d.clave)} className="shrink-0 text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+
+              {mostrarFormDiezmante ? (
+                <div className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      <Label className="text-xs">Nombre</Label>
+                      <Input value={nombreDiezmante} onChange={(e) => setNombreDiezmante(e.target.value)} />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      <Label className="text-xs">Apellido</Label>
+                      <Input value={apellidoDiezmante} onChange={(e) => setApellidoDiezmante(e.target.value)} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Sexo</Label>
+                      <Select value={sexoDiezmante} onValueChange={(v) => setSexoDiezmante(v as 'M' | 'F')}>
+                        <SelectTrigger className="w-28">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Masculino</SelectItem>
+                          <SelectItem value="F">Femenino</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      <Label className="text-xs">Celular</Label>
+                      <Input type="tel" placeholder="Opcional" value={telefonoDiezmante} onChange={(e) => setTelefonoDiezmante(e.target.value)} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Monto</Label>
+                      <Input type="number" step="0.01" min="0" className="w-28" value={montoDiezmanteManual} onChange={(e) => setMontoDiezmanteManual(e.target.value)} />
+                    </div>
+                    <Button type="button" onClick={agregarDiezmanteManual}>
+                      Agregar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" size="sm" className="w-fit gap-2" onClick={() => setMostrarFormDiezmante(true)}>
+                  <Plus className="h-4 w-4" />
+                  Diezmante que no está en el sistema
+                </Button>
+              )}
+            </div>
           </div>
         </section>
 

@@ -82,9 +82,14 @@ CREATE UNIQUE INDEX uq_iglesia_moneda ON iglesia_moneda (iglesia_id, moneda_id) 
 CREATE TRIGGER trg_auditoria_iglesia_moneda BEFORE INSERT OR UPDATE ON iglesia_moneda FOR EACH ROW EXECUTE FUNCTION fn_auditoria();
 CREATE TRIGGER trg_no_delete_iglesia_moneda BEFORE DELETE ON iglesia_moneda FOR EACH ROW EXECUTE FUNCTION fn_bloquear_delete();
 
--- Ciclo de iglesia_padre_id: se corta con un disparador (recorre hacia arriba, tope 50 saltos)
+-- Ciclo de iglesia_padre_id: se corta con un disparador (recorre hacia arriba, tope 50 saltos).
+-- SET search_path = '' + public.iglesia calificado: este trigger se dispara en UPDATE
+-- de iglesia desde funciones que corren con search_path = '' (fn_estructura_asignar_*
+-- etc.). Sin search_path propio, heredaba el vacio del contexto y el "FROM iglesia" sin
+-- calificar fallaba con relation "iglesia" does not exist -- solo para satelites/hijas,
+-- que son las unicas filas que entran al WHILE (ver migracion 20260827130000).
 CREATE OR REPLACE FUNCTION fn_iglesia_sin_ciclo()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE
   v_actual UUID := NEW.iglesia_padre_id;
   v_saltos INT := 0;
@@ -99,7 +104,7 @@ BEGIN
       RAISE EXCEPTION 'IGLESIA_CICLO: jerarquia demasiado profunda o ciclo detectado'
         USING ERRCODE = 'P0001';
     END IF;
-    SELECT iglesia_padre_id INTO v_actual FROM iglesia WHERE id = v_actual;
+    SELECT iglesia_padre_id INTO v_actual FROM public.iglesia WHERE id = v_actual;
   END LOOP;
   RETURN NEW;
 END;

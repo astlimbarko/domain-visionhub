@@ -39,31 +39,48 @@
 -- mismo criterio de paridad Líder/Supervisor de Red que ya usa el resto del
 -- Constructor.
 
+-- ACTUALIZADO (migración 20260828040000, supervisor cruzado madre/satélite):
+-- la función realmente vigente en prod tiene 10 columnas (incluye
+-- membresia_completada, de KAN-266 aplicado a mano) y ya NO trae la rama
+-- fn_es_lider_de_red_en_iglesia de este archivo (la versión con
+-- membresia_completada se aplicó a mano y no la incluyó). Este espejo se
+-- alinea con esa realidad + el fix de resolución de nombre por fallback.
+--
+-- Fix del nombre: un usuario tiene UNA sola persona (uq_persona_usuario,
+-- 04_persona.sql), en su iglesia madre. Un Supervisor de la Visión en Acción
+-- de una satélite cuya persona vive en la madre quedaba sin nombre (el join
+-- por iglesia_id daba NULL). Se resuelve con preferencia misma-iglesia +
+-- fallback a la única persona activa del usuario (subconsulta lateral), y el
+-- nombre se calcula dentro del lateral (fn_nombre_completo necesita la fila
+-- persona completa).
 CREATE OR REPLACE FUNCTION public.fn_listar_usuarios(p_iglesia_id UUID DEFAULT NULL)
-RETURNS TABLE (usuario_rol_id UUID, usuario_id UUID, correo VARCHAR, rol rol_sistema_enum, iglesia_id UUID, iglesia_nombre VARCHAR, persona_id UUID, persona_nombre TEXT, es_principal BOOLEAN)
+RETURNS TABLE (usuario_rol_id UUID, usuario_id UUID, correo VARCHAR, rol rol_sistema_enum, iglesia_id UUID, iglesia_nombre VARCHAR, persona_id UUID, persona_nombre TEXT, es_principal BOOLEAN, membresia_completada BOOLEAN)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
   IF NOT (
     fn_es_super_admin()
-    OR (p_iglesia_id IS NOT NULL AND (
-      fn_es_operativo_en(p_iglesia_id)
-      OR fn_es_pastor_en(p_iglesia_id)
-      OR fn_es_lider_de_red_en_iglesia(p_iglesia_id)
-    ))
+    OR (p_iglesia_id IS NOT NULL AND (fn_es_operativo_en(p_iglesia_id) OR fn_es_pastor_en(p_iglesia_id)))
   ) THEN
-    RAISE EXCEPTION 'ADMIN_FUERA_DE_ALCANCE: se requiere ser Super Admin, Pastor/Supervisor, o Líder/Supervisor de Red de la iglesia'
+    RAISE EXCEPTION 'ADMIN_FUERA_DE_ALCANCE: se requiere ser Super Admin o Pastor/Supervisor de la iglesia'
       USING ERRCODE = 'P0001';
   END IF;
 
   RETURN QUERY
   SELECT
     ur.id, ur.usuario_id, u.email::VARCHAR, ur.rol,
-    ur.iglesia_id, i.nombre, p.id, fn_nombre_completo(p), ur.es_principal
+    ur.iglesia_id, i.nombre, p.id, p.nombre, ur.es_principal,
+    COALESCE(p.membresia_completada, false)
   FROM usuario_rol ur
   JOIN auth.users u ON u.id = ur.usuario_id
   LEFT JOIN iglesia i ON i.id = ur.iglesia_id
-  LEFT JOIN persona p ON p.usuario_id = ur.usuario_id AND p.iglesia_id = ur.iglesia_id AND p.fecha_eliminacion IS NULL
+  LEFT JOIN LATERAL (
+    SELECT pp.id, fn_nombre_completo(pp) AS nombre, pp.membresia_completada
+    FROM persona pp
+    WHERE pp.usuario_id = ur.usuario_id AND pp.fecha_eliminacion IS NULL
+    ORDER BY (pp.iglesia_id = ur.iglesia_id) DESC, pp.fecha_creacion
+    LIMIT 1
+  ) p ON true
   WHERE ur.fecha_eliminacion IS NULL
     AND ur.rol IN ('SUPER_ADMIN', 'PASTOR', 'SUPERVISOR_VISION_ACCION')
     AND (p_iglesia_id IS NULL OR ur.iglesia_id = p_iglesia_id)

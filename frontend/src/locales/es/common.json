@@ -48,6 +48,12 @@
     "errores": {
       "generico": "No se pudo completar el registro. Intentá de nuevo.",
       "ciDuplicado": "Ese carnet de identidad ya está registrado."
+    },
+    "borrador": {
+      "mensaje": "Encontramos un formulario sin terminar a nombre de {{nombre}}. ¿Es tuyo?",
+      "mensajeSinNombre": "Encontramos un formulario sin terminar en este enlace. ¿Es tuyo?",
+      "continuar": "Sí, es mío",
+      "descartar": "No, es otra persona"
     }
   },
   "auth": {

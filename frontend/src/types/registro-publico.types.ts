@@ -47,6 +47,9 @@ export interface DatosRegistroPublico extends DatosMembresiaExtendida {
   fecha_nacimiento?: string;
   ci?: string;
   correo?: string;
+  // Celular con prefijo de país ya compuesto (ej. "+59171234567"). Opcional.
+  // Lo persiste fn_registrar_persona_via_url vía fn_guardar_telefono_membresia.
+  telefono?: string;
   estado_civil?: EstadoCivil;
   ocupacion?: string;
   grado_instruccion?: GradoInstruccion;
