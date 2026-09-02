@@ -141,6 +141,17 @@
   }
   html {
     @apply font-sans scroll-smooth;
+    /* Bug real (2026-08-27): sin esto, el navegador reserva espacio para la
+       scrollbar SOLO cuando el contenido de la página ya la necesita -- en
+       formularios paginados (ej. registro público de Afirmación) cada paso
+       tiene una altura distinta, así que la scrollbar aparece/desaparece al
+       cambiar de paso y todo el contenido se corre unos píxeles (se "movía
+       solo"). `overflow-y: scroll` fuerza a que el espacio quede reservado
+       SIEMPRE (haya o no overflow real) -- scrollbar-gutter: stable solo no
+       alcanza en `html`, porque el spec no lo aplica salvo que el propio
+       elemento ya tenga overflow distinto de `visible`. */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
   }
 }
 
@@ -159,21 +170,29 @@
 /* KAN-194: scroll discreto para paneles/tarjetas que necesitan poder
    scrollear si el contenido no entra -- una línea delgada, gris, con
    puntas redondeadas (sin flechas ni track visible), mismo espíritu del
-   scrollbar minimalista de ChatGPT en vez del scrollbar del sistema. */
+   scrollbar minimalista de ChatGPT en vez del scrollbar del sistema.
+   También en `html` (2026-08-27): la barra clásica gruesa del navegador se
+   veía "de más" en pantallas angostas -- mismo estilo discreto para toda la
+   app, no solo paneles puntuales. */
+html,
 .scrollbar-minimal {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
 }
+html::-webkit-scrollbar,
 .scrollbar-minimal::-webkit-scrollbar {
   width: 6px;
 }
+html::-webkit-scrollbar-track,
 .scrollbar-minimal::-webkit-scrollbar-track {
   background: transparent;
 }
+html::-webkit-scrollbar-thumb,
 .scrollbar-minimal::-webkit-scrollbar-thumb {
   background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
   border-radius: 999px;
 }
+html::-webkit-scrollbar-thumb:hover,
 .scrollbar-minimal::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in oklab, var(--foreground) 38%, transparent);
 }

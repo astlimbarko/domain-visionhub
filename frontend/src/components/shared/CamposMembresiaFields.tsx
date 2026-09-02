@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
+import { PAISES_TELEFONO } from '@/utils/paises-telefono';
 
 export { CAMPO_ESTILO };
 
@@ -49,6 +50,8 @@ export interface CamposMembresiaValues extends FieldValues {
   fecha_nacimiento?: string;
   ci?: string;
   correo?: string;
+  telefono_pais?: string;
+  telefono_numero?: string;
   estado_civil?: string;
   ocupacion?: string;
   // KAN-230/233: si la persona no tiene ese dato (jubilado, menor de edad,
@@ -69,6 +72,7 @@ interface Props<T extends CamposMembresiaValues> {
   gradoActual: string | undefined;
   ocupacionNoAplica: boolean | undefined;
   gradoNoAplica: boolean | undefined;
+  telefonoPaisActual: string | undefined;
   setValue: UseFormSetValue<T>;
 }
 
@@ -81,6 +85,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
   gradoActual,
   ocupacionNoAplica,
   gradoNoAplica,
+  telefonoPaisActual,
   setValue,
 }: Props<T>) {
   const { t } = useTranslation();
@@ -140,6 +145,42 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         <Label htmlFor="correo">{t('registroPublico.campos.correo')}</Label>
         <Input id="correo" className={CAMPO_ESTILO} type="email" {...register('correo' as never)} />
         {errors.correo && <p className="text-sm text-destructive">Correo inválido</p>}
+      </div>
+
+      {/* Celular: prefijo de país (bandera + código) + número. Opcional. Mismo
+          patrón que el modal de actualización y MembresiaObligatoria: el
+          selector se achica en móvil (w-28) y el número toma el resto
+          (flex-1/min-w-0) para no quedar aplastado en pantallas angostas. */}
+      <div className="flex flex-col gap-1 sm:col-span-2">
+        <Label htmlFor="telefono_numero">Celular</Label>
+        <div className="flex gap-2">
+          <Select
+            value={telefonoPaisActual ?? '+591'}
+            onValueChange={(v) => setValue('telefono_pais' as never, v as never)}
+          >
+            <SelectTrigger className={cn('w-28 shrink-0 sm:w-32', CAMPO_ESTILO)}>
+              <SelectValue>
+                <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                {telefonoPaisActual ?? '+591'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {PAISES_TELEFONO.map((p) => (
+                <SelectItem key={p.codigo} value={p.codigo}>
+                  <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                  {p.codigo}
+                  <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            id="telefono_numero"
+            inputMode="numeric"
+            className={cn('min-w-0 flex-1', CAMPO_ESTILO)}
+            {...register('telefono_numero' as never)}
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">

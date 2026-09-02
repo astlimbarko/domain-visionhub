@@ -51,7 +51,7 @@ CREATE TRIGGER trg_auditoria_finanzas_ingreso BEFORE INSERT OR UPDATE ON finanza
 CREATE TRIGGER trg_no_delete_finanzas_ingreso BEFORE DELETE ON finanzas_ingreso FOR EACH ROW EXECUTE FUNCTION fn_bloquear_delete();
 
 CREATE OR REPLACE FUNCTION fn_ingreso_moneda_defecto()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF NEW.moneda_id IS NULL THEN
     SELECT moneda_defecto_id INTO NEW.moneda_id FROM iglesia WHERE id = NEW.iglesia_id;
@@ -233,8 +233,62 @@ BEGIN
 END;
 $$;
 
+-- Diezmos por persona: cada diezmante es una fila DIEZMO con persona_id + monto
+-- (el total es la SUMA). El frontend pasa p_total_diezmos = NULL a
+-- fn_registrar_ingresos_reporte (eso da de baja cualquier DIEZMO agregado viejo)
+-- y llama a esta funcion con la lista de diezmantes. Ver migracion
+-- 20260828030000_diezmos_por_persona_reporte.sql.
+CREATE OR REPLACE FUNCTION fn_registrar_diezmos_reporte(
+  p_reporte_id UUID, p_diezmos JSONB, p_moneda_id UUID DEFAULT NULL
+) RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_reporte  casa_de_paz_reporte;
+  v_tipo_id  UUID;
+  v_moneda_id UUID;
+  v_item     JSONB;
+  v_persona_id UUID;
+  v_monto    NUMERIC;
+BEGIN
+  SELECT * INTO v_reporte FROM casa_de_paz_reporte WHERE id = p_reporte_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'REPORTE_INEXISTENTE: el reporte % no existe', p_reporte_id USING ERRCODE = 'P0001';
+  END IF;
+
+  IF NOT fn_puede_reportar_cdp(v_reporte.casa_de_paz_id) THEN
+    RAISE EXCEPTION 'INGRESO_SIN_PERMISO: no puede registrar diezmos de esta casa de paz'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT id INTO v_tipo_id FROM finanzas_tipo_ingreso
+  WHERE codigo = 'DIEZMO' AND (iglesia_id = v_reporte.iglesia_id OR iglesia_id IS NULL)
+  ORDER BY iglesia_id NULLS LAST LIMIT 1;
+
+  SELECT COALESCE(p_moneda_id, moneda_defecto_id) INTO v_moneda_id
+  FROM iglesia WHERE id = v_reporte.iglesia_id;
+
+  UPDATE finanzas_ingreso
+  SET fecha_eliminacion = now()
+  WHERE reporte_id = p_reporte_id AND tipo_ingreso_id = v_tipo_id AND fecha_eliminacion IS NULL;
+
+  IF p_diezmos IS NOT NULL THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_diezmos)
+    LOOP
+      v_persona_id := NULLIF(v_item->>'persona_id', '')::UUID;
+      v_monto := NULLIF(v_item->>'monto', '')::NUMERIC;
+      IF v_persona_id IS NULL OR v_monto IS NULL OR v_monto <= 0 THEN
+        CONTINUE;
+      END IF;
+      INSERT INTO finanzas_ingreso (iglesia_id, tipo_ingreso_id, reporte_id, casa_de_paz_id, persona_id, monto, moneda_id, fecha)
+      VALUES (v_reporte.iglesia_id, v_tipo_id, p_reporte_id, v_reporte.casa_de_paz_id, v_persona_id, v_monto, v_moneda_id, v_reporte.fecha_reunion);
+    END LOOP;
+  END IF;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION fn_reporte_cascada_ingresos()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF NEW.fecha_eliminacion IS NOT NULL AND OLD.fecha_eliminacion IS NULL THEN
     UPDATE finanzas_ingreso SET fecha_eliminacion = now() WHERE reporte_id = NEW.id AND fecha_eliminacion IS NULL;

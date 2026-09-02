@@ -109,7 +109,17 @@ export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(fu
         <Progress value={progreso} />
       </div>
 
-      <div key={paso.id} className="min-h-0 flex-1 overflow-y-auto">
+      {/* overflow-x-hidden explícito además de overflow-y-auto: al fijar solo
+          overflow-y, el navegador computa overflow-x como `auto` (no `visible`),
+          así este contenedor habilitaba scroll horizontal por sí mismo. En móvil
+          eso rompía el gesto táctil -- el dedo arrastraba el layout en horizontal
+          en vez de bajar, y la única forma de scrollear era la barra lateral
+          (bug reportado en el registro público de Afirmación, 2026-08-27). No lo
+          cubría el overflow-x-hidden del contenedor de página: el desborde ocurre
+          en este div interno. Declarar ambos ejes explícitos deja solo scroll
+          vertical (necesario dentro del Dialog de MembresiaObligatoria) sin el
+          horizontal. */}
+      <div key={paso.id} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {paso.contenido}
       </div>
 

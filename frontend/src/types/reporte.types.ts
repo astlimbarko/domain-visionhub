@@ -58,6 +58,27 @@ export interface NuevaVisita {
   telefono?: string;
 }
 
+/**
+ * Una línea de diezmo del reporte de CdP: un diezmante con su monto. Puede ser
+ * una persona ya existente (personaId) o una tecleada a mano (sin personaId,
+ * con los datos para crear la persona "lead" + celular opcional, igual que las
+ * visitas). El total de diezmos es la suma de las líneas.
+ */
+export interface DiezmoLinea {
+  /** id temporal del lado del cliente, solo para la key de React. */
+  clave: string;
+  /** Presente si el diezmante ya existe en la BD (seleccionado del buscador). */
+  personaId?: string;
+  /** Nombre para mostrar (de la persona existente, o compuesto del alta manual). */
+  nombre_completo: string;
+  /** Solo para diezmante nuevo (sin personaId): datos para crear la persona lead. */
+  primer_nombre?: string;
+  primer_apellido?: string;
+  sexo?: 'M' | 'F';
+  telefono?: string;
+  monto: number;
+}
+
 export interface NuevoReporte {
   casa_de_paz_id: string;
   iglesia_id: string;
@@ -74,7 +95,8 @@ export interface NuevoReporte {
   asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
   visitasNuevas: NuevaVisita[];
   totalOfrendas: number;
-  totalDiezmos?: number;
+  /** Diezmos por persona (nombre + monto + celular opcional). El total es la suma. */
+  diezmos: DiezmoLinea[];
   monedaId: string;
 }
 
@@ -101,7 +123,8 @@ export interface ReporteExistente {
   testimonios: string | null;
   comentarios: string | null;
   totalOfrendas: number;
-  totalDiezmos: number | null;
+  /** Diezmos por persona ya guardados (siempre con personaId + nombre). */
+  diezmos: DiezmoLinea[];
   monedaId: string | null;
   asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean }[];
 }

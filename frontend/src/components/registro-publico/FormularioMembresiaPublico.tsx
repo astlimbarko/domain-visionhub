@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { CamposMembresiaFields } from '@/components/shared/CamposMembresiaFields';
 import {
   cargoRangoRespondido,
@@ -21,6 +22,7 @@ import { useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useRegistrarPersonaViaUrl } from '@/hooks/useRegistroPublico';
 import { usePersistenciaLocal, limpiarPersistenciaLocal } from '@/hooks/usePersistenciaLocal';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+import { componerTelefono } from '@/utils/paises-telefono';
 import { DATOS_MEMBRESIA_EXTENDIDA_VACIO, type DatosMembresiaExtendida } from '@/types/membresia-extendida.types';
 import type { CamposObligatorios, DatosRegistroPublico } from '@/types/registro-publico.types';
 
@@ -43,6 +45,8 @@ function construirEsquema(obligatorios: CamposObligatorios) {
         : z.string().optional(),
       ci: obligatorios.ci ? z.string().trim().min(1) : z.string().trim().optional(),
       correo: z.union([z.string().email(), z.literal('')]).optional(),
+      telefono_pais: z.string().optional(),
+      telefono_numero: z.string().optional(),
       estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
@@ -92,10 +96,14 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
   // KAN-231: prefetch temprano, ver mismo comentario en MembresiaObligatoria.tsx.
   useTiposDiscipulado();
 
-  usePersistenciaLocal(storageKey, { base: watch(), extendido }, (guardado) => {
-    reset(guardado.base as FormValues);
-    setExtendido(guardado.extendido);
-  });
+  const { pendiente, confirmarPendiente, descartarPendiente } = usePersistenciaLocal(
+    storageKey,
+    { base: watch(), extendido },
+    (guardado) => {
+      reset(guardado.base as FormValues);
+      setExtendido(guardado.extendido);
+    }
+  );
 
   const mutacion = useRegistrarPersonaViaUrl(slug);
 
@@ -114,6 +122,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       fecha_nacimiento: valores.fecha_nacimiento || undefined,
       ci: valores.ci || undefined,
       correo: valores.correo || undefined,
+      telefono: componerTelefono(valores.telefono_pais, valores.telefono_numero),
       estado_civil: valores.estado_civil as DatosRegistroPublico['estado_civil'],
       ocupacion: valores.ocupacion_no_aplica ? undefined : valores.ocupacion || undefined,
       grado_instruccion: valores.grado_instruccion_no_aplica
@@ -142,6 +151,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
   const gradoNoAplica = watch('grado_instruccion_no_aplica');
+  const telefonoPaisActual = watch('telefono_pais');
 
   const pasos: PasoFormularioPaginado[] = [
     {
@@ -159,6 +169,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
           gradoActual={gradoActual}
           ocupacionNoAplica={ocupacionNoAplica}
           gradoNoAplica={gradoNoAplica}
+          telefonoPaisActual={telefonoPaisActual}
           setValue={setValue}
         />
       ),
@@ -215,6 +226,30 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       contenido: <SeccionFamiliaMembresia value={extendido} onChange={setExtendido} />,
     },
   ];
+
+  if (pendiente) {
+    const nombrePendiente = [pendiente.base?.primer_nombre, pendiente.base?.primer_apellido]
+      .filter((v) => v && v.trim())
+      .join(' ');
+
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          {nombrePendiente
+            ? t('registroPublico.borrador.mensaje', { nombre: nombrePendiente })
+            : t('registroPublico.borrador.mensajeSinNombre')}
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button type="button" variant="outline" onClick={descartarPendiente}>
+            {t('registroPublico.borrador.descartar')}
+          </Button>
+          <Button type="button" onClick={confirmarPendiente}>
+            {t('registroPublico.borrador.continuar')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FormularioPaginado

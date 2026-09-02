@@ -4,6 +4,7 @@ import { calcularEdad } from '@/utils/edad';
 import { aISO } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
+  DiezmoLinea,
   HistorialAsistencia,
   Libro,
   MegaFiestaDelDia,
@@ -15,6 +16,48 @@ import type {
   ResultadoReporte,
   Tema,
 } from '@/types/reporte.types';
+
+/**
+ * Convierte la lista de diezmantes del formulario al payload `[{persona_id,
+ * monto}]` que espera fn_registrar_diezmos_reporte. Cada diezmante existente usa
+ * su personaId; cada diezmante nuevo (tecleado a mano) se crea como persona
+ * "lead" (membresia_completada: false, igual que las visitas del reporte) con su
+ * celular opcional. Se ignoran las líneas con monto <= 0.
+ */
+async function construirDiezmosPayload(
+  iglesiaId: string,
+  diezmos: DiezmoLinea[]
+): Promise<{ persona_id: string; monto: number }[]> {
+  const validos = diezmos.filter((d) => d.monto > 0);
+  const tieneTelefono = validos.some((d) => !d.personaId && d.telefono?.trim());
+  const tipoTelefonoId = tieneTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+
+  return Promise.all(
+    validos.map(async (d) => {
+      if (d.personaId) return { persona_id: d.personaId, monto: d.monto };
+
+      const { data: persona, error } = await supabase
+        .from('persona')
+        // Diezmante que no está en el sistema: lead, no miembro completo (mismo
+        // motivo que las visitas -- DEFAULT true + trigger de CI obligatorio).
+        .insert({
+          iglesia_id: iglesiaId,
+          primer_nombre: d.primer_nombre,
+          primer_apellido: d.primer_apellido,
+          sexo: d.sexo,
+          membresia_completada: false,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+
+      if (d.telefono?.trim() && tipoTelefonoId) {
+        await agregarTelefono(iglesiaId, persona.id, tipoTelefonoId, d.telefono.trim(), null, true);
+      }
+      return { persona_id: persona.id, monto: d.monto };
+    })
+  );
+}
 
 export async function obtenerLibros(): Promise<Libro[]> {
   const { data, error } = await supabase.from('cdp_libro').select('id, numero, nombre').eq('activo', true).order('numero');
@@ -300,6 +343,11 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
             primer_nombre: visita.primer_nombre,
             primer_apellido: visita.primer_apellido,
             sexo: visita.sexo,
+            // Visita de reporte: es un lead, no un miembro con membresía
+            // completada. Sin este false toma el DEFAULT true y el trigger
+            // fn_validar_campos_membresia_persona exige CI (rompía el reporte
+            // con "el campo ci es obligatorio" en iglesias con CI obligatorio).
+            membresia_completada: false,
           })
           .select('id')
           .single();
@@ -331,13 +379,24 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       if (errorAsistencia) throw errorAsistencia;
     }
 
+    // Ofrendas (agregado). p_total_diezmos: null -- los diezmos ahora se
+    // registran por persona más abajo; pasar null da de baja cualquier DIEZMO
+    // agregado viejo que hubiera quedado.
     const { error: errorIngresos } = await supabase.rpc('fn_registrar_ingresos_reporte', {
       p_reporte_id: reporteId,
       p_total_ofrendas: datos.totalOfrendas,
-      p_total_diezmos: datos.totalDiezmos ?? null,
+      p_total_diezmos: null,
       p_moneda_id: datos.monedaId,
     });
     if (errorIngresos) throw errorIngresos;
+
+    const diezmosPayload = await construirDiezmosPayload(datos.iglesia_id, datos.diezmos);
+    const { error: errorDiezmos } = await supabase.rpc('fn_registrar_diezmos_reporte', {
+      p_reporte_id: reporteId,
+      p_diezmos: diezmosPayload,
+      p_moneda_id: datos.monedaId,
+    });
+    if (errorDiezmos) throw errorDiezmos;
 
     const { data: totales, error: errorTotales } = await supabase
       .from('v_reporte_totales')
@@ -423,7 +482,7 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
       supabase.from('casa_de_paz_asistencia').select('persona_id, es_visita, es_menor').eq('reporte_id', reporteId).is('fecha_eliminacion', null),
       supabase
         .from('finanzas_ingreso')
-        .select('monto, moneda_id, tipo_ingreso:tipo_ingreso_id(codigo)')
+        .select('monto, moneda_id, persona_id, tipo_ingreso:tipo_ingreso_id(codigo), persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
         .eq('reporte_id', reporteId)
         .is('fecha_eliminacion', null),
     ]);
@@ -437,13 +496,17 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
     : null;
 
   let totalOfrendas = 0;
-  let totalDiezmos: number | null = null;
   let monedaId: string | null = null;
+  const diezmos: DiezmoLinea[] = [];
   for (const ing of ingresos ?? []) {
     const tipo = Array.isArray(ing.tipo_ingreso) ? ing.tipo_ingreso[0] : ing.tipo_ingreso;
     monedaId = ing.moneda_id;
     if (tipo?.codigo === 'OFRENDA') totalOfrendas = Number(ing.monto);
-    if (tipo?.codigo === 'DIEZMO') totalDiezmos = Number(ing.monto);
+    if (tipo?.codigo === 'DIEZMO' && ing.persona_id) {
+      const p = Array.isArray(ing.persona) ? ing.persona[0] : ing.persona;
+      const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
+      diezmos.push({ clave: ing.persona_id, personaId: ing.persona_id, nombre_completo: nombre, monto: Number(ing.monto) });
+    }
   }
 
   return {
@@ -461,7 +524,7 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
     testimonios: reporte.testimonios,
     comentarios: reporte.comentarios,
     totalOfrendas,
-    totalDiezmos,
+    diezmos,
     monedaId,
     asistentes: (asistencia ?? []).map((a) => ({ personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined })),
   };
@@ -504,7 +567,9 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
     datos.visitasNuevas.map(async (visita) => {
       const { data: persona, error: errorPersona } = await supabase
         .from('persona')
-        .insert({ iglesia_id: datos.iglesia_id, primer_nombre: visita.primer_nombre, primer_apellido: visita.primer_apellido, sexo: visita.sexo })
+        // membresia_completada: false -- lead de visita, no miembro completo
+        // (mismo motivo que arriba: DEFAULT true + trigger CI obligatorio).
+        .insert({ iglesia_id: datos.iglesia_id, primer_nombre: visita.primer_nombre, primer_apellido: visita.primer_apellido, sexo: visita.sexo, membresia_completada: false })
         .select('id')
         .single();
       if (errorPersona) throw errorPersona;
@@ -569,10 +634,18 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
   const { error: errorIngresos } = await supabase.rpc('fn_registrar_ingresos_reporte', {
     p_reporte_id: reporteId,
     p_total_ofrendas: datos.totalOfrendas,
-    p_total_diezmos: datos.totalDiezmos ?? null,
+    p_total_diezmos: null,
     p_moneda_id: datos.monedaId,
   });
   if (errorIngresos) throw errorIngresos;
+
+  const diezmosPayload = await construirDiezmosPayload(datos.iglesia_id, datos.diezmos);
+  const { error: errorDiezmos } = await supabase.rpc('fn_registrar_diezmos_reporte', {
+    p_reporte_id: reporteId,
+    p_diezmos: diezmosPayload,
+    p_moneda_id: datos.monedaId,
+  });
+  if (errorDiezmos) throw errorDiezmos;
 
   const { data: totales, error: errorTotales } = await supabase
     .from('v_reporte_totales')

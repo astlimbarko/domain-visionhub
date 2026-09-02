@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { aISO } from '@/utils/calendario-fechas';
 import type {
   Evangelizado,
@@ -72,42 +71,29 @@ export async function obtenerEvangelizados(
   });
 }
 
+// KAN-277: persona + telefono + evangelismo en una sola RPC transaccional
+// (fn_registrar_evangelizado). Antes eran 2-3 inserts separados desde el
+// cliente -- si el insert de evangelismo fallaba, la persona ya creada
+// quedaba huérfana y un reintento del líder generaba un duplicado (bug real,
+// confirmado con datos: 2 personas con el mismo nombre, mismo creado_por, la
+// primera sin evangelismo asociado). Con la RPC, si cualquier paso falla
+// TODO se revierte junto, no puede quedar una persona a medias.
 export async function crearEvangelizado(datos: NuevoEvangelizado) {
-  let personaId = datos.persona_id;
-
-  if (!personaId) {
-    const { data: persona, error: errorPersona } = await supabase
-      .from('persona')
-      .insert({
-        iglesia_id: datos.iglesia_id,
-        primer_nombre: datos.primer_nombre,
-        primer_apellido: datos.primer_apellido,
-        sexo: datos.sexo,
-        fecha_nacimiento: datos.fecha_nacimiento || null,
-      })
-      .select('id')
-      .single();
-    if (errorPersona) throw errorPersona;
-    if (!persona?.id) throw new Error('No se pudo crear la persona evangelizada');
-    personaId = persona.id;
-    const nuevaPersonaId = persona.id;
-
-    if (datos.telefono?.trim()) {
-      const tipos = await obtenerTiposTelefono();
-      if (tipos[0]) {
-        await agregarTelefono(datos.iglesia_id, nuevaPersonaId, tipos[0].id, datos.telefono.trim(), null, true);
-      }
-    }
-  }
-
-  const { error } = await supabase.from('evangelismo').insert({
-    iglesia_id: datos.iglesia_id,
-    casa_de_paz_id: datos.casa_de_paz_id,
-    persona_id: personaId,
-    fecha: datos.fecha,
-    domicilio: datos.domicilio,
-    observaciones: datos.observaciones,
-    tipo_evangelismo_id: datos.tipo_evangelismo_id || null,
+  const { error } = await supabase.rpc('fn_registrar_evangelizado', {
+    p_datos: {
+      persona_id: datos.persona_id ?? null,
+      iglesia_id: datos.iglesia_id,
+      casa_de_paz_id: datos.casa_de_paz_id,
+      primer_nombre: datos.primer_nombre,
+      primer_apellido: datos.primer_apellido,
+      sexo: datos.sexo,
+      fecha_nacimiento: datos.fecha_nacimiento || null,
+      telefono: datos.telefono || null,
+      fecha: datos.fecha,
+      domicilio: datos.domicilio,
+      observaciones: datos.observaciones,
+      tipo_evangelismo_id: datos.tipo_evangelismo_id || null,
+    },
   });
   if (error) throw error;
 }
@@ -149,23 +135,22 @@ export async function obtenerMetasCdpRed(redId: string): Promise<MetaCdpRed[]> {
 }
 
 /**
- * Asigna una meta de evangelismo a una CdP de la Red -- insert directo a
- * `meta_evangelismo_asignada` (mismo patrón que `guardarDomicilioCdp`): la
- * política RLS `pol_meta_asignada_insert` (16_rls.sql) ya exige
- * `fn_es_rol_superior_de_cdp`, que cubre Líder/Sublíder de la Red dueña de
- * esa CdP, así que no hace falta una RPC de escritura aparte. La constraint
- * `excl_meta_asignada_solapada` (12_evangelismo.sql) rechaza rangos de fecha
- * que se solapen con una meta ya asignada vigente para la misma CdP.
+ * Asigna (o reasigna) una meta de evangelismo a una CdP de la Red vía
+ * `fn_asignar_meta_cdp` (20260902000000_metas_reasignar_sin_solapamiento.sql).
+ * Antes era un INSERT directo, pero eso rebotaba con "solapamiento"
+ * (excl_meta_asignada_solapada) al intentar CAMBIAR la meta del mismo período:
+ * el RPC da de baja lógica la meta vigente que se solapa y recién ahí inserta
+ * la nueva, todo en una transacción. El permiso es el mismo que exigía la RLS
+ * (`fn_es_rol_superior_de_cdp`); `iglesia_id`/`asignador_id` los resuelve el
+ * backend, por eso ya no se mandan desde acá.
  */
 export async function asignarMetaEvangelismo(datos: NuevaMetaAsignada) {
-  const { error } = await supabase.from('meta_evangelismo_asignada').insert({
-    iglesia_id: datos.iglesiaId,
-    casa_de_paz_id: datos.casaDePazId,
-    asignador_id: datos.asignadorId,
-    meta: datos.meta,
-    fecha_inicio: datos.fechaInicio,
-    fecha_fin: datos.fechaFin,
-    observaciones: datos.observaciones || null,
+  const { error } = await supabase.rpc('fn_asignar_meta_cdp', {
+    p_casa_de_paz_id: datos.casaDePazId,
+    p_meta: datos.meta,
+    p_fecha_inicio: datos.fechaInicio,
+    p_fecha_fin: datos.fechaFin,
+    p_observaciones: datos.observaciones || null,
   });
   if (error) throw error;
 }
@@ -191,23 +176,21 @@ export async function obtenerMetaRedAsignada(redId: string): Promise<MetaRedAsig
 }
 
 /**
- * Asigna una meta de evangelismo a una Red completa -- insert directo (mismo
- * patrón que `asignarMetaEvangelismo`), con `red_id` en vez de
- * `casa_de_paz_id`. La policy RLS bifurcada `pol_meta_asignada_insert`
- * (81_meta_global_red.sql) ya permite esto para un Supervisor/Pastor
- * (`fn_es_operativo_en`) o el Líder de esa Red. `fn_meta_efectiva`
- * (103_evangelismo_meta_supervisor_red.sql) la hereda hacia cada Casa de Paz
- * de la Red que no tenga ya su propia meta asignada.
+ * Asigna (o reasigna) una meta de evangelismo a una Red completa vía
+ * `fn_asignar_meta_red` (mismo motivo que `asignarMetaEvangelismo`: permitir
+ * CAMBIAR la meta del mismo período sin chocar con excl_meta_asignada_red_
+ * solapada). El permiso es el mismo que exigía la RLS bifurcada
+ * (`fn_es_lider_de_red` o `fn_es_operativo_en`). `fn_meta_efectiva`
+ * (104_fix_prioridad_meta_supervisor.sql) la hereda hacia cada Casa de Paz de
+ * la Red que no tenga ya su propia meta asignada.
  */
 export async function asignarMetaRedEvangelismo(datos: NuevaMetaAsignadaRed) {
-  const { error } = await supabase.from('meta_evangelismo_asignada').insert({
-    iglesia_id: datos.iglesiaId,
-    red_id: datos.redId,
-    asignador_id: datos.asignadorId,
-    meta: datos.meta,
-    fecha_inicio: datos.fechaInicio,
-    fecha_fin: datos.fechaFin,
-    observaciones: datos.observaciones || null,
+  const { error } = await supabase.rpc('fn_asignar_meta_red', {
+    p_red_id: datos.redId,
+    p_meta: datos.meta,
+    p_fecha_inicio: datos.fechaInicio,
+    p_fecha_fin: datos.fechaFin,
+    p_observaciones: datos.observaciones || null,
   });
   if (error) throw error;
 }

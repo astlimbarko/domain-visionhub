@@ -14,3 +14,13 @@ export const PAISES_TELEFONO = [
   { codigo: '+34', nombre: 'España', iso: 'es' },
   { codigo: '+1', nombre: 'Estados Unidos', iso: 'us' },
 ] as const;
+
+// Arma el teléfono final (prefijo país + número, solo dígitos) para el
+// payload de los flujos de alta de Membresía. Devuelve undefined si no se
+// escribió número -- así el backend distingue "sin celular" de un número
+// real. Compartido por FormularioMembresiaPublico y RegistrarPersonaAfirmacion.
+export function componerTelefono(pais: string | undefined, numero: string | undefined): string | undefined {
+  const soloDigitos = (numero ?? '').replace(/\D/g, '');
+  if (!soloDigitos) return undefined;
+  return `${pais || '+591'}${soloDigitos}`;
+}

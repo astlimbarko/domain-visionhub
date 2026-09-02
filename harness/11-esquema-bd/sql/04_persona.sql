@@ -104,7 +104,7 @@ $$;
 -- la lista a proposito: la viuda conserva el apellido por defecto (confirmado
 -- por el owner, PENDIENTES.md #5, 2026-07-17).
 CREATE OR REPLACE FUNCTION fn_limpiar_apellido_casada()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF NEW.estado_civil IN ('SOLTERO', 'DIVORCIADO')
      AND OLD.estado_civil = 'CASADO' THEN

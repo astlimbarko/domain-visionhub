@@ -50,7 +50,7 @@ CREATE TRIGGER trg_auditoria_cdp_tema BEFORE INSERT OR UPDATE ON cdp_tema FOR EA
 CREATE TRIGGER trg_no_delete_cdp_tema BEFORE DELETE ON cdp_tema FOR EACH ROW EXECUTE FUNCTION fn_bloquear_delete();
 
 CREATE OR REPLACE FUNCTION fn_validar_tema_libro()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE v_libro UUID;
 BEGIN
   IF NEW.tema_id IS NULL THEN RETURN NEW; END IF;

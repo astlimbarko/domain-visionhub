@@ -45,7 +45,7 @@ CREATE TRIGGER trg_auditoria_persona_estado BEFORE INSERT OR UPDATE ON persona_e
 CREATE TRIGGER trg_no_delete_persona_estado BEFORE DELETE ON persona_estado FOR EACH ROW EXECUTE FUNCTION fn_bloquear_delete();
 
 CREATE OR REPLACE FUNCTION fn_validar_estado_activo()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE v_sigla VARCHAR; v_activo BOOLEAN;
 BEGIN
   SELECT sigla, activo INTO v_sigla, v_activo FROM estado WHERE id = NEW.estado_id;

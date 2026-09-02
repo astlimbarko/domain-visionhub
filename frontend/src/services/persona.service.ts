@@ -81,7 +81,16 @@ export async function moverPersonaRed(params: {
 }
 
 export async function crearPersona(datos: NuevaPersona): Promise<{ id: string }> {
-  const { data, error } = await supabase.from('persona').insert(datos).select('id').single();
+  // Alta desde el Directorio (CrearPersonaDialog): entrada parcial -- CI es
+  // opcional y "dirección, teléfono, censo y familia se agregan después". No es
+  // una membresía completada, así que membresia_completada=false. Sin esto toma
+  // el DEFAULT true y el trigger fn_validar_campos_membresia_persona exige CI en
+  // iglesias con CI obligatorio, rompiendo el alta si se deja el CI en blanco.
+  const { data, error } = await supabase
+    .from('persona')
+    .insert({ ...datos, membresia_completada: false })
+    .select('id')
+    .single();
   if (error) throw error;
   return data;
 }

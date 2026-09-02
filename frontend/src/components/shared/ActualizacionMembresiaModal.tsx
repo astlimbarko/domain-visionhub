@@ -98,9 +98,13 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
           {faltaTelefono && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="actualizacion_telefono">Teléfono</Label>
+              {/* En móvil el selector de país iba en w-32 (128px) y dejaba el
+                  campo del número aplastado (~80px en pantallas de 320px), sin
+                  espacio real para tipear. Se achica el selector en móvil
+                  (w-24) y el número toma el resto con flex-1/min-w-0. */}
               <div className="flex gap-2">
                 <Select value={telefonoPais} disabled={telefonoNoTiene} onValueChange={setTelefonoPais}>
-                  <SelectTrigger className={cn('w-32 shrink-0', CAMPO_ESTILO)}>
+                  <SelectTrigger className={cn('w-28 shrink-0 sm:w-32', CAMPO_ESTILO)}>
                     <SelectValue>
                       <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPais)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
                       {telefonoPais}
@@ -119,7 +123,7 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
                 <Input
                   id="actualizacion_telefono"
                   inputMode="numeric"
-                  className={CAMPO_ESTILO}
+                  className={cn('min-w-0 flex-1', CAMPO_ESTILO)}
                   disabled={telefonoNoTiene}
                   placeholder={telefonoNoTiene ? 'No tiene teléfono' : undefined}
                   value={telefonoNumero}
@@ -151,16 +155,23 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
                     <Checkbox checked={ministerioNinguno} onCheckedChange={(v) => marcarNinguno(v === true)} />
                     Ninguno
                   </label>
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {/* El catálogo estándar son 14 ministerios: en móvil, una
+                      columna de 15 filas empujaba "Guardar" muy abajo. Se
+                      contiene la lista en una caja de altura acotada con scroll
+                      propio, así el botón queda siempre a la vista. items-start
+                      + mt-0.5 mantiene el check alineado si un nombre largo se
+                      parte en dos líneas en pantallas angostas. */}
+                  <div className="grid max-h-52 grid-cols-1 gap-x-4 gap-y-1.5 overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-border/60 p-2.5 sm:grid-cols-2">
                     {ministerios
                       .filter((m) => m.activo)
                       .map((m) => (
-                        <label key={m.id} className="flex items-center gap-2 text-sm">
+                        <label key={m.id} className="flex items-start gap-2 text-sm">
                           <Checkbox
+                            className="mt-0.5"
                             checked={ministeriosElegidos.includes(m.id)}
                             onCheckedChange={(v) => alternarMinisterio(m.id, v === true)}
                           />
-                          {m.nombre}
+                          <span>{m.nombre}</span>
                         </label>
                       ))}
                   </div>

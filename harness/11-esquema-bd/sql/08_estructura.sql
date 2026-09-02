@@ -358,7 +358,7 @@ AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION fn_validar_red_desactivacion()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF OLD.activo AND NOT NEW.activo THEN
     IF EXISTS (
@@ -379,7 +379,7 @@ CREATE TRIGGER trg_validar_red_desactivacion
   FOR EACH ROW EXECUTE FUNCTION fn_validar_red_desactivacion();
 
 CREATE OR REPLACE FUNCTION fn_cdp_desactivacion_cierra_membresias()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF OLD.activo AND NOT NEW.activo THEN
     UPDATE casa_de_paz_membresia SET fecha_fin = CURRENT_DATE
