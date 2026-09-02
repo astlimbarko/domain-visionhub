@@ -199,7 +199,7 @@ function filtrarYMapearPersonas(data: FilaPersonaBusqueda[], tokens: string[], e
     // deja pasar en vez de ocultar a alguien por falta de datos.
     .filter((p) => !edadMinima || !p.fecha_nacimiento || calcularEdad(p.fecha_nacimiento) >= edadMinima)
     .slice(0, 10)
-    .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
+    .map(({ id, nombre_completo, fecha_nacimiento }) => ({ id, nombre_completo, fecha_nacimiento }));
 }
 
 /**

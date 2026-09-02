@@ -57,7 +57,8 @@ import { BuscadorPersonaMultiple } from '@/components/reporte/BuscadorPersonaMul
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
-import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
+import { calcularEdad } from '@/utils/edad';
+import type { DiezmoLinea, EvangelizadoPendiente, MiembroCdp, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 const esquema = z.object({
@@ -132,6 +133,12 @@ export function Reportes() {
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
   const [asistentes, setAsistentes] = useState<Map<string, { esVisita: boolean; esMenor?: boolean }>>(new Map());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
+  // Personas que YA existen en la iglesia pero no son miembros de esta Casa de
+  // Paz (ej. un Supervisor de Red que asiste a una CdP de otra red): se traen
+  // por la búsqueda global y se suman a los pools de asistencia, para poder
+  // marcarlas como asistentes regulares sin crear una persona duplicada.
+  const [asistentesExternos, setAsistentesExternos] = useState<MiembroCdp[]>([]);
+  const [busquedaAsistente, setBusquedaAsistente] = useState('');
   const [mostrarFormVisita, setMostrarFormVisita] = useState(false);
   const [nombreVisita, setNombreVisita] = useState('');
   const [apellidoVisita, setApellidoVisita] = useState('');
@@ -239,6 +246,31 @@ export function Reportes() {
     });
   }
 
+  // Agrega a alguien de la iglesia que no es miembro de esta CdP a los pools de
+  // asistencia y lo marca de una como asistente regular (no visita). Si ya está
+  // en la lista de miembros o ya se agregó, no lo duplica.
+  function agregarAsistenteExterno(p: PersonaBusqueda) {
+    setBusquedaAsistente('');
+    const yaEsMiembro = miembros.some((m) => m.persona_id === p.id);
+    if (!yaEsMiembro) {
+      setAsistentesExternos((prev) =>
+        prev.some((e) => e.persona_id === p.id)
+          ? prev
+          : [
+              ...prev,
+              {
+                persona_id: p.id,
+                nombre_completo: p.nombre_completo,
+                tiene_fecha_nacimiento: !!p.fecha_nacimiento,
+                edad: p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+              },
+            ]
+      );
+    }
+    // Marcarlo como asistente regular (esVisita=false) si no estaba ya elegido.
+    setAsistentes((prev) => (prev.has(p.id) ? prev : new Map(prev).set(p.id, { esVisita: false })));
+  }
+
   function cambiarEsMenorAsistente(personaId: string, esMenor: boolean) {
     setAsistentes((prev) => {
       const next = new Map(prev);
@@ -320,6 +352,13 @@ export function Reportes() {
 
   const totalDiezmosCalc = diezmos.reduce((suma, d) => suma + (d.monto || 0), 0);
 
+  // Miembros de la CdP + los agregados por búsqueda global (asistentes externos),
+  // sin duplicar. Todos los pools y controles de abajo operan sobre esta lista.
+  const miembrosDisponibles = useMemo(() => {
+    const ids = new Set(miembros.map((m) => m.persona_id));
+    return [...miembros, ...asistentesExternos.filter((e) => !ids.has(e.persona_id))];
+  }, [miembros, asistentesExternos]);
+
   const idsNuevos = Array.from(asistentes.entries())
     .filter(([, v]) => v.esVisita)
     .map(([id]) => id);
@@ -327,11 +366,11 @@ export function Reportes() {
     .filter(([, v]) => !v.esVisita)
     .map(([id]) => id);
   const idsRegulares = idsSinVisita.filter((id) => {
-    const m = miembros.find((mm) => mm.persona_id === id);
+    const m = miembrosDisponibles.find((mm) => mm.persona_id === id);
     return !m || m.edad === null || m.edad >= edadMinima;
   });
   const idsNinos = idsSinVisita.filter((id) => {
-    const m = miembros.find((mm) => mm.persona_id === id);
+    const m = miembrosDisponibles.find((mm) => mm.persona_id === id);
     return !!m && m.edad !== null && m.edad < edadMinima;
   });
   const esMenorPorPersona: Record<string, boolean> = {};
@@ -343,9 +382,9 @@ export function Reportes() {
   // Cada lista excluye a quien ya está seleccionado en otra, para que no se pueda marcar a la misma persona dos veces.
   // El corte "niño" vs. "regular" usa edadMinima (configurable por iglesia): cuando alguien
   // cumple esa edad, pasa solo a la lista de regulares en el siguiente render, sin acción manual.
-  const poolNuevos = miembros.filter((m) => !idsRegulares.includes(m.persona_id) && !idsNinos.includes(m.persona_id));
-  const poolRegulares = miembros.filter((m) => (m.edad === null || m.edad >= edadMinima) && !idsNuevos.includes(m.persona_id));
-  const poolNinos = miembros.filter((m) => m.edad !== null && m.edad < edadMinima && !idsNuevos.includes(m.persona_id));
+  const poolNuevos = miembrosDisponibles.filter((m) => !idsRegulares.includes(m.persona_id) && !idsNinos.includes(m.persona_id));
+  const poolRegulares = miembrosDisponibles.filter((m) => (m.edad === null || m.edad >= edadMinima) && !idsNuevos.includes(m.persona_id));
+  const poolNinos = miembrosDisponibles.filter((m) => m.edad !== null && m.edad < edadMinima && !idsNuevos.includes(m.persona_id));
 
   // Sin fecha de nacimiento no hay forma de saber la edad: se les pide que
   // digan a mano si son menores, en vez de asumirlo y arriesgar un dato mal
@@ -359,8 +398,8 @@ export function Reportes() {
   // del backend (fn_validar_asistencia rechaza es_menor nulo sin fecha de
   // nacimiento), dejando además un reporte huérfano.
   const pendientesEsMenor = Array.from(asistentes.keys())
-    .map((id) => miembros.find((mm) => mm.persona_id === id))
-    .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined);
+    .map((id) => miembrosDisponibles.find((mm) => mm.persona_id === id))
+    .filter((m): m is (typeof miembrosDisponibles)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined);
 
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
@@ -489,6 +528,8 @@ export function Reportes() {
       );
       reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
       setAsistentes(new Map());
+      setAsistentesExternos([]);
+      setBusquedaAsistente('');
       setVisitasNuevas([]);
       setDiezmos([]);
       setEvangelizadosPendientes([]);
@@ -697,6 +738,27 @@ export function Reportes() {
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
                       />
+                    </div>
+
+                    {/* Búsqueda en TODA la iglesia: para marcar como asistente a
+                        alguien que ya existe pero no es miembro de esta CdP (ej.
+                        un Supervisor de Red que asiste a una CdP de otra red).
+                        Evita tener que cargarlo como "visita nueva" y duplicar la
+                        persona. Al elegirlo se suma a las listas de arriba como
+                        asistente regular. */}
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs text-muted-foreground">Agregar a alguien de otra Casa de Paz o de la iglesia</Label>
+                      <BuscadorPersonaCampo
+                        iglesiaId={iglesiaActivaId}
+                        valor={busquedaAsistente}
+                        seleccionado={false}
+                        onCambiarTexto={setBusquedaAsistente}
+                        onSeleccionar={agregarAsistenteExterno}
+                        placeholder="Buscar por nombre en toda la iglesia..."
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Ya es miembro de la iglesia pero no de esta Casa de Paz: se marca como asistente regular sin crear un duplicado.
+                      </p>
                     </div>
 
                     {pendientesEsMenor.length > 0 && (
