@@ -12,3 +12,5 @@
 - [x] Confirmado en las 7 entidades (Líder/Supervisor de Red, Líder/Sublíder de CdP, Líder de Departamento -- Afirmación --, Pastor, Supervisor de la Visión en Acción)
 - [x] Gonzalo probó en vivo, quedó conforme -- mergeado a `master` (PR #39, commit `94583ea`)
 - [ ] Falta: desplegar el build nuevo del front a producción (somoscdv.com) antes de pasar KAN-263 a Finalizada
+- [x] Incidente reportado (anoche, un usuario no veía sus roles asignados): verificada en modo lectura la cuenta mirnamercado467@mail.com (Centro de Vida Montero) -- tiene Supervisor de Red (Daniel) + Líder de Casa de Paz, ambos vigentes, y `fn_mis_roles_dashboard`/`contextos-disponibles.ts` deberían mostrarle las 2 tarjetas bien con los datos actuales. Sin bug activo detectado -- probablemente ligado al atraso de 19 migraciones que Matías ya corrigió esa misma noche
+- [ ] Hallazgo suelto (sin resolver, no bloqueante): fila vieja en `usuario_rol` para Mirna dice `LIDER_RED`, no coincide con su cargo real (`SUBLIDER_RED`) -- no afecta al selector actual (esa tabla no se consulta ahí) pero conviene limpiarla en algún momento
