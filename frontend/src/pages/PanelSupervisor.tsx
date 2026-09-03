@@ -35,6 +35,7 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
   DASHBOARD_RED: 'Dashboard del Líder de Red',
   FORMULARIO_MEMBRESIA: 'Formulario de membresía',
   FORMULARIO_REPORTE: 'Formulario de reporte semanal',
+  CONTROL_REPORTES: 'Control de Reportes',
   NOTIFICACION: 'Notificaciones',
   FAMILIA: 'Conteo de familias',
   REGISTRO: 'Registro público por URL',
@@ -48,7 +49,7 @@ const NOMBRE_CATEGORIA: Record<string, string> = {
 const GRUPOS_PESTANIA: { id: string; nombre: string; icon: LucideIcon; categorias: string[] }[] = [
   { id: 'general', nombre: 'General', icon: SlidersHorizontal, categorias: ['__moneda', 'CDP', 'ESTRUCTURA'] },
   { id: 'dashboards', nombre: 'Dashboards', icon: LayoutDashboard, categorias: ['DASHBOARD_LIDER', 'DASHBOARD_SUBLIDER', 'DASHBOARD_RED'] },
-  { id: 'formularios', nombre: 'Formularios', icon: ClipboardList, categorias: ['FORMULARIO_MEMBRESIA', 'FORMULARIO_REPORTE'] },
+  { id: 'formularios', nombre: 'Formularios', icon: ClipboardList, categorias: ['FORMULARIO_MEMBRESIA', 'FORMULARIO_REPORTE', 'CONTROL_REPORTES'] },
   { id: 'estados', nombre: 'Estados y familias', icon: Users, categorias: ['SSVA', 'FAMILIA'] },
   { id: 'comunicacion', nombre: 'Notificaciones y registro', icon: Bell, categorias: ['NOTIFICACION', 'REGISTRO'] },
 ];
