@@ -14,6 +14,16 @@ interface Props {
   pendientes: EvangelizadoPendiente[];
   onAgregar: (p: EvangelizadoPendiente) => void;
   onQuitar: (clave: string) => void;
+  /** Cambiar el tipo de evangelismo de una entrada ya agregada -- necesario
+   * para las que llegan solas desde "Asistentes nuevos" (sin tipo elegido
+   * todavía) y para corregir cualquier otra sin tener que sacarla y
+   * volver a cargarla. */
+  onCambiarTipo?: (clave: string, tipoId: string) => void;
+  /** KAN-271: en edición no se reabre el alta manual (buscar/agregar un
+   * evangelizado cualquiera) -- solo se muestra la lista de pendientes (con
+   * su selector de tipo) para las que ya vinieron solas desde "Asistentes
+   * nuevos" durante esta edición. */
+  soloListado?: boolean;
 }
 
 /**
@@ -24,7 +34,7 @@ interface Props {
  * es un combobox simple (a diferencia del selector de engranajes del módulo
  * de Evangelismo) — lo que se agregue queda etiquetado con el tipo elegido.
  */
-export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, onQuitar }: Props) {
+export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, onQuitar, onCambiarTipo, soloListado }: Props) {
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaId);
   const [tipoEvangelismoId, setTipoEvangelismoId] = useState('');
 
@@ -98,7 +108,7 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
 
   return (
     <div className="flex flex-col gap-3">
-      {tipos.length > 0 && (
+      {!soloListado && tipos.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">Tipo de evangelismo</Label>
           <Select value={tipoEvangelismoId} onValueChange={setTipoEvangelismoId}>
@@ -116,6 +126,8 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
         </div>
       )}
 
+      {!soloListado && (
+      <>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
@@ -209,16 +221,34 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
           </div>
         </div>
       )}
+      </>
+      )}
 
       {pendientes.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {pendientes.map((p) => (
             <div key={p.clave} className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 flex-1 items-center gap-2">
                 {p.persona_id ? <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" /> : <UserPlus className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 <span className="truncate">{p.nombre_completo}</span>
                 {!p.persona_id && <span className="shrink-0 text-xs text-muted-foreground">(persona nueva)</span>}
-                {p.tipo_evangelismo_nombre && (
+                {p.visitaNuevaClave && <span className="shrink-0 text-xs text-muted-foreground">(asistente nuevo)</span>}
+              </span>
+              {onCambiarTipo && tipos.length > 0 ? (
+                <Select value={p.tipo_evangelismo_id ?? ''} onValueChange={(v) => onCambiarTipo(p.clave, v)}>
+                  <SelectTrigger className="h-7 w-36 shrink-0 text-xs">
+                    <SelectValue placeholder="Elegí un tipo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tipos.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                p.tipo_evangelismo_nombre && (
                   <span
                     className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                     style={{
@@ -228,8 +258,8 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
                   >
                     {p.tipo_evangelismo_nombre}
                   </span>
-                )}
-              </span>
+                )
+              )}
               <button type="button" onClick={() => onQuitar(p.clave)} className="shrink-0 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
