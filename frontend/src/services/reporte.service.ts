@@ -374,6 +374,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
             iglesia_id: datos.iglesia_id,
             primer_nombre: visita.primer_nombre,
             primer_apellido: visita.primer_apellido,
+            segundo_apellido: visita.segundo_apellido || null,
             sexo: visita.sexo,
             // Visita de reporte: es un lead, no un miembro con membresía
             // completada. Sin este false toma el DEFAULT true y el trigger
@@ -601,7 +602,14 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
         .from('persona')
         // membresia_completada: false -- lead de visita, no miembro completo
         // (mismo motivo que arriba: DEFAULT true + trigger CI obligatorio).
-        .insert({ iglesia_id: datos.iglesia_id, primer_nombre: visita.primer_nombre, primer_apellido: visita.primer_apellido, sexo: visita.sexo, membresia_completada: false })
+        .insert({
+          iglesia_id: datos.iglesia_id,
+          primer_nombre: visita.primer_nombre,
+          primer_apellido: visita.primer_apellido,
+          segundo_apellido: visita.segundo_apellido || null,
+          sexo: visita.sexo,
+          membresia_completada: false,
+        })
         .select('id')
         .single();
       if (errorPersona) throw errorPersona;
