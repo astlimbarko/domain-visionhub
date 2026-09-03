@@ -31,10 +31,6 @@ export interface CdpResumen {
 export interface PersonaBusqueda {
   id: string;
   nombre_completo: string;
-  /** Para clasificar edad al agregar a alguien como asistente (regular/niño) sin
-   * un viaje extra. Opcional -- los consumidores que solo muestran el nombre
-   * (ej. campo disertador) lo ignoran. */
-  fecha_nacimiento?: string | null;
 }
 
 export type CargoRedCodigo = 'LIDER_RED' | 'SUBLIDER_RED' | 'ENCARGADO_DEPARTAMENTOS_RED' | 'ENCARGADO_MINISTERIO_RED';
