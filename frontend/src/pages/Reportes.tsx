@@ -368,6 +368,11 @@ export function Reportes() {
   async function onSubmit(valores: FormValues) {
     if (!cdpActiva || !iglesiaActivaId) return;
 
+    if (totalAsistentesActual === 0) {
+      toast.error('Marcá al menos una persona antes de enviar el reporte');
+      return;
+    }
+
     if (pendientesEsMenor.length > 0) {
       const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
       toast.error(
@@ -1010,7 +1015,12 @@ export function Reportes() {
         </section>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button type="submit" disabled={isSubmitting} className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8">
+          <Button
+            type="submit"
+            disabled={isSubmitting || totalAsistentesActual === 0}
+            title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
+            className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
+          >
             {isSubmitting && <Spinner className="h-4 w-4" />}
             {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
           </Button>

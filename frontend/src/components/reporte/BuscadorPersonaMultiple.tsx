@@ -1,8 +1,22 @@
 import { useState } from 'react';
-import { Check, Search, X } from 'lucide-react';
+import { Check, Plus, Search, UserPlus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MiembroCdp } from '@/types/reporte.types';
+
+/** Datos que pide el mini-formulario de "persona nueva" -- mismo criterio
+ * básico que el alta de evangelizados (nombre, apellidos, sexo, opcionales). */
+export interface DatosPersonaNueva {
+  primer_nombre: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  sexo: 'M' | 'F';
+  telefono?: string;
+  es_menor?: boolean;
+}
 
 interface Props {
   titulo: string;
@@ -18,6 +32,25 @@ interface Props {
    * membresía oficial, solo queda asociado a este registro de asistencia. */
   asisteCdpPorPersona?: Record<string, boolean>;
   onAsisteCdpChange?: (personaId: string, asiste: boolean) => void;
+  /** Cuando la búsqueda no encuentra a nadie, ofrece cargarla como persona
+   * nueva (mismo patrón que el buscador de evangelizados). Solo tiene
+   * sentido en "Asistentes nuevos" -- regulares/niños clasifican gente que
+   * ya está en el sistema, no crean personas. */
+  permitirAgregarNueva?: boolean;
+  onAgregarNueva?: (datos: DatosPersonaNueva) => void;
+}
+
+/** "Jose Perez Antofagasta" -> nombre "Jose", apellido paterno "Perez",
+ * apellido materno "Antofagasta" (el resto de las palabras, por si el
+ * apellido materno tiene más de una palabra). Con una o dos palabras deja
+ * el resto vacío -- no hay forma de adivinar qué falta. */
+function separarNombreCompleto(texto: string) {
+  const partes = texto.trim().split(/\s+/).filter(Boolean);
+  return {
+    nombre: partes[0] ?? '',
+    apellidoPaterno: partes[1] ?? '',
+    apellidoMaterno: partes.slice(2).join(' '),
+  };
 }
 
 /**
@@ -37,13 +70,55 @@ export function BuscadorPersonaMultiple({
   onEsMenorChange,
   asisteCdpPorPersona,
   onAsisteCdpChange,
+  permitirAgregarNueva,
+  onAgregarNueva,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
 
+  const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
+  const [nombreNueva, setNombreNueva] = useState('');
+  const [apellidoPaternoNueva, setApellidoPaternoNueva] = useState('');
+  const [apellidoMaternoNueva, setApellidoMaternoNueva] = useState('');
+  const [sexoNueva, setSexoNueva] = useState<'M' | 'F' | ''>('');
+  const [telefonoNueva, setTelefonoNueva] = useState('');
+  const [esMenorNueva, setEsMenorNueva] = useState(false);
+
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
     : miembros;
+
+  // El texto que ya escribió para buscar no debería perderse: se separa en
+  // nombre/apellidos (mismo criterio que el buscador de evangelizados) y
+  // precarga el mini-formulario, para no hacerle escribir todo de nuevo.
+  function abrirFormNueva() {
+    const { nombre, apellidoPaterno, apellidoMaterno } = separarNombreCompleto(texto);
+    setNombreNueva(nombre);
+    setApellidoPaternoNueva(apellidoPaterno);
+    setApellidoMaternoNueva(apellidoMaterno);
+    setMostrarFormNueva(true);
+    setAbierto(false);
+  }
+
+  function confirmarAgregarNueva() {
+    if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
+    onAgregarNueva({
+      primer_nombre: nombreNueva.trim(),
+      primer_apellido: apellidoPaternoNueva.trim(),
+      segundo_apellido: apellidoMaternoNueva.trim() || undefined,
+      sexo: sexoNueva,
+      telefono: telefonoNueva.trim() || undefined,
+      es_menor: esMenorNueva,
+    });
+    setTexto('');
+    setNombreNueva('');
+    setApellidoPaternoNueva('');
+    setApellidoMaternoNueva('');
+    setSexoNueva('');
+    setTelefonoNueva('');
+    setEsMenorNueva(false);
+    setMostrarFormNueva(false);
+  }
 
   const seleccionadosSet = new Set(seleccionados);
 
@@ -97,7 +172,18 @@ export function BuscadorPersonaMultiple({
             )}
             <div className="max-h-56 overflow-y-auto py-1">
               {filtrados.length === 0 ? (
-                <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
+                permitirAgregarNueva && texto.trim() ? (
+                  <button
+                    type="button"
+                    onMouseDown={abrirFormNueva}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary hover:bg-accent"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    No está en el sistema: agregarla como persona nueva
+                  </button>
+                ) : (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
+                )
               ) : (
                 filtrados.map((m) => (
                   <label
@@ -118,6 +204,61 @@ export function BuscadorPersonaMultiple({
           </div>
         )}
       </div>
+
+      {mostrarFormNueva && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+          <p className="text-xs font-medium text-muted-foreground">Persona nueva (no está en el sistema)</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Nombre *</Label>
+              <Input value={nombreNueva} onChange={(e) => setNombreNueva(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Apellido paterno *</Label>
+              <Input value={apellidoPaternoNueva} onChange={(e) => setApellidoPaternoNueva(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Apellido materno</Label>
+              <Input value={apellidoMaternoNueva} onChange={(e) => setApellidoMaternoNueva(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Sexo *</Label>
+              <Select value={sexoNueva} onValueChange={(v) => setSexoNueva(v as 'M' | 'F')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Celular</Label>
+              <Input type="tel" placeholder="Opcional" value={telefonoNueva} onChange={(e) => setTelefonoNueva(e.target.value)} />
+            </div>
+            <label className="flex items-center gap-1.5 self-end pb-2 text-xs text-muted-foreground">
+              <Checkbox checked={esMenorNueva} onCheckedChange={(v) => setEsMenorNueva(v === true)} />
+              es menor
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setMostrarFormNueva(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="gap-1.5"
+              onClick={confirmarAgregarNueva}
+              disabled={!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Agregar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {seleccionados.length > 0 && (
         <div className="flex flex-wrap gap-1.5">

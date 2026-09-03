@@ -53,6 +53,8 @@ export interface MegaFiestaDelDia {
 export interface NuevaVisita {
   primer_nombre: string;
   primer_apellido: string;
+  /** Apellido materno -- opcional, no todas las personas lo tienen o lo quieren dar. */
+  segundo_apellido?: string;
   sexo: 'M' | 'F';
   es_menor?: boolean;
   telefono?: string;
