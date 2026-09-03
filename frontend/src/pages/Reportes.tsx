@@ -52,8 +52,9 @@ import {
   useTemas,
 } from '@/hooks/useReporte';
 import { crearEvangelizado } from '@/services/evangelismo.service';
+import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
-import { BuscadorPersonaMultiple } from '@/components/reporte/BuscadorPersonaMultiple';
+import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
@@ -132,12 +133,6 @@ export function Reportes() {
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
   const [asistentes, setAsistentes] = useState<Map<string, { esVisita: boolean; esMenor?: boolean }>>(new Map());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
-  const [mostrarFormVisita, setMostrarFormVisita] = useState(false);
-  const [nombreVisita, setNombreVisita] = useState('');
-  const [apellidoVisita, setApellidoVisita] = useState('');
-  const [sexoVisita, setSexoVisita] = useState<'M' | 'F' | ''>('');
-  const [telefonoVisita, setTelefonoVisita] = useState('');
-  const [esMenorVisita, setEsMenorVisita] = useState(false);
   // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
@@ -177,6 +172,7 @@ export function Reportes() {
   const monedaId = watch('moneda_id');
 
   const { data: temas = [] } = useTemas(libroId, iglesiaActivaId);
+  const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
   const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
 
@@ -260,24 +256,73 @@ export function Reportes() {
     });
   }
 
-  function agregarVisitaNueva() {
-    if (!nombreVisita.trim() || !apellidoVisita.trim() || !sexoVisita) return;
+  // Pedido del owner (2026-09-03): una persona que no está en el sistema y se
+  // carga desde "Asistentes nuevos" salió a evangelizarse ese día -- no tiene
+  // sentido pedirle al líder que la cargue una segunda vez en Evangelismo.
+  // Se agrega como visita Y como evangelizado pendiente en el mismo momento,
+  // linkeados por `clave` (ver visitaNuevaClave) para que al enviar el
+  // reporte se cree UNA sola persona, no dos. El tipo de evangelismo queda
+  // sin elegir -- el líder lo asigna en la sección Evangelismo (distintas
+  // personas nuevas pueden venir de distintos tipos, no hay un default
+  // razonable). Si "Salieron a evangelizar" todavía no estaba tildado, se
+  // tilda solo para que la sección se despliegue y la persona sea visible.
+  function agregarAsistenteNuevo(datos: DatosPersonaNueva) {
+    const clave = crypto.randomUUID();
     setVisitasNuevas((prev) => [
       ...prev,
       {
-        primer_nombre: nombreVisita.trim(),
-        primer_apellido: apellidoVisita.trim(),
-        sexo: sexoVisita,
-        es_menor: esMenorVisita,
-        telefono: telefonoVisita.trim() || undefined,
+        clave,
+        primer_nombre: datos.primer_nombre,
+        primer_apellido: datos.primer_apellido,
+        segundo_apellido: datos.segundo_apellido,
+        sexo: datos.sexo,
+        es_menor: datos.es_menor,
+        telefono: datos.telefono,
       },
     ]);
-    setNombreVisita('');
-    setApellidoVisita('');
-    setSexoVisita('');
-    setTelefonoVisita('');
-    setEsMenorVisita(false);
-    setMostrarFormVisita(false);
+    setEvangelizadosPendientes((prev) => [
+      ...prev,
+      {
+        clave: `v-${clave}`,
+        visitaNuevaClave: clave,
+        nombre_completo: `${datos.primer_nombre} ${datos.primer_apellido}`,
+        primer_nombre: datos.primer_nombre,
+        primer_apellido: datos.primer_apellido,
+        sexo: datos.sexo,
+        telefono: datos.telefono,
+      },
+    ]);
+    if (!salioEvangelizar) setValue('salio_evangelizar', true);
+  }
+
+  function quitarVisitaNueva(clave: string) {
+    setVisitasNuevas((prev) => prev.filter((v) => v.clave !== clave));
+    // Espejo: la entrada de Evangelismo que vino de esta misma alta se va con ella.
+    setEvangelizadosPendientes((prev) => prev.filter((p) => p.visitaNuevaClave !== clave));
+  }
+
+  // Espejo de quitarVisitaNueva pero al revés: si lo que se saca es una de
+  // las entradas que vinieron de "Asistentes nuevos", la persona deja de
+  // contar del todo (no tiene sentido que siga como asistente si el líder
+  // decide que en realidad no corresponde) -- si es una cargada a mano
+  // directo en Evangelismo, solo se saca de ahí.
+  function quitarEvangelizadoPendiente(clave: string) {
+    const entrada = evangelizadosPendientes.find((p) => p.clave === clave);
+    if (entrada?.visitaNuevaClave) {
+      setVisitasNuevas((prev) => prev.filter((v) => v.clave !== entrada.visitaNuevaClave));
+    }
+    setEvangelizadosPendientes((prev) => prev.filter((p) => p.clave !== clave));
+  }
+
+  function cambiarTipoEvangelizado(clave: string, tipoId: string) {
+    const tipo = tiposEvangelismo.find((t) => t.id === tipoId);
+    setEvangelizadosPendientes((prev) =>
+      prev.map((p) =>
+        p.clave === clave
+          ? { ...p, tipo_evangelismo_id: tipo?.id, tipo_evangelismo_nombre: tipo?.nombre, tipo_evangelismo_color: tipo?.color }
+          : p
+      )
+    );
   }
 
   function agregarDiezmanteExistente(persona: PersonaBusqueda) {
@@ -450,20 +495,27 @@ export function Reportes() {
         ? await actualizar.mutateAsync({ reporteId: reporteId as string, datos: datosComunes })
         : await crear.mutateAsync(datosComunes);
 
-      // KAN-271: en edición no se vuelve a pasar por acá -- el panel de
-      // "agregar evangelizado" está oculto (evangelizadosPendientes siempre
-      // vacío), así que este bloque no se dispara nunca en modoEdicion.
+      // KAN-271: en edición el panel de "agregar evangelizado" a mano está
+      // oculto (evangelizadosPendientes solo se llena por acá si el líder
+      // agrega una persona nueva desde "Asistentes nuevos", que sí sigue
+      // disponible en edición).
       if (evangelizadosPendientes.length > 0) {
+        // Las que vinieron de "Asistentes nuevos" (visitaNuevaClave) ya
+        // tienen su persona creada por crearReporte/actualizarReporte -- se
+        // linkea a ESA persona (fn_registrar_evangelizado con persona_id no
+        // crea una nueva) en vez de duplicar el alta.
+        const personaIdPorVisitaClave = new Map(resultado.visitasNuevasCreadas.map((v) => [v.clave, v.personaId]));
         try {
           // Cada evangelizado es independiente del resto -- antes se creaban
           // uno por uno en serie (N round-trips seguidos), ahora en paralelo.
           await Promise.all(
-            evangelizadosPendientes.map((ev) =>
-              crearEvangelizado({
+            evangelizadosPendientes.map((ev) => {
+              const personaIdDeVisita = ev.visitaNuevaClave ? personaIdPorVisitaClave.get(ev.visitaNuevaClave) : undefined;
+              return crearEvangelizado({
                 casa_de_paz_id: cdpActiva,
                 iglesia_id: iglesiaActivaId,
                 fecha: valores.fecha_reunion,
-                persona_id: ev.persona_id,
+                persona_id: ev.persona_id ?? personaIdDeVisita,
                 primer_nombre: ev.primer_nombre,
                 primer_apellido: ev.primer_apellido,
                 sexo: ev.sexo,
@@ -471,8 +523,8 @@ export function Reportes() {
                 telefono: ev.telefono,
                 fecha_nacimiento: ev.fecha_nacimiento,
                 tipo_evangelismo_id: ev.tipo_evangelismo_id,
-              })
-            )
+              });
+            })
           );
           queryClient.invalidateQueries({ queryKey: ['evangelismo'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -671,6 +723,8 @@ export function Reportes() {
                         colorChip={VERDE}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
+                        permitirAgregarNueva
+                        onAgregarNueva={agregarAsistenteNuevo}
                       />
                     </div>
 
@@ -741,77 +795,29 @@ export function Reportes() {
                       </div>
                     )}
 
-                    <div className="flex flex-col gap-2">
-                      {visitasNuevas.map((v, i) => (
-                        <div key={i} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
-                          <UserRound className="h-4 w-4 text-muted-foreground" />
-                          <span className="flex-1">
-                            {v.primer_nombre} {v.primer_apellido}{' '}
-                            <span className="text-xs text-muted-foreground">
-                              (no está en el sistema{v.es_menor ? ', menor' : ''}
-                              {v.telefono ? ` · ${v.telefono}` : ''})
+                    {visitasNuevas.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {visitasNuevas.map((v) => (
+                          <div key={v.clave} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
+                            <UserRound className="h-4 w-4 text-muted-foreground" />
+                            <span className="flex-1">
+                              {v.primer_nombre} {v.primer_apellido} {v.segundo_apellido ?? ''}{' '}
+                              <span className="text-xs text-muted-foreground">
+                                (no está en el sistema{v.es_menor ? ', menor' : ''}
+                                {v.telefono ? ` · ${v.telefono}` : ''} · también cuenta en Evangelismo)
+                              </span>
                             </span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setVisitasNuevas((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-
-                      {mostrarFormVisita ? (
-                        <div className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                            <div className="flex flex-1 flex-col gap-1.5">
-                              <Label className="text-xs">Nombre</Label>
-                              <Input value={nombreVisita} onChange={(e) => setNombreVisita(e.target.value)} />
-                            </div>
-                            <div className="flex flex-1 flex-col gap-1.5">
-                              <Label className="text-xs">Apellido</Label>
-                              <Input value={apellidoVisita} onChange={(e) => setApellidoVisita(e.target.value)} />
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <Label className="text-xs">Sexo</Label>
-                              <Select value={sexoVisita} onValueChange={(v) => setSexoVisita(v as 'M' | 'F')}>
-                                <SelectTrigger className="w-28">
-                                  <SelectValue placeholder="—" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="M">Masculino</SelectItem>
-                                  <SelectItem value="F">Femenino</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => quitarVisitaNueva(v.clave)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
                           </div>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                            <div className="flex flex-1 flex-col gap-1.5">
-                              <Label className="text-xs">Celular</Label>
-                              <Input
-                                type="tel"
-                                placeholder="Opcional"
-                                value={telefonoVisita}
-                                onChange={(e) => setTelefonoVisita(e.target.value)}
-                              />
-                            </div>
-                            <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground">
-                              <Checkbox checked={esMenorVisita} onCheckedChange={(v) => setEsMenorVisita(v === true)} />
-                              es menor
-                            </label>
-                            <Button type="button" onClick={agregarVisitaNueva}>
-                              Agregar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <Button type="button" variant="outline" size="sm" className="w-fit gap-2" onClick={() => setMostrarFormVisita(true)}>
-                          <Plus className="h-4 w-4" />
-                          Persona que no está en el sistema
-                        </Button>
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
           </div>
@@ -849,12 +855,21 @@ export function Reportes() {
                       </p>
                     </div>
                   )}
-                  {salioEvangelizar && !modoEdicion && (
+                  {/* En edición el alta manual (buscar y agregar un evangelizado
+                      cualquiera) sigue oculta -- KAN-271, para no reabrir ese
+                      flujo sobre un reporte ya enviado. Pero si el líder agrega
+                      un asistente nuevo desde "Asistentes nuevos" durante la
+                      edición, esa persona SÍ necesita poder elegir su tipo de
+                      evangelismo acá, así que el panel (con la lista y el
+                      selector de tipo) igual se muestra en ese caso puntual. */}
+                  {salioEvangelizar && (!modoEdicion || evangelizadosPendientes.length > 0) && (
                     <EvangelismoPendientePanel
                       iglesiaId={iglesiaActivaId}
+                      soloListado={modoEdicion}
                       pendientes={evangelizadosPendientes}
                       onAgregar={(p) => setEvangelizadosPendientes((prev) => [...prev, p])}
-                      onQuitar={(clave) => setEvangelizadosPendientes((prev) => prev.filter((p) => p.clave !== clave))}
+                      onQuitar={quitarEvangelizadoPendiente}
+                      onCambiarTipo={cambiarTipoEvangelizado}
                     />
                   )}
             </div>

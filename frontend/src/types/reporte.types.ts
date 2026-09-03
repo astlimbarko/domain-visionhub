@@ -31,10 +31,17 @@ export interface EvangelizadoPendiente {
   /** Ambos opcionales: la persona recién evangelizada puede no querer o no poder darlos todavía. */
   telefono?: string;
   fecha_nacimiento?: string;
-  /** Tipo de evangelismo elegido (1+1, Elite, Semilla...) al momento de agregarla. */
+  /** Tipo de evangelismo elegido (1+1, Elite, Semilla...) -- puede quedar sin
+   * elegir al agregarla y completarse después (ver EvangelismoPendientePanel). */
   tipo_evangelismo_id?: string;
   tipo_evangelismo_nombre?: string;
   tipo_evangelismo_color?: string;
+  /** Presente cuando esta entrada vino de "Asistentes nuevos" (persona que no
+   * está en el sistema, agregada ahí) -- apunta a la `clave` de la NuevaVisita
+   * correspondiente en vez de crear una persona aparte: al enviar el reporte,
+   * se linkea al mismo persona_id que ya se creó como asistente en vez de
+   * duplicar el alta. */
+  visitaNuevaClave?: string;
 }
 
 export interface CamposObligatoriosReporte {
@@ -51,6 +58,9 @@ export interface MegaFiestaDelDia {
 }
 
 export interface NuevaVisita {
+  /** id temporal del lado del cliente -- permite linkear con el EvangelizadoPendiente
+   * espejo (ver visitaNuevaClave) y hace estable la key de React al quitar de la lista. */
+  clave: string;
   primer_nombre: string;
   primer_apellido: string;
   /** Apellido materno -- opcional, no todas las personas lo tienen o lo quieren dar. */
@@ -107,6 +117,10 @@ export interface ResultadoReporte {
   totalMenores: number;
   totalMayores: number;
   totalAsistentes: number;
+  /** Persona creada por cada NuevaVisita enviada, alineado por `clave` -- para
+   * linkear a Evangelismo (fn_registrar_evangelizado con persona_id) sin
+   * crear una segunda persona para la misma visita nueva. */
+  visitasNuevasCreadas: { clave: string; personaId: string }[];
 }
 
 /** KAN-271: datos de un reporte ya enviado, para precargar el formulario en modo edición. */

@@ -390,7 +390,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
           await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
         }
 
-        return { id: persona.id, esMenor: visita.es_menor, esVisita: true };
+        return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
       })
     );
     personaIds.push(...nuevasPersonas);
@@ -454,6 +454,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       totalMenores: totales.total_menores,
       totalMayores: totales.total_mayores,
       totalAsistentes: totales.total_asistentes,
+      visitasNuevasCreadas: nuevasPersonas.map((p) => ({ clave: p.clave, personaId: p.id })),
     };
   } catch (e) {
     // Reversión de mejor esfuerzo del reporte huérfano, vía RPC SECURITY
@@ -618,7 +619,7 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
         await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
       }
 
-      return { id: persona.id, esMenor: visita.es_menor, esVisita: true };
+      return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
     })
   );
 
@@ -706,5 +707,6 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
     totalMenores: totales.total_menores,
     totalMayores: totales.total_mayores,
     totalAsistentes: totales.total_asistentes,
+    visitasNuevasCreadas: nuevasPersonas.map((p) => ({ clave: p.clave, personaId: p.id })),
   };
 }
