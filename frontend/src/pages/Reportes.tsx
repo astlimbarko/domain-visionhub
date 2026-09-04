@@ -78,6 +78,13 @@ type FormValues = z.infer<typeof esquema>;
 
 /** Wrapper estándar del design system para toda card de sección (ver skill frontend-style). */
 const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
+// Mismo wrapper, sin overflow-hidden -- para secciones con un buscador
+// (BuscadorPersonaMultiple/BuscadorPersonaCampo/EvangelismoPendientePanel)
+// cuyo desplegable es absolute y quedaba recortado por el borde de la card
+// en pantallas chicas (móvil), tapando parte de los resultados. Bug real
+// reportado por el owner, 2026-09-03: "componentes sobrepuestos" en vista
+// móvil.
+const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-card';
 
 export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
@@ -619,13 +626,15 @@ export function Reportes() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         {/* Información General */}
-        <section className={CARD_SECCION}>
-          <TarjetaHeader
-            icon={CalendarDays}
-            color={AZUL}
-            titulo="Información general"
-            descripcion="Cuándo fue la reunión y quién enseñó"
-          />
+        <section className={CARD_SECCION_CON_DESPLEGABLE}>
+          <div className="overflow-hidden rounded-t-2xl">
+            <TarjetaHeader
+              icon={CalendarDays}
+              color={AZUL}
+              titulo="Información general"
+              descripcion="Cuándo fue la reunión y quién enseñó"
+            />
+          </div>
           <div className="p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
@@ -700,13 +709,15 @@ export function Reportes() {
         </section>
 
         {/* Asistencia */}
-        <section className={CARD_SECCION}>
-          <TarjetaHeader
-            icon={Users}
-            color={TEAL}
-            titulo="Asistencia"
-            descripcion={`${totalAsistentesActual} persona${totalAsistentesActual === 1 ? '' : 's'} marcada${totalAsistentesActual === 1 ? '' : 's'} hasta ahora`}
-          />
+        <section className={CARD_SECCION_CON_DESPLEGABLE}>
+          <div className="overflow-hidden rounded-t-2xl">
+            <TarjetaHeader
+              icon={Users}
+              color={TEAL}
+              titulo="Asistencia"
+              descripcion={`${totalAsistentesActual} persona${totalAsistentesActual === 1 ? '' : 's'} marcada${totalAsistentesActual === 1 ? '' : 's'} hasta ahora`}
+            />
+          </div>
           <div className="flex flex-col gap-4 p-5">
                 {cargandoMiembros ? (
                   <Skeleton className="h-32 w-full" />
@@ -825,13 +836,15 @@ export function Reportes() {
 
         {/* Evangelismo */}
         {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
-          <section className={CARD_SECCION}>
-            <TarjetaHeader
-              icon={HeartHandshake}
-              color={DEPARTAMENTO_META.EVANGELISMO.color}
-              titulo="Evangelismo"
-              descripcion="¿Salieron a evangelizar en esta reunión?"
-            />
+          <section className={CARD_SECCION_CON_DESPLEGABLE}>
+            <div className="overflow-hidden rounded-t-2xl">
+              <TarjetaHeader
+                icon={HeartHandshake}
+                color={DEPARTAMENTO_META.EVANGELISMO.color}
+                titulo="Evangelismo"
+                descripcion="¿Salieron a evangelizar en esta reunión?"
+              />
+            </div>
             <div className="flex flex-col gap-4 p-5">
                   <label className="flex items-center gap-2 text-sm">
                     <Checkbox checked={salioEvangelizar} onCheckedChange={(v) => setValue('salio_evangelizar', v === true)} />
@@ -877,8 +890,10 @@ export function Reportes() {
         )}
 
         {/* Finanzas */}
-        <section className={CARD_SECCION}>
-          <TarjetaHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
+        <section className={CARD_SECCION_CON_DESPLEGABLE}>
+          <div className="overflow-hidden rounded-t-2xl">
+            <TarjetaHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
+          </div>
           <div className="flex flex-col gap-5 p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
