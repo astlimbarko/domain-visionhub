@@ -72,6 +72,9 @@ export interface NuevaVisita {
   sexo: 'M' | 'F';
   es_menor?: boolean;
   telefono?: string;
+  /** Mismo campo que el formulario de Evangelismo (en vez de preguntar
+   * "es menor" aparte) -- si viene, es_menor se calcula a partir de esto. */
+  fecha_nacimiento?: string;
 }
 
 /**

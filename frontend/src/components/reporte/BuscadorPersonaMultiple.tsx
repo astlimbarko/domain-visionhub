@@ -7,16 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MiembroCdp } from '@/types/reporte.types';
 
-/** Datos que pide el mini-formulario de "persona nueva" -- mismo criterio
- * básico que el alta de evangelizados (nombre, apellidos, sexo, opcionales). */
+/** Datos que pide el mini-formulario de "persona nueva" -- mismos campos que
+ * el alta de evangelizados (EvangelismoPendientePanel), para que no haya
+ * choque de datos entre los dos lugares donde se puede crear a la misma
+ * persona (pedido del owner, 2026-09-04). */
 export interface DatosPersonaNueva {
   primer_nombre: string;
   segundo_nombre?: string;
   primer_apellido: string;
   segundo_apellido?: string;
   sexo: 'M' | 'F';
+  domicilio?: string;
   telefono?: string;
-  es_menor?: boolean;
+  fecha_nacimiento?: string;
 }
 
 interface Props {
@@ -100,8 +103,9 @@ export function BuscadorPersonaMultiple({
   const [apellidoPaternoNueva, setApellidoPaternoNueva] = useState('');
   const [apellidoMaternoNueva, setApellidoMaternoNueva] = useState('');
   const [sexoNueva, setSexoNueva] = useState<'M' | 'F' | ''>('');
+  const [domicilioNueva, setDomicilioNueva] = useState('');
   const [telefonoNueva, setTelefonoNueva] = useState('');
-  const [esMenorNueva, setEsMenorNueva] = useState(false);
+  const [fechaNacimientoNueva, setFechaNacimientoNueva] = useState('');
 
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
@@ -128,8 +132,9 @@ export function BuscadorPersonaMultiple({
       primer_apellido: apellidoPaternoNueva.trim(),
       segundo_apellido: apellidoMaternoNueva.trim() || undefined,
       sexo: sexoNueva,
+      domicilio: domicilioNueva.trim() || undefined,
       telefono: telefonoNueva.trim() || undefined,
-      es_menor: esMenorNueva,
+      fecha_nacimiento: fechaNacimientoNueva || undefined,
     });
     setTexto('');
     setNombreNueva('');
@@ -137,8 +142,9 @@ export function BuscadorPersonaMultiple({
     setApellidoPaternoNueva('');
     setApellidoMaternoNueva('');
     setSexoNueva('');
+    setDomicilioNueva('');
     setTelefonoNueva('');
-    setEsMenorNueva(false);
+    setFechaNacimientoNueva('');
     setMostrarFormNueva(false);
   }
 
@@ -229,8 +235,11 @@ export function BuscadorPersonaMultiple({
 
       {mostrarFormNueva && (
         <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
+          {/* Mismos campos que "Nueva persona evangelizada" (EvangelismoPendientePanel)
+              -- pedido del owner (2026-09-04) para que no haya datos que se
+              pierdan según por dónde se cargue a la persona. */}
           <p className="text-xs font-medium text-muted-foreground">Persona nueva (no está en el sistema)</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Nombre *</Label>
               <Input value={nombreNueva} onChange={(e) => setNombreNueva(e.target.value)} />
@@ -260,13 +269,22 @@ export function BuscadorPersonaMultiple({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Celular</Label>
+              <Label className="text-xs">Domicilio</Label>
+              <Input value={domicilioNueva} onChange={(e) => setDomicilioNueva(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Teléfono</Label>
               <Input type="tel" placeholder="Opcional" value={telefonoNueva} onChange={(e) => setTelefonoNueva(e.target.value)} />
             </div>
-            <label className="flex items-center gap-1.5 self-end pb-2 text-xs text-muted-foreground">
-              <Checkbox checked={esMenorNueva} onCheckedChange={(v) => setEsMenorNueva(v === true)} />
-              es menor
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Fecha de nacimiento</Label>
+              <Input
+                type="date"
+                value={fechaNacimientoNueva}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setFechaNacimientoNueva(e.target.value)}
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setMostrarFormNueva(false)}>
