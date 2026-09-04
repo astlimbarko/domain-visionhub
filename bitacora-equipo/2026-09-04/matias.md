@@ -1,0 +1,5 @@
+# Matías — 2026-09-04
+
+- [x] Auditoría multitenant pedida por el owner: RLS activo en las 71 tablas de `public`, sin políticas permisivas (`USING true`), INSERT/UPDATE/SELECT de las tablas tocadas ayer (`persona`, `telefono`, `casa_de_paz_reporte`, `evangelismo`, etc.) correctamente acotados por `fn_mis_iglesias()`. `fn_buscar_personas` valida explícito que la iglesia esté en el alcance del usuario. 2 tablas sin políticas (`anuncio_encargado`, `invitacion_lider`) verificadas como acceso solo por RPC, no un hueco real. Sin migraciones pendientes. Nada roto
+- [x] Pedido del owner: agregar a alguien en Evangelismo ya no asume que asistió -- modal "¿Es un asistente nuevo?" (Sí/No). Sí = cuenta y se ve en "Asistentes nuevos" (mismo mecanismo sin duplicar persona). No = queda solo en Evangelismo. "Asistentes nuevos" sin cambios. De paso, a la persona existente marcada así se le fija `esMenor=false` directo, sin disparar el aviso de "¿es menor?" pensado para otro caso. Desplegado (bundle `index-BeFr0hZf.js`)
+- [ ] Falta: ticket de Jira (autenticación de Atlassian pendiente de que el owner complete el OAuth); probar en vivo en un celular real
