@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Plus, Search, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -96,6 +96,22 @@ export function BuscadorPersonaMultiple({
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  // Pedido del owner (2026-09-05): tildar a una persona no debe cerrar la
+  // lista -- antes se cerraba en cada selección (dependía de un blur del
+  // input con preventDefault en los checkboxes, poco confiable en táctil).
+  // Ahora se cierra solo por clic/toque fuera del componente, o con la X.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
 
   const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
   const [nombreNueva, setNombreNueva] = useState('');
@@ -167,7 +183,7 @@ export function BuscadorPersonaMultiple({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative">
+      <div className="relative" ref={contenedorRef}>
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
           className="h-10 rounded-xl pl-9 text-sm"
@@ -175,7 +191,6 @@ export function BuscadorPersonaMultiple({
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
         />
 
         {abierto && (
