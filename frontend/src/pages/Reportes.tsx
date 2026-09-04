@@ -282,7 +282,11 @@ export function Reportes() {
   // tilda solo para que la sección se despliegue y la persona sea visible.
   function agregarAsistenteNuevo(datos: DatosPersonaNueva) {
     const clave = crypto.randomUUID();
-    const esMenor = datos.fecha_nacimiento ? calcularEdad(datos.fecha_nacimiento) < edadMinima : undefined;
+    // Si no dio fecha de nacimiento, se asume que no es menor -- sin esto, el
+    // backend (fn_validar_asistencia) rechaza el reporte entero recién al
+    // enviarlo (ASISTENCIA_EDAD_INDEFINIDA), porque antes el checkbox "es
+    // menor" siempre mandaba un valor definido y ahora la fecha es opcional.
+    const esMenor = datos.fecha_nacimiento ? calcularEdad(datos.fecha_nacimiento) < edadMinima : false;
     setVisitasNuevas((prev) => [
       ...prev,
       {
@@ -372,7 +376,9 @@ export function Reportes() {
         primer_apellido: p.primer_apellido ?? '',
         segundo_apellido: p.segundo_apellido,
         sexo: p.sexo ?? 'M',
-        es_menor: p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) < edadMinima : undefined,
+        // Sin fecha de nacimiento se asume que no es menor -- mismo motivo
+        // que en agregarAsistenteNuevo (evitar el rechazo del backend).
+        es_menor: p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) < edadMinima : false,
         fecha_nacimiento: p.fecha_nacimiento,
         telefono: p.telefono,
       },
