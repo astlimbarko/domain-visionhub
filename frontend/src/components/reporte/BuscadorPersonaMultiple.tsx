@@ -5,9 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBuscarPersonas } from '@/hooks/useCasasDePaz';
 import type { MiembroCdp } from '@/types/reporte.types';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Datos que pide el mini-formulario de "persona nueva" -- mismos campos que
  * el alta de evangelizados (EvangelismoPendientePanel), para que no haya
@@ -44,17 +42,6 @@ interface Props {
    * ya está en el sistema, no crean personas. */
   permitirAgregarNueva?: boolean;
   onAgregarNueva?: (datos: DatosPersonaNueva) => void;
-  /** Caso real (owner, 2026-09-04): alguien con cargo en su propia Red/CdP
-   * también asiste de forma regular a OTRA Casa de Paz -- no aparece en el
-   * pool local (viene de casa_de_paz_membresia, solo la propia). Si no se
-   * la encuentra localmente, ofrece buscarla en toda la iglesia y agregarla
-   * como miembro real de esta CdP (queda para siempre, no solo este
-   * reporte). Solo tiene sentido en "Asistencia regular"/"de niños" --
-   * "Asistentes nuevos" es exclusivamente para gente que no existe todavía. */
-  permitirBuscarGlobal?: boolean;
-  iglesiaId?: string;
-  cdpId?: string;
-  onAgregarExistenteGlobal?: (persona: PersonaBusqueda) => void;
 }
 
 /** Separa un nombre completo tecleado en sus partes -- no hay forma de
@@ -106,24 +93,9 @@ export function BuscadorPersonaMultiple({
   onAsisteCdpChange,
   permitirAgregarNueva,
   onAgregarNueva,
-  permitirBuscarGlobal,
-  iglesiaId,
-  cdpId,
-  onAgregarExistenteGlobal,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
-
-  // buscarPersonas ya prioriza los miembros propios de cdpId y recién si ahí
-  // no hay nadie cae a toda la iglesia (Q-MR-12) -- se llama con el mismo
-  // cdpId de esta CdP, así que el resultado que llega acá cuando el pool
-  // local ya no encontró nada es directamente gente de OTRA CdP o sin CdP.
-  const { data: resultadosGlobales = [], isFetching: buscandoGlobal } = useBuscarPersonas(
-    permitirBuscarGlobal ? iglesiaId : undefined,
-    texto,
-    undefined,
-    cdpId
-  );
 
   const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
   const [nombreNueva, setNombreNueva] = useState('');
@@ -237,29 +209,6 @@ export function BuscadorPersonaMultiple({
                     <UserPlus className="h-4 w-4" />
                     No está en el sistema: agregarla como persona nueva
                   </button>
-                ) : permitirBuscarGlobal && texto.trim().length >= 2 ? (
-                  buscandoGlobal ? (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">Buscando en toda la iglesia...</p>
-                  ) : resultadosGlobales.length === 0 ? (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
-                  ) : (
-                    resultadosGlobales.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onMouseDown={() => {
-                          onAgregarExistenteGlobal?.(p);
-                          setTexto('');
-                          setAbierto(false);
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary hover:bg-accent"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        {p.nombre_completo}
-                        <span className="text-xs text-muted-foreground">(agregarla como miembro de esta CdP)</span>
-                      </button>
-                    ))
-                  )
                 ) : (
                   <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
                 )

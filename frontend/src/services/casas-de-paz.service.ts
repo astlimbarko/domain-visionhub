@@ -252,26 +252,6 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
   return filtrarYMapearPersonas(data ?? [], tokens, edadMinima);
 }
 
-/**
- * Caso real reportado por el owner (2026-09-04): alguien con cargo en su
- * propia Red/CdP (ej. Sublíder + Supervisora de Red) también asiste de forma
- * regular a OTRA Casa de Paz que no es la suya, y no aparecía en el
- * buscador de "Asistencia regular" de esa otra CdP -- los pools salen de
- * casa_de_paz_membresia, y ella solo tenía membresía en la propia. Ya se
- * había intentado con un buscador que solo sumaba a la persona al reporte
- * puntual (sin dejar ningún registro real) -- el owner lo rechazó porque no
- * arreglaba el dato de fondo. Esta función crea una membresía SECUNDARIA
- * real y persistente (es_principal=false, sin tocar la principal) -- una
- * vez agregada, aparece sola en todos los reportes futuros de esa CdP.
- */
-export async function agregarMiembroSecundarioCdp(personaId: string, casaDePazId: string): Promise<void> {
-  const { error } = await supabase.rpc('fn_agregar_miembro_secundario_cdp', {
-    p_persona_id: personaId,
-    p_casa_de_paz_id: casaDePazId,
-  });
-  if (error) throw error;
-}
-
 // KAN-205: RPC en vez de consulta directa -- persona.correo (campo de
 // perfil aparte) casi siempre está vacío; el correo real de inicio de
 // sesión vive en auth.users, solo accesible desde una función SECURITY
