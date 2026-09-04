@@ -25,7 +25,9 @@ export interface EvangelizadoPendiente {
   persona_id?: string;
   nombre_completo: string;
   primer_nombre?: string;
+  segundo_nombre?: string;
   primer_apellido?: string;
+  segundo_apellido?: string;
   sexo?: 'M' | 'F';
   domicilio?: string;
   /** Ambos opcionales: la persona recién evangelizada puede no querer o no poder darlos todavía. */
@@ -62,6 +64,8 @@ export interface NuevaVisita {
    * espejo (ver visitaNuevaClave) y hace estable la key de React al quitar de la lista. */
   clave: string;
   primer_nombre: string;
+  /** Segundo nombre -- opcional, no todas las personas tienen o dan uno. */
+  segundo_nombre?: string;
   primer_apellido: string;
   /** Apellido materno -- opcional, no todas las personas lo tienen o lo quieren dar. */
   segundo_apellido?: string;

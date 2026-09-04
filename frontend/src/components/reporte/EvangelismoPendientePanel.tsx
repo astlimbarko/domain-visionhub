@@ -42,7 +42,9 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
   const [abierto, setAbierto] = useState(false);
   const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
   const [nombre, setNombre] = useState('');
+  const [segundoNombre, setSegundoNombre] = useState('');
   const [apellido, setApellido] = useState('');
+  const [segundoApellido, setSegundoApellido] = useState('');
   const [sexo, setSexo] = useState<'M' | 'F' | ''>('');
   const [domicilio, setDomicilio] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -76,9 +78,11 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
     }
     onAgregar({
       clave: `n-${Date.now()}`,
-      nombre_completo: `${nombre.trim()} ${apellido.trim()}`,
+      nombre_completo: [nombre.trim(), segundoNombre.trim(), apellido.trim(), segundoApellido.trim()].filter(Boolean).join(' '),
       primer_nombre: nombre.trim(),
+      segundo_nombre: segundoNombre.trim() || undefined,
       primer_apellido: apellido.trim(),
+      segundo_apellido: segundoApellido.trim() || undefined,
       sexo,
       domicilio: domicilio.trim() || undefined,
       telefono: telefono.trim() || undefined,
@@ -88,7 +92,9 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
       tipo_evangelismo_color: tipoActual?.color,
     });
     setNombre('');
+    setSegundoNombre('');
     setApellido('');
+    setSegundoApellido('');
     setSexo('');
     setDomicilio('');
     setTelefono('');
@@ -96,12 +102,22 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
     setMostrarFormNueva(false);
   }
 
-  // El texto que ya escribió para buscar no debería perderse: se precarga
-  // como nombre/apellido para no hacerle escribir todo de nuevo.
+  // El texto que ya escribió para buscar no debería perderse: se separa en
+  // nombre[s]/apellidos (mismo criterio que BuscadorPersonaMultiple -- ver
+  // ahí el detalle de la heurística) y precarga el mini-formulario.
   function abrirFormNueva() {
     const partes = texto.trim().split(/\s+/).filter(Boolean);
-    setNombre(partes[0] ?? '');
-    setApellido(partes.slice(1).join(' '));
+    if (partes.length >= 4) {
+      setNombre(partes[0]);
+      setSegundoNombre(partes[1]);
+      setApellido(partes[2]);
+      setSegundoApellido(partes.slice(3).join(' '));
+    } else {
+      setNombre(partes[0] ?? '');
+      setSegundoNombre('');
+      setApellido(partes[1] ?? '');
+      setSegundoApellido(partes[2] ?? '');
+    }
     setMostrarFormNueva(true);
     setAbierto(false);
   }
@@ -182,8 +198,16 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
               <Input value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Apellido *</Label>
+              <Label className="text-xs">Segundo nombre</Label>
+              <Input value={segundoNombre} onChange={(e) => setSegundoNombre(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Apellido paterno *</Label>
               <Input value={apellido} onChange={(e) => setApellido(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Apellido materno</Label>
+              <Input value={segundoApellido} onChange={(e) => setSegundoApellido(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Sexo *</Label>
