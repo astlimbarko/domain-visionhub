@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
@@ -153,6 +154,9 @@ export function Reportes() {
   const [telefonoDiezmante, setTelefonoDiezmante] = useState('');
   const [montoDiezmanteManual, setMontoDiezmanteManual] = useState('');
   const [evangelizadosPendientes, setEvangelizadosPendientes] = useState<EvangelizadoPendiente[]>([]);
+  // Persona recién agregada en Evangelismo, esperando que el líder confirme
+  // en el modal si también asistió a la reunión (ver agregarEvangelizado).
+  const [pendienteConfirmarAsistente, setPendienteConfirmarAsistente] = useState<EvangelizadoPendiente | null>(null);
   // KAN-271: en modo edición no se vuelve a pasar por el panel de "agregar
   // evangelizado" (ya se creó su registro de Evangelismo al enviar el
   // reporte original -- reabrirlo lo duplicaría). Solo se corrige el
@@ -313,24 +317,42 @@ export function Reportes() {
     setEvangelizadosPendientes((prev) => prev.filter((p) => p.visitaNuevaClave !== clave));
   }
 
-  // Pedido del owner (2026-09-03): también en el sentido inverso -- lo que se
-  // agrega en Evangelismo cuenta como asistente, sin tener que volver a
-  // marcarlo aparte. Persona ya existente (encontrada por búsqueda): entra
-  // directo al mapa de asistentes con esVisita=true. Persona nueva cargada a
-  // mano en Evangelismo: se linkea a una NuevaVisita igual que
-  // agregarAsistenteNuevo (mismo mecanismo, en sentido inverso) para no
-  // duplicar el alta -- agregarNueva() de EvangelismoPendientePanel ya exige
-  // nombre/apellido/sexo, así que siempre vienen completos acá.
+  // Pedido del owner (2026-09-03): agregar a alguien en Evangelismo pregunta
+  // si también asistió -- no se asume. "Sí" cuenta como asistente (persona
+  // existente: entra directo al mapa con esVisita=true; persona nueva
+  // cargada a mano: se linkea a una NuevaVisita, mismo mecanismo que
+  // agregarAsistenteNuevo en sentido inverso, para no duplicar el alta).
+  // "No" queda solo en Evangelismo. agregarNueva() de EvangelismoPendientePanel
+  // ya exige nombre/apellido/sexo, así que una persona nueva siempre viene
+  // completa acá.
   function agregarEvangelizado(p: EvangelizadoPendiente) {
+    setPendienteConfirmarAsistente(p);
+  }
+
+  function confirmarEsAsistenteNuevo(esAsistente: boolean) {
+    const p = pendienteConfirmarAsistente;
+    if (!p) return;
+    setPendienteConfirmarAsistente(null);
+
+    if (!esAsistente) {
+      setEvangelizadosPendientes((prev) => [...prev, p]);
+      return;
+    }
+
     if (p.persona_id) {
+      // esMenor: false de una -- sin esto, alguien sin fecha de nacimiento
+      // cargada dispararía el aviso de "¿es menor?" (pendientesEsMenor) para
+      // una persona que ya existía en el sistema, no una recién creada; el
+      // owner pidió que en este flujo se guarde directo sin preguntar.
       setAsistentes((prev) => {
         const next = new Map(prev);
-        next.set(p.persona_id as string, { esVisita: true });
+        next.set(p.persona_id as string, { esVisita: true, esMenor: false });
         return next;
       });
       setEvangelizadosPendientes((prev) => [...prev, p]);
       return;
     }
+
     const clave = crypto.randomUUID();
     setVisitasNuevas((prev) => [
       ...prev,
@@ -420,16 +442,18 @@ export function Reportes() {
 
   const totalDiezmosCalc = diezmos.reduce((suma, d) => suma + (d.monto || 0), 0);
 
-  // Personas ya existentes agregadas directo desde Evangelismo (persona_id) --
-  // cuentan como asistentes nuevos (agregarEvangelizado ya las suma al mapa
-  // `asistentes`) y se muestran acá para que se vean marcadas sin tener que
-  // buscarlas de nuevo. Excluye las que en realidad vinieron al revés (desde
-  // "Asistentes nuevos", visitaNuevaClave) -- esas ya se muestran como visita.
-  const evangelizadosExistentesComoAsistentes = evangelizadosPendientes.filter((p) => p.persona_id && !p.visitaNuevaClave);
-
   const idsNuevos = Array.from(asistentes.entries())
     .filter(([, v]) => v.esVisita)
     .map(([id]) => id);
+
+  // Personas ya existentes agregadas directo desde Evangelismo (persona_id) Y
+  // que el líder confirmó como asistentes en el modal (quedaron en el mapa
+  // `asistentes` -- si contestó "No" en el modal, no están ahí y no
+  // aparecen acá). Excluye las que en realidad vinieron al revés (desde
+  // "Asistentes nuevos", visitaNuevaClave) -- esas ya se muestran como visita.
+  const evangelizadosExistentesComoAsistentes = evangelizadosPendientes.filter(
+    (p) => p.persona_id && !p.visitaNuevaClave && idsNuevos.includes(p.persona_id)
+  );
   const idsSinVisita = Array.from(asistentes.entries())
     .filter(([, v]) => !v.esVisita)
     .map(([id]) => id);
@@ -1163,6 +1187,25 @@ export function Reportes() {
           )}
         </div>
       </form>
+
+      <Dialog open={!!pendienteConfirmarAsistente} onOpenChange={(v) => !v && setPendienteConfirmarAsistente(null)}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>¿Es un asistente nuevo?</DialogTitle>
+            <DialogDescription>
+              {pendienteConfirmarAsistente?.nombre_completo}: si asistió a esta reunión, también va a contar y aparecer marcada en "Asistentes nuevos". Si no, queda solo en Evangelismo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => confirmarEsAsistenteNuevo(false)}>
+              No, solo evangelismo
+            </Button>
+            <Button type="button" onClick={() => confirmarEsAsistenteNuevo(true)}>
+              Sí, es asistente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
