@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
+  Check,
   ClipboardList,
   DollarSign,
   HeartHandshake,
@@ -311,15 +312,58 @@ export function Reportes() {
     setEvangelizadosPendientes((prev) => prev.filter((p) => p.visitaNuevaClave !== clave));
   }
 
-  // Espejo de quitarVisitaNueva pero al revés: si lo que se saca es una de
-  // las entradas que vinieron de "Asistentes nuevos", la persona deja de
-  // contar del todo (no tiene sentido que siga como asistente si el líder
-  // decide que en realidad no corresponde) -- si es una cargada a mano
-  // directo en Evangelismo, solo se saca de ahí.
+  // Pedido del owner (2026-09-03): también en el sentido inverso -- lo que se
+  // agrega en Evangelismo cuenta como asistente, sin tener que volver a
+  // marcarlo aparte. Persona ya existente (encontrada por búsqueda): entra
+  // directo al mapa de asistentes con esVisita=true. Persona nueva cargada a
+  // mano en Evangelismo: se linkea a una NuevaVisita igual que
+  // agregarAsistenteNuevo (mismo mecanismo, en sentido inverso) para no
+  // duplicar el alta -- agregarNueva() de EvangelismoPendientePanel ya exige
+  // nombre/apellido/sexo, así que siempre vienen completos acá.
+  function agregarEvangelizado(p: EvangelizadoPendiente) {
+    if (p.persona_id) {
+      setAsistentes((prev) => {
+        const next = new Map(prev);
+        next.set(p.persona_id as string, { esVisita: true });
+        return next;
+      });
+      setEvangelizadosPendientes((prev) => [...prev, p]);
+      return;
+    }
+    const clave = crypto.randomUUID();
+    setVisitasNuevas((prev) => [
+      ...prev,
+      {
+        clave,
+        primer_nombre: p.primer_nombre ?? '',
+        segundo_nombre: p.segundo_nombre,
+        primer_apellido: p.primer_apellido ?? '',
+        segundo_apellido: p.segundo_apellido,
+        sexo: p.sexo ?? 'M',
+        telefono: p.telefono,
+      },
+    ]);
+    setEvangelizadosPendientes((prev) => [...prev, { ...p, visitaNuevaClave: clave }]);
+  }
+
+  // Espejo de quitarVisitaNueva pero al revés: si lo que se saca vino de
+  // "Asistentes nuevos" (visitaNuevaClave) o es una persona existente
+  // agregada directo en Evangelismo (persona_id), deja de contar como
+  // asistente del todo -- no tiene sentido que siga marcada si el líder
+  // decide que en realidad no corresponde. Si es nueva cargada a mano en
+  // Evangelismo, se saca de ambos lados por el mismo motivo (se agregó a la
+  // vez, ver agregarEvangelizado).
   function quitarEvangelizadoPendiente(clave: string) {
     const entrada = evangelizadosPendientes.find((p) => p.clave === clave);
     if (entrada?.visitaNuevaClave) {
       setVisitasNuevas((prev) => prev.filter((v) => v.clave !== entrada.visitaNuevaClave));
+    }
+    if (entrada?.persona_id) {
+      setAsistentes((prev) => {
+        const next = new Map(prev);
+        next.delete(entrada.persona_id as string);
+        return next;
+      });
     }
     setEvangelizadosPendientes((prev) => prev.filter((p) => p.clave !== clave));
   }
@@ -375,6 +419,13 @@ export function Reportes() {
 
   const totalDiezmosCalc = diezmos.reduce((suma, d) => suma + (d.monto || 0), 0);
 
+  // Personas ya existentes agregadas directo desde Evangelismo (persona_id) --
+  // cuentan como asistentes nuevos (agregarEvangelizado ya las suma al mapa
+  // `asistentes`) y se muestran acá para que se vean marcadas sin tener que
+  // buscarlas de nuevo. Excluye las que en realidad vinieron al revés (desde
+  // "Asistentes nuevos", visitaNuevaClave) -- esas ya se muestran como visita.
+  const evangelizadosExistentesComoAsistentes = evangelizadosPendientes.filter((p) => p.persona_id && !p.visitaNuevaClave);
+
   const idsNuevos = Array.from(asistentes.entries())
     .filter(([, v]) => v.esVisita)
     .map(([id]) => id);
@@ -398,7 +449,6 @@ export function Reportes() {
   // Cada lista excluye a quien ya está seleccionado en otra, para que no se pueda marcar a la misma persona dos veces.
   // El corte "niño" vs. "regular" usa edadMinima (configurable por iglesia): cuando alguien
   // cumple esa edad, pasa solo a la lista de regulares en el siguiente render, sin acción manual.
-  const poolNuevos = miembros.filter((m) => !idsRegulares.includes(m.persona_id) && !idsNinos.includes(m.persona_id));
   const poolRegulares = miembros.filter((m) => (m.edad === null || m.edad >= edadMinima) && !idsNuevos.includes(m.persona_id));
   const poolNinos = miembros.filter((m) => m.edad !== null && m.edad < edadMinima && !idsNuevos.includes(m.persona_id));
 
@@ -730,15 +780,17 @@ export function Reportes() {
                   <>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs text-muted-foreground">Asistentes nuevos</Label>
+                      {/* No hay un pool de gente para elegir acá -- por
+                          definición, "nuevo" es alguien que todavía no está
+                          en el sistema. Se escribe el nombre y se agrega
+                          directo (pedido del owner, 2026-09-03). */}
                       <BuscadorPersonaMultiple
-                        titulo="Seleccionar asistentes nuevos"
-                        miembros={poolNuevos}
-                        seleccionados={idsNuevos}
-                        onToggle={(id) => toggleAsistente(id, true)}
-                        placeholder="Buscar personas..."
+                        titulo="Agregar asistente nuevo"
+                        miembros={[]}
+                        seleccionados={[]}
+                        onToggle={() => {}}
+                        placeholder="Escribí el nombre de la persona nueva..."
                         colorChip={VERDE}
-                        asisteCdpPorPersona={asisteCdpPorPersona}
-                        onAsisteCdpChange={cambiarAsisteCdp}
                         permitirAgregarNueva
                         onAgregarNueva={agregarAsistenteNuevo}
                       />
@@ -834,6 +886,27 @@ export function Reportes() {
                         ))}
                       </div>
                     )}
+
+                    {evangelizadosExistentesComoAsistentes.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {evangelizadosExistentesComoAsistentes.map((p) => (
+                          <div key={p.clave} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
+                            <Check className="h-4 w-4 text-chart-2" />
+                            <span className="flex-1">
+                              {p.nombre_completo}{' '}
+                              <span className="text-xs text-muted-foreground">(agregada desde Evangelismo)</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => quitarEvangelizadoPendiente(p.clave)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
           </div>
@@ -885,7 +958,7 @@ export function Reportes() {
                       iglesiaId={iglesiaActivaId}
                       soloListado={modoEdicion}
                       pendientes={evangelizadosPendientes}
-                      onAgregar={(p) => setEvangelizadosPendientes((prev) => [...prev, p])}
+                      onAgregar={agregarEvangelizado}
                       onQuitar={quitarEvangelizadoPendiente}
                       onCambiarTipo={cambiarTipoEvangelizado}
                     />
