@@ -373,6 +373,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
           .insert({
             iglesia_id: datos.iglesia_id,
             primer_nombre: visita.primer_nombre,
+            segundo_nombre: visita.segundo_nombre || null,
             primer_apellido: visita.primer_apellido,
             segundo_apellido: visita.segundo_apellido || null,
             sexo: visita.sexo,
@@ -606,6 +607,7 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
         .insert({
           iglesia_id: datos.iglesia_id,
           primer_nombre: visita.primer_nombre,
+          segundo_nombre: visita.segundo_nombre || null,
           primer_apellido: visita.primer_apellido,
           segundo_apellido: visita.segundo_apellido || null,
           sexo: visita.sexo,

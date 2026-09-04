@@ -11,6 +11,7 @@ import type { MiembroCdp } from '@/types/reporte.types';
  * básico que el alta de evangelizados (nombre, apellidos, sexo, opcionales). */
 export interface DatosPersonaNueva {
   primer_nombre: string;
+  segundo_nombre?: string;
   primer_apellido: string;
   segundo_apellido?: string;
   sexo: 'M' | 'F';
@@ -40,16 +41,33 @@ interface Props {
   onAgregarNueva?: (datos: DatosPersonaNueva) => void;
 }
 
-/** "Jose Perez Antofagasta" -> nombre "Jose", apellido paterno "Perez",
- * apellido materno "Antofagasta" (el resto de las palabras, por si el
- * apellido materno tiene más de una palabra). Con una o dos palabras deja
- * el resto vacío -- no hay forma de adivinar qué falta. */
+/** Separa un nombre completo tecleado en sus partes -- no hay forma de
+ * adivinar con certeza dónde termina el nombre y empieza el apellido, así
+ * que se usa el criterio más común en Bolivia (nombre[s] + apellido paterno
+ * + apellido materno):
+ *  - 1 palabra: nombre.
+ *  - 2 palabras: nombre, apellido paterno.
+ *  - 3 palabras: nombre, apellido paterno, apellido materno.
+ *  - 4+ palabras: nombre, segundo nombre, apellido paterno, apellido
+ *    materno (el resto, por si tiene más de una palabra). "Jose Maria Perez
+ *    Antofagasta" -> nombre "Jose", segundo nombre "Maria", apellido
+ *    paterno "Perez", apellido materno "Antofagasta".
+ * Siempre editable a mano después -- esto solo precarga el formulario. */
 function separarNombreCompleto(texto: string) {
   const partes = texto.trim().split(/\s+/).filter(Boolean);
+  if (partes.length >= 4) {
+    return {
+      nombre: partes[0],
+      segundoNombre: partes[1],
+      apellidoPaterno: partes[2],
+      apellidoMaterno: partes.slice(3).join(' '),
+    };
+  }
   return {
     nombre: partes[0] ?? '',
+    segundoNombre: '',
     apellidoPaterno: partes[1] ?? '',
-    apellidoMaterno: partes.slice(2).join(' '),
+    apellidoMaterno: partes[2] ?? '',
   };
 }
 
@@ -78,6 +96,7 @@ export function BuscadorPersonaMultiple({
 
   const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
   const [nombreNueva, setNombreNueva] = useState('');
+  const [segundoNombreNueva, setSegundoNombreNueva] = useState('');
   const [apellidoPaternoNueva, setApellidoPaternoNueva] = useState('');
   const [apellidoMaternoNueva, setApellidoMaternoNueva] = useState('');
   const [sexoNueva, setSexoNueva] = useState<'M' | 'F' | ''>('');
@@ -92,8 +111,9 @@ export function BuscadorPersonaMultiple({
   // nombre/apellidos (mismo criterio que el buscador de evangelizados) y
   // precarga el mini-formulario, para no hacerle escribir todo de nuevo.
   function abrirFormNueva() {
-    const { nombre, apellidoPaterno, apellidoMaterno } = separarNombreCompleto(texto);
+    const { nombre, segundoNombre, apellidoPaterno, apellidoMaterno } = separarNombreCompleto(texto);
     setNombreNueva(nombre);
+    setSegundoNombreNueva(segundoNombre);
     setApellidoPaternoNueva(apellidoPaterno);
     setApellidoMaternoNueva(apellidoMaterno);
     setMostrarFormNueva(true);
@@ -104,6 +124,7 @@ export function BuscadorPersonaMultiple({
     if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
     onAgregarNueva({
       primer_nombre: nombreNueva.trim(),
+      segundo_nombre: segundoNombreNueva.trim() || undefined,
       primer_apellido: apellidoPaternoNueva.trim(),
       segundo_apellido: apellidoMaternoNueva.trim() || undefined,
       sexo: sexoNueva,
@@ -112,6 +133,7 @@ export function BuscadorPersonaMultiple({
     });
     setTexto('');
     setNombreNueva('');
+    setSegundoNombreNueva('');
     setApellidoPaternoNueva('');
     setApellidoMaternoNueva('');
     setSexoNueva('');
@@ -212,6 +234,10 @@ export function BuscadorPersonaMultiple({
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Nombre *</Label>
               <Input value={nombreNueva} onChange={(e) => setNombreNueva(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Segundo nombre</Label>
+              <Input value={segundoNombreNueva} onChange={(e) => setSegundoNombreNueva(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Apellido paterno *</Label>

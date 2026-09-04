@@ -280,6 +280,7 @@ export function Reportes() {
       {
         clave,
         primer_nombre: datos.primer_nombre,
+        segundo_nombre: datos.segundo_nombre,
         primer_apellido: datos.primer_apellido,
         segundo_apellido: datos.segundo_apellido,
         sexo: datos.sexo,
@@ -292,9 +293,11 @@ export function Reportes() {
       {
         clave: `v-${clave}`,
         visitaNuevaClave: clave,
-        nombre_completo: `${datos.primer_nombre} ${datos.primer_apellido}`,
+        nombre_completo: [datos.primer_nombre, datos.segundo_nombre, datos.primer_apellido, datos.segundo_apellido].filter(Boolean).join(' '),
         primer_nombre: datos.primer_nombre,
+        segundo_nombre: datos.segundo_nombre,
         primer_apellido: datos.primer_apellido,
+        segundo_apellido: datos.segundo_apellido,
         sexo: datos.sexo,
         telefono: datos.telefono,
       },
@@ -524,7 +527,9 @@ export function Reportes() {
                 fecha: valores.fecha_reunion,
                 persona_id: ev.persona_id ?? personaIdDeVisita,
                 primer_nombre: ev.primer_nombre,
+                segundo_nombre: ev.segundo_nombre,
                 primer_apellido: ev.primer_apellido,
+                segundo_apellido: ev.segundo_apellido,
                 sexo: ev.sexo,
                 domicilio: ev.domicilio,
                 telefono: ev.telefono,
@@ -812,7 +817,7 @@ export function Reportes() {
                           <div key={v.clave} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
                             <UserRound className="h-4 w-4 text-muted-foreground" />
                             <span className="flex-1">
-                              {v.primer_nombre} {v.primer_apellido} {v.segundo_apellido ?? ''}{' '}
+                              {[v.primer_nombre, v.segundo_nombre, v.primer_apellido, v.segundo_apellido].filter(Boolean).join(' ')}{' '}
                               <span className="text-xs text-muted-foreground">
                                 (no está en el sistema{v.es_menor ? ', menor' : ''}
                                 {v.telefono ? ` · ${v.telefono}` : ''} · también cuenta en Evangelismo)

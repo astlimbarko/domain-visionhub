@@ -110,7 +110,9 @@ export interface NuevoEvangelizado {
   observaciones?: string;
   persona_id?: string;
   primer_nombre?: string;
+  segundo_nombre?: string;
   primer_apellido?: string;
+  segundo_apellido?: string;
   sexo?: 'M' | 'F';
   /** Ambos opcionales — solo se usan al crear una persona nueva (sin persona_id). */
   telefono?: string;
