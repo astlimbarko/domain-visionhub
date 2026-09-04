@@ -795,6 +795,45 @@ export function Reportes() {
                         permitirAgregarNueva
                         onAgregarNueva={agregarAsistenteNuevo}
                       />
+                      {/* Mismo diseño de chip que "Asistencia regular"/"de niños" al
+                          seleccionar a alguien (pastilla de color + X) -- pedido del
+                          owner (2026-09-03), y va debajo de este buscador (no al
+                          final de la sección) para que se vea justo donde se agregó. */}
+                      {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0) && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {visitasNuevas.map((v) => (
+                            <span
+                              key={v.clave}
+                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                              style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                            >
+                              <UserPlus className="h-3 w-3 shrink-0" />
+                              {[v.primer_nombre, v.segundo_nombre, v.primer_apellido, v.segundo_apellido].filter(Boolean).join(' ')}
+                              {v.es_menor && <span className="text-[10px] opacity-80">(menor)</span>}
+                              <button type="button" onClick={() => quitarVisitaNueva(v.clave)} className="rounded-full p-0.5 hover:bg-black/10">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                          {evangelizadosExistentesComoAsistentes.map((p) => (
+                            <span
+                              key={p.clave}
+                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                              style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                            >
+                              <Check className="h-3 w-3 shrink-0" />
+                              {p.nombre_completo}
+                              <button
+                                type="button"
+                                onClick={() => quitarEvangelizadoPendiente(p.clave)}
+                                className="rounded-full p-0.5 hover:bg-black/10"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -861,47 +900,6 @@ export function Reportes() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
-
-                    {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0) && (
-                      // Mismo diseño de chip que "Asistencia regular"/"de niños" al
-                      // seleccionar una persona (pastilla de color + X) -- antes esta
-                      // lista se veía distinta (cajas con borde punteado), pedido del
-                      // owner (2026-09-03) para que sea consistente en todo el
-                      // formulario.
-                      <div className="flex flex-wrap gap-1.5">
-                        {visitasNuevas.map((v) => (
-                          <span
-                            key={v.clave}
-                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
-                          >
-                            <UserPlus className="h-3 w-3 shrink-0" />
-                            {[v.primer_nombre, v.segundo_nombre, v.primer_apellido, v.segundo_apellido].filter(Boolean).join(' ')}
-                            {v.es_menor && <span className="text-[10px] opacity-80">(menor)</span>}
-                            <button type="button" onClick={() => quitarVisitaNueva(v.clave)} className="rounded-full p-0.5 hover:bg-black/10">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))}
-                        {evangelizadosExistentesComoAsistentes.map((p) => (
-                          <span
-                            key={p.clave}
-                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
-                          >
-                            <Check className="h-3 w-3 shrink-0" />
-                            {p.nombre_completo}
-                            <button
-                              type="button"
-                              onClick={() => quitarEvangelizadoPendiente(p.clave)}
-                              className="rounded-full p-0.5 hover:bg-black/10"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))}
                       </div>
                     )}
                   </>
