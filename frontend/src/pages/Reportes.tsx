@@ -55,7 +55,6 @@ import {
   useTemas,
 } from '@/hooks/useReporte';
 import { crearEvangelizado } from '@/services/evangelismo.service';
-import { agregarMiembroSecundarioCdp } from '@/services/casas-de-paz.service';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
@@ -420,28 +419,6 @@ export function Reportes() {
     );
   }
 
-  // Caso real (owner, 2026-09-04): alguien con cargo en su propia Red/CdP
-  // también asiste de forma regular a otra CdP que no es la suya, y no
-  // aparecía ahí para poder marcarla -- crea una membresía SECUNDARIA real
-  // (queda para siempre, no solo este reporte) y la deja seleccionada de
-  // una en este mismo envío. Invalida el pool de miembros para que quede
-  // reflejado también si se recarga la página.
-  async function agregarMiembroExistenteCdp(persona: PersonaBusqueda, esMenor: boolean) {
-    if (!cdpActiva) return;
-    try {
-      await agregarMiembroSecundarioCdp(persona.id, cdpActiva);
-      setAsistentes((prev) => {
-        const next = new Map(prev);
-        next.set(persona.id, { esVisita: false, esMenor });
-        return next;
-      });
-      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros', cdpActiva] });
-      toast.success(`${persona.nombre_completo} agregada como miembro de esta Casa de Paz`);
-    } catch {
-      toast.error('No se pudo agregar a la persona como miembro de esta Casa de Paz');
-    }
-  }
-
   function agregarDiezmanteExistente(persona: PersonaBusqueda) {
     setDiezmos((prev) => {
       if (prev.some((d) => d.personaId === persona.id)) return prev; // ya está en la lista
@@ -497,19 +474,13 @@ export function Reportes() {
   const idsSinVisita = Array.from(asistentes.entries())
     .filter(([, v]) => !v.esVisita)
     .map(([id]) => id);
-  // Si no está en el pool local (recién agregada por el buscador global,
-  // ver agregarMiembroExistenteCdp -- el pool todavía no se refrescó de la
-  // base), se respeta el esMenor que ya quedó guardado en el mapa en vez de
-  // asumir "regular" por defecto.
   const idsRegulares = idsSinVisita.filter((id) => {
     const m = miembros.find((mm) => mm.persona_id === id);
-    if (m) return m.edad === null || m.edad >= edadMinima;
-    return asistentes.get(id)?.esMenor !== true;
+    return !m || m.edad === null || m.edad >= edadMinima;
   });
   const idsNinos = idsSinVisita.filter((id) => {
     const m = miembros.find((mm) => mm.persona_id === id);
-    if (m) return m.edad !== null && m.edad < edadMinima;
-    return asistentes.get(id)?.esMenor === true;
+    return !!m && m.edad !== null && m.edad < edadMinima;
   });
   const esMenorPorPersona: Record<string, boolean> = {};
   const asisteCdpPorPersona: Record<string, boolean> = {};
@@ -919,10 +890,6 @@ export function Reportes() {
                         onEsMenorChange={cambiarEsMenorAsistente}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
-                        permitirBuscarGlobal
-                        iglesiaId={iglesiaActivaId}
-                        cdpId={cdpActiva}
-                        onAgregarExistenteGlobal={(p) => agregarMiembroExistenteCdp(p, false)}
                       />
                     </div>
 
@@ -937,10 +904,6 @@ export function Reportes() {
                         colorChip={AMBAR}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
-                        permitirBuscarGlobal
-                        iglesiaId={iglesiaActivaId}
-                        cdpId={cdpActiva}
-                        onAgregarExistenteGlobal={(p) => agregarMiembroExistenteCdp(p, true)}
                       />
                     </div>
 
