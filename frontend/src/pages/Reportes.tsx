@@ -61,6 +61,7 @@ import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/re
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
+import { calcularEdad } from '@/utils/edad';
 import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -281,6 +282,7 @@ export function Reportes() {
   // tilda solo para que la sección se despliegue y la persona sea visible.
   function agregarAsistenteNuevo(datos: DatosPersonaNueva) {
     const clave = crypto.randomUUID();
+    const esMenor = datos.fecha_nacimiento ? calcularEdad(datos.fecha_nacimiento) < edadMinima : undefined;
     setVisitasNuevas((prev) => [
       ...prev,
       {
@@ -290,7 +292,8 @@ export function Reportes() {
         primer_apellido: datos.primer_apellido,
         segundo_apellido: datos.segundo_apellido,
         sexo: datos.sexo,
-        es_menor: datos.es_menor,
+        es_menor: esMenor,
+        fecha_nacimiento: datos.fecha_nacimiento,
         telefono: datos.telefono,
       },
     ]);
@@ -305,7 +308,9 @@ export function Reportes() {
         primer_apellido: datos.primer_apellido,
         segundo_apellido: datos.segundo_apellido,
         sexo: datos.sexo,
+        domicilio: datos.domicilio,
         telefono: datos.telefono,
+        fecha_nacimiento: datos.fecha_nacimiento,
       },
     ]);
     if (!salioEvangelizar) setValue('salio_evangelizar', true);
@@ -354,6 +359,10 @@ export function Reportes() {
     }
 
     const clave = crypto.randomUUID();
+    // fecha_nacimiento viene del mismo formulario que Domicilio/Teléfono en
+    // EvangelismoPendientePanel -- antes se perdía acá (no se copiaba a la
+    // NuevaVisita), pedido del owner (2026-09-04) de unificar los dos
+    // formularios para que ningún dato se pierda según por dónde se cargue.
     setVisitasNuevas((prev) => [
       ...prev,
       {
@@ -363,6 +372,8 @@ export function Reportes() {
         primer_apellido: p.primer_apellido ?? '',
         segundo_apellido: p.segundo_apellido,
         sexo: p.sexo ?? 'M',
+        es_menor: p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) < edadMinima : undefined,
+        fecha_nacimiento: p.fecha_nacimiento,
         telefono: p.telefono,
       },
     ]);

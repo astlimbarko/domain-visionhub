@@ -377,6 +377,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
             primer_apellido: visita.primer_apellido,
             segundo_apellido: visita.segundo_apellido || null,
             sexo: visita.sexo,
+            fecha_nacimiento: visita.fecha_nacimiento || null,
             // Visita de reporte: es un lead, no un miembro con membresía
             // completada. Sin este false toma el DEFAULT true y el trigger
             // fn_validar_campos_membresia_persona exige CI (rompía el reporte
@@ -611,6 +612,7 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
           primer_apellido: visita.primer_apellido,
           segundo_apellido: visita.segundo_apellido || null,
           sexo: visita.sexo,
+          fecha_nacimiento: visita.fecha_nacimiento || null,
           membresia_completada: false,
         })
         .select('id')
