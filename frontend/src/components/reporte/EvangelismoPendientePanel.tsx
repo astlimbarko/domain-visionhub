@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Plus, Search, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useBuscarPersonas } from '@/hooks/useCasasDePaz';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import type { EvangelizadoPendiente } from '@/types/reporte.types';
@@ -40,6 +41,22 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
 
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  // Pedido del owner (2026-09-05): agregar a una persona no debe cerrar la
+  // lista -- se queda desplegada para poder seguir agregando a otras del
+  // mismo resultado. Se cierra solo por clic/toque fuera, o con la X.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
+
   const [mostrarFormNueva, setMostrarFormNueva] = useState(false);
   const [nombre, setNombre] = useState('');
   const [segundoNombre, setSegundoNombre] = useState('');
@@ -66,8 +83,8 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
       tipo_evangelismo_nombre: tipoActual?.nombre,
       tipo_evangelismo_color: tipoActual?.color,
     });
-    setTexto('');
-    setAbierto(false);
+    // No limpia el texto ni cierra -- se queda desplegada para poder seguir
+    // agregando a otras personas del mismo resultado de búsqueda.
   }
 
   function agregarNueva() {
@@ -144,7 +161,7 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
 
       {!soloListado && (
       <>
-      <div className="relative">
+      <div className="relative" ref={contenedorRef}>
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
           className="h-10 rounded-xl pl-9 text-sm"
@@ -155,12 +172,19 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
             setAbierto(true);
           }}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
         />
 
-        {abierto && texto.trim().length >= 2 && (
+        {abierto && (
           <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
-            {isFetching ? (
+            <div className="sticky top-0 flex items-center justify-between border-b border-border bg-muted/60 px-3 py-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Buscar persona evangelizada</span>
+              <button type="button" onMouseDown={() => setAbierto(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {texto.trim().length < 2 ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">Escribí al menos 2 letras para buscar.</p>
+            ) : isFetching ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">Buscando...</p>
             ) : resultados.length === 0 ? (
               <button
@@ -173,16 +197,25 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
               </button>
             ) : (
               <div className="max-h-56 overflow-y-auto py-1">
-                {resultados.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onMouseDown={() => agregarExistente(p)}
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {p.nombre_completo}
-                  </button>
-                ))}
+                {resultados.map((p) => {
+                  const yaAgregada = pendientes.some((pe) => pe.persona_id === p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={yaAgregada}
+                      onMouseDown={() => !yaAgregada && agregarExistente(p)}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm',
+                        yaAgregada ? 'cursor-default text-muted-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                      )}
+                    >
+                      {yaAgregada && <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" />}
+                      <span className="flex-1">{p.nombre_completo}</span>
+                      {yaAgregada && <span className="shrink-0 text-xs">agregada</span>}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
