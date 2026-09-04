@@ -15,6 +15,7 @@ import {
   PartyPopper,
   Plus,
   Trash2,
+  UserPlus,
   UserRound,
   Users,
   X,
@@ -863,47 +864,43 @@ export function Reportes() {
                       </div>
                     )}
 
-                    {visitasNuevas.length > 0 && (
-                      <div className="flex flex-col gap-2">
+                    {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0) && (
+                      // Mismo diseño de chip que "Asistencia regular"/"de niños" al
+                      // seleccionar una persona (pastilla de color + X) -- antes esta
+                      // lista se veía distinta (cajas con borde punteado), pedido del
+                      // owner (2026-09-03) para que sea consistente en todo el
+                      // formulario.
+                      <div className="flex flex-wrap gap-1.5">
                         {visitasNuevas.map((v) => (
-                          <div key={v.clave} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
-                            <UserRound className="h-4 w-4 text-muted-foreground" />
-                            <span className="flex-1">
-                              {[v.primer_nombre, v.segundo_nombre, v.primer_apellido, v.segundo_apellido].filter(Boolean).join(' ')}{' '}
-                              <span className="text-xs text-muted-foreground">
-                                (no está en el sistema{v.es_menor ? ', menor' : ''}
-                                {v.telefono ? ` · ${v.telefono}` : ''} · también cuenta en Evangelismo)
-                              </span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => quitarVisitaNueva(v.clave)}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <X className="h-4 w-4" />
+                          <span
+                            key={v.clave}
+                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                          >
+                            <UserPlus className="h-3 w-3 shrink-0" />
+                            {[v.primer_nombre, v.segundo_nombre, v.primer_apellido, v.segundo_apellido].filter(Boolean).join(' ')}
+                            {v.es_menor && <span className="text-[10px] opacity-80">(menor)</span>}
+                            <button type="button" onClick={() => quitarVisitaNueva(v.clave)} className="rounded-full p-0.5 hover:bg-black/10">
+                              <X className="h-3 w-3" />
                             </button>
-                          </div>
+                          </span>
                         ))}
-                      </div>
-                    )}
-
-                    {evangelizadosExistentesComoAsistentes.length > 0 && (
-                      <div className="flex flex-col gap-2">
                         {evangelizadosExistentesComoAsistentes.map((p) => (
-                          <div key={p.clave} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2 text-sm">
-                            <Check className="h-4 w-4 text-chart-2" />
-                            <span className="flex-1">
-                              {p.nombre_completo}{' '}
-                              <span className="text-xs text-muted-foreground">(agregada desde Evangelismo)</span>
-                            </span>
+                          <span
+                            key={p.clave}
+                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                          >
+                            <Check className="h-3 w-3 shrink-0" />
+                            {p.nombre_completo}
                             <button
                               type="button"
                               onClick={() => quitarEvangelizadoPendiente(p.clave)}
-                              className="text-muted-foreground hover:text-foreground"
+                              className="rounded-full p-0.5 hover:bg-black/10"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-3 w-3" />
                             </button>
-                          </div>
+                          </span>
                         ))}
                       </div>
                     )}
