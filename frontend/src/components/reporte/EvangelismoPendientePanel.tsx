@@ -230,13 +230,13 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
             <div key={p.clave} className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 {p.persona_id ? <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" /> : <UserPlus className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                <span className="truncate">{p.nombre_completo}</span>
-                {!p.persona_id && <span className="shrink-0 text-xs text-muted-foreground">(persona nueva)</span>}
-                {p.visitaNuevaClave && <span className="shrink-0 text-xs text-muted-foreground">(asistente nuevo)</span>}
+                <span className="min-w-0 truncate">{p.nombre_completo}</span>
+                {!p.persona_id && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">(persona nueva)</span>}
+                {p.visitaNuevaClave && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">(asistente nuevo)</span>}
               </span>
               {onCambiarTipo && tipos.length > 0 ? (
                 <Select value={p.tipo_evangelismo_id ?? ''} onValueChange={(v) => onCambiarTipo(p.clave, v)}>
-                  <SelectTrigger className="h-7 w-36 shrink-0 text-xs">
+                  <SelectTrigger className="h-7 w-24 shrink-0 text-xs sm:w-36">
                     <SelectValue placeholder="Elegí un tipo..." />
                   </SelectTrigger>
                   <SelectContent>
