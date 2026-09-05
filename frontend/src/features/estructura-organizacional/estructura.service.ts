@@ -716,8 +716,8 @@ export async function reenviarInvitacionCargo(entidad: EntidadReenvioInvitacion)
 export async function establecerContrasenaTemporal(
   entidad: EntidadReenvioInvitacion,
   contrasena: string,
-): Promise<void> {
-  const { error } = await supabase.functions.invoke('establecer-contrasena-temporal', {
+): Promise<{ desbaneada: boolean }> {
+  const { data, error } = await supabase.functions.invoke('establecer-contrasena-temporal', {
     body: { ...entidad, contrasena },
   });
   if (error) {
@@ -728,4 +728,5 @@ export async function establecerContrasenaTemporal(
     }
     throw error;
   }
+  return { desbaneada: Boolean((data as { desbaneada?: boolean } | null)?.desbaneada) };
 }

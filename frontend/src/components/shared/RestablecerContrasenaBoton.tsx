@@ -70,8 +70,12 @@ export function RestablecerContrasenaBoton({ correo, entidad, className }: Props
     establecerTemporal.mutate(
       { entidad, contrasena: contrasena.trim() },
       {
-        onSuccess: () => {
-          toast.success('Contraseña asignada. Decísela a la persona en persona -- no se la escribas.');
+        onSuccess: ({ desbaneada }) => {
+          toast.success(
+            desbaneada
+              ? 'Contraseña asignada. Esta cuenta estaba bloqueada por error (KAN-279) -- ya se desbloqueó. Decísela a la persona en persona, no se la escribas.'
+              : 'Contraseña asignada. Decísela a la persona en persona -- no se la escribas.',
+          );
           cerrarYLimpiar();
         },
         onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo asignar'),

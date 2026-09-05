@@ -4,19 +4,25 @@ import nodemailer from "nodemailer";
 
 // VisionHub -- KAN-278: asignarle una contraseña temporal a una cuenta YA
 // CONFIRMADA, sin pasar por ningún enlace de un solo uso. Pensado para
-// personas a las que "les cuesta la tecnología" (caso real que lo disparó:
-// mariajulietavm2020@gmail.com -- su enlace de "olvidé mi contraseña" daba
-// "no es válido o ya venció" sin haber pasado ni un día útil; el sospechoso
-// real es un escáner de seguridad del propio correo -- Gmail/iPhone suelen
-// "previsitar" los links apenas llegan -- que gasta el token de un solo uso
-// antes de que la persona lo toque de verdad. Evitar esto de raíz: contraseña
-// puesta directo por un admin, dicha de palabra, nunca por escrito).
+// personas a las que "les cuesta la tecnología" -- caso real que lo disparó:
+// mariajulietavm2020@gmail.com, con su enlace de "olvidé mi contraseña"
+// dando "no es válido o ya venció". La causa real terminó siendo otra (KAN-279,
+// su cuenta estaba baneada por un bug de fn_cancelar_invitacion_lider, ya
+// corregido) -- pero un enlace de un solo uso sigue siendo frágil (un escáner
+// de seguridad del correo puede gastarlo antes de que la persona lo toque),
+// así que la contraseña directa sigue siendo la vía más robusta. Nunca se
+// revela por escrito, se la dice el admin de palabra.
 //
 // Reusa las mismas 4 RPC de solo lectura que reenviar-invitacion-cargo (mismo
 // chequeo de permiso ya probado: Líder/Supervisor de Red en su propia red,
 // Super Admin/Pastor/Supervisor en el resto), pero SIN el filtro de
 // membresia_completada -- acá aplica a cualquier cuenta confirmada, no solo a
 // quien quedó a medio formulario.
+//
+// KAN-279 (defensa extra, aunque el bug de raíz ya está corregido en la
+// base): si la cuenta encontrada está baneada, se la desbanea de paso acá --
+// así este mismo botón repara el caso sin que un admin tenga que saber que
+// existe ese estado.
 function armarHtmlAviso(personaNombre: string, iglesiaNombre: string): string {
   return `<!doctype html>
 <html>
@@ -135,8 +141,13 @@ export default {
       return Response.json({ error: "No se pudo leer la cuenta" }, { status: 500 });
     }
 
+    const estabaBaneada = Boolean(
+      usuarioActual.user.banned_until && new Date(usuarioActual.user.banned_until) > new Date(),
+    );
+
     const { error: errorUpdate } = await ctx.supabaseAdmin.auth.admin.updateUserById(usuario_id, {
       password: contrasena,
+      ban_duration: "none",
       app_metadata: { ...usuarioActual.user.app_metadata, debe_cambiar_contrasena: true },
     });
     if (errorUpdate) {
@@ -165,6 +176,6 @@ export default {
       console.error("establecer-contrasena-temporal: fallo el envio por Brevo SMTP", e);
     }
 
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, desbaneada: estabaBaneada });
   }),
 };
