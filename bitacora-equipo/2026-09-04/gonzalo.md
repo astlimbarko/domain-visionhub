@@ -9,6 +9,9 @@
 - [x] Ambas cuentas (Maria y la segunda) desbaneadas a mano en producción
 - [x] Segundo bug real encontrado al probar en vivo: el formulario de membresía nunca le aparecía a Maria porque `fn_mi_membresia_incompleta` necesita una fila activa en `usuario_rol` para saber qué iglesia completar -- reasignar su cargo desde el Constructor nunca la recreaba. Corregido de raíz en **KAN-280** (aplicado en producción) + backfill puntual para Maria
 - [x] Probado en vivo (localhost contra la base real, cuenta real de Maria): login con la contraseña temporal → aparecen los 2 modales bien apilados ("Cambiá tu contraseña" arriba, "Completa tu Membresía" detrás) -- funciona de punta a punta
-- [x] KAN-278/279/280 en 3 ramas separadas (`feature/contrasena-temporal`, `fix/kan279-...`, `fix/kan280-...`), 279 y 280 ya Finalizadas (aplicadas en producción), 278 en Revisión
-- [ ] Falta: desplegar KAN-278 (2 Edge Functions + build de frontend) para que se vea fuera de mi prueba local
+- [x] Reiniciado el paso del formulario de Maria a 1 (se había avanzado a 2 probando en vivo) y borrado un dato sucio (segundo apellido con un correo, residuo de la prueba) -- queda solo su nombre real cargado, todo lo demás lo completa ella
+- [x] Las 3 ramas mergeadas a `master` y pusheadas (commit `eebfdf2`) -- tsc/build verificados en el merge, sin conflictos entre KAN-278/279/280
+- [x] KAN-278/279/280 los 3 en Jira: 279/280 Finalizadas, 278 en Revisión (falta solo el deploy real)
+- [ ] Falta: que Matías haga pull de `master` y despliegue (2 Edge Functions nuevas + build de frontend)
+- [ ] Pendiente suelto: centrodevidascz2@gmail.com quedó desbaneada pero sin decidir si sigue haciendo falta su rol (Líder de Departamento de Afirmación, Montero)
 - [ ] Falta: crear los tickets retroactivos del trabajo de Matías (02-04/09), si da el tiempo
