@@ -1,0 +1,9 @@
+# Gonzalo — 2026-09-04
+
+- [x] Revisado todo lo que hizo Matías del 02 al 04/09 (66 commits, ~19-20 fixes/features reales: reportes de CdP, evangelismo/asistentes nuevos, membresía, fichas). Hallazgo: ninguno tiene ticket de Jira (OAuth de Atlassian pendiente de su lado) -- se deja pendiente crear los retroactivos cuando haya tiempo
+- [x] Diagnosticado el bloqueo real de mariajulietavm2020@gmail.com: "olvidé mi contraseña" le daba "enlace no válido o venció" sin haber pasado ni un día útil. Causa probable con alta confianza: el link de recuperación de Supabase es de un solo uso (`{{ .ConfirmationURL }}` → GoTrue `/verify`, mismo mecanismo que invite.html) -- un escáner de seguridad de Gmail/iPhone probablemente lo consumió apenas llegó, antes de que ella lo tocara de verdad. No es su culpa, ni un link vencido por tiempo
+- [x] Encontrado de paso un bug real al revisar el panel de su Casa de Paz: el bloque "Anfitrión" del Constructor mostraba "Restablecer contraseña" con la sola condición de tener un correo cargado, sin chequear si esa persona tiene cuenta real -- Anfitrión no es un rol de acceso
+- [x] Diseñada y construida la solución (KAN-278, rama `feature/contrasena-temporal`, pusheada): opción para asignarle una contraseña temporal directo a una cuenta (sin ningún enlace de por medio, nunca puede vencer ni ser consumida por un escáner) desde "Restablecer contraseña" -- se le dice a la persona en persona, nunca por escrito. Gate obligatorio de cambio de contraseña en el próximo login/carga (mismo patrón que "Actualizá tu membresía"), con "Ahora no" que solo pospone. De paso, corregido el bug de Anfitrión (ya no muestra esa acción)
+- [x] tsc/oxlint/build del frontend limpios
+- [ ] Falta: desplegar (2 Edge Functions nuevas + build de frontend) y probar en vivo -- incluida la cuenta real de Maria Julieta
+- [ ] Falta: crear los tickets retroactivos del trabajo de Matías (02-04/09), si da el tiempo
