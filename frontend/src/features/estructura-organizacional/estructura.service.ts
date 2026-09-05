@@ -706,3 +706,27 @@ export async function reenviarInvitacionCargo(entidad: EntidadReenvioInvitacion)
     throw error;
   }
 }
+
+/**
+ * KAN-278: le asigna una contraseña conocida directo a una cuenta ya
+ * confirmada -- sin ningún enlace de un solo uso de por medio (nunca puede
+ * "vencer" ni ser consumido por un escáner de correo). Quien la usa debe
+ * decirle la contraseña a la persona de palabra, nunca por escrito.
+ */
+export async function establecerContrasenaTemporal(
+  entidad: EntidadReenvioInvitacion,
+  contrasena: string,
+): Promise<{ desbaneada: boolean }> {
+  const { data, error } = await supabase.functions.invoke('establecer-contrasena-temporal', {
+    body: { ...entidad, contrasena },
+  });
+  if (error) {
+    const contexto = (error as { context?: Response }).context;
+    if (contexto) {
+      const cuerpo = await contexto.json().catch(() => null);
+      throw new Error(cuerpo?.error || (error as Error).message);
+    }
+    throw error;
+  }
+  return { desbaneada: Boolean((data as { desbaneada?: boolean } | null)?.desbaneada) };
+}

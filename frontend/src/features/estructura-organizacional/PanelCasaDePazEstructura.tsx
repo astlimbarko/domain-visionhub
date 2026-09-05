@@ -305,7 +305,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                     entidad={lider.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: lider.id }}
                   />
                 ) : (
-                  <RestablecerContrasenaBoton correo={lider.correo as string} />
+                  <RestablecerContrasenaBoton correo={lider.correo as string} entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
                 )}
               </div>
             )}
@@ -326,11 +326,10 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {anfitrion ? 'Cambiar' : 'Asignar'}
               </button>
             </div>
-            {anfitrion?.correo && anfitrion.nombre && (
-              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
-                <RestablecerContrasenaBoton correo={anfitrion.correo} />
-              </div>
-            )}
+            {/* KAN-278: Anfitrión no es un rol de acceso -- no se invita con
+                cuenta nueva (ver invitable={} en AsignarCargoDialog más abajo)
+                y si esta misma persona tiene cuenta real es por otro cargo
+                que sí la otorga, donde ya se ve la acción correspondiente. */}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -357,7 +356,11 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                           sub.correo && sub.nombre && (
                             <div className="mt-0.5 flex items-center justify-between gap-2">
                               <span className="truncate text-xs text-slate-500">{sub.correo}</span>
-                              <RestablecerContrasenaBoton correo={sub.correo} className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700" />
+                              <RestablecerContrasenaBoton
+                                correo={sub.correo}
+                                entidad={{ cdpId: casaDePaz.id, personaId: sub.id }}
+                                className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700"
+                              />
                             </div>
                           )
                         )}

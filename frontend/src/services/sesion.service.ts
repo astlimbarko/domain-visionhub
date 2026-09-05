@@ -1,5 +1,6 @@
 import {
   obtenerCorreoActual,
+  obtenerDebeCambiarContrasena,
   obtenerIglesiasAccesibles,
   obtenerPersonaActual,
   soySuperAdmin,
@@ -24,12 +25,13 @@ import { obtenerMiMembresiaIncompleta } from './membresia-extendida.service';
  * Persona), que todavía no existen en este punto del login.
  */
 export async function construirSesionDesdeAuth() {
-  const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente] = await Promise.all([
+  const [persona, iglesias, esSuperAdmin, correo, membresiaPendiente, debeCambiarContrasena] = await Promise.all([
     obtenerPersonaActual(),
     obtenerIglesiasAccesibles(),
     soySuperAdmin(),
     obtenerCorreoActual(),
     obtenerMiMembresiaIncompleta(),
+    obtenerDebeCambiarContrasena(),
   ]);
   return {
     personaId: persona?.id ?? null,
@@ -38,5 +40,6 @@ export async function construirSesionDesdeAuth() {
     iglesias,
     esSuperAdmin,
     membresiaPendiente,
+    debeCambiarContrasena,
   };
 }

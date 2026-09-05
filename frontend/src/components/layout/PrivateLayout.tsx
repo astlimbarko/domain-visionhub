@@ -4,13 +4,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useMisRoles } from '@/hooks/useDashboard';
-import { cerrarSesion } from '@/services/auth.service';
+import { cerrarSesion, obtenerDebeCambiarContrasena } from '@/services/auth.service';
 import { obtenerMiActualizacionMembresiaPendiente, obtenerMiMembresiaIncompleta } from '@/services/membresia-extendida.service';
 import { ROUTES } from '@/utils/constants';
 import { obtenerPanelContexto, rutaInicialParaContexto } from '@/utils/paneles-contexto';
 import { AppShell } from '@/components/layout/AppShell';
 import { MembresiaObligatoria } from '@/pages/MembresiaObligatoria';
 import { ActualizacionMembresiaModal } from '@/components/shared/ActualizacionMembresiaModal';
+import { CambiarContrasenaObligatoriaModal } from '@/components/shared/CambiarContrasenaObligatoriaModal';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
 
@@ -21,6 +22,9 @@ export function PrivateLayout() {
   const actualizacionMembresiaPendiente = useAuthStore((s) => s.actualizacionMembresiaPendiente);
   const setActualizacionMembresiaPendiente = useAuthStore((s) => s.setActualizacionMembresiaPendiente);
   const saltarActualizacionMembresiaLocal = useAuthStore((s) => s.saltarActualizacionMembresiaLocal);
+  const debeCambiarContrasena = useAuthStore((s) => s.debeCambiarContrasena);
+  const setDebeCambiarContrasena = useAuthStore((s) => s.setDebeCambiarContrasena);
+  const saltarCambioContrasenaLocal = useAuthStore((s) => s.saltarCambioContrasenaLocal);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
@@ -60,6 +64,20 @@ export function PrivateLayout() {
     return () => { vigente = false; };
   }, [isAuthenticated, membresiaPendiente, setActualizacionMembresiaPendiente]);
 
+  // KAN-278: a diferencia de membresiaPendiente (persistido, solo se resuelve
+  // al loguearse), esto se re-chequea en cada carga de PrivateLayout -- una
+  // recarga de página (F5) no "pierde" el aviso mientras el flag real
+  // (app_metadata) siga prendido. No depende de membresiaPendiente: tiene
+  // prioridad sobre el formulario de membresía (ver los 2 render abajo).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let vigente = true;
+    obtenerDebeCambiarContrasena()
+      .then((resultado) => { if (vigente) setDebeCambiarContrasena(resultado); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, [isAuthenticated, setDebeCambiarContrasena]);
+
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
@@ -72,7 +90,17 @@ export function PrivateLayout() {
   // página. El caso general (id === null) sí tiene panel resuelto desde el
   // inicio (el cargo vive en usuario_rol, no depende de que exista Persona).
   if (membresiaPendiente && membresiaPendiente.id !== null) {
-    return <MembresiaObligatoria invitacion={membresiaPendiente} />;
+    return (
+      <>
+        <MembresiaObligatoria invitacion={membresiaPendiente} />
+        {debeCambiarContrasena && (
+          <CambiarContrasenaObligatoriaModal
+            onGuardado={() => setDebeCambiarContrasena(false)}
+            onSaltar={saltarCambioContrasenaLocal}
+          />
+        )}
+      </>
+    );
   }
 
   async function handleCerrarSesion() {
@@ -112,6 +140,12 @@ export function PrivateLayout() {
     <AppShell>
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
+      {debeCambiarContrasena && (
+        <CambiarContrasenaObligatoriaModal
+          onGuardado={() => setDebeCambiarContrasena(false)}
+          onSaltar={saltarCambioContrasenaLocal}
+        />
+      )}
       {!membresiaPendiente && actualizacionMembresiaPendiente && (
         <ActualizacionMembresiaModal
           iglesiaId={actualizacionMembresiaPendiente.iglesia_id}
