@@ -72,6 +72,24 @@ export async function obtenerCorreoActual(): Promise<string | null> {
   return data.user?.email ?? null;
 }
 
+/**
+ * KAN-278: cuenta con una contraseña temporal puesta por un admin
+ * (`establecer-contrasena-temporal`) -- app_metadata solo lo puede tocar el
+ * service role, nunca el propio usuario, así que no puede sacárselo con
+ * `updateUser`.
+ */
+export async function obtenerDebeCambiarContrasena(): Promise<boolean> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.app_metadata?.debe_cambiar_contrasena === true;
+}
+
+/** Apaga el flag de arriba en la propia cuenta, justo después de establecer
+ * una contraseña real vía `establecerContrasena`. */
+export async function confirmarCambioContrasena(): Promise<void> {
+  const { error } = await supabase.functions.invoke('confirmar-cambio-contrasena');
+  if (error) throw error;
+}
+
 export async function obtenerIglesiasAccesibles(): Promise<IglesiaAccesible[]> {
   const { data, error } = await supabase.rpc('fn_mis_iglesias_detalle');
   if (error) throw error;

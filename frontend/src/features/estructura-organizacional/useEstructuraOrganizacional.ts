@@ -11,6 +11,7 @@ import {
   deshacerBorradoDefinitivoRedEstructura,
   eliminarCasaDePazEstructura,
   eliminarRedEstructura,
+  establecerContrasenaTemporal,
   guardarPosicionesEstructura,
   obtenerEstructuraOrganizacional,
   programarBorradoDefinitivoRedEstructura,
@@ -21,7 +22,7 @@ import {
   reactivarRedEstructura,
   reenviarInvitacionCargo,
 } from './estructura.service';
-import type { CargoRedEstructura, CrearRedEstructuraEntrada, PosicionNodoGuardar } from './types';
+import type { CargoRedEstructura, CrearRedEstructuraEntrada, EntidadReenvioInvitacion, PosicionNodoGuardar } from './types';
 
 export function useEstructuraOrganizacional(iglesiaId: string | undefined) {
   return useQuery({
@@ -216,4 +217,11 @@ export function useBuscarPersonasEstructura(iglesiaId: string, texto: string, pe
 
 export function useReenviarInvitacionCargo() {
   return useMutation({ mutationFn: reenviarInvitacionCargo });
+}
+
+export function useEstablecerContrasenaTemporal() {
+  return useMutation({
+    mutationFn: ({ entidad, contrasena }: { entidad: EntidadReenvioInvitacion; contrasena: string }) =>
+      establecerContrasenaTemporal(entidad, contrasena),
+  });
 }

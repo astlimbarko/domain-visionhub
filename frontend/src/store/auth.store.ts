@@ -18,6 +18,11 @@ interface AuthState {
    * teléfono y/o ministerio (datos que no existían cuando completó su
    * ficha). Independiente de membresiaPendiente -- no bloquea el panel. */
   actualizacionMembresiaPendiente: ActualizacionMembresiaPendiente | null;
+  /** KAN-278: cuenta con una contraseña temporal puesta por un admin -- no
+   * se persiste a propósito (a diferencia de membresiaPendiente), se
+   * re-chequea en cada carga de PrivateLayout igual que
+   * actualizacionMembresiaPendiente, así una recarga de página no lo "pierde". */
+  debeCambiarContrasena: boolean;
   /** Compatibilidad temporal; la fuente canónica nueva es contextoActivo. */
   rolActivo: RolUI | null;
   contextoActivo: ContextoActivo | null;
@@ -28,6 +33,7 @@ interface AuthState {
     iglesias: IglesiaAccesible[];
     esSuperAdmin: boolean;
     membresiaPendiente?: MembresiaIncompleta | null;
+    debeCambiarContrasena?: boolean;
   }) => void;
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
@@ -46,6 +52,11 @@ interface AuthState {
   /** "Ahora no" del modal de Parte B -- limpia solo local/en memoria, igual
    * que saltarMembresiaLocal. Reaparece en el próximo login si sigue faltando. */
   saltarActualizacionMembresiaLocal: () => void;
+  setDebeCambiarContrasena: (v: boolean) => void;
+  /** "Ahora no" del modal de contraseña temporal -- limpia solo local/en
+   * memoria; reaparece en la próxima carga de PrivateLayout si el flag real
+   * (app_metadata) sigue prendido. */
+  saltarCambioContrasenaLocal: () => void;
   logout: () => void;
 }
 
@@ -73,10 +84,11 @@ export const useAuthStore = create<AuthState>()(
       esSuperAdmin: false,
       membresiaPendiente: null,
       actualizacionMembresiaPendiente: null,
+      debeCambiarContrasena: false,
       rolActivo: null,
       contextoActivo: null,
 
-      setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null }) => {
+      setSesion: ({ personaId, nombreCompleto, correo, iglesias, esSuperAdmin, membresiaPendiente = null, debeCambiarContrasena = false }) => {
         const estadoActual = get();
         const iglesiaActualSigueValida = iglesias.some((i) => i.id === estadoActual.iglesiaActivaId);
         const iglesiaActivaId = iglesiaActualSigueValida
@@ -102,6 +114,7 @@ export const useAuthStore = create<AuthState>()(
           iglesias,
           esSuperAdmin,
           membresiaPendiente,
+          debeCambiarContrasena,
           iglesiaActivaId,
           contextoActivo: null,
           rolActivo: null,
@@ -133,6 +146,10 @@ export const useAuthStore = create<AuthState>()(
 
       saltarActualizacionMembresiaLocal: () => set({ actualizacionMembresiaPendiente: null }),
 
+      setDebeCambiarContrasena: (v) => set({ debeCambiarContrasena: v }),
+
+      saltarCambioContrasenaLocal: () => set({ debeCambiarContrasena: false }),
+
       logout: () =>
         set({
           isAuthenticated: false,
@@ -144,6 +161,7 @@ export const useAuthStore = create<AuthState>()(
           esSuperAdmin: false,
           membresiaPendiente: null,
           actualizacionMembresiaPendiente: null,
+          debeCambiarContrasena: false,
           rolActivo: null,
           contextoActivo: null,
         }),

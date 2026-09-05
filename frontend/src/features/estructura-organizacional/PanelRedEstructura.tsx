@@ -246,7 +246,9 @@ function ResumenCargo({
               {responsable.membresiaPendiente ? (
                 <BotonReenviarInvitacion entidad={{ redId, personaId: responsable.id }} />
               ) : (
-                responsable.correo && <RestablecerContrasenaBoton correo={responsable.correo} />
+                responsable.correo && (
+                  <RestablecerContrasenaBoton correo={responsable.correo} entidad={{ redId, personaId: responsable.id }} />
+                )
               )}
               <button
                 type="button"

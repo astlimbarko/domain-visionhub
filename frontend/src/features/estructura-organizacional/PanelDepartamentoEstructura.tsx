@@ -156,7 +156,9 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                 {pendiente ? (
                   <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
                 ) : (
-                  lider.correo && <RestablecerContrasenaBoton correo={lider.correo} />
+                  lider.correo && (
+                    <RestablecerContrasenaBoton correo={lider.correo} entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
+                  )
                 )}
                 <button
                   type="button"
