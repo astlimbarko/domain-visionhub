@@ -14,7 +14,8 @@ import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMet
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { ListaPersonasDia } from '@/components/evangelismo/ListaPersonasDia';
-import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
+import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
 /** Sentinel para distinguir "asignar a todas" de una CdP real en el mismo diálogo. */
@@ -67,6 +68,12 @@ export function EvangelismoRed({ redId }: Props) {
   const { data: evangelizados = [], isLoading: cargandoLista, isFetching: actualizandoLista } = useEvangelismoRed(redId, desde, hasta);
   const { data: metasCdp = [], isLoading: cargandoMetas } = useMetasCdpRed(redId);
   const asignarMeta = useAsignarMetaEvangelismo(redId);
+
+  // Tendencia (KAN-285): mismo rango amplio y fijo que en la vista del
+  // Supervisor/Departamento, independiente del mes navegado arriba.
+  const hoyISO = aISO(hoy);
+  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const { data: evangelizadosTendencia = [], isLoading: cargandoTendencia } = useEvangelismoRed(redId, desdeTendencia, hoyISO);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -279,6 +286,14 @@ export function EvangelismoRed({ redId }: Props) {
               })}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Flag} color={MORADO} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <div className="p-5">
+          <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
       </section>
 

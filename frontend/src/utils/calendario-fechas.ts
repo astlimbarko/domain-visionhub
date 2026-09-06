@@ -4,6 +4,7 @@ const NOMBRES_MES = [
 ];
 
 const NOMBRES_DIA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const NOMBRES_MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 export function nombreMes(anio: number, mes: number) {
   return `${NOMBRES_MES[mes]} ${anio}`;
@@ -56,7 +57,7 @@ export function esHoy(fecha: Date) {
   );
 }
 
-function desdeISO(fechaISO: string): Date {
+export function desdeISO(fechaISO: string): Date {
   const [y, m, d] = fechaISO.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
@@ -92,4 +93,24 @@ export function numeroSemanaISO(fechaISO: string): number {
   const primerJueves = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
   const diffSemanas = (d.getTime() - primerJueves.getTime()) / (7 * 24 * 60 * 60 * 1000);
   return 1 + Math.round(diffSemanas);
+}
+
+/** Suma (o resta, con n negativo) días a una fecha ISO. */
+export function sumarDiasISO(fechaISO: string, n: number): string {
+  const fecha = desdeISO(fechaISO);
+  fecha.setDate(fecha.getDate() + n);
+  return aISO(fecha);
+}
+
+/** Primer día del mes que queda `n` meses antes (o después, con n negativo)
+ * del mes de la fecha dada -- para armar rangos "últimos N meses" sin
+ * problemas de desborde de día (ej. 31 de marzo - 1 mes no es 31 de febrero). */
+export function primerDiaMesRelativo(fechaISO: string, n: number): string {
+  const fecha = desdeISO(fechaISO);
+  const fechaDestino = new Date(fecha.getFullYear(), fecha.getMonth() - n, 1);
+  return aISO(fechaDestino);
+}
+
+export function nombreMesCorto(mes: number): string {
+  return NOMBRES_MES_CORTO[mes];
 }

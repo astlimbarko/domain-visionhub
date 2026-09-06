@@ -17,7 +17,8 @@ import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignad
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
-import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO, primerDiaMesRelativo } from '@/utils/calendario-fechas';
+import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
 
@@ -101,6 +102,21 @@ export function EvangelismoSupervisorVista() {
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
+
+  // Tendencia (KAN-285): rango amplio y fijo (últimos 12 meses hasta hoy),
+  // independiente del mes que se esté navegando arriba -- el componente
+  // agrupa/recorta en el cliente según la granularidad elegida.
+  const hoyISO = aISO(hoy);
+  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const tendenciaPorRed = useQueries({
+    queries: redes.map((r) => ({
+      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hoyISO],
+      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hoyISO),
+      enabled: !!r.id,
+    })),
+  });
+  const cargandoTendencia = tendenciaPorRed.some((q) => q.isLoading);
+  const evangelizadosTendencia = useMemo(() => tendenciaPorRed.flatMap((q) => q.data ?? []), [tendenciaPorRed]);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -342,13 +358,13 @@ export function EvangelismoSupervisorVista() {
         <KpiMosaico label="Casas Activas" icon={Home} color={CELESTE}>{cargandoCdps ? '—' : cdps.length}</KpiMosaico>
       </div>
 
-      {/* ── Metas de la Red: barras de PROGRESO (se llenan a medida que evangelizan) + editar ── */}
+      {/* ── Metas de la Red: texto (numero + avance), tocar o Editar para cambiar ── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una barra o Editar para cambiarla" />
+        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" />
         <div className="flex flex-col gap-5 p-6">
           {cargandoResumen ? (
             <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
-              {redes.map((r) => <Skeleton key={r.id} className="h-36 w-full rounded-xl" />)}
+              {redes.map((r) => <Skeleton key={r.id} className="h-24 w-full rounded-xl" />)}
             </div>
           ) : (
             <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
@@ -363,20 +379,14 @@ export function EvangelismoSupervisorVista() {
                   <button
                     type="button"
                     key={r.id}
-                    className="flex flex-col items-center gap-2 rounded-xl p-1 transition-colors hover:bg-muted/40"
+                    className="flex flex-col items-center gap-1 rounded-xl border border-border/60 px-3 py-4 text-center transition-colors hover:bg-muted/40"
                     title={tieneMeta ? `${r.nombre}: ${evangelizadosRed} de ${metaValor} (${progresoPct}%)` : `${r.nombre}: sin meta asignada`}
                     onClick={() => setRedParaMeta({ casa_de_paz_id: r.id, etiqueta: r.nombre, meta: fila?.meta?.meta ?? null, origen: fila?.meta ? 'ASIGNADA_RED' : null })}
                   >
-                    <span className="text-sm font-bold tabular-nums text-foreground">
+                    <span className="text-2xl font-bold tabular-nums" style={{ color: tieneMeta ? (cumplida ? VERDE : AZUL) : undefined }}>
                       {tieneMeta ? `${evangelizadosRed}/${metaValor}` : '—'}
                     </span>
-                    <div className="flex h-28 w-full items-end overflow-hidden rounded-lg bg-muted/50">
-                      <div
-                        className="w-full rounded-t-md transition-[height]"
-                        style={{ height: tieneMeta ? `${Math.max(progresoPct, evangelizadosRed > 0 ? 6 : 0)}%` : '4%', background: cumplida ? VERDE : AZUL, opacity: tieneMeta ? 1 : 0.3 }}
-                      />
-                    </div>
-                    <span className="w-full truncate text-center text-[11px] font-medium text-muted-foreground">
+                    <span className="w-full truncate text-sm font-medium text-muted-foreground">
                       {r.nombre}{tieneMeta && ` · ${progresoPct}%`}
                     </span>
                   </button>
@@ -388,6 +398,14 @@ export function EvangelismoSupervisorVista() {
             <Pencil className="h-3.5 w-3.5" />
             Editar metas
           </Button>
+        </div>
+      </section>
+
+      {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Flag} color={MORADO} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <div className="p-5">
+          <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
       </section>
 
