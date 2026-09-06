@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Heart, HeartHandshake, Home, Pencil, Target, UsersRound } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +15,7 @@ import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvange
 import type { PersonaDelDia } from '@/components/evangelismo/ListaPersonasDia';
 import { AcordeonRedesCdp, type RedConActividad } from '@/components/evangelismo/AcordeonRedesCdp';
 import { AnilloSegmentado, type SegmentoAnillo } from '@/components/evangelismo/AnilloSegmentado';
+import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { ROUTES } from '@/utils/constants';
 import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignada, obtenerTasaEvangelismoRed } from '@/services/evangelismo.service';
@@ -107,11 +107,6 @@ export function EvangelismoSupervisorVista() {
   const [modalMetasAbierto, setModalMetasAbierto] = useState(false);
   const [redParaMeta, setRedParaMeta] = useState<MetaCdpRed | null>(null);
   const [bulkAsignando, setBulkAsignando] = useState(false);
-  // El banner mostraba el color sólido y recién después "aparecía" el PNG de
-  // fondo (pop abrupto que el owner reportó como "parece que carga lento",
-  // 2026-09-06) -- se separa la imagen a una capa propia con fade-in al
-  // cargar, así la transición se ve intencional en vez de un salto.
-  const [bannerCargado, setBannerCargado] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
@@ -363,38 +358,17 @@ export function EvangelismoSupervisorVista() {
           toca el navbar arriba y los bordes del área de contenido a los
           costados, sin el padding que trae `<main className="p-5 sm:p-8">`
           en AppShell.tsx (compartido por TODA la app) -- se cancela ese
-          padding solo acá, sin tocar el layout global. */}
-      <div
-        // Alto de escritorio subido ~10% (pedido explícito del owner,
-        // 2026-09-06): 123.5px -> ~135.5px, vía más padding vertical (no un
-        // alto fijo) para que siga respirando igual si cambia el contenido.
-        // Mobile queda con `p-6` sin tocar -- solo pidió el ajuste en desktop.
-        className="relative -mx-5 -mt-5 overflow-hidden rounded-none p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:px-8 sm:py-[38px]"
-        style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
-      >
-        <img
-          src="/evangelismo-banner.png"
-          alt=""
-          onLoad={() => setBannerCargado(true)}
-          className={cn(
-            'pointer-events-none absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-500',
-            bannerCargado ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <img src="/icono-evangelismo.svg" alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Evangelismo</h1>
-              <p className="text-[13px] text-white/70">Gestioná las metas y el seguimiento mensual</p>
-            </div>
-          </div>
+          padding solo acá, sin tocar el layout global. Extraído a
+          `EvangelismoBanner.tsx` (2026-09-06) para reusarlo también en
+          "Personas evangelizadas", pedido explícito del owner. */}
+      <EvangelismoBanner
+        accion={
           <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
             <Flag className="h-4 w-4" />
             Asignar metas
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Navegación de mes ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 self-center rounded-2xl border border-border/60 bg-muted/20 p-2 sm:self-start sm:pl-4">

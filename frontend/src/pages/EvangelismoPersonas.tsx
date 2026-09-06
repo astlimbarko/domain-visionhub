@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
@@ -26,6 +27,7 @@ import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangeli
 import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
+import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
 import { aISO, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 
 const POR_PAGINA = 50;
@@ -236,6 +238,10 @@ export function EvangelismoPersonas() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Mismo banner del dashboard principal (pedido explícito del owner,
+          2026-09-06) -- ver EvangelismoBanner.tsx. */}
+      <EvangelismoBanner />
+
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
         <KpiChip icon={Users} label="Total encontrados" color={AZUL}>
           {total}
@@ -245,7 +251,7 @@ export function EvangelismoPersonas() {
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Users}
-          color={AZUL}
+          color={DEPARTAMENTO_META.EVANGELISMO.color}
           titulo="Personas evangelizadas"
           descripcion="Toda la iglesia -- click en una fila para ver la ficha completa."
           accion={
