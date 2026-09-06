@@ -391,7 +391,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── Metas de la Red: texto (numero + avance), tocar o Editar para cambiar ── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" />
+        <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" />
         <div className="flex flex-col gap-5 p-6">
           {cargandoResumen ? (
             <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
@@ -434,7 +434,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
         <div className="p-5">
           <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
@@ -445,10 +445,10 @@ export function EvangelismoSupervisorVista() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={CalendarRange}
-            color={CELESTE}
+            color={DEPARTAMENTO_META.EVANGELISMO.color}
             titulo="Calendario"
             descripcion="Días en los que alguna Casa de Paz registró evangelismo"
-            accion={<span className="text-lg font-bold capitalize" style={{ color: CELESTE }}>{nombreMes(anio, mes)}</span>}
+            accion={<span className="text-lg font-bold capitalize" style={{ color: DEPARTAMENTO_META.EVANGELISMO.color }}>{nombreMes(anio, mes)}</span>}
           />
           <div className="p-4">
             {cargandoResumen ? (
@@ -462,7 +462,7 @@ export function EvangelismoSupervisorVista() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={AZUL}
+            color={DEPARTAMENTO_META.EVANGELISMO.color}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Detalle del día'}
             descripcion={diaSeleccionado ? `${detalleDelDia.length} Red${detalleDelDia.length === 1 ? '' : 'es'} con actividad` : 'Elegí un día del calendario'}
             accion={
@@ -488,7 +488,7 @@ export function EvangelismoSupervisorVista() {
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={CalendarRange}
-          color={MORADO}
+          color={DEPARTAMENTO_META.EVANGELISMO.color}
           titulo="Resumen semanal"
           descripcion="Semanas del mes con actividad -- tocá una para ver el detalle"
         />
