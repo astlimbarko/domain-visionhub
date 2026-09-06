@@ -321,8 +321,15 @@ export function EvangelismoSupervisorVista() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ────────────────────────────────────────────────────────────── */}
+      {/* rounded-2xl a propósito, NO rounded-3xl: pedido explícito del owner
+          (2026-09-06) para que coincida con su mockup, que usa esquinas más
+          planas/rectangulares que la convención vigente del sistema de diseño
+          (rounded-3xl es el estándar documentado para "hero" en frontend-style,
+          usado en los 4 dashboards). Arranque intencional y acotado de un
+          rediseño gradual -- NO replicar este radio en otros heroes/dashboards
+          todavía sin que el owner lo confirme explícitamente. */}
       <div
-        className="relative overflow-hidden rounded-3xl bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
+        className="relative overflow-hidden rounded-2xl bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
         style={{ backgroundImage: 'url(/evangelismo-banner.png)', backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
       >
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
