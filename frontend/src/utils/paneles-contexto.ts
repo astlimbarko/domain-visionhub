@@ -10,6 +10,7 @@ import {
   type NavItem,
 } from '@/utils/permisos';
 import { ROUTES, rutaConstructorResumen } from '@/utils/constants';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 
 export const COLORES_NAVBAR_CONTEXTO = {
   SUPER_ADMIN: '#0A0E1A',
@@ -95,6 +96,9 @@ function rutaInicialContexto(contexto: ContextoActivo): string {
 function colorContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'LIDER_RED' && contexto.cargoRed === 'SUPERVISOR') {
     return COLORES_NAVBAR_CONTEXTO.SUPERVISOR_RED;
+  }
+  if (contexto.rolUI === 'LIDER_DEPARTAMENTO' && contexto.departamentoCodigo === 'EVANGELISMO') {
+    return DEPARTAMENTO_META.EVANGELISMO.color;
   }
   return COLORES_NAVBAR_CONTEXTO[contexto.rolUI];
 }
