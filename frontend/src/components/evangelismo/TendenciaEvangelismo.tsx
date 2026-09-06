@@ -6,10 +6,13 @@ import { aISO, desdeISO, inicioSemanaISO, nombreMesCorto, nombresDias, numeroSem
 
 type Granularidad = 'dia' | 'semana' | 'mes';
 
+// Orden cronológico (chico a grande) pedido explícito del owner (2026-09-06):
+// Día, Semana, Mes -- Semana sigue siendo la opción seleccionada por
+// defecto (ver useState más abajo), esto solo cambia el orden de los botones.
 const OPCIONES: { valor: Granularidad; etiqueta: string }[] = [
+  { valor: 'dia', etiqueta: 'Día' },
   { valor: 'semana', etiqueta: 'Semana' },
   { valor: 'mes', etiqueta: 'Mes' },
-  { valor: 'dia', etiqueta: 'Día' },
 ];
 
 const COLOR = DEPARTAMENTO_META.EVANGELISMO.color;
@@ -111,8 +114,21 @@ function TickEjeX({ x, y, payload, index, datos }: { x?: number; y?: number; pay
  * semana/mes/día. */
 function EtiquetaValor({ x, y, value, color, arriba }: { x?: number; y?: number; value?: number; color: string; arriba: boolean }) {
   if (x == null || y == null || !value) return null;
+  // fontSize 14 (subido de 11, pedido explícito del owner -- "se ven
+  // pequeños") + halo blanco vía paint-order/stroke para que se lea bien
+  // encima de la línea/grilla sin agregar una pastilla de fondo.
   return (
-    <text x={x} y={arriba ? y - 8 : y + 16} textAnchor="middle" fontSize={11} fontWeight={700} fill={color}>
+    <text
+      x={x}
+      y={arriba ? y - 10 : y + 18}
+      textAnchor="middle"
+      fontSize={14}
+      fontWeight={800}
+      fill={color}
+      stroke="var(--background)"
+      strokeWidth={3}
+      paintOrder="stroke"
+    >
       {value}
     </text>
   );
