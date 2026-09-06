@@ -40,8 +40,8 @@ function celdaCsv(valor: string | number | null): string {
   return `"${String(valor).replaceAll('"', '""')}"`;
 }
 
-function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null }[]): string {
-  const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio'];
+function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
+  const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio', 'Evangelizado por'];
   const lineas = filas.map((e) =>
     [
       celdaCsv(e.nombre_completo),
@@ -51,6 +51,7 @@ function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: 
       celdaCsv(e.tipo_evangelismo_nombre),
       celdaCsv(e.telefono_principal),
       celdaCsv(e.domicilio),
+      celdaCsv(e.evangelizado_por_nombre),
     ].join(',')
   );
   return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
@@ -331,7 +332,7 @@ export function EvangelismoPersonas() {
             </p>
           ) : (
             <div className={cn('overflow-x-auto rounded-xl border border-border/30 transition-opacity', isFetching && 'opacity-60')}>
-              <table className="w-full min-w-[760px] text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
@@ -386,6 +387,7 @@ export function EvangelismoPersonas() {
                       </Select>
                     </th>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Evangelizado por</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -410,6 +412,7 @@ export function EvangelismoPersonas() {
                         )}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{e.evangelizado_por_nombre ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>

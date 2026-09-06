@@ -644,6 +644,7 @@ export function Evangelismo() {
               domicilio: valores.domicilio || undefined,
               telefono: valores.telefono || undefined,
               tipo_evangelismo_id: valores.tipo_evangelismo_id,
+              evangelizado_por_id: valores.evangelizado_por_id,
             })
           }
         />

@@ -122,6 +122,9 @@ export interface EvangelizadoBusqueda {
   casa_de_paz_etiqueta: string;
   tipo_evangelismo_nombre: string | null;
   tipo_evangelismo_color: string | null;
+  /** Nombre de quien evangelizó (persona.evangelizado_por_id) -- KAN-338, columna
+   * existe desde el diseño original pero nunca se llenaba ni se mostraba. */
+  evangelizado_por_nombre: string | null;
   total: number;
 }
 
@@ -141,4 +144,6 @@ export interface NuevoEvangelizado {
   telefono?: string;
   fecha_nacimiento?: string;
   tipo_evangelismo_id?: string;
+  /** KAN-338: quién evangelizó (opcional, persona ya existente en el sistema). */
+  evangelizado_por_id?: string;
 }

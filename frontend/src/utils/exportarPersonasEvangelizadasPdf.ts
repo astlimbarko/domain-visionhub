@@ -9,6 +9,7 @@ export interface FilaPersonaEvangelizadaPdf {
   casa_de_paz_etiqueta: string;
   tipo_evangelismo_nombre: string | null;
   telefono_principal: string | null;
+  evangelizado_por_nombre: string | null;
 }
 
 function nombreArchivoConFecha(): string {
@@ -100,7 +101,7 @@ export async function exportarPersonasEvangelizadasPdf(
 
   autoTable(doc, {
     startY: 78,
-    head: [['#', 'Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono']],
+    head: [['#', 'Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Evangelizado por']],
     body: filas.map((f, i) => [
       String(i + 1),
       f.nombre_completo,
@@ -109,6 +110,7 @@ export async function exportarPersonasEvangelizadasPdf(
       f.casa_de_paz_etiqueta,
       f.tipo_evangelismo_nombre ?? '—',
       f.telefono_principal ?? '—',
+      f.evangelizado_por_nombre ?? '—',
     ]),
     theme: 'plain',
     styles: { fontSize: 8.5, textColor: 30, cellPadding: 5, lineColor: [225, 225, 225], lineWidth: 0.5 },
