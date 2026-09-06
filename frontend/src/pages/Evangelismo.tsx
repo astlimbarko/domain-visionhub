@@ -32,6 +32,7 @@ import {
   useCrearEvangelizado,
   useEvangelizados,
   useMetaPropia,
+  useSoyRolSuperiorDeCdp,
   useTasaEvangelismo,
   useTiposEvangelismo,
 } from '@/hooks/useEvangelismo';
@@ -86,6 +87,7 @@ export function Evangelismo() {
   const { data: tasa, isLoading: cargandoTasa } = useTasaEvangelismo(cdpActiva, desde, hasta);
   const { data: tasaAnterior } = useTasaEvangelismo(cdpActiva, desdeAnterior, hastaAnterior);
   const { data: metaPropia } = useMetaPropia(cdpActiva);
+  const { data: esRolSuperior } = useSoyRolSuperiorDeCdp(cdpActiva);
   // El input de meta propia se siembra con lo guardado en la BD -- antes ese
   // valor solo se mostraba como placeholder (texto gris, no el value real),
   // asi que si alguien clickeaba "Guardar" sin volver a escribirlo, se
@@ -169,9 +171,14 @@ export function Evangelismo() {
   // Mientras la meta de la Red esté vigente y todavía no se haya alcanzado,
   // la meta propia queda bloqueada (pedido del owner, 2026-08-03) -- el
   // backend ya lo hace cumplir (trg_bloquear_meta_propia_bajo_asignada,
-  // migración 93), esto solo refleja la misma regla en la UI.
+  // migración 93), esto solo refleja la misma regla en la UI. KAN-290: el
+  // backend exime de este bloqueo a quien ya es rol superior de la CdP
+  // (Pastor, Supervisor, Líder/Sublíder de Red) -- sin este chequeo la UI
+  // bloqueaba el campo con solo mirar el origen, aunque quien mira sea en
+  // realidad superior a quien asignó la meta (ej. una Pastora viendo su
+  // propia CdP con una meta puesta por el Líder de su Red).
   const metaAsignadaCumplida = esMetaAsignada(tasa?.origen) && tasa?.meta != null && evangelizadosActual >= tasa.meta;
-  const metaAsignadaBloqueando = esMetaAsignada(tasa?.origen) && !metaAsignadaCumplida;
+  const metaAsignadaBloqueando = esMetaAsignada(tasa?.origen) && !metaAsignadaCumplida && !esRolSuperior;
 
   async function guardarMeta() {
     const valor = metaLocal.trim() === '' ? null : Number(metaLocal);

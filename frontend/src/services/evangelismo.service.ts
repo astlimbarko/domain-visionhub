@@ -118,6 +118,18 @@ export async function obtenerMetaPropia(casaDePazId: string): Promise<MetaPropia
   return data;
 }
 
+// KAN-290: mismo chequeo que ya hace el backend (fn_bloquear_meta_propia_bajo_
+// asignada) para eximir del bloqueo de "meta propia" a quien ya es rol
+// superior de la CdP (Pastor/Supervisor/Líder o Sublíder de Red) -- sin esto
+// la UI bloqueaba el campo con solo mirar el origen de la meta vigente
+// (ASIGNADA/ASIGNADA_RED), sin importar si quien mira es en realidad superior
+// a quien la asignó.
+export async function soyRolSuperiorDeCdp(casaDePazId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_es_rol_superior_de_cdp', { p_casa_de_paz_id: casaDePazId });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function obtenerEvangelismoRed(redId: string, desde: string, hasta: string): Promise<EvangelizadoRed[]> {
   const { data, error } = await supabase.rpc('fn_evangelismo_red', { p_red_id: redId, p_desde: desde, p_hasta: hasta });
   if (error) throw error;

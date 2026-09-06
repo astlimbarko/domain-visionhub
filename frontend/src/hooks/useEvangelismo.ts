@@ -12,6 +12,7 @@ import {
   obtenerTasaEvangelismo,
   obtenerTasaEvangelismoRed,
   obtenerTiposEvangelismo,
+  soyRolSuperiorDeCdp,
 } from '@/services/evangelismo.service';
 import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado } from '@/types/evangelismo.types';
 
@@ -39,6 +40,17 @@ export function useMetaPropia(casaDePazId: string | undefined) {
   return useQuery({
     queryKey: ['evangelismo', 'meta-propia', casaDePazId],
     queryFn: () => obtenerMetaPropia(casaDePazId as string),
+    enabled: !!casaDePazId,
+  });
+}
+
+/** KAN-290: si quien mira ya es rol superior de esta CdP (Pastor, Supervisor,
+ * Líder/Sublíder de la Red), el bloqueo de "meta propia" por una meta
+ * asignada no debe aplicarle -- mismo criterio que ya exime el backend. */
+export function useSoyRolSuperiorDeCdp(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'rol-superior-cdp', casaDePazId],
+    queryFn: () => soyRolSuperiorDeCdp(casaDePazId as string),
     enabled: !!casaDePazId,
   });
 }
