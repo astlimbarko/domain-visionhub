@@ -209,7 +209,13 @@ export function Evangelismo() {
   // ve el mismo diseño que el Líder de Red pero pudiendo elegir cualquier
   // Red de la iglesia, y con el poder extra de asignarle una meta propia a
   // la Red (pedido del owner, 2026-08-06, ver EvangelismoRed.tsx).
-  if (rolUI === 'SUPERVISOR') return <EvangelismoSupervisorVista />;
+  // Pastor sumado acá (2026-09-06, bug real encontrado en vivo): "paridad
+  // completa con Supervisor" (KAN-86) ya es la regla en TODO el resto del
+  // sistema (Calendario.tsx, ConstructorResumen.tsx, EstructuraOrganizacional.tsx
+  // chequean ambos roles juntos) -- acá faltaba, así que un Pastor caía en el
+  // placeholder de "no tenés Casa de Paz asignada" en vez de ver el panel
+  // iglesia-completa, porque el Pastor tampoco lidera/sublidera ninguna CdP propia.
+  if (rolUI === 'SUPERVISOR' || rolUI === 'PASTOR') return <EvangelismoSupervisorVista />;
 
   // Departamento de Evangelismo (KAN-281): mismo panel iglesia-completa que
   // el Supervisor -- rol independiente, no depende de rol_sistema_enum
