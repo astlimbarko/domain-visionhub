@@ -27,3 +27,5 @@
 - [x] Banner: el color sólido aparecía primero y el PNG "saltaba" encima al cargar (se sentía como lento) -- separado a una capa `<img>` propia con fade-in de 500ms
 - [x] Tendencia: orden de botones Semana/Mes/Día → Día/Semana/Mes (cronológico), Semana sigue por defecto. Números de los picos de 11px a 14px + halo blanco para legibilidad
 - [ ] Falta: definir alcance de tarjetas/otros elementos con su propio radio nuevo (el owner lo pidió, sin definir medida todavía)
+- [x] KAN-336: implementado (ya no diferido) -- botón "Exportar PDF" en Personas evangelizadas, `jspdf-autotable` nueva (instalada también en Docker + reinicio), tamaño carta real, paginado, sobrio. Verificado leyendo el PDF generado directamente
+- [x] Tendencia: KPI "Total Meta" a naranja (color del hero), banner con fade-in (evita el salto de color a imagen), orden Día/Semana/Mes, números de picos más grandes (11px→14px + halo)
