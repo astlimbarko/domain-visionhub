@@ -25,6 +25,7 @@ import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangeli
 import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
+import { aISO, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 
 const POR_PAGINA = 50;
 // Tope razonable para una exportación completa (mismo criterio que Afirmación).
@@ -59,6 +60,35 @@ const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_TIPOS = '__todos__';
 
+// Filtro rápido de fechas (pedido explícito del owner, 2026-09-06) -- calcula
+// desde/hasta a partir de hoy, sin tocar el resto de filtros. "Esta semana"
+// y "Este mes" van hasta hoy (no hasta fin de semana/mes) para no incluir
+// días futuros vacíos.
+function rangoDeAtajo(atajo: string): { desde: string; hasta: string } {
+  const hoy = aISO(new Date());
+  switch (atajo) {
+    case 'hoy':
+      return { desde: hoy, hasta: hoy };
+    case 'ayer': {
+      const ayer = sumarDiasISO(hoy, -1);
+      return { desde: ayer, hasta: ayer };
+    }
+    case 'semana':
+      return { desde: inicioSemanaISO(hoy), hasta: hoy };
+    case 'mes':
+      return { desde: primerDiaMesRelativo(hoy, 0), hasta: hoy };
+    default:
+      return { desde: '', hasta: '' };
+  }
+}
+
+const ATAJOS_FECHA: { valor: string; etiqueta: string }[] = [
+  { valor: 'hoy', etiqueta: 'Hoy' },
+  { valor: 'ayer', etiqueta: 'Ayer' },
+  { valor: 'semana', etiqueta: 'Esta semana' },
+  { valor: 'mes', etiqueta: 'Este mes' },
+];
+
 export function EvangelismoPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
@@ -73,10 +103,18 @@ export function EvangelismoPersonas() {
   const [tipoId, setTipoId] = useState<string>(TODOS_LOS_TIPOS);
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
+  const [rangoRapido, setRangoRapido] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
+
+  function aplicarAtajoFecha(atajo: string) {
+    const { desde: d, hasta: h } = rangoDeAtajo(atajo);
+    setDesde(d);
+    setHasta(h);
+    setRangoRapido(atajo);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setTexto(textoInput), 300);
@@ -134,7 +172,7 @@ export function EvangelismoPersonas() {
   }
 
   // Descripción corta de los filtros activos para el encabezado del PDF --
-  // "Todos los registros" si no hay ninguno puesto.
+  // "Todas las Casas de Paz" si no hay ninguno puesto (pedido explícito).
   const filtroDescripcion = [
     texto.trim() && `"${texto.trim()}"`,
     redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
@@ -160,7 +198,7 @@ export function EvangelismoPersonas() {
         casaDePazIdFiltro,
         tipoIdFiltro
       );
-      exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
+      await exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
     } catch {
       toast.error('No se pudo exportar el PDF');
     } finally {
@@ -249,9 +287,42 @@ export function EvangelismoPersonas() {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-1.5">
-              <Input type="date" className={cn('w-[150px]', CAMPO_ESTILO)} value={desde} onChange={(e) => setDesde(e.target.value)} aria-label="Desde" />
+              <Input
+                type="date"
+                className={cn('w-[150px]', CAMPO_ESTILO)}
+                value={desde}
+                onChange={(e) => {
+                  setDesde(e.target.value);
+                  setRangoRapido(null);
+                }}
+                aria-label="Desde"
+              />
               <span className="text-xs text-muted-foreground">a</span>
-              <Input type="date" className={cn('w-[150px]', CAMPO_ESTILO)} value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label="Hasta" />
+              <Input
+                type="date"
+                className={cn('w-[150px]', CAMPO_ESTILO)}
+                value={hasta}
+                onChange={(e) => {
+                  setHasta(e.target.value);
+                  setRangoRapido(null);
+                }}
+                aria-label="Hasta"
+              />
+            </div>
+            <div className="flex gap-1.5">
+              {ATAJOS_FECHA.map((a) => (
+                <button
+                  key={a.valor}
+                  type="button"
+                  onClick={() => aplicarAtajoFecha(a.valor)}
+                  className={cn(
+                    'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
+                    rangoRapido === a.valor ? 'bg-primary text-primary-foreground' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                  )}
+                >
+                  {a.etiqueta}
+                </button>
+              ))}
             </div>
           </div>
 

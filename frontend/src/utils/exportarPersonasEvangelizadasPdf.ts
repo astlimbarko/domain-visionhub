@@ -12,7 +12,39 @@ export interface FilaPersonaEvangelizadaPdf {
 }
 
 function nombreArchivoConFecha(): string {
-  return `personas-evangelizadas-${new Date().toISOString().slice(0, 10)}.pdf`;
+  return `departamento-evangelismo-${new Date().toISOString().slice(0, 10)}.pdf`;
+}
+
+/** Rasteriza el ícono oficial (SVG, `public/icono-evangelismo.svg`) a PNG en
+ * memoria -- jsPDF `addImage` no soporta SVG directo, necesita un formato
+ * de bitmap. Si por algún motivo falla (ej. navegador viejo), el PDF sigue
+ * generándose sin ícono en vez de romper la descarga entera. */
+async function cargarIconoComoPng(): Promise<string | null> {
+  try {
+    const respuesta = await fetch('/icono-evangelismo.svg');
+    const svgTexto = await respuesta.text();
+    const url = URL.createObjectURL(new Blob([svgTexto], { type: 'image/svg+xml' }));
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('No se pudo cargar el ícono'));
+        img.src = url;
+      });
+      const tam = 128;
+      const canvas = document.createElement('canvas');
+      canvas.width = tam;
+      canvas.height = tam;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0, tam, tam);
+      return canvas.toDataURL('image/png');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -24,13 +56,22 @@ function nombreArchivoConFecha(): string {
  * franja fina del color institucional arriba, texto en negro/gris, sin
  * badges de color por fila.
  */
-export function exportarPersonasEvangelizadasPdf(
+export async function exportarPersonasEvangelizadasPdf(
   filas: FilaPersonaEvangelizadaPdf[],
   opciones: { iglesiaNombre: string; filtroDescripcion?: string }
-): void {
+): Promise<void> {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const anchoPagina = doc.internal.pageSize.getWidth();
   const color = DEPARTAMENTO_META.EVANGELISMO.color;
+  const iconoDataUrl = await cargarIconoComoPng();
+  // Margen de seguridad 46pt (~0.64") en vez de 40pt -- pedido explícito del
+  // owner tras ver el PDF impreso: el contenido quedaba dentro de la zona no
+  // imprimible de algunas impresoras. Se usa el mismo valor para el margen
+  // de la tabla (`margin.left/right` más abajo) para que todo quede alineado.
+  const MARGEN = 46;
+  // Si hay ícono, el título arranca despues de la caja del ícono; si no
+  // pudo cargar, arranca desde el margen como antes.
+  const xTexto = iconoDataUrl ? MARGEN + 28 : MARGEN;
 
   function encabezadoYPie() {
     // Franja fina de color institucional -- único toque de color, no un
@@ -38,19 +79,21 @@ export function exportarPersonasEvangelizadasPdf(
     doc.setFillColor(color);
     doc.rect(0, 0, anchoPagina, 6, 'F');
 
+    if (iconoDataUrl) doc.addImage(iconoDataUrl, 'PNG', MARGEN, 16, 22, 22);
+
     doc.setFontSize(15);
     doc.setTextColor(20);
-    doc.text('Personas evangelizadas', 40, 34);
+    doc.text('Departamento de Evangelismo', xTexto, 34);
 
     doc.setFontSize(9);
     doc.setTextColor(110);
-    doc.text(opciones.iglesiaNombre, 40, 50);
-    const detalle = opciones.filtroDescripcion ? `Filtro: ${opciones.filtroDescripcion}` : 'Todos los registros';
-    doc.text(detalle, 40, 62);
+    doc.text(opciones.iglesiaNombre, xTexto, 50);
+    const detalle = opciones.filtroDescripcion ? `Filtro: ${opciones.filtroDescripcion}` : 'Casas de Paz';
+    doc.text(detalle, xTexto, 62);
     const ahora = new Date();
-    const fechaHora = `${ahora.toLocaleDateString('es-BO')} ${ahora.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`;
-    doc.text(`Generado el ${fechaHora}`, anchoPagina - 40, 34, { align: 'right' });
-    doc.text(`Total: ${filas.length}`, anchoPagina - 40, 50, { align: 'right' });
+    const fechaHora = `${ahora.toLocaleDateString('es-BO')} - ${ahora.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`;
+    doc.text(`Generado el ${fechaHora}`, anchoPagina - MARGEN, 34, { align: 'right' });
+    doc.text(`Total: ${filas.length}`, anchoPagina - MARGEN, 50, { align: 'right' });
   }
 
   encabezadoYPie();
@@ -72,14 +115,14 @@ export function exportarPersonasEvangelizadasPdf(
     headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5 },
     alternateRowStyles: { fillColor: [250, 250, 251] },
     columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 55 } },
-    margin: { top: 78, left: 40, right: 40 },
+    margin: { top: 78, left: MARGEN, right: MARGEN, bottom: 50 },
     didDrawPage: (data) => {
       // Encabezado se repite en cada página nueva (autoTable ya recorta el
       // primero con margin.top, esto es para la 2da en adelante).
       if (data.pageNumber > 1) encabezadoYPie();
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text(`Página ${data.pageNumber}`, anchoPagina / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' });
+      doc.text(`Página ${data.pageNumber}`, anchoPagina / 2, doc.internal.pageSize.getHeight() - 26, { align: 'center' });
     },
   });
 
