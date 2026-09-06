@@ -3,7 +3,8 @@
  * asignacion real y conserva su ContextoActivo completo.
  */
 import type { LucideIcon } from 'lucide-react';
-import { MapPin, User } from 'lucide-react';
+import { HeartHandshake, MapPin, User } from 'lucide-react';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
@@ -65,6 +66,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   const esPastor = iglesiaActiva?.es_pastor ?? false;
   const esOperativo = iglesiaActiva?.es_operativo ?? false;
   const esLiderAfirmacion = iglesiaActiva?.es_lider_afirmacion ?? false;
+  const esLiderEvangelismo = iglesiaActiva?.es_lider_evangelismo ?? false;
   const { data: roles, isLoading } = useMisRoles(iglesiaActivaId ?? undefined);
 
   // Caso límite del Super Admin: Super Admin sin iglesia activa no
@@ -143,6 +145,16 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
     opciones.push({
       key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'AFIRMACION' },
+      lineas: [],
+    });
+  }
+
+  if (esLiderEvangelismo) {
+    opciones.push({
+      key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO',
+      titulo: 'Líder de Departamento de Evangelismo', icon: HeartHandshake,
+      bgIcono: '#fdf3d6', colorIcono: DEPARTAMENTO_META.EVANGELISMO.color,
+      contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'EVANGELISMO' },
       lineas: [],
     });
   }

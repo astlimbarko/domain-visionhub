@@ -2,6 +2,7 @@ import { Network } from 'lucide-react';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import {
   NAV_ITEMS_AFIRMACION,
+  NAV_ITEM_EVANGELISMO,
   NAV_ITEM_JOVENES,
   NAV_ITEM_MATRIMONIOS,
   obtenerNavItems,
@@ -39,7 +40,9 @@ function tituloContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'SUPER_ADMIN') return 'Administración';
   if (contexto.rolUI === 'PASTOR') return 'Pastor';
   if (contexto.rolUI === 'SUPERVISOR') return 'Supervisor de la Visión en Acción';
-  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return 'Líder de Afirmación';
+  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
+    return contexto.departamentoCodigo === 'EVANGELISMO' ? 'Líder de Departamento de Evangelismo' : 'Líder de Afirmación';
+  }
   if (contexto.rolUI === 'LIDER_RED') {
     return contexto.cargoRed === 'SUPERVISOR' ? 'Supervisor de Red' : 'Líder de Red';
   }
@@ -50,7 +53,9 @@ function tituloContexto(contexto: ContextoActivo): string {
 }
 
 function navContexto(contexto: ContextoActivo): NavItem[] {
-  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return NAV_ITEMS_AFIRMACION;
+  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
+    return contexto.departamentoCodigo === 'EVANGELISMO' ? [NAV_ITEM_EVANGELISMO] : NAV_ITEMS_AFIRMACION;
+  }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];
   const items = obtenerNavItems(contexto.rolUI);
@@ -79,7 +84,9 @@ function navContexto(contexto: ContextoActivo): NavItem[] {
 function rutaInicialContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'SUPER_ADMIN') return ROUTES.ADMINISTRACION;
   if (contexto.rolUI === 'SUBLIDER_CDP') return ROUTES.CASAS_DE_PAZ;
-  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') return ROUTES.AFIRMACION;
+  if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
+    return contexto.departamentoCodigo === 'EVANGELISMO' ? ROUTES.EVANGELISMO : ROUTES.AFIRMACION;
+  }
   if (contexto.rolUI === 'LIDER_JOVENES') return ROUTES.JOVENES;
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return ROUTES.MATRIMONIOS;
   return ROUTES.DASHBOARD;

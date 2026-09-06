@@ -164,18 +164,22 @@ const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
 ];
 
-// Líder de Departamento (hoy solo Afirmación es funcional) -- capacidad que
-// antes era ortogonal al RolUI (NAV_ITEMS_AFIRMACION, useEsLiderAfirmacion)
+// Líder de Departamento (Afirmación y, desde KAN-281, Evangelismo) -- capacidad
+// que antes era ortogonal al RolUI (NAV_ITEMS_AFIRMACION, useEsLiderAfirmacion)
 // y bypaseaba el picker multi-rol por completo. 2026-08-01: pasa a ser un
 // RolUI mas para que aparezca como opcion en "Seleccionar rol" cuando la
 // persona ademas tiene otro rol -- antes eso era irrealizable (quien tenia
 // Lider de CdP + Lider de Afirmacion nunca llegaba a ver la segunda).
+// Lista compartida entre departamentos (RolUI no distingue cual): la RPC/RLS
+// de cada pantalla (fn_es_lider_afirmacion_en / fn_es_lider_evangelismo_en)
+// es el limite de seguridad real, esto solo decide que ruta/nav se muestra.
 const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION,
   ROUTES.AFIRMACION_FORMULARIO,
   ROUTES.AFIRMACION_URLS,
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
   ROUTES.AFIRMACION_PERSONAS,
+  ROUTES.EVANGELISMO,
 ];
 const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
 const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
@@ -250,6 +254,9 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,
 // visibles segun useEsLiderJovenes()/useEsEncargadoMatrimonios() -- mismo
 // patron ortogonal que Afirmación, no dependen de RUTAS_POR_ROL.
+// Departamento de Evangelismo (KAN-281): una sola pantalla (reusa el panel
+// iglesia-completa del Supervisor), a diferencia de Afirmación que tiene 5.
+export const NAV_ITEM_EVANGELISMO: NavItem = { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color };
 export const NAV_ITEM_JOVENES: NavItem = { icon: Users, label: 'Jóvenes', path: ROUTES.JOVENES, color: '#ff9500' };
 export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios', path: ROUTES.MATRIMONIOS, color: '#ff375f' };
 

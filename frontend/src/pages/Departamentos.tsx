@@ -15,7 +15,7 @@ import {
 } from '@/hooks/usePanelSupervisor';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { useAuthStore } from '@/store/auth.store';
-import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
+import { DEPARTAMENTOS_FUNCIONALES, DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAsignarCargoGlobal, useCargoVigenteGlobal, useQuitarCargoGlobal } from '@/hooks/useRolesGlobalesDatos';
 import type { CodigoRolGlobal } from '@/services/roles-globales.service';
 import type { DepartamentoItem } from '@/types/panel-supervisor.types';
@@ -298,8 +298,8 @@ function RolGlobalCard({ codigo, nombre, icon: Icon, color, iglesiaActivaId }: R
 }
 
 /** Menú dedicado del Supervisor de la Visión en Acción para gestionar a los
- * 4 líderes de departamento (2026-08-01, pedido explícito). Hoy solo
- * Afirmación tiene la asignación funcional -- los otros 3 ya existen en la
+ * 4 líderes de departamento (2026-08-01, pedido explícito). Afirmación y
+ * Evangelismo (KAN-281) tienen la asignación funcional -- los otros 2 ya existen en la
  * base pero quedan "Próximamente" hasta que se pida construirlos. */
 export function Departamentos() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
@@ -324,7 +324,7 @@ export function Departamentos() {
       <SeccionIconHeader icon={LayoutGrid} color="#af52de" titulo="Departamentos" descripcion="Un líder por departamento en esta iglesia." />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {panel.departamentos.map((d) => {
-          const funcional = d.codigo === DEPARTAMENTO_FUNCIONAL;
+          const funcional = DEPARTAMENTOS_FUNCIONALES.includes(d.codigo);
           const invitacionPendiente = invitaciones.find((i) => i.departamento_id === d.id && i.estado === 'PENDIENTE');
           return (
             <DepartamentoCard

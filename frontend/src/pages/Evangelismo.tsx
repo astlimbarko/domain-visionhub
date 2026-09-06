@@ -204,6 +204,13 @@ export function Evangelismo() {
   // la Red (pedido del owner, 2026-08-06, ver EvangelismoRed.tsx).
   if (rolUI === 'SUPERVISOR') return <EvangelismoSupervisorVista />;
 
+  // Departamento de Evangelismo (KAN-281): mismo panel iglesia-completa que
+  // el Supervisor -- rol independiente, no depende de rol_sistema_enum
+  // (contextoActivo.alcance === 'DEPARTAMENTO', igual que Afirmación).
+  if (contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO') {
+    return <EvangelismoSupervisorVista />;
+  }
+
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
   if (!cdpActiva || !misCasas?.some((c) => c.casa_de_paz_id === cdpActiva)) {

@@ -84,6 +84,17 @@ export function construirContextosDisponibles({
     });
   }
 
+  if (iglesia.es_lider_evangelismo) {
+    contextos.push({
+      clave: `LIDER_DEPARTAMENTO:${iglesia.id}:EVANGELISMO`,
+      rolUI: 'LIDER_DEPARTAMENTO',
+      alcance: 'DEPARTAMENTO',
+      iglesiaId: iglesia.id,
+      departamentoId: null,
+      departamentoCodigo: 'EVANGELISMO',
+    });
+  }
+
   if (iglesia.es_lider_jovenes) {
     contextos.push({
       clave: `LIDER_JOVENES:${iglesia.id}`,
