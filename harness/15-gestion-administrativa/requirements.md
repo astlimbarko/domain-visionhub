@@ -216,6 +216,34 @@ sus nombres **en verbos** y color institucional:
 en `departamento`, sembrada por iglesia) y usarse consistentemente en toda la UI
 que muestre departamentos.
 
+## 8bis. KAN-339 — Acceso ampliado a Afirmación/Evangelismo (2026-09-06)
+
+Ver diseño técnico completo en `technical-design.md` §12 y decisiones cerradas
+en `open-questions.md`.
+
+**REQ-339-1** — THE Pastor y el Supervisor de la Visión en Acción SHALL tener
+**control total** (lectura y escritura, mismo nivel que el Líder del
+Departamento) sobre los paneles de Afirmación y Evangelismo.
+
+**REQ-339-2** — THE Super Admin SHALL poder ingresar en **modo de solo
+lectura** a los paneles de Afirmación y Evangelismo de cualquier iglesia,
+únicamente mediante una acción explícita ("Visualizar") desde el Constructor
+-- nunca por defecto.
+
+**REQ-339-3** — WHILE el Super Admin esté en modo de solo lectura, THE sistema
+SHALL mostrar el mismo menú de navegación y las mismas pantallas que vería el
+Líder real de ese Departamento, con un indicador visible "Modo lectura", y
+SHALL ocultar toda acción de escritura (crear/editar/asignar/eliminar).
+
+**REQ-339-4** — THE restricción de solo lectura del Super Admin SHALL
+aplicarse en el backend (RPC de escritura sin el chequeo de Super Admin), no
+únicamente ocultando botones en el frontend.
+
+**REQ-339-5** — THE acción "Visualizar" SHALL estar disponible en dos lugares
+equivalentes: la tarjeta del Departamento en el lienzo del Constructor, y el
+panel lateral (`PanelDepartamentoEstructura`) que se abre al hacer clic en
+esa tarjeta.
+
 ## 9. Requisitos transversales de interfaz
 
 **REQ-UI-1 (pie de soporte)** — THE menú lateral izquierdo SHALL incluir, en su

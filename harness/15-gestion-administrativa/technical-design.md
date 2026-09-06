@@ -230,3 +230,121 @@ documentada por si se prefiere no mantener Edge Function propia.
 - Frontend: `cd frontend && npx tsc -b && npm run lint` sin errores nuevos.
 - OTP: prueba de entrega real por correo (buzón desechable + `astlimbark@gmail.com`),
   como se hizo con las plantillas de EMAILS-AUTH.
+
+## 12. KAN-339 — Vista de supervisión (Super Admin) + control total (Pastor/Supervisor) en Afirmación y Evangelismo
+
+**Contexto (2026-09-06):** hoy Pastor/Supervisor de la Visión en Acción ya tienen
+control total sobre Evangelismo (`RUTAS_SUPERVISOR` incluye `EVANGELISMO*`,
+reutilizando el mismo panel que el Líder de Departamento -- ver
+[06-evangelismo-cdp](../06-evangelismo-cdp/requirements.md)), pero **cero acceso
+a Afirmación** (`RUTAS_SUPERVISOR` no incluye ninguna ruta `AFIRMACION_*`).
+Super Admin no tiene acceso a **ningún** panel de departamento -- solo ve la
+estructura (nombres, líder asignado) en el Constructor
+(`PanelDepartamentoEstructura.tsx`).
+
+### 12.1 Mapa de acceso objetivo (decisión cerrada con el owner)
+
+| Rol | Afirmación | Evangelismo |
+|---|---|---|
+| Líder del Departamento | Control total (sin cambios) | Control total (sin cambios) |
+| Pastor / Supervisor de la Visión en Acción | **Control total (nuevo)** | Control total (ya existe) |
+| Super Admin | **Solo lectura, bajo demanda (nuevo)** | **Solo lectura, bajo demanda (nuevo)** |
+
+Pastor/Supervisor **no** son "solo lectura" -- tienen el mismo nivel que el
+Líder real. Solo Super Admin es de solo lectura, y solo cuando entra
+explícitamente por la acción descrita en 12.3 (nunca por defecto ni sin querer).
+
+### 12.2 Backend -- el "modo lectura" no es un flag, es "qué RPC lo permiten"
+
+Sin agregar ningún concepto nuevo de "modo" en runtime: se logra sumando el
+chequeo correcto a cada función, igual que ya se hizo con Evangelismo en
+KAN-281 (ver `fn_es_lider_evangelismo_en` sumado como wrapper de
+`fn_es_lider_departamento`).
+
+- **Afirmación, dar control total a Pastor/Supervisor:** sumar
+  `fn_es_operativo_en(iglesia_id) OR fn_es_pastor_en(iglesia_id)` a las RPC de
+  Afirmación existentes (lectura Y escritura) que hoy solo chequean
+  `fn_es_lider_afirmacion_en` -- mismo patrón exacto que
+  `supabase/migrations/20260905010000_kan281_departamento_evangelismo.sql`
+  aplicó para Evangelismo. Auditar todas las RPC de
+  `frontend/src/services/afirmacion.service.ts` antes de tocar nada.
+- **Super Admin, dar SOLO lectura a ambos departamentos:** sumar
+  `fn_es_super_admin()` (ya existe, usado en `20260805*` y otras -- no
+  inventar una nueva) **únicamente** a las RPC de **lectura** (listar
+  personas, KPIs, tendencia, metas efectivas, calendario). **Nunca** a las de
+  escritura (registrar/editar/asignar/eliminar) -- así el backend rechaza
+  cualquier intento de escritura de Super Admin sin necesitar un flag
+  explícito de "modo". Esta es la única fuente real de la restricción; el
+  frontend (12.4) es solo para no mostrar botones que el backend igual
+  rechazaría.
+
+### 12.3 Entrada -- Constructor, ambos lugares (pedido explícito del owner)
+
+Menú de 3 puntos (ícono `MoreVertical` o similar, `DropdownMenu` con
+`modal={false}` -- mismo patrón recién aplicado en KAN-343 para evitar el
+corrimiento de layout) en **dos lugares a la vez**, mismo componente/acción
+detrás de ambos:
+
+1. En la tarjeta del Departamento dentro del lienzo del Constructor
+   (`EstructuraOrganizacional.tsx` / el nodo visual, hoy sin ningún menú).
+2. Dentro de `PanelDepartamentoEstructura.tsx` (el panel lateral que ya se
+   abre al hacer clic en el Departamento -- agregar el botón junto al de
+   Cambiar/Asignar líder, en el header).
+
+Por ahora **una sola opción** en el menú: **"Visualizar"** (o "Ver panel").
+Solo visible si `esFuncional` (hoy Afirmación/Evangelismo) y el usuario es
+Super Admin -- Discipulado/Envío ("Próximamente") no ofrecen esta acción
+porque no hay nada que ver.
+
+`PanelDepartamentoEstructura` ya tiene `iglesiaId` y `departamento.codigo` en
+scope -- la acción "Visualizar" no necesita resolver "para qué iglesia", ya
+lo sabe.
+
+### 12.4 Cómo se ve el modo lectura -- reusa la infraestructura de `contextoActivo`, no crea una paralela
+
+El owner pidió explícitamente: **"miraría exactamente lo que mira el
+departamento"** -- no una pantalla suelta, sino el **mismo nav lateral** que
+ve un Líder de Departamento real (para Evangelismo: los 2 ítems
+"Evangelismo" + "Personas evangelizadas"; para Afirmación: sus ~5 ítems --
+Dashboard, Formulario de membresía, URL de membresía, Casas de Paz,
+Personas), para poder navegar entre TODAS sus pantallas igual que lo haría
+el rol real y así detectar fallas ("nosotros también lo veríamos").
+
+Implementación: al hacer clic en "Visualizar", setear un `contextoActivo`
+sintético (mismo mecanismo que ya usa el selector de rol multi-sombrero,
+`useContextoActivo`/`setContextoActivo` en `auth.store`) con
+`rolUI: 'LIDER_DEPARTAMENTO'`, `departamentoCodigo` del departamento
+clickeado, `iglesiaId` de esa iglesia (no la del propio Super Admin, que no
+tiene una fija), y un campo nuevo `soloLectura: true` en `ContextoActivo`
+(`types/contexto-activo.types.ts`). `paneles-contexto.ts`/`obtenerNavItems`
+ya resuelven el nav a partir de `departamentoCodigo` -- no hace falta
+tocarlos, solo que ellos (o los componentes de cada panel) lean
+`soloLectura` para:
+
+- Mostrar un banner/badge fijo arriba de todo el panel: **"Modo lectura"**
+  (texto exacto pedido por el owner) -- un solo componente chico reusado en
+  ambos departamentos, no duplicado.
+- Ocultar botones de escritura (Asignar metas, Nuevo evangelizado/afirmado,
+  Editar metas, etc.) vía un solo booleano derivado `puedoEditar = !soloLectura`
+  en cada panel -- no un sistema de permisos nuevo, ver 12.2 para por qué el
+  backend ya está cubierto igual si algo se cuela.
+- Un botón **"Volver"** (mismo patrón ya usado en `EvangelismoRedes.tsx`) que
+  limpia el `contextoActivo` sintético y navega de vuelta al Constructor de
+  esa iglesia.
+
+### 12.5 Preparado para KAN-340 (Mini Departamentos por Red)
+
+Este diseño ya deja el terreno listo para el siguiente ticket sin
+duplicar nada: el mismo `contextoActivo` sintético hoy lleva
+`{ departamentoCodigo, iglesiaId, soloLectura }` -- KAN-340 solo necesita
+sumarle un `redId` opcional (alcance `red` en vez de `iglesia`) y que las
+RPC de lectura/escritura de Afirmación/Evangelismo acepten ese alcance más
+acotado. No se toca la UI del menú de 3 puntos ni el banner "Modo lectura"
+-- ya son genéricos.
+
+### 12.6 Abierto / a decidir en implementación (no bloquea el diseño)
+
+- Nombre exacto del ícono/label del menú de 3 puntos ("Visualizar" vs "Ver
+  panel" vs "Ver actividad" -- el owner mencionó las 3 como equivalentes).
+- Si Discipulado/Envío alguna vez pasan a `esFuncional`, esta misma acción
+  ya los cubre sin cambios (genérico por `departamento.codigo`).

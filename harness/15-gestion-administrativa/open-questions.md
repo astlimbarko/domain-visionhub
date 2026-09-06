@@ -16,6 +16,20 @@
   la iglesia madre (se amplía `fn_crear_iglesia`).
 - ✅ **RESUELTA — Supervisor de Red de la Visión en Acción.** Se **incluye como
   rol nuevo** (`ALTER TYPE rol_sistema_enum ADD VALUE`).
+- ✅ **RESUELTA (2026-09-06) — KAN-339, mapa de acceso a Afirmación/Evangelismo.**
+  Pastor/Supervisor: **control total** en ambos (no solo lectura) -- para
+  Afirmación es nuevo, para Evangelismo ya existía. Super Admin: **solo
+  lectura**, solo entrando explícitamente desde el Constructor (nunca por
+  defecto). Ver diseño completo en `technical-design.md` §12.
+- ✅ **RESUELTA (2026-09-06) — KAN-339, entrada del Super Admin.** Menú de 3
+  puntos en **ambos lugares a la vez**: la tarjeta del Departamento en el
+  lienzo del Constructor Y el panel lateral (`PanelDepartamentoEstructura`).
+  Una sola opción por ahora ("Visualizar"/similar).
+- ✅ **RESUELTA (2026-09-06) — KAN-339, alcance de la vista de solo lectura.**
+  El Super Admin ve **exactamente el mismo nav y las mismas pantallas** que
+  vería el Líder del Departamento real (no solo el dashboard principal) --
+  para poder detectar fallas navegando igual que ese rol. Sale con un botón
+  "Volver" al Constructor de esa iglesia.
 - ✅ **RESUELTA — Confirmación sensible.** Reemplazar el **PIN estático por OTP por
   correo** (código de un solo uso). No hay plantilla aún; se implementa (Edge
   Function + HTML propio).
@@ -46,3 +60,6 @@
   incluir rol + iglesia activa + ruta actual. (Panel 0)
 - **OQ-MIGR-NUM** — Confirmar los números de migración libres al momento de
   implementar (Matías puede haber agregado archivos SQL nuevos). Ajustar 55+.
+- **OQ-339-LABEL** — Texto exacto del ítem único del menú de 3 puntos (KAN-339):
+  "Visualizar" / "Ver panel" / "Ver actividad" -- el owner mencionó los 3 como
+  equivalentes, no bloquea el diseño. (§12.6 de technical-design.md)
