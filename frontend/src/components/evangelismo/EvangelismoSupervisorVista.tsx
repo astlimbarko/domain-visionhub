@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, Heart, HeartHandshake, Home, MapPin, Pencil, Target, UsersRound } from 'lucide-react';
+import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Heart, HeartHandshake, Home, Pencil, Target, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,13 +10,14 @@ import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
-import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
+import type { PersonaDelDia } from '@/components/evangelismo/ListaPersonasDia';
+import { AcordeonRedesCdp, type RedConActividad } from '@/components/evangelismo/AcordeonRedesCdp';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignada, obtenerTasaEvangelismoRed } from '@/services/evangelismo.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
-import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
 
@@ -140,21 +141,89 @@ export function EvangelismoSupervisorVista() {
 
   const evangelizadosTodos = useMemo<EvangelizadoRed[]>(() => filas.flatMap((f) => f.evangelizados), [filas]);
 
-  // Agrupado por CdP el día elegido, con su líder -- lo que pidió el owner
-  // ("Detalle del día": Casa de Paz, cantidad, Líder), no una lista plana de personas.
-  const grupoDelDia = useMemo(() => {
-    if (!diaSeleccionado) return [];
-    const conteos = new Map<string, { etiqueta: string; cantidad: number }>();
-    for (const e of evangelizadosTodos) {
-      if (e.fecha !== diaSeleccionado) continue;
-      const g = conteos.get(e.casa_de_paz_id) ?? { etiqueta: e.casa_de_paz_etiqueta, cantidad: 0 };
-      g.cantidad += 1;
-      conteos.set(e.casa_de_paz_id, g);
+// Agrupado Red -> Casa de Paz -> personas -- navegabilidad de punta a punta
+  // (KAN-286): clic en una Red la expande, cada persona es un PersonaNombreLink
+  // que abre su ficha. Genérico por rango de fechas (predicado) para reusarlo
+  // tanto en "Detalle del día" como en "Resumen semanal" (KAN-285) -- solo se
+  // listan Redes/CdP que tuvieron actividad en ese rango (nunca la estructura
+  // completa de la iglesia), así el tamaño se mantiene chico sin importar
+  // cuántas Redes/CdP tenga la iglesia.
+  const agruparPorRedYCdp = useCallback((estaEnRango: (fecha: string) => boolean): RedConActividad[] => {
+    const porRed = new Map<string, { redNombre: string; cdps: Map<string, { etiqueta: string; liderId: string | null; liderNombre: string | null; personas: PersonaDelDia[] }> }>();
+    for (const fila of filas) {
+      for (const e of fila.evangelizados) {
+        if (!estaEnRango(e.fecha)) continue;
+        const redNombre = redes.find((r) => r.id === fila.redId)?.nombre ?? '—';
+        let grupoRed = porRed.get(fila.redId);
+        if (!grupoRed) { grupoRed = { redNombre, cdps: new Map() }; porRed.set(fila.redId, grupoRed); }
+        let grupoCdp = grupoRed.cdps.get(e.casa_de_paz_id);
+        if (!grupoCdp) {
+          const cdpInfo = cdpPorId.get(e.casa_de_paz_id);
+          grupoCdp = { etiqueta: e.casa_de_paz_etiqueta, liderId: cdpInfo?.lider_id ?? null, liderNombre: cdpInfo?.lider_nombre ?? null, personas: [] };
+          grupoRed.cdps.set(e.casa_de_paz_id, grupoCdp);
+        }
+        grupoCdp.personas.push({ id: e.id, personaId: e.persona_id, nombre: e.nombre_completo, tipoNombre: e.tipo_evangelismo_nombre, tipoColor: e.tipo_evangelismo_color });
+      }
     }
-    return Array.from(conteos.entries())
-      .map(([casaDePazId, g]) => ({ casaDePazId, etiqueta: g.etiqueta, cantidad: g.cantidad, liderId: cdpPorId.get(casaDePazId)?.lider_id ?? null, liderNombre: cdpPorId.get(casaDePazId)?.lider_nombre ?? null }))
-      .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
-  }, [evangelizadosTodos, diaSeleccionado, cdpPorId]);
+    return Array.from(porRed.entries())
+      .map(([redId, g]) => {
+        const cdps = Array.from(g.cdps.entries())
+          .map(([cdpId, c]) => ({ cdpId, ...c, total: c.personas.length }))
+          .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
+        return { redId, redNombre: g.redNombre, total: cdps.reduce((s, c) => s + c.total, 0), cdps };
+      })
+      .sort((a, b) => a.redNombre.localeCompare(b.redNombre));
+  }, [filas, cdpPorId, redes]);
+
+  const detalleDelDia = useMemo(
+    () => (diaSeleccionado ? agruparPorRedYCdp((fecha) => fecha === diaSeleccionado) : []),
+    [diaSeleccionado, agruparPorRedYCdp],
+  );
+
+  const [redesExpandidas, setRedesExpandidas] = useState<Set<string>>(new Set());
+  function alternarRedExpandida(redId: string) {
+    setRedesExpandidas((prev) => {
+      const next = new Set(prev);
+      if (next.has(redId)) next.delete(redId); else next.add(redId);
+      return next;
+    });
+  }
+  function seleccionarDia(fecha: string | null) {
+    setDiaSeleccionado(fecha);
+    setRedesExpandidas(new Set());
+  }
+
+  // Resumen semanal (KAN-285): semanas ISO (lunes a domingo) que tocan el mes
+  // en pantalla y tuvieron al menos un registro -- no las semanas vacías.
+  const semanasDelMes = useMemo(() => {
+    const totales = new Map<string, number>();
+    for (const e of evangelizadosTodos) {
+      const inicio = inicioSemanaISO(e.fecha);
+      totales.set(inicio, (totales.get(inicio) ?? 0) + 1);
+    }
+    return Array.from(totales.entries())
+      .map(([inicio, total]) => ({ inicio, fin: finSemanaISO(inicio), total }))
+      .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  }, [evangelizadosTodos]);
+
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState<string | null>(null);
+  const [redesExpandidasSemana, setRedesExpandidasSemana] = useState<Set<string>>(new Set());
+  function alternarRedExpandidaSemana(redId: string) {
+    setRedesExpandidasSemana((prev) => {
+      const next = new Set(prev);
+      if (next.has(redId)) next.delete(redId); else next.add(redId);
+      return next;
+    });
+  }
+  function seleccionarSemana(inicio: string | null) {
+    setSemanaSeleccionada((actual) => (actual === inicio ? null : inicio));
+    setRedesExpandidasSemana(new Set());
+  }
+  const semanaActiva = semanasDelMes.find((s) => s.inicio === semanaSeleccionada) ?? null;
+  const detalleSemana = useMemo(
+    () => (semanaActiva ? agruparPorRedYCdp((fecha) => fecha >= semanaActiva.inicio && fecha <= semanaActiva.fin) : []),
+    [semanaActiva, agruparPorRedYCdp],
+  );
 
   const asignarMetaRed = useMutation({
     mutationFn: (params: { redId: string; meta: number; fechaInicio: string; fechaFin: string }) =>
@@ -256,7 +325,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── Navegación de mes ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 self-center rounded-2xl border border-border/60 bg-muted/20 p-2 sm:self-start sm:pl-4">
-        <span className="w-36 text-center text-sm font-semibold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
+        <span className="w-48 text-center text-xl font-bold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -325,12 +394,18 @@ export function EvangelismoSupervisorVista() {
       {/* ── Calendario + Detalle del día, agregado de toda la iglesia ────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={CELESTE} titulo="Calendario" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader
+            icon={CalendarRange}
+            color={CELESTE}
+            titulo="Calendario"
+            descripcion="Días en los que alguna Casa de Paz registró evangelismo"
+            accion={<span className="text-lg font-bold capitalize" style={{ color: CELESTE }}>{nombreMes(anio, mes)}</span>}
+          />
           <div className="p-4">
             {cargandoResumen ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
             ) : (
-              <CalendarioEvangelismo anio={anio} mes={mes} evangelizados={evangelizadosTodos} diaSeleccionado={diaSeleccionado} onSeleccionarDia={setDiaSeleccionado} />
+              <CalendarioEvangelismo anio={anio} mes={mes} evangelizados={evangelizadosTodos} diaSeleccionado={diaSeleccionado} onSeleccionarDia={seleccionarDia} />
             )}
           </div>
         </section>
@@ -340,10 +415,10 @@ export function EvangelismoSupervisorVista() {
             icon={HeartHandshake}
             color={AZUL}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Detalle del día'}
-            descripcion={diaSeleccionado ? `${grupoDelDia.length} Casa${grupoDelDia.length === 1 ? '' : 's'} de Paz con actividad` : 'Elegí un día del calendario'}
+            descripcion={diaSeleccionado ? `${detalleDelDia.length} Red${detalleDelDia.length === 1 ? '' : 'es'} con actividad` : 'Elegí un día del calendario'}
             accion={
               diaSeleccionado && (
-                <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => setDiaSeleccionado(null)}>
+                <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => seleccionarDia(null)}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                   Volver
                 </Button>
@@ -352,25 +427,51 @@ export function EvangelismoSupervisorVista() {
           />
           <div className="flex flex-col gap-2 p-5">
             {!diaSeleccionado && <p className="text-sm text-muted-foreground">Elegí un día en el calendario para ver el detalle.</p>}
-            {diaSeleccionado && grupoDelDia.length === 0 && <p className="text-sm text-muted-foreground">Nadie registrado este día.</p>}
-            {diaSeleccionado && grupoDelDia.map((g) => (
-              <div key={g.casaDePazId} className="flex flex-col gap-1 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <Home className="h-3.5 w-3.5 shrink-0" style={{ color: AZUL }} />
-                  {g.etiqueta}
-                </p>
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {g.cantidad} persona{g.cantidad === 1 ? '' : 's'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Líder: {g.liderId && g.liderNombre ? <PersonaNombreLink personaId={g.liderId}>{g.liderNombre}</PersonaNombreLink> : (g.liderNombre ?? 'Sin líder')}
-                </p>
-              </div>
-            ))}
+            {diaSeleccionado && detalleDelDia.length === 0 && <p className="text-sm text-muted-foreground">Nadie registrado este día.</p>}
+            {diaSeleccionado && (
+              <AcordeonRedesCdp datos={detalleDelDia} expandidas={redesExpandidas} onAlternar={alternarRedExpandida} />
+            )}
           </div>
         </section>
       </div>
+
+      {/* ── Resumen semanal (KAN-285): mismo drill-down, agrupado por semana ── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={CalendarRange}
+          color={MORADO}
+          titulo="Resumen semanal"
+          descripcion="Semanas del mes con actividad -- tocá una para ver el detalle"
+        />
+        <div className="flex flex-col gap-2 p-5">
+          {semanasDelMes.length === 0 && <p className="text-sm text-muted-foreground">Sin evangelismo registrado este mes.</p>}
+          {semanasDelMes.map((semana) => {
+            const activa = semanaSeleccionada === semana.inicio;
+            return (
+              <div key={semana.inicio} className="rounded-xl border border-border/60 bg-muted/20">
+                <button
+                  type="button"
+                  onClick={() => seleccionarSemana(semana.inicio)}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+                >
+                  <span className="text-sm font-semibold text-foreground">
+                    Semana del {fechaLegible(semana.inicio)} al {fechaLegible(semana.fin)}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{semana.total}</span>
+                    {activa ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                  </span>
+                </button>
+                {activa && (
+                  <div className="flex flex-col gap-2 border-t border-border/60 p-3">
+                    <AcordeonRedesCdp datos={detalleSemana} expandidas={redesExpandidasSemana} onAlternar={alternarRedExpandidaSemana} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── Modal "Metas por Red": lista completa + asignar a todas ──────────── */}
       <Dialog open={modalMetasAbierto} onOpenChange={setModalMetasAbierto}>
