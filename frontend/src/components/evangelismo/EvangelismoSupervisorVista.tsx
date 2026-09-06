@@ -17,7 +17,7 @@ import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignad
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
-import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO } from '@/utils/calendario-fechas';
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
 
@@ -455,7 +455,7 @@ export function EvangelismoSupervisorVista() {
                   className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
                 >
                   <span className="text-sm font-semibold text-foreground">
-                    Semana del {fechaLegible(semana.inicio)} al {fechaLegible(semana.fin)}
+                    Semana {numeroSemanaISO(semana.inicio)} · del {fechaLegible(semana.inicio)} al {fechaLegible(semana.fin)}
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{semana.total}</span>

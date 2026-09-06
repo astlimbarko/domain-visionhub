@@ -80,3 +80,16 @@ export function fechaLegible(fechaISO: string): string {
   const fecha = desdeISO(fechaISO);
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
 }
+
+/** Número de semana ISO-8601 (1-53, lunes a domingo, la semana 1 es la que
+ * contiene el primer jueves del año) -- para mostrar junto al rango de
+ * fechas en "Resumen semanal" (KAN-285, pedido explícito del owner). */
+export function numeroSemanaISO(fechaISO: string): number {
+  const fecha = desdeISO(fechaISO);
+  const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+  const diaLunesBase0 = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - diaLunesBase0 + 3);
+  const primerJueves = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const diffSemanas = (d.getTime() - primerJueves.getTime()) / (7 * 24 * 60 * 60 * 1000);
+  return 1 + Math.round(diffSemanas);
+}
