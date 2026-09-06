@@ -54,8 +54,9 @@ export function Evangelismo() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI ?? null;
-  // El sublíder ve Evangelismo en modo solo lectura -- no puede registrar
-  // evangelizados ni tocar la meta propia (decisión del owner, 2026-07-31).
+  // El sublíder ya puede registrar evangelizados (decisión del owner,
+  // 2026-09-04, revierte la restricción de solo-lectura del 2026-07-31).
+  // La meta propia se mantiene bloqueada para este rol.
   const esSublider = rolUI === 'SUBLIDER_CDP';
 
   const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
@@ -238,15 +239,13 @@ export function Evangelismo() {
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{cdpNombreActiva ?? 'Casa de Paz'}</h1>
               </div>
             </div>
-            {!esSublider && (
-              <Button
-                onClick={() => setDialogoAbierto(true)}
-                className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo evangelizado
-              </Button>
-            )}
+            <Button
+              onClick={() => setDialogoAbierto(true)}
+              className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo evangelizado
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-3">

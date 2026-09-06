@@ -57,6 +57,15 @@ export default defineConfig({
             { name: 'vendor-motion', test: /node_modules[\\/]framer-motion[\\/]/ },
             // Solo se usa en el zoom de imagen de Anuncios (ImagenAnuncioZoom.tsx).
             { name: 'vendor-zoom', test: /node_modules[\\/]react-zoom-pan-pinch[\\/]/ },
+            // Zod + react-hook-form + resolvers y los ~120 íconos de lucide-react
+            // (usados en toda la app, incluidas páginas lazy) caían en el balde
+            // catch-all de abajo -- un chunk "cajón de sastre" que crecía sin
+            // límite y se descargaba entero en CUALQUIER ruta, aunque esa página
+            // no usara formularios ni la mayoría de esos íconos (reportado
+            // 2026-09-04, lag de carga inicial en gama baja). Separados en su
+            // propio chunk para que quede cacheado aparte del resto.
+            { name: 'vendor-forms', test: /node_modules[\\/](zod|react-hook-form|@hookform)[\\/]/ },
+            { name: 'vendor-icons', test: /node_modules[\\/]lucide-react[\\/]/ },
             { name: 'vendor', test: /node_modules[\\/]/ },
           ],
         },
