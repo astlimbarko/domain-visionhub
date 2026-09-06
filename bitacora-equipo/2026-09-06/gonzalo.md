@@ -58,3 +58,5 @@
 - [x] KAN-344 (nuevo, bug real y pre-existente, encontrado al verificar que el rediseño de hoy también aplicara a Pastor): `pages/Evangelismo.tsx` solo chequeaba `rolUI === 'SUPERVISOR'`, le faltaba `'PASTOR'` (paridad KAN-86 ya es regla en el resto del sistema) -- un Pastor caía en el placeholder de "sin Casa de Paz asignada" en vez de ver el panel iglesia-completa. Corregido y verificado en vivo con rol Pastor
 - [x] KAN-345 (nuevo): banner "hero" extraído a `EvangelismoBanner.tsx` y agregado también a "Personas evangelizadas" (antes solo estaba en el dashboard principal) -- pedido explícito del owner, antes del merge. Pastor/Supervisor lo ven automático (la página no distingue por rol)
 - [x] KAN-345: de paso, corregido el color celeste (AZUL) del encabezado "Personas evangelizadas" al naranja de identidad -- mismo criterio de KAN-337, se había escapado ese
+- [x] KPI "Total Meta" renombrado a "Meta General" + sub "Todas las Redes" -- pedido explícito del owner, el nombre viejo no dejaba claro que es la suma de metas a nivel Red (no de cada CdP). Verificado en vivo
+- [x] KAN-342 pasado a Finalizada (confirmado en vivo por el owner)
