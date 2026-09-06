@@ -339,7 +339,11 @@ export function EvangelismoSupervisorVista() {
           en AppShell.tsx (compartido por TODA la app) -- se cancela ese
           padding solo acá, sin tocar el layout global. */}
       <div
-        className="relative -mx-5 -mt-5 overflow-hidden rounded-none p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:p-8"
+        // Alto de escritorio subido ~10% (pedido explícito del owner,
+        // 2026-09-06): 123.5px -> ~135.5px, vía más padding vertical (no un
+        // alto fijo) para que siga respirando igual si cambia el contenido.
+        // Mobile queda con `p-6` sin tocar -- solo pidió el ajuste en desktop.
+        className="relative -mx-5 -mt-5 overflow-hidden rounded-none p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:px-8 sm:py-[38px]"
         style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
       >
         <img
