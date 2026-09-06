@@ -321,15 +321,19 @@ export function EvangelismoSupervisorVista() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      {/* rounded-2xl a propósito, NO rounded-3xl: pedido explícito del owner
-          (2026-09-06) para que coincida con su mockup, que usa esquinas más
-          planas/rectangulares que la convención vigente del sistema de diseño
-          (rounded-3xl es el estándar documentado para "hero" en frontend-style,
-          usado en los 4 dashboards). Arranque intencional y acotado de un
-          rediseño gradual -- NO replicar este radio en otros heroes/dashboards
-          todavía sin que el owner lo confirme explícitamente. */}
+      {/* rounded-none a propósito, NO rounded-3xl: pedido explícito del owner
+          (2026-09-06) -- su mockup usa esquinas 100% rectas, sin ningún
+          radio (confirmado explícitamente, no es una aproximación visual).
+          Arranque intencional y acotado de un rediseño gradual -- NO
+          replicar este radio en otros heroes/dashboards todavía sin que el
+          owner lo confirme explícitamente.
+          Márgenes negativos (-mx/-mt) a propósito: en el mockup el banner
+          toca el navbar arriba y los bordes del área de contenido a los
+          costados, sin el padding que trae `<main className="p-5 sm:p-8">`
+          en AppShell.tsx (compartido por TODA la app) -- se cancela ese
+          padding solo acá, sin tocar el layout global. */}
       <div
-        className="relative overflow-hidden rounded-2xl bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
+        className="relative -mx-5 -mt-5 overflow-hidden rounded-none bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:p-8"
         style={{ backgroundImage: 'url(/evangelismo-banner.png)', backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
       >
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

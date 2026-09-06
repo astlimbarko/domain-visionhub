@@ -100,18 +100,25 @@ function colorContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO' && contexto.departamentoCodigo === 'EVANGELISMO') {
     // Mockup del owner (KAN-337, evangelismo_new.png): navbar claro con texto
     // oscuro, no el dorado institucional -- ese color queda solo para el
-    // banner central. '#FFFAFA' es el mismo valor "navbar claro" que ya usan
-    // otros roles (ver textoNavbarClaro más abajo, que solo pone texto oscuro
-    // para ese hex exacto).
-    return '#FFFAFA';
+    // banner central. '#F7F8FA' (pedido explícito del owner, 2026-09-06 --
+    // "mejor que el pastelito que tenemos") es distinto del '#FFFAFA' que ya
+    // usan otros roles -- ver COLORES_NAVBAR_CLARO más abajo, la lista de
+    // hex que ponen texto oscuro.
+    return '#F7F8FA';
   }
   return COLORES_NAVBAR_CONTEXTO[contexto.rolUI];
 }
 
+// Fondos de navbar "claros" (texto oscuro) -- todo lo que no esté acá usa
+// texto blanco. '#FFFAFA' (Sublíder de CdP, Líder de Jóvenes, Encargado de
+// Matrimonios) y '#F7F8FA' (Depto. de Evangelismo, KAN-337) son ambos claros
+// pero con hex distinto, por eso una lista en vez de comparar un solo valor.
+const COLORES_NAVBAR_CLARO = new Set(['#FFFAFA', '#F7F8FA']);
+
 export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
   const colorNavbar = colorContexto(contexto);
   const temaOscuro = contexto.rolUI === 'SUPER_ADMIN';
-  const textoNavbarClaro = colorNavbar.toUpperCase() !== '#FFFAFA';
+  const textoNavbarClaro = !COLORES_NAVBAR_CLARO.has(colorNavbar.toUpperCase());
 
   return {
     titulo: tituloContexto(contexto),
