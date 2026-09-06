@@ -11,6 +11,11 @@
 - [x] KAN-335 (nuevo, EV-12): página "Personas evangelizadas" (filtros Red/texto/fechas + paginado + CSV) -- 3 bugs reales de la RPC nueva encontrados y corregidos en vivo (ambigüedad de columna, tipo CHARACTER vs VARCHAR, error silenciado como "sin datos")
 - [x] Excluida la categoría "Semilla" del listado de personas (es un conteo agregado, no nombres reales) -- pedido explícito del owner
 - [x] KAN-336 (nuevo, EV-13, sin implementar): export a PDF con formato prolijo -- diferido
-- [x] KAN-337 (nuevo, EV-14, sin implementar): revisado mockup de referencia del owner (evangelismo_new.png) + ícono propio (icono_evangelismo.svg) para un rediseño futuro del banner/navbar -- solo análisis, sin tocar código
+- [x] KAN-337: implementado (ya no solo análisis) -- banner con el PNG del owner (evangelismo-banner.png), ícono del badge con el SVG oficial (icono-evangelismo.svg), navbar revertido a claro/neutro (#FFFAFA) según el mockup, en vez del dorado sólido de KAN-334
+- [x] Tendencia (KAN-285): separada en 2 líneas -- Evangelizados vs Semilla (no son lo mismo) -- agregado tipo_evangelismo_codigo a fn_evangelismo_red
+- [x] Personas evangelizadas (KAN-335): filtros de Casa de Paz y Tipo agregados, número de fila, bordes de tabla más suaves
+- [x] KAN-336: detalle agregado del formato del PDF (tamaño carta, sobrio, sin los colores vivos de la app) -- sigue diferido
+- [x] Corte de luz a mitad de sesión -- nada se perdió (todo ya estaba escrito en disco), retomado sin problemas
 - [ ] Falta: aprobación del owner para mergear toda la rama (KAN-281 a 337) a `master` + deploy
 - [ ] Falta: confirmar con la Pastora Jacqueline si KAN-290 resolvió su caso real, o precisar en qué pantalla se bloqueó
+- [ ] Falta: mi opinión pendiente de dar sobre si los filtros de la tabla deberían ir en los encabezados de columna (pedido explícito, a responder)
