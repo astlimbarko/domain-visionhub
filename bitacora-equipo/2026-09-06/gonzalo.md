@@ -19,3 +19,5 @@
 - [ ] Falta: aprobación del owner para mergear toda la rama (KAN-281 a 337) a `master` + deploy
 - [ ] Falta: confirmar con la Pastora Jacqueline si KAN-290 resolvió su caso real, o precisar en qué pantalla se bloqueó
 - [ ] Falta: mi opinión pendiente de dar sobre si los filtros de la tabla deberían ir en los encabezados de columna (pedido explícito, a responder)
+- [x] Encontrada causa real de "sigo viendo lo mismo": el contenedor Docker `visionhub-frontend-1` se había caído (parece que por el corte de luz) -- reiniciado (`docker compose up -d frontend`), confirmado con curl que responde 200
+- [x] Banner con esquinas más planas (`rounded-2xl` en vez de `rounded-3xl`) -- confirmado que `rounded-3xl` es la convención documentada del sistema de diseño para "hero" en los 4 dashboards, no un detalle suelto. Cambio acotado solo al banner de Evangelismo, piloto intencional de un rediseño gradual, NO extendido a otros dashboards todavía
