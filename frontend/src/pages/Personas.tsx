@@ -11,6 +11,7 @@ import { useBuscarPersonas } from '@/hooks/usePersonas';
 import type { RolUI } from '@/utils/permisos';
 import { CrearPersonaDialog } from '@/components/personas/CrearPersonaDialog';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { PersonasDeCdpVista } from '@/components/personas/PersonasDeCdpVista';
 import { PersonasDeRedVista } from '@/components/personas/PersonasDeRedVista';
 
 function CargandoPersonas() {
@@ -31,7 +32,16 @@ function PersonasDeRed({ redId }: { redId: string }) {
   return <PersonasDeRedVista key={redId} redId={redId} />;
 }
 
-/** Búsqueda global de personas de la iglesia (Supervisor, Pastor, Líder/Sublíder de CdP). */
+/**
+ * Líder de CdP: ve el roster de solo lectura de los miembros vigentes de su
+ * propia Casa de Paz. La CdP visible proviene del ContextoActivo, igual que
+ * Personas de Red.
+ */
+function PersonasDeCdp({ casaDePazId }: { casaDePazId: string }) {
+  return <PersonasDeCdpVista key={casaDePazId} casaDePazId={casaDePazId} />;
+}
+
+/** Búsqueda global de personas de la iglesia (Supervisor, Pastor). */
 function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const [textoInput, setTextoInput] = useState('');
@@ -144,13 +154,17 @@ function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
 }
 
 /**
- * El Líder de Red visualiza el roster de su Red (solo lectura); el resto de los
- * roles con acceso usan la búsqueda global de la iglesia. Cada vista maneja sus
- * propios hooks, igual que pages/CasasDePaz.tsx.
+ * El Líder de Red visualiza el roster de su Red y el Líder de CdP el de su
+ * propia Casa de Paz (ambos solo lectura); el resto de los roles con acceso
+ * usan la búsqueda global de la iglesia. Cada vista maneja sus propios hooks,
+ * igual que pages/CasasDePaz.tsx.
  */
 export function Personas() {
   const { contextoActivo, cargando } = useContextoActivo();
   if (cargando || !contextoActivo) return <CargandoPersonas />;
   if (contextoActivo.alcance === 'RED') return <PersonasDeRed redId={contextoActivo.redId} />;
+  if (contextoActivo.alcance === 'CDP' && contextoActivo.rolUI === 'LIDER_CDP') {
+    return <PersonasDeCdp casaDePazId={contextoActivo.cdpId} />;
+  }
   return <BusquedaPersonas rolUI={contextoActivo.rolUI} />;
 }

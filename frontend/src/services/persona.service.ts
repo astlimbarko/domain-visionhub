@@ -5,6 +5,7 @@ import type {
   MilagroCategoria,
   MotivoLlegada,
   NuevaPersona,
+  PersonaDeCdp,
   PersonaDeRed,
   PersonaFicha,
   ResultadoBusquedaPersonas,
@@ -50,6 +51,17 @@ export async function obtenerPersonasDeRed(redId: string): Promise<PersonaDeRed[
   const { data, error } = await supabase.rpc('fn_personas_de_red', { p_red_id: redId });
   if (error) throw error;
   return (data ?? []) as PersonaDeRed[];
+}
+
+/**
+ * Roster de solo lectura de los miembros vigentes de una Casa de Paz (vista
+ * del Líder de CdP). Ver fn_personas_de_cdp (migración
+ * 20260906000000_fn_personas_de_cdp_lider.sql).
+ */
+export async function obtenerPersonasDeCdp(casaDePazId: string): Promise<PersonaDeCdp[]> {
+  const { data, error } = await supabase.rpc('fn_personas_de_cdp', { p_casa_de_paz_id: casaDePazId });
+  if (error) throw error;
+  return (data ?? []) as PersonaDeCdp[];
 }
 
 /**

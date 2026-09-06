@@ -27,6 +27,15 @@ export function usePersonasDeRed(redId: string | undefined) {
   });
 }
 
+/** Roster de miembros vigentes de una Casa de Paz (vista del Líder de CdP). */
+export function usePersonasDeCdp(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['personas', 'de-cdp', casaDePazId],
+    queryFn: () => personaService.obtenerPersonasDeCdp(casaDePazId as string),
+    enabled: !!casaDePazId,
+  });
+}
+
 export function usePersonaFicha(personaId: string | undefined) {
   return useQuery({
     queryKey: ['personas', 'ficha', personaId],

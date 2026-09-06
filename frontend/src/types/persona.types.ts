@@ -134,6 +134,19 @@ export interface PersonaDeRed {
   proviene_de_fusion: boolean;
 }
 
+/** Fila del roster de "Personas" del Líder de CdP — solo lectura, scopeada a su Casa de Paz. */
+export interface PersonaDeCdp {
+  persona_id: string;
+  nombre_completo: string;
+  sexo: Sexo;
+  edad: number | null;
+  ci: string | null;
+  telefono_principal: string | null;
+  estado_sigla: string | null;
+  estado_nombre: string | null;
+  fecha_ingreso: string | null;
+}
+
 export interface NuevaPersona {
   iglesia_id: string;
   primer_nombre: string;
