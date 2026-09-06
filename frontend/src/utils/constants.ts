@@ -24,6 +24,9 @@ export const ROUTES = {
   // Departamento de Evangelismo), con filtros, paginación y exportación --
   // mismo patrón que AFIRMACION_PERSONAS.
   EVANGELISMO_PERSONAS: '/evangelismo-personas',
+  // Detalle del anillo "Evangelizados por Red" del dashboard -- página propia
+  // (no modal) para tener espacio si la iglesia tiene muchas Redes.
+  EVANGELISMO_REDES: '/evangelismo-redes',
   VISITAS: '/visitas',
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',

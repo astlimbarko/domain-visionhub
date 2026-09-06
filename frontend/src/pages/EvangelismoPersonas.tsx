@@ -7,6 +7,7 @@
 // Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Download, FileText, Search, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -97,20 +98,30 @@ const ATAJOS_FECHA: { valor: string; etiqueta: string }[] = [
   { valor: 'mes', etiqueta: 'Este mes' },
 ];
 
+/** Filtro inicial que puede llegar navegando desde otra pantalla (ej. el
+ * anillo "Evangelizados por Red" del dashboard) -- `navigate(ruta, { state })`. */
+interface FiltroInicial {
+  desde?: string;
+  hasta?: string;
+  casaDePazId?: string;
+}
+
 export function EvangelismoPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaActivaId);
+  const location = useLocation();
+  const filtroInicial = location.state as FiltroInicial | null;
 
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
-  const [casaDePazId, setCasaDePazId] = useState<string>(TODAS_LAS_CDP);
+  const [casaDePazId, setCasaDePazId] = useState<string>(filtroInicial?.casaDePazId ?? TODAS_LAS_CDP);
   const [tipoId, setTipoId] = useState<string>(TODOS_LOS_TIPOS);
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+  const [desde, setDesde] = useState(filtroInicial?.desde ?? '');
+  const [hasta, setHasta] = useState(filtroInicial?.hasta ?? '');
   const [rangoRapido, setRangoRapido] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();

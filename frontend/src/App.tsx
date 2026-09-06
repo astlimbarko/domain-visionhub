@@ -37,6 +37,7 @@ const HistorialAsistencia = lazy(() => import('@/pages/HistorialAsistencia').the
 const Calendario = lazy(() => import('@/pages/Calendario').then((m) => ({ default: m.Calendario })));
 const Evangelismo = lazy(() => import('@/pages/Evangelismo').then((m) => ({ default: m.Evangelismo })));
 const EvangelismoPersonas = lazy(() => import('@/pages/EvangelismoPersonas').then((m) => ({ default: m.EvangelismoPersonas })));
+const EvangelismoRedes = lazy(() => import('@/pages/EvangelismoRedes').then((m) => ({ default: m.EvangelismoRedes })));
 const Visitas = lazy(() => import('@/pages/Visitas').then((m) => ({ default: m.Visitas })));
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
@@ -232,6 +233,11 @@ function App() {
             <Route path={ROUTES.EVANGELISMO_PERSONAS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.EVANGELISMO_PERSONAS)}><EvangelismoPersonas /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.EVANGELISMO_REDES} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.EVANGELISMO_REDES)}><EvangelismoRedes /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.VISITAS} element={
