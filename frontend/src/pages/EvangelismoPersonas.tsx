@@ -7,7 +7,7 @@
 // Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, Search, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileText, Search, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { useCdpsIglesia, useRedes } from '@/hooks/useCasasDePaz';
 import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 
 const POR_PAGINA = 50;
 // Tope razonable para una exportación completa (mismo criterio que Afirmación).
@@ -60,6 +61,7 @@ const TODOS_LOS_TIPOS = '__todos__';
 
 export function EvangelismoPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaActivaId);
@@ -74,6 +76,7 @@ export function EvangelismoPersonas() {
   const [pagina, setPagina] = useState(1);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
   const [exportando, setExportando] = useState(false);
+  const [exportandoPdf, setExportandoPdf] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setTexto(textoInput), 300);
@@ -130,6 +133,41 @@ export function EvangelismoPersonas() {
     }
   }
 
+  // Descripción corta de los filtros activos para el encabezado del PDF --
+  // "Todos los registros" si no hay ninguno puesto.
+  const filtroDescripcion = [
+    texto.trim() && `"${texto.trim()}"`,
+    redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
+    casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
+    tipoIdFiltro && tipos.find((t) => t.id === tipoIdFiltro)?.nombre,
+    desde && hasta && `${desde} a ${hasta}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  async function exportarPdf() {
+    if (!iglesiaActivaId) return;
+    setExportandoPdf(true);
+    try {
+      const { resultados: todas } = await buscarEvangelizados(
+        iglesiaActivaId,
+        redIdFiltro,
+        texto,
+        desde || undefined,
+        hasta || undefined,
+        1,
+        LIMITE_EXPORTACION,
+        casaDePazIdFiltro,
+        tipoIdFiltro
+      );
+      exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
+    } catch {
+      toast.error('No se pudo exportar el PDF');
+    } finally {
+      setExportandoPdf(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
@@ -145,10 +183,16 @@ export function EvangelismoPersonas() {
           titulo="Personas evangelizadas"
           descripcion="Toda la iglesia -- click en una fila para ver la ficha completa."
           accion={
-            <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
-              <Download className="h-3.5 w-3.5" />
-              {exportando ? 'Exportando...' : 'Exportar CSV'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={exportandoPdf || total === 0} onClick={exportarPdf}>
+                <FileText className="h-3.5 w-3.5" />
+                {exportandoPdf ? 'Generando...' : 'Exportar PDF'}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
+                <Download className="h-3.5 w-3.5" />
+                {exportando ? 'Exportando...' : 'Exportar CSV'}
+              </Button>
+            </div>
           }
         />
         <div className="flex flex-col gap-4 p-5">
