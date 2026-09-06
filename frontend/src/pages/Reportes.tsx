@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
-import { useRedes } from '@/hooks/useCasasDePaz';
+import { useBuscarPersonas, useRedes } from '@/hooks/useCasasDePaz';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import {
   Select,
@@ -59,6 +59,7 @@ import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
+import { SugerenciaMiembroRegular } from '@/components/reporte/SugerenciaMiembroRegular';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
@@ -144,6 +145,14 @@ export function Reportes() {
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
   const [asistentes, setAsistentes] = useState<Map<string, { esVisita: boolean; esMenor?: boolean }>>(new Map());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
+  // Bug real reportado por el owner (2026-09-05): "Asistentes nuevos" no
+  // buscaba a nadie, así que una visita recurrente (alguien que ya está en
+  // el sistema pero no es miembro de la CdP) se duplicaba cada semana. Este
+  // texto dispara una búsqueda en toda la iglesia (useBuscarPersonas) antes
+  // de ofrecer crearla de nuevo.
+  const [textoAsistenteNuevo, setTextoAsistenteNuevo] = useState('');
+  const [asistentesNuevosExistentes, setAsistentesNuevosExistentes] = useState<PersonaBusqueda[]>([]);
+  const { data: resultadosAsistenteNuevo = [], isFetching: buscandoAsistenteNuevo } = useBuscarPersonas(iglesiaActivaId, textoAsistenteNuevo);
   // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
@@ -326,6 +335,46 @@ export function Reportes() {
     setEvangelizadosPendientes((prev) => prev.filter((p) => p.visitaNuevaClave !== clave));
   }
 
+  // Persona ya existente en el sistema (encontrada por la búsqueda global de
+  // "Asistentes nuevos") que asiste como visita -- no se crea una persona
+  // nueva, se reutiliza su persona_id. No se sabe su fecha de nacimiento
+  // desde este buscador (PersonaBusqueda no la trae), así que esMenor queda
+  // sin definir a propósito: el aviso "¿es menor?" (pendientesEsMenor) se
+  // encarga de preguntarlo antes de poder enviar el reporte.
+  function agregarAsistenteExistente(persona: PersonaBusqueda) {
+    setAsistentes((prev) => {
+      const next = new Map(prev);
+      next.set(persona.id, { esVisita: true });
+      return next;
+    });
+    setAsistentesNuevosExistentes((prev) => [...prev, persona]);
+    setTextoAsistenteNuevo('');
+  }
+
+  function quitarAsistenteExistente(personaId: string) {
+    setAsistentes((prev) => {
+      const next = new Map(prev);
+      next.delete(personaId);
+      return next;
+    });
+    setAsistentesNuevosExistentes((prev) => prev.filter((p) => p.id !== personaId));
+  }
+
+  // Se confirmó "Sí, agregar" en SugerenciaMiembroRegular: la persona ya
+  // quedó como miembro (casa_de_paz_membresia insertada ahí mismo). Acá solo
+  // se refleja en el formulario -- sigue contando como asistente de esta
+  // reunión, pero ya no como "visita" (useMiembrosCdp se invalida solo y la
+  // va a mostrar en el pool de "Asistencia regular"/"de niños").
+  function marcarComoRegularPromovida(personaId: string) {
+    setAsistentesNuevosExistentes((prev) => prev.filter((p) => p.id !== personaId));
+    setAsistentes((prev) => {
+      const next = new Map(prev);
+      const actual = next.get(personaId);
+      if (actual) next.set(personaId, { ...actual, esVisita: false });
+      return next;
+    });
+  }
+
   // Pedido del owner (2026-09-03): agregar a alguien en Evangelismo pregunta
   // si también asistió -- no se asume. "Sí" cuenta como asistente (persona
   // existente: entra directo al mapa con esVisita=true; persona nueva
@@ -494,6 +543,14 @@ export function Reportes() {
   const poolRegulares = miembros.filter((m) => (m.edad === null || m.edad >= edadMinima) && !idsNuevos.includes(m.persona_id));
   const poolNinos = miembros.filter((m) => m.edad !== null && m.edad < edadMinima && !idsNuevos.includes(m.persona_id));
 
+  // Búsqueda global de "Asistentes nuevos": excluye a quien ya es miembro de
+  // esta CdP (esa persona corresponde a "Asistencia regular"/"de niños", no
+  // acá) y a quien ya está marcado como asistente por cualquier otra vía,
+  // para no ofrecerla dos veces.
+  const resultadosAsistenteNuevoFiltrados = resultadosAsistenteNuevo.filter(
+    (p) => !miembros.some((m) => m.persona_id === p.id) && !asistentes.has(p.id)
+  );
+
   // Sin fecha de nacimiento no hay forma de saber la edad: se les pide que
   // digan a mano si son menores, en vez de asumirlo y arriesgar un dato mal
   // cargado. Se muestran todos juntos acá para que no haya que enviar el
@@ -505,15 +562,30 @@ export function Reportes() {
   // como "asistente nuevo" pasaba este control y recién explotaba con un 400
   // del backend (fn_validar_asistencia rechaza es_menor nulo sin fecha de
   // nacimiento), dejando además un reporte huérfano.
-  const pendientesEsMenor = Array.from(asistentes.keys())
-    .map((id) => miembros.find((mm) => mm.persona_id === id))
-    .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined);
+  // Las personas encontradas por la búsqueda global de "Asistentes nuevos"
+  // (PersonaBusqueda) no traen fecha de nacimiento -- se tratan igual que un
+  // miembro sin fecha registrada, mismo aviso "¿es menor?" antes de enviar.
+  const pendientesEsMenor = [
+    ...Array.from(asistentes.keys())
+      .map((id) => miembros.find((mm) => mm.persona_id === id))
+      .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined),
+    ...asistentesNuevosExistentes
+      .filter((p) => asistentes.has(p.id) && esMenorPorPersona[p.id] === undefined)
+      .map((p) => ({ persona_id: p.id, nombre_completo: p.nombre_completo, tiene_fecha_nacimiento: false, edad: null })),
+  ];
 
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
 
   async function onSubmit(valores: FormValues) {
     if (!cdpActiva || !iglesiaActivaId) return;
+
+    // Cierra el teclado en mobile antes de validar/enviar -- si quedaba
+    // abierto (por ejemplo, viniendo de escribir en Comentarios), el toast
+    // de error ("ya existe un reporte para esa fecha", etc.) podía quedar
+    // tapado por el teclado y sentirse como que el botón no hizo nada
+    // (reportado por el owner, 2026-09-05).
+    (document.activeElement as HTMLElement | null)?.blur?.();
 
     if (totalAsistentesActual === 0) {
       toast.error('Marcá al menos una persona antes de enviar el reporte');
@@ -651,6 +723,8 @@ export function Reportes() {
       reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
       setAsistentes(new Map());
       setVisitasNuevas([]);
+      setAsistentesNuevosExistentes([]);
+      setTextoAsistenteNuevo('');
       setDiezmos([]);
       setEvangelizadosPendientes([]);
       setEsMegaFiesta(false);
@@ -822,25 +896,31 @@ export function Reportes() {
                   <>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs text-muted-foreground">Asistentes nuevos</Label>
-                      {/* No hay un pool de gente para elegir acá -- por
-                          definición, "nuevo" es alguien que todavía no está
-                          en el sistema. Se escribe el nombre y se agrega
-                          directo (pedido del owner, 2026-09-03). */}
+                      {/* Sin pool local -- por definición "nuevo" es alguien
+                          fuera del sistema. Pero antes de ofrecer crearla,
+                          se busca en toda la iglesia (resultadosAsistenteNuevoFiltrados):
+                          una visita recurrente ya tiene persona_id de otra
+                          semana, y sin esto se duplicaba cada vez que volvía
+                          a asistir (bug real reportado por el owner, 2026-09-05). */}
                       <BuscadorPersonaMultiple
                         titulo="Agregar asistente nuevo"
                         miembros={[]}
                         seleccionados={[]}
                         onToggle={() => {}}
-                        placeholder="Escribí el nombre de la persona nueva..."
+                        placeholder="Escribí el nombre de la persona..."
                         colorChip={VERDE}
                         permitirAgregarNueva
                         onAgregarNueva={agregarAsistenteNuevo}
+                        resultadosBusquedaGlobal={resultadosAsistenteNuevoFiltrados}
+                        buscandoGlobal={buscandoAsistenteNuevo}
+                        onSeleccionarGlobal={agregarAsistenteExistente}
+                        onTextoCambia={setTextoAsistenteNuevo}
                       />
                       {/* Mismo diseño de chip que "Asistencia regular"/"de niños" al
                           seleccionar a alguien (pastilla de color + X) -- pedido del
                           owner (2026-09-03), y va debajo de este buscador (no al
                           final de la sección) para que se vea justo donde se agregó. */}
-                      {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0) && (
+                      {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0 || asistentesNuevosExistentes.length > 0) && (
                         <div className="flex flex-wrap gap-1.5">
                           {visitasNuevas.map((v) => (
                             <span
@@ -873,8 +953,38 @@ export function Reportes() {
                               </button>
                             </span>
                           ))}
+                          {asistentesNuevosExistentes.map((p) => (
+                            <span
+                              key={p.id}
+                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                              style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                            >
+                              <Check className="h-3 w-3 shrink-0" />
+                              {p.nombre_completo}
+                              {esMenorPorPersona[p.id] && <span className="text-[10px] opacity-80">(menor)</span>}
+                              <button
+                                type="button"
+                                onClick={() => quitarAsistenteExistente(p.id)}
+                                className="rounded-full p-0.5 hover:bg-black/10"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
                         </div>
                       )}
+                      {/* Umbral fijo en 2 asistencias (pedido del owner,
+                          2026-09-05) -- una por persona, debajo de sus chips. */}
+                      {asistentesNuevosExistentes.map((p) => (
+                        <SugerenciaMiembroRegular
+                          key={p.id}
+                          iglesiaId={iglesiaActivaId as string}
+                          casaDePazId={cdpActiva as string}
+                          personaId={p.id}
+                          nombreCompleto={p.nombre_completo}
+                          onPromovida={() => marcarComoRegularPromovida(p.id)}
+                        />
+                      ))}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -1159,15 +1269,27 @@ export function Reportes() {
         </section>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button
-            type="submit"
-            disabled={isSubmitting || totalAsistentesActual === 0}
-            title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
-            className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
-          >
-            {isSubmitting && <Spinner className="h-4 w-4" />}
-            {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
-          </Button>
+          <div className="flex w-full flex-col gap-1.5 sm:w-auto">
+            <Button
+              type="submit"
+              disabled={isSubmitting || totalAsistentesActual === 0}
+              title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
+              className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
+            >
+              {isSubmitting && <Spinner className="h-4 w-4" />}
+              {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
+            </Button>
+            {/* El botón deshabilitado usa disabled:pointer-events-none (button.tsx)
+                -- ni siquiera recibe el toque, así que un toast al tocarlo no es
+                posible. Antes la única explicación era el `title` de arriba, un
+                tooltip por hover invisible en celular: se reportó como "el botón
+                no responde" después de enviar un reporte (que vacía la lista de
+                asistentes) y volver a tocarlo sin marcar gente de nuevo (owner,
+                2026-09-05). Este texto queda siempre visible, sin depender de hover. */}
+            {!isSubmitting && totalAsistentesActual === 0 && (
+              <p className="text-[11px] text-muted-foreground">Marcá al menos una persona en Asistencia antes de enviar.</p>
+            )}
+          </div>
 
           {/* Anular reporte (solo en edición): baja lógica para sacar un reporte
               cargado por error/duplicado. Confirmación inline en dos pasos, sin

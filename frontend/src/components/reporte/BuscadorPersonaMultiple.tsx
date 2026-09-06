@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MiembroCdp } from '@/types/reporte.types';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Datos que pide el mini-formulario de "persona nueva" -- mismos campos que
  * el alta de evangelizados (EvangelismoPendientePanel), para que no haya
@@ -42,6 +43,17 @@ interface Props {
    * ya está en el sistema, no crean personas. */
   permitirAgregarNueva?: boolean;
   onAgregarNueva?: (datos: DatosPersonaNueva) => void;
+  /** Búsqueda en vivo en TODA la iglesia (no solo el pool de `miembros`) --
+   * usado en "Asistentes nuevos", donde antes no había forma de encontrar a
+   * alguien que ya está en el sistema (una visita de otra semana, un
+   * evangelizado) antes de ofrecer crearla de nuevo y duplicarla (bug real
+   * reportado por el owner, 2026-09-05). Cuando se pasa, tiene prioridad
+   * sobre "agregarla como nueva": esa opción solo aparece si la búsqueda no
+   * encontró a nadie. */
+  resultadosBusquedaGlobal?: PersonaBusqueda[];
+  buscandoGlobal?: boolean;
+  onSeleccionarGlobal?: (persona: PersonaBusqueda) => void;
+  onTextoCambia?: (texto: string) => void;
 }
 
 /** Separa un nombre completo tecleado en sus partes -- no hay forma de
@@ -93,6 +105,10 @@ export function BuscadorPersonaMultiple({
   onAsisteCdpChange,
   permitirAgregarNueva,
   onAgregarNueva,
+  resultadosBusquedaGlobal,
+  buscandoGlobal,
+  onSeleccionarGlobal,
+  onTextoCambia,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -153,6 +169,7 @@ export function BuscadorPersonaMultiple({
       fecha_nacimiento: fechaNacimientoNueva || undefined,
     });
     setTexto('');
+    onTextoCambia?.('');
     setNombreNueva('');
     setSegundoNombreNueva('');
     setApellidoPaternoNueva('');
@@ -189,7 +206,10 @@ export function BuscadorPersonaMultiple({
           className="h-10 rounded-xl pl-9 text-sm"
           placeholder={placeholder}
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onChange={(e) => {
+            setTexto(e.target.value);
+            onTextoCambia?.(e.target.value);
+          }}
           onFocus={() => setAbierto(true)}
         />
 
@@ -215,18 +235,45 @@ export function BuscadorPersonaMultiple({
             )}
             <div className="max-h-56 overflow-y-auto py-1">
               {filtrados.length === 0 ? (
-                permitirAgregarNueva && texto.trim() ? (
-                  <button
-                    type="button"
-                    onMouseDown={abrirFormNueva}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary hover:bg-accent"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    No está en el sistema: agregarla como persona nueva
-                  </button>
-                ) : (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
-                )
+                <>
+                  {/* Búsqueda global (toda la iglesia): si ya existe, se
+                      selecciona directo -- antes esto no existía y cada
+                      alta acá creaba una persona nueva, aunque ya fuera
+                      alguien conocido (visita de otra semana, evangelizado
+                      previo), duplicando su ficha. */}
+                  {(resultadosBusquedaGlobal ?? []).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={() => {
+                        onSeleccionarGlobal?.(p);
+                        setTexto('');
+                        onTextoCambia?.('');
+                        setAbierto(false);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-accent"
+                    >
+                      <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" />
+                      {p.nombre_completo}
+                      <span className="text-xs text-muted-foreground">(ya está en el sistema)</span>
+                    </button>
+                  ))}
+                  {buscandoGlobal && <p className="px-3 py-2 text-sm text-muted-foreground">Buscando...</p>}
+                  {!buscandoGlobal && (resultadosBusquedaGlobal?.length ?? 0) === 0 && (
+                    permitirAgregarNueva && texto.trim() ? (
+                      <button
+                        type="button"
+                        onMouseDown={abrirFormNueva}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary hover:bg-accent"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        No está en el sistema: agregarla como persona nueva
+                      </button>
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">No se encontró a nadie.</p>
+                    )
+                  )}
+                </>
               ) : (
                 filtrados.map((m) => (
                   <label
