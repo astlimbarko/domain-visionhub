@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Heart, HeartHandshake, Home, Pencil, Target, UsersRound } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,7 +24,7 @@ import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangeli
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
 
-const { AZUL, VERDE, MORADO, AMARILLO, CELESTE } = EVANGELISMO_COLOR;
+const { AZUL, VERDE, MORADO, AMARILLO, CELESTE, NARANJA } = EVANGELISMO_COLOR;
 
 /** Sentinel para distinguir "asignar a todas las Redes" de una Red real en el mismo diálogo. */
 const ID_TODAS_LAS_REDES = '__TODAS_REDES__';
@@ -100,6 +101,11 @@ export function EvangelismoSupervisorVista() {
   const [modalMetasAbierto, setModalMetasAbierto] = useState(false);
   const [redParaMeta, setRedParaMeta] = useState<MetaCdpRed | null>(null);
   const [bulkAsignando, setBulkAsignando] = useState(false);
+  // El banner mostraba el color sólido y recién después "aparecía" el PNG de
+  // fondo (pop abrupto que el owner reportó como "parece que carga lento",
+  // 2026-09-06) -- se separa la imagen a una capa propia con fade-in al
+  // cargar, así la transición se ve intencional en vez de un salto.
+  const [bannerCargado, setBannerCargado] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
@@ -333,9 +339,18 @@ export function EvangelismoSupervisorVista() {
           en AppShell.tsx (compartido por TODA la app) -- se cancela ese
           padding solo acá, sin tocar el layout global. */}
       <div
-        className="relative -mx-5 -mt-5 overflow-hidden rounded-none bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:p-8"
-        style={{ backgroundImage: 'url(/evangelismo-banner.png)', backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
+        className="relative -mx-5 -mt-5 overflow-hidden rounded-none p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:p-8"
+        style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
       >
+        <img
+          src="/evangelismo-banner.png"
+          alt=""
+          onLoad={() => setBannerCargado(true)}
+          className={cn(
+            'pointer-events-none absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-500',
+            bannerCargado ? 'opacity-100' : 'opacity-0'
+          )}
+        />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <img src="/icono-evangelismo.svg" alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
@@ -364,7 +379,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── 4 KPI agregados de toda la iglesia ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiMosaico label="Total Meta" icon={Flag} color={AZUL}>{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
+        <KpiMosaico label="Total Meta" icon={Flag} color={NARANJA}>{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
         <KpiMosaico label="Evangelizados" icon={HeartHandshake} color={VERDE}>{cargandoResumen ? '—' : totalEvangelizados}</KpiMosaico>
         <KpiMosaico label="Avance" icon={Target} color={AMARILLO}>{cargandoResumen || avance == null ? '—' : `${avance}%`}</KpiMosaico>
         <KpiMosaico label="Casas Activas" icon={Home} color={CELESTE}>{cargandoCdps ? '—' : cdps.length}</KpiMosaico>
