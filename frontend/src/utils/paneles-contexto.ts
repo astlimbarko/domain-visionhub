@@ -3,6 +3,7 @@ import type { ContextoActivo } from '@/types/contexto-activo.types';
 import {
   NAV_ITEMS_AFIRMACION,
   NAV_ITEM_EVANGELISMO,
+  NAV_ITEM_EVANGELISMO_PERSONAS,
   NAV_ITEM_JOVENES,
   NAV_ITEM_MATRIMONIOS,
   obtenerNavItems,
@@ -55,7 +56,7 @@ function tituloContexto(contexto: ContextoActivo): string {
 
 function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
-    return contexto.departamentoCodigo === 'EVANGELISMO' ? [NAV_ITEM_EVANGELISMO] : NAV_ITEMS_AFIRMACION;
+    return contexto.departamentoCodigo === 'EVANGELISMO' ? [NAV_ITEM_EVANGELISMO, NAV_ITEM_EVANGELISMO_PERSONAS] : NAV_ITEMS_AFIRMACION;
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];

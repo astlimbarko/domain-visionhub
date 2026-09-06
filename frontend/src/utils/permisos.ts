@@ -138,6 +138,8 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,
   ROUTES.EVANGELISMO,
+  // KAN-302: roster completo de evangelizados con filtros/paginación/CSV.
+  ROUTES.EVANGELISMO_PERSONAS,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
@@ -180,6 +182,7 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
   ROUTES.AFIRMACION_PERSONAS,
   ROUTES.EVANGELISMO,
+  ROUTES.EVANGELISMO_PERSONAS,
 ];
 const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
 const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
@@ -226,6 +229,10 @@ const CATALOGO_NAV: NavItem[] = [
   // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación
   // con ningún otro color del sistema.
   { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color },
+  // KAN-302: roster completo de evangelizados (filtros + paginación + CSV),
+  // mismo nivel que "Evangelismo" -- pedido explícito del owner, mismo patrón
+  // que "Personas" de Afirmación.
+  { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -257,6 +264,9 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
 // Departamento de Evangelismo (KAN-281): una sola pantalla (reusa el panel
 // iglesia-completa del Supervisor), a diferencia de Afirmación que tiene 5.
 export const NAV_ITEM_EVANGELISMO: NavItem = { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color };
+// KAN-302: mismo roster que ve Supervisor/Pastor, para el Líder de
+// Departamento de Evangelismo (rol ortogonal, no pasa por CATALOGO_NAV).
+export const NAV_ITEM_EVANGELISMO_PERSONAS: NavItem = { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color };
 export const NAV_ITEM_JOVENES: NavItem = { icon: Users, label: 'Jóvenes', path: ROUTES.JOVENES, color: '#ff9500' };
 export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios', path: ROUTES.MATRIMONIOS, color: '#ff375f' };
 

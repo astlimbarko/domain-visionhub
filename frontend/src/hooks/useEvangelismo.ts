@@ -3,6 +3,7 @@ import {
   actualizarMetaPropia,
   asignarMetaEvangelismo,
   asignarMetaRedEvangelismo,
+  buscarEvangelizados,
   crearEvangelizado,
   obtenerEvangelismoRed,
   obtenerEvangelizados,
@@ -60,6 +61,25 @@ export function useEvangelizados(casaDePazId: string | undefined, desde: string,
     queryKey: ['evangelismo', 'lista', casaDePazId, desde, hasta],
     queryFn: () => obtenerEvangelizados(casaDePazId as string, desde, hasta),
     enabled: !!casaDePazId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Roster completo de la iglesia con filtros/paginación -- página "Personas
+ * evangelizadas" (KAN-302). */
+export function useBuscarEvangelizados(
+  iglesiaId: string | undefined,
+  redId: string | undefined,
+  texto: string,
+  desde: string | undefined,
+  hasta: string | undefined,
+  pagina: number,
+  porPagina: number
+) {
+  return useQuery({
+    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina],
+    queryFn: () => buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina),
+    enabled: !!iglesiaId,
     placeholderData: keepPreviousData,
   });
 }

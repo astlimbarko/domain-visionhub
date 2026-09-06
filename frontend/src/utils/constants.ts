@@ -20,6 +20,10 @@ export const ROUTES = {
   HISTORIAL_ASISTENCIA: '/historial-asistencia',
   CALENDARIO: '/calendario',
   EVANGELISMO: '/evangelismo',
+  // Roster completo de evangelizados de la iglesia (Supervisor/Pastor/
+  // Departamento de Evangelismo), con filtros, paginación y exportación --
+  // mismo patrón que AFIRMACION_PERSONAS.
+  EVANGELISMO_PERSONAS: '/evangelismo-personas',
   VISITAS: '/visitas',
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',

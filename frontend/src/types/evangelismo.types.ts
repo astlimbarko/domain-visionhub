@@ -102,6 +102,26 @@ export interface NuevaMetaAsignadaRed {
   observaciones?: string;
 }
 
+/** Fila de la tabla "Personas evangelizadas" (fn_buscar_evangelizados) --
+ * roster de toda la iglesia con filtros, para Supervisor/Pastor/Departamento
+ * de Evangelismo. `total` viene repetido en cada fila (window function),
+ * mismo patrón que `fn_buscar_personas`. */
+export interface EvangelizadoBusqueda {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  domicilio: string | null;
+  telefono_principal: string | null;
+  red_id: string | null;
+  red_nombre: string | null;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  tipo_evangelismo_nombre: string | null;
+  tipo_evangelismo_color: string | null;
+  total: number;
+}
+
 export interface NuevoEvangelizado {
   casa_de_paz_id: string;
   iglesia_id: string;

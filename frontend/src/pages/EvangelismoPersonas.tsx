@@ -1,0 +1,241 @@
+// VisionHub -- KAN-302 (pedido explícito del owner, 2026-09-06): "necesitamos
+// que en evangelismo tambien... un boton en la barra lateral... que ahi se
+// visualice toda la gente ganada y que tenga filtros arriba... paginado...
+// que ahi recien haya la opcion de descargar". Mismo patrón que
+// AfirmacionPersonas.tsx (KAN-216): tabla con filtros arriba + paginación +
+// exportar CSV, click en fila abre la ficha completa. Para Supervisor/Pastor/
+// Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
+// ya tienen su propio listado acotado en los paneles existentes.
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Download, Search, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { KpiChip } from '@/components/dashboard/DashboardUI';
+import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
+import { useAuthStore } from '@/store/auth.store';
+import { useRedes } from '@/hooks/useCasasDePaz';
+import { useBuscarEvangelizados } from '@/hooks/useEvangelismo';
+import { buscarEvangelizados } from '@/services/evangelismo.service';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+
+const POR_PAGINA = 50;
+// Tope razonable para una exportación completa (mismo criterio que Afirmación).
+const LIMITE_EXPORTACION = 5000;
+
+const { AZUL } = EVANGELISMO_COLOR;
+
+// CSV con BOM (Excel en Windows no detecta UTF-8 sin esto) y comillas en
+// todos los campos de texto -- mismo helper que AfirmacionPersonas.tsx.
+function celdaCsv(valor: string | number | null): string {
+  if (valor === null) return '';
+  return `"${String(valor).replaceAll('"', '""')}"`;
+}
+
+function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null }[]): string {
+  const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio'];
+  const lineas = filas.map((e) =>
+    [
+      celdaCsv(e.nombre_completo),
+      celdaCsv(e.fecha),
+      celdaCsv(e.red_nombre),
+      celdaCsv(e.casa_de_paz_etiqueta),
+      celdaCsv(e.tipo_evangelismo_nombre),
+      celdaCsv(e.telefono_principal),
+      celdaCsv(e.domicilio),
+    ].join(',')
+  );
+  return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
+}
+
+const TODAS_LAS_REDES = '__todas__';
+
+export function EvangelismoPersonas() {
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const { data: redes = [] } = useRedes(iglesiaActivaId);
+
+  const [textoInput, setTextoInput] = useState('');
+  const [texto, setTexto] = useState('');
+  const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [pagina, setPagina] = useState(1);
+  const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
+  const [exportando, setExportando] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTexto(textoInput), 300);
+    return () => clearTimeout(t);
+  }, [textoInput]);
+  useEffect(() => setPagina(1), [texto, redId, desde, hasta]);
+
+  const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
+const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaActivaId, redIdFiltro, texto, desde || undefined, hasta || undefined, pagina, POR_PAGINA);
+
+  const resultados = useMemo(() => data?.resultados ?? [], [data]);
+  const total = data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+
+  async function exportarCsv() {
+    if (!iglesiaActivaId) return;
+    setExportando(true);
+    try {
+      const { resultados: todas } = await buscarEvangelizados(iglesiaActivaId, redIdFiltro, texto, desde || undefined, hasta || undefined, 1, LIMITE_EXPORTACION);
+      const csv = filasACsv(todas);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `evangelizados-${new Date().toISOString().slice(0, 10)}.csv`;
+      enlace.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('No se pudo exportar el CSV');
+    } finally {
+      setExportando(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
+        <KpiChip icon={Users} label="Total encontrados" color={AZUL}>
+          {total}
+        </KpiChip>
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Users}
+          color={AZUL}
+          titulo="Personas evangelizadas"
+          descripcion="Toda la iglesia -- click en una fila para ver la ficha completa."
+          accion={
+            <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
+              <Download className="h-3.5 w-3.5" />
+              {exportando ? 'Exportando...' : 'Exportar CSV'}
+            </Button>
+          }
+        />
+        <div className="flex flex-col gap-4 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className={cn('pl-8', CAMPO_ESTILO)}
+                placeholder="Buscar por nombre..."
+                value={textoInput}
+                onChange={(e) => setTextoInput(e.target.value)}
+              />
+            </div>
+            <Select value={redId} onValueChange={setRedId}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Todas las Redes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
+                {redes.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1.5">
+              <Input type="date" className={cn('w-[150px]', CAMPO_ESTILO)} value={desde} onChange={(e) => setDesde(e.target.value)} aria-label="Desde" />
+              <span className="text-xs text-muted-foreground">a</span>
+              <Input type="date" className={cn('w-[150px]', CAMPO_ESTILO)} value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label="Hasta" />
+            </div>
+          </div>
+
+          {isLoading ? (
+            <Skeleton className="h-96 w-full rounded-2xl" />
+          ) : error ? (
+            <p className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-10 text-center text-sm text-destructive">
+              No se pudo cargar el listado. Intentá de nuevo en un momento.
+            </p>
+          ) : resultados.length === 0 ? (
+            <p className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+              {texto.trim() || redIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
+            </p>
+          ) : (
+            <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
+              <table className="w-full min-w-[720px] border-collapse text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultados.map((e) => (
+                    <tr
+                      key={e.id}
+                      onClick={() => setPersonaSeleccionadaId(e.persona_id)}
+                      className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
+                    >
+                      <td className="px-3 py-2.5 font-medium">{e.nombre_completo}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{e.fecha}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{e.red_nombre ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
+                      <td className="px-3 py-2.5">
+                        {e.tipo_evangelismo_nombre ? (
+                          <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
+                            {e.tipo_evangelismo_nombre}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
+            <div className="flex items-center justify-center gap-3 text-[13px]">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl"
+                disabled={pagina <= 1}
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium text-muted-foreground">
+                {pagina} <span className="text-muted-foreground/60">de {totalPaginas}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl"
+                disabled={pagina >= totalPaginas}
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                aria-label="Página siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
+    </div>
+  );
+}

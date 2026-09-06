@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { aISO } from '@/utils/calendario-fechas';
 import type {
   Evangelizado,
+  EvangelizadoBusqueda,
   EvangelizadoRed,
   MetaCdpRed,
   MetaPropia,
@@ -134,6 +135,35 @@ export async function obtenerEvangelismoRed(redId: string, desde: string, hasta:
   const { data, error } = await supabase.rpc('fn_evangelismo_red', { p_red_id: redId, p_desde: desde, p_hasta: hasta });
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Roster completo de evangelizados de la iglesia (Supervisor/Pastor/
+ * Departamento de Evangelismo), con filtro opcional de Red/texto/rango de
+ * fechas y paginación -- página "Personas evangelizadas" (KAN-302), mismo
+ * patrón que `buscarPersonas` de Afirmación.
+ */
+export async function buscarEvangelizados(
+  iglesiaId: string,
+  redId: string | undefined,
+  texto: string,
+  desde: string | undefined,
+  hasta: string | undefined,
+  pagina = 1,
+  porPagina = 50
+): Promise<{ resultados: EvangelizadoBusqueda[]; total: number }> {
+  const { data, error } = await supabase.rpc('fn_buscar_evangelizados', {
+    p_iglesia_id: iglesiaId,
+    p_red_id: redId ?? null,
+    p_texto: texto.trim() === '' ? null : texto.trim(),
+    p_desde: desde || null,
+    p_hasta: hasta || null,
+    p_pagina: pagina,
+    p_por_pagina: porPagina,
+  });
+  if (error) throw error;
+  const resultados = data ?? [];
+  return { resultados, total: resultados[0]?.total ?? 0 };
 }
 
 export async function obtenerTasaEvangelismoRed(redId: string, desde: string, hasta: string): Promise<TasaEvangelismoRed> {
