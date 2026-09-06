@@ -29,3 +29,9 @@
 - [ ] Falta: definir alcance de tarjetas/otros elementos con su propio radio nuevo (el owner lo pidió, sin definir medida todavía)
 - [x] KAN-336: implementado (ya no diferido) -- botón "Exportar PDF" en Personas evangelizadas, `jspdf-autotable` nueva (instalada también en Docker + reinicio), tamaño carta real, paginado, sobrio. Verificado leyendo el PDF generado directamente
 - [x] Tendencia: KPI "Total Meta" a naranja (color del hero), banner con fade-in (evita el salto de color a imagen), orden Día/Semana/Mes, números de picos más grandes (11px→14px + halo)
+- [x] KAN-336: PDF con ícono SVG oficial, título "Departamento de Evangelismo", fecha-hora separada por guion, "Todas las Casas de Paz" → luego afinado a solo "Casas de Paz" -- verificado leyendo el PDF descargado directamente
+- [x] Personas evangelizadas: filtros rápidos de fecha (Hoy/Ayer/Esta semana/Este mes) junto a los inputs
+- [x] KAN-336: márgenes del PDF de 40 a 46pt (zona no imprimible) + nombre del archivo a "departamento-evangelismo-*" -- comentado en el ticket
+- [x] Personas evangelizadas: filtros Red/Casa de Paz/Tipo movidos de la barra superior a selects en los propios encabezados de columna (estilo Excel) -- barra superior queda solo con buscador + fechas, pedido explícito del owner
+- [x] Botón "quitar filtro" (X) junto a los atajos de fecha -- antes no había forma de deseleccionar Hoy/Ayer/etc. salvo borrar las fechas a mano
+- [x] Fix de layout: el botón X (aparece/desaparece según haya fecha) compartía fila con buscador+fechas vía flex-wrap, y ese cambio de ancho hacía saltar el grupo de atajos a una segunda línea al hacer clic -- separado en su propia fila fija abajo

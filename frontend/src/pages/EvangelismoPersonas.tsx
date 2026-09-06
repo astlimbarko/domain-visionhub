@@ -7,7 +7,7 @@
 // Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, FileText, Search, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileText, Search, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,13 @@ function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: 
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_TIPOS = '__todos__';
+
+// Filtro estilo Excel en el propio encabezado de columna (pedido explícito
+// del owner, 2026-09-06) -- Red/Casa de Paz/Tipo ya no van en la barra
+// superior, la barra superior queda solo con buscador + fechas. El trigger
+// se despoja de fondo/borde/sombra para que se vea como parte del <th>.
+const SELECT_ENCABEZADO =
+  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
 
 // Filtro rápido de fechas (pedido explícito del owner, 2026-09-06) -- calcula
 // desde/hasta a partir de hoy, sin tocar el resto de filtros. "Esta semana"
@@ -114,6 +121,15 @@ export function EvangelismoPersonas() {
     setDesde(d);
     setHasta(h);
     setRangoRapido(atajo);
+  }
+
+  // Deselecciona el atajo activo y limpia las fechas -- sin esto, una vez
+  // presionado "Hoy"/etc. no había forma de volver a "sin filtro de fecha"
+  // salvo borrar los inputs a mano (pedido explícito del owner).
+  function limpiarFecha() {
+    setDesde('');
+    setHasta('');
+    setRangoRapido(null);
   }
 
   useEffect(() => {
@@ -234,82 +250,49 @@ export function EvangelismoPersonas() {
           }
         />
         <div className="flex flex-col gap-4 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className={cn('pl-8', CAMPO_ESTILO)}
-                placeholder="Buscar por nombre..."
-                value={textoInput}
-                onChange={(e) => setTextoInput(e.target.value)}
-              />
+          <div className="flex flex-col gap-3">
+            {/* Buscador + rango de fechas -- fila propia, ancho estable. Los
+                atajos van en su PROPIA fila de abajo (no en esta misma línea
+                con flex-wrap): el botón "quitar filtro" (X) aparece/desaparece
+                según haya fecha puesta, y compartiendo fila con flex-wrap ese
+                cambio de ancho hacía que el grupo de atajos saltara a una
+                segunda línea al hacer clic -- pedido explícito del owner de
+                que la fila de arriba no se mueva nunca. */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className={cn('pl-8', CAMPO_ESTILO)}
+                  placeholder="Buscar por nombre..."
+                  value={textoInput}
+                  onChange={(e) => setTextoInput(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="date"
+                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  value={desde}
+                  onChange={(e) => {
+                    setDesde(e.target.value);
+                    setRangoRapido(null);
+                  }}
+                  aria-label="Desde"
+                />
+                <span className="text-xs text-muted-foreground">a</span>
+                <Input
+                  type="date"
+                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  value={hasta}
+                  onChange={(e) => {
+                    setHasta(e.target.value);
+                    setRangoRapido(null);
+                  }}
+                  aria-label="Hasta"
+                />
+              </div>
             </div>
-            <Select value={redId} onValueChange={setRedId}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="Todas las Redes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
-                {redes.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={casaDePazId} onValueChange={setCasaDePazId}>
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue placeholder="Todas las Casas de Paz" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
-                {cdps.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.etiqueta}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={tipoId} onValueChange={setTipoId}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Todos los tipos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
-                {/* "Semilla" es un conteo agregado sin nombres reales -- esta
-                    página siempre lo excluye (ver fn_buscar_evangelizados),
-                    así que no tiene sentido ofrecerlo como filtro. */}
-                {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="date"
-                className={cn('w-[150px]', CAMPO_ESTILO)}
-                value={desde}
-                onChange={(e) => {
-                  setDesde(e.target.value);
-                  setRangoRapido(null);
-                }}
-                aria-label="Desde"
-              />
-              <span className="text-xs text-muted-foreground">a</span>
-              <Input
-                type="date"
-                className={cn('w-[150px]', CAMPO_ESTILO)}
-                value={hasta}
-                onChange={(e) => {
-                  setHasta(e.target.value);
-                  setRangoRapido(null);
-                }}
-                aria-label="Hasta"
-              />
-            </div>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {ATAJOS_FECHA.map((a) => (
                 <button
                   key={a.valor}
@@ -323,6 +306,16 @@ export function EvangelismoPersonas() {
                   {a.etiqueta}
                 </button>
               ))}
+              {(desde || hasta) && (
+                <button
+                  type="button"
+                  onClick={limpiarFecha}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="Quitar filtro de fecha"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -344,9 +337,54 @@ export function EvangelismoPersonas() {
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</th>
+                    <th className="px-3 py-2">
+                      <Select value={redId} onValueChange={setRedId}>
+                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
+                          <SelectValue placeholder="Red" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
+                          {redes.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
+                    <th className="px-3 py-2">
+                      <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
+                          <SelectValue placeholder="Casa de Paz" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
+                          {cdps.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.etiqueta}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
+                    <th className="px-3 py-2">
+                      <Select value={tipoId} onValueChange={setTipoId}>
+                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
+                          <SelectValue placeholder="Tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                          {/* "Semilla" es un conteo agregado sin nombres reales -- esta
+                              página siempre lo excluye (ver fn_buscar_evangelizados),
+                              así que no tiene sentido ofrecerlo como filtro. */}
+                          {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
                   </tr>
                 </thead>
