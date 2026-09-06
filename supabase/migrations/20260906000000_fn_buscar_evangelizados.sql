@@ -10,11 +10,6 @@
 -- los paneles existentes (Evangelismo.tsx / EvangelismoRed.tsx) -- esta
 -- pantalla nueva es para quien necesita ver TODA la iglesia con filtro de Red.
 
--- Postgres no deja cambiar el row type de OUT parameters con CREATE OR
--- REPLACE -- necesario tras corregir tipo_evangelismo_color de VARCHAR a
--- CHARACTER (bug real encontrado en vivo, ver comentario abajo).
-DROP FUNCTION IF EXISTS public.fn_buscar_evangelizados(UUID, UUID, TEXT, DATE, DATE, INT, INT);
-
 CREATE OR REPLACE FUNCTION public.fn_buscar_evangelizados(
   p_iglesia_id UUID,
   p_red_id UUID DEFAULT NULL,
@@ -22,7 +17,10 @@ CREATE OR REPLACE FUNCTION public.fn_buscar_evangelizados(
   p_desde DATE DEFAULT NULL,
   p_hasta DATE DEFAULT NULL,
   p_pagina INT DEFAULT 1,
-  p_por_pagina INT DEFAULT 50
+  p_por_pagina INT DEFAULT 50,
+  -- Filtros de Casa de Paz y Tipo, sumados a pedido del owner (2026-09-06).
+  p_casa_de_paz_id UUID DEFAULT NULL,
+  p_tipo_evangelismo_id UUID DEFAULT NULL
 )
 RETURNS TABLE (
   id UUID,
@@ -90,6 +88,8 @@ BEGIN
     -- no debe listar filas "Semilla (sin datos)".
     AND (te.codigo IS DISTINCT FROM 'SEMILLA')
     AND (p_red_id IS NULL OR r.id = p_red_id)
+    AND (p_casa_de_paz_id IS NULL OR ev.casa_de_paz_id = p_casa_de_paz_id)
+    AND (p_tipo_evangelismo_id IS NULL OR te.id = p_tipo_evangelismo_id)
     AND (p_desde IS NULL OR ev.fecha >= p_desde)
     AND (p_hasta IS NULL OR ev.fecha <= p_hasta)
     AND (p_texto IS NULL OR btrim(p_texto) = '' OR fn_nombre_completo(p) ILIKE '%' || p_texto || '%')
@@ -98,5 +98,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.fn_buscar_evangelizados(UUID, UUID, TEXT, DATE, DATE, INT, INT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.fn_buscar_evangelizados(UUID, UUID, TEXT, DATE, DATE, INT, INT) TO authenticated;
+REVOKE ALL ON FUNCTION public.fn_buscar_evangelizados(UUID, UUID, TEXT, DATE, DATE, INT, INT, UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_buscar_evangelizados(UUID, UUID, TEXT, DATE, DATE, INT, INT, UUID, UUID) TO authenticated;

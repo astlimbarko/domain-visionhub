@@ -150,7 +150,9 @@ export async function buscarEvangelizados(
   desde: string | undefined,
   hasta: string | undefined,
   pagina = 1,
-  porPagina = 50
+  porPagina = 50,
+  casaDePazId?: string,
+  tipoEvangelismoId?: string
 ): Promise<{ resultados: EvangelizadoBusqueda[]; total: number }> {
   const { data, error } = await supabase.rpc('fn_buscar_evangelizados', {
     p_iglesia_id: iglesiaId,
@@ -160,6 +162,8 @@ export async function buscarEvangelizados(
     p_hasta: hasta || null,
     p_pagina: pagina,
     p_por_pagina: porPagina,
+    p_casa_de_paz_id: casaDePazId ?? null,
+    p_tipo_evangelismo_id: tipoEvangelismoId ?? null,
   });
   if (error) throw error;
   const resultados = data ?? [];

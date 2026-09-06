@@ -1,4 +1,4 @@
-// VisionHub -- KAN-302 (pedido explícito del owner, 2026-09-06): "necesitamos
+// VisionHub -- KAN-335 (pedido explícito del owner, 2026-09-06): "necesitamos
 // que en evangelismo tambien... un boton en la barra lateral... que ahi se
 // visualice toda la gente ganada y que tenga filtros arriba... paginado...
 // que ahi recien haya la opcion de descargar". Mismo patrón que
@@ -20,8 +20,8 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
-import { useRedes } from '@/hooks/useCasasDePaz';
-import { useBuscarEvangelizados } from '@/hooks/useEvangelismo';
+import { useCdpsIglesia, useRedes } from '@/hooks/useCasasDePaz';
+import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 
@@ -55,14 +55,20 @@ function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: 
 }
 
 const TODAS_LAS_REDES = '__todas__';
+const TODAS_LAS_CDP = '__todas__';
+const TODOS_LOS_TIPOS = '__todos__';
 
 export function EvangelismoPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: redes = [] } = useRedes(iglesiaActivaId);
+  const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
+  const { data: tipos = [] } = useTiposEvangelismo(iglesiaActivaId);
 
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
+  const [casaDePazId, setCasaDePazId] = useState<string>(TODAS_LAS_CDP);
+  const [tipoId, setTipoId] = useState<string>(TODOS_LOS_TIPOS);
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [pagina, setPagina] = useState(1);
@@ -73,10 +79,22 @@ export function EvangelismoPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, desde, hasta]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
-const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaActivaId, redIdFiltro, texto, desde || undefined, hasta || undefined, pagina, POR_PAGINA);
+  const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
+  const tipoIdFiltro = tipoId === TODOS_LOS_TIPOS ? undefined : tipoId;
+  const { data, isLoading, isFetching, error } = useBuscarEvangelizados(
+    iglesiaActivaId,
+    redIdFiltro,
+    texto,
+    desde || undefined,
+    hasta || undefined,
+    pagina,
+    POR_PAGINA,
+    casaDePazIdFiltro,
+    tipoIdFiltro
+  );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -86,7 +104,17 @@ const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaAct
     if (!iglesiaActivaId) return;
     setExportando(true);
     try {
-      const { resultados: todas } = await buscarEvangelizados(iglesiaActivaId, redIdFiltro, texto, desde || undefined, hasta || undefined, 1, LIMITE_EXPORTACION);
+      const { resultados: todas } = await buscarEvangelizados(
+        iglesiaActivaId,
+        redIdFiltro,
+        texto,
+        desde || undefined,
+        hasta || undefined,
+        1,
+        LIMITE_EXPORTACION,
+        casaDePazIdFiltro,
+        tipoIdFiltro
+      );
       const csv = filasACsv(todas);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -135,7 +163,7 @@ const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaAct
               />
             </div>
             <Select value={redId} onValueChange={setRedId}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-44">
                 <SelectValue placeholder="Todas las Redes" />
               </SelectTrigger>
               <SelectContent>
@@ -143,6 +171,35 @@ const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaAct
                 {redes.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
                     {r.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Todas las Casas de Paz" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
+                {cdps.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.etiqueta}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={tipoId} onValueChange={setTipoId}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Todos los tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                {/* "Semilla" es un conteo agregado sin nombres reales -- esta
+                    página siempre lo excluye (ver fn_buscar_evangelizados),
+                    así que no tiene sentido ofrecerlo como filtro. */}
+                {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -162,33 +219,35 @@ const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaAct
             </p>
           ) : resultados.length === 0 ? (
             <p className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-              {texto.trim() || redIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
+              {texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
             </p>
           ) : (
-            <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
-              <table className="w-full min-w-[720px] border-collapse text-sm">
+            <div className={cn('overflow-x-auto rounded-xl border border-border/30 transition-opacity', isFetching && 'opacity-60')}>
+              <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {resultados.map((e) => (
+                <tbody className="divide-y divide-border/20">
+                  {resultados.map((e, i) => (
                     <tr
                       key={e.id}
                       onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                      className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
+                      className="cursor-pointer hover:bg-muted/40"
                     >
-                      <td className="px-3 py-2.5 font-medium">{e.nombre_completo}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{e.fecha}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{e.red_nombre ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
+                      <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
+                      <td className="px-3 py-3">
                         {e.tipo_evangelismo_nombre ? (
                           <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
                             {e.tipo_evangelismo_nombre}
@@ -197,7 +256,7 @@ const { data, isLoading, isFetching, error } = useBuscarEvangelizados(iglesiaAct
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>

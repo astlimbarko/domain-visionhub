@@ -11,7 +11,6 @@ import {
   type NavItem,
 } from '@/utils/permisos';
 import { ROUTES, rutaConstructorResumen } from '@/utils/constants';
-import { DEPARTAMENTO_META } from '@/utils/departamentos';
 
 export const COLORES_NAVBAR_CONTEXTO = {
   SUPER_ADMIN: '#0A0E1A',
@@ -99,7 +98,12 @@ function colorContexto(contexto: ContextoActivo): string {
     return COLORES_NAVBAR_CONTEXTO.SUPERVISOR_RED;
   }
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO' && contexto.departamentoCodigo === 'EVANGELISMO') {
-    return DEPARTAMENTO_META.EVANGELISMO.color;
+    // Mockup del owner (KAN-337, evangelismo_new.png): navbar claro con texto
+    // oscuro, no el dorado institucional -- ese color queda solo para el
+    // banner central. '#FFFAFA' es el mismo valor "navbar claro" que ya usan
+    // otros roles (ver textoNavbarClaro más abajo, que solo pone texto oscuro
+    // para ese hex exacto).
+    return '#FFFAFA';
   }
   return COLORES_NAVBAR_CONTEXTO[contexto.rolUI];
 }

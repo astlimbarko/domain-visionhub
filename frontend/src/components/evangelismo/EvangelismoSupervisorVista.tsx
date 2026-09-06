@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { KpiMosaico, gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
+import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
@@ -321,13 +321,13 @@ export function EvangelismoSupervisorVista() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8" style={{ background: gradienteHeroColor(DEPARTAMENTO_META.EVANGELISMO.color) }}>
-        <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
+      <div
+        className="relative overflow-hidden rounded-3xl bg-cover bg-right p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8"
+        style={{ backgroundImage: 'url(/evangelismo-banner.png)', backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
+      >
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: degradadoIdentidadColor(DEPARTAMENTO_META.EVANGELISMO.color) }}>
-              <HeartHandshake className="h-7 w-7 text-white" />
-            </div>
+            <img src="/icono-evangelismo.svg" alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Evangelismo</h1>
               <p className="text-[13px] text-white/70">Gestioná las metas y el seguimiento mensual</p>

@@ -53,6 +53,9 @@ export interface EvangelizadoRed {
   domicilio: string | null;
   tipo_evangelismo_nombre: string | null;
   tipo_evangelismo_color: string | null;
+  /** Para distinguir "Semilla" (conteo agregado) de personas reales en la
+   * Tendencia (KAN-285) -- ver TendenciaEvangelismo.tsx. */
+  tipo_evangelismo_codigo: string | null;
 }
 
 /** Tasa agregada de toda la Red (fn_tasa_evangelismo_red). */

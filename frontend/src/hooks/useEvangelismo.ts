@@ -66,7 +66,7 @@ export function useEvangelizados(casaDePazId: string | undefined, desde: string,
 }
 
 /** Roster completo de la iglesia con filtros/paginación -- página "Personas
- * evangelizadas" (KAN-302). */
+ * evangelizadas" (KAN-335). */
 export function useBuscarEvangelizados(
   iglesiaId: string | undefined,
   redId: string | undefined,
@@ -74,11 +74,13 @@ export function useBuscarEvangelizados(
   desde: string | undefined,
   hasta: string | undefined,
   pagina: number,
-  porPagina: number
+  porPagina: number,
+  casaDePazId?: string,
+  tipoEvangelismoId?: string
 ) {
   return useQuery({
-    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina],
-    queryFn: () => buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina),
+    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId],
+    queryFn: () => buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId),
     enabled: !!iglesiaId,
     placeholderData: keepPreviousData,
   });

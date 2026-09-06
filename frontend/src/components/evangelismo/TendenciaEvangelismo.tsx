@@ -13,6 +13,10 @@ const OPCIONES: { valor: Granularidad; etiqueta: string }[] = [
 ];
 
 const COLOR = DEPARTAMENTO_META.EVANGELISMO.color;
+// Semilla es un conteo agregado (sin nombres reales, ver KAN-335) -- gris
+// neutro a propósito para que no compita visualmente con la línea principal
+// de Evangelizados reales.
+const COLOR_SEMILLA = '#94A3B8';
 
 interface Punto {
   clave: string;
@@ -20,6 +24,7 @@ interface Punto {
   /** Segunda línea del tick del eje X -- mes (en semana) o día de semana (en día). Vacío en mes. */
   subEtiqueta: string;
   cantidad: number;
+  cantidadSemilla: number;
 }
 
 function armarBuckets(granularidad: Granularidad): { clave: string; etiqueta: string; subEtiqueta: string }[] {
@@ -66,7 +71,14 @@ function Tooltip2({ active, payload, granularidad }: { active?: boolean; payload
   return (
     <div className="rounded-xl border border-border bg-popover px-3 py-2 text-xs shadow-lg">
       <p className="font-semibold text-popover-foreground">{titulo}</p>
-      <p className="mt-0.5 text-popover-foreground">{punto.cantidad} evangelizado{punto.cantidad === 1 ? '' : 's'}</p>
+      <p className="mt-0.5 flex items-center gap-1.5 text-popover-foreground">
+        <span className="h-2 w-2 rounded-full" style={{ background: COLOR }} />
+        {punto.cantidad} evangelizado{punto.cantidad === 1 ? '' : 's'}
+      </p>
+      <p className="mt-0.5 flex items-center gap-1.5 text-popover-foreground">
+        <span className="h-2 w-2 rounded-full" style={{ background: COLOR_SEMILLA }} />
+        {punto.cantidadSemilla} semilla{punto.cantidadSemilla === 1 ? '' : 's'}
+      </p>
     </div>
   );
 }
@@ -93,11 +105,14 @@ function TickEjeX({ x, y, payload, index, datos }: { x?: number; y?: number; pay
 }
 
 /** Número visible en cada punto con actividad (se omite en 0 para no
- * ensuciar la línea con ceros repetidos). */
-function EtiquetaValor({ x, y, value }: { x?: number; y?: number; value?: number }) {
+ * ensuciar la línea con ceros repetidos). Reusado por las 2 series --
+ * `color`/`arriba` distinguen cuál línea y de qué lado del punto va el
+ * número, para que no se pisen cuando ambas series tienen datos la misma
+ * semana/mes/día. */
+function EtiquetaValor({ x, y, value, color, arriba }: { x?: number; y?: number; value?: number; color: string; arriba: boolean }) {
   if (x == null || y == null || !value) return null;
   return (
-    <text x={x} y={y - 8} textAnchor="middle" fontSize={11} fontWeight={700} fill={COLOR}>
+    <text x={x} y={arriba ? y - 8 : y + 16} textAnchor="middle" fontSize={11} fontWeight={700} fill={color}>
       {value}
     </text>
   );
@@ -109,41 +124,68 @@ function EtiquetaValor({ x, y, value }: { x?: number; y?: number; value?: number
  * es una actividad diaria de rutina, Día queda para eventos puntuales
  * (inauguraciones, campañas), no es la vista por defecto.
  *
+ * Dos series separadas -- "Evangelizados" (personas reales) y "Semilla" (un
+ * conteo agregado sin nombres reales, KAN-335) -- pedido explícito del
+ * owner: no son lo mismo y no deben sumarse en una sola línea.
+ *
  * `evangelizados` viene ya traído por el padre con un rango amplio (últimos
  * 12 meses hasta hoy) -- este componente solo agrupa y recorta en el cliente
  * según la granularidad elegida, no vuelve a pedir datos.
  */
-export function TendenciaEvangelismo({ evangelizados, cargando }: { evangelizados: { fecha: string }[]; cargando?: boolean }) {
+export function TendenciaEvangelismo({
+  evangelizados,
+  cargando,
+}: {
+  evangelizados: { fecha: string; tipo_evangelismo_codigo?: string | null }[];
+  cargando?: boolean;
+}) {
   const [granularidad, setGranularidad] = useState<Granularidad>('semana');
 
   const datos = useMemo<Punto[]>(() => {
     const buckets = armarBuckets(granularidad);
     const conteo = new Map<string, number>();
+    const conteoSemilla = new Map<string, number>();
     for (const e of evangelizados) {
       const clave = claveDeFecha(e.fecha, granularidad);
-      conteo.set(clave, (conteo.get(clave) ?? 0) + 1);
+      if (e.tipo_evangelismo_codigo === 'SEMILLA') {
+        conteoSemilla.set(clave, (conteoSemilla.get(clave) ?? 0) + 1);
+      } else {
+        conteo.set(clave, (conteo.get(clave) ?? 0) + 1);
+      }
     }
-    return buckets.map((b) => ({ ...b, cantidad: conteo.get(b.clave) ?? 0 }));
+    return buckets.map((b) => ({ ...b, cantidad: conteo.get(b.clave) ?? 0, cantidadSemilla: conteoSemilla.get(b.clave) ?? 0 }));
   }, [evangelizados, granularidad]);
 
   const intervalo = granularidad === 'dia' ? 2 : 0;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-1.5 self-start rounded-xl bg-muted/50 p-1">
-        {OPCIONES.map((o) => (
-          <button
-            key={o.valor}
-            type="button"
-            onClick={() => setGranularidad(o.valor)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-              granularidad === o.valor ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {o.etiqueta}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1.5 self-start rounded-xl bg-muted/50 p-1">
+          {OPCIONES.map((o) => (
+            <button
+              key={o.valor}
+              type="button"
+              onClick={() => setGranularidad(o.valor)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                granularidad === o.valor ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {o.etiqueta}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: COLOR }} />
+            Evangelizados
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: COLOR_SEMILLA }} />
+            Semilla
+          </span>
+        </div>
       </div>
 
       {cargando ? (
@@ -173,7 +215,21 @@ export function TendenciaEvangelismo({ evangelizados, cargando }: { evangelizado
                 activeDot={{ r: 5 }}
                 isAnimationActive={false}
               >
-                <LabelList dataKey="cantidad" content={<EtiquetaValor />} />
+                <LabelList dataKey="cantidad" content={<EtiquetaValor color={COLOR} arriba />} />
+              </Area>
+              <Area
+                type="monotone"
+                dataKey="cantidadSemilla"
+                name="Semilla"
+                stroke={COLOR_SEMILLA}
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                fill="none"
+                dot={{ r: 2.5, fill: COLOR_SEMILLA, stroke: 'var(--background)', strokeWidth: 1.5 }}
+                activeDot={{ r: 4 }}
+                isAnimationActive={false}
+              >
+                <LabelList dataKey="cantidadSemilla" content={<EtiquetaValor color={COLOR_SEMILLA} arriba={false} />} />
               </Area>
             </ComposedChart>
           </ResponsiveContainer>
