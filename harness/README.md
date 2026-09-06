@@ -47,9 +47,11 @@ plan de implementación para separar con precisión lo existente de lo propuesto
 
 ## Alcance
 
-**Entra ahora (Módulo 1):** configuración de iglesias, formulario de CdP web, dashboards de los 5 roles, formulario de membresía, finanzas de CdP, evangelismo de casa de paz, calendario de eventos, panel del Supervisor acotado a casas de paz, registro público de personas por URL de líder de CdP (`nuevos_requisitos.txt`, 2026-07-18).
+**Entra ahora (Módulo 1):** configuración de iglesias, formulario de CdP web, dashboards de los 5 roles, formulario de membresía, finanzas de CdP, evangelismo de casa de paz, calendario de eventos, panel del Supervisor acotado a casas de paz, registro público de personas por URL de líder de CdP (`nuevos_requisitos.txt`, 2026-07-18), Departamento de Afirmación (área [14](14-afirmacion/)), **Departamento de Evangelismo** (rol propio + vista agregada iglesia/Red reutilizando `fn_evangelismo_red` y afines, metas por Red, página "Personas evangelizadas" con filtros/paginado/CSV/PDF, KAN-281 a 338 -- ver nota en [06-evangelismo-cdp/requirements.md](06-evangelismo-cdp/requirements.md)).
 
-**No entra ahora:** app móvil, Departamento de Evangelismo (escala red/iglesia/cobertura), Afirmación, Discipulado, Envío, contabilidad general. Ver [99-modulos-futuros.md](99-modulos-futuros.md).
+**No entra ahora:** app móvil, Discipulado, Envío, contabilidad general. Ver [99-modulos-futuros.md](99-modulos-futuros.md).
+
+> **Nota (2026-09-06):** esta tabla de alcance había quedado desactualizada en varios puntos -- tanto Afirmación como Evangelismo aparecían como "no entra ahora" pese a estar implementados hace tiempo. Se corrigieron los dos acá. Discipulado y Envío sí siguen sin gestión funcional (`DEPARTAMENTOS_FUNCIONALES` en el frontend, muestran "Próximamente").
 
 ---
 

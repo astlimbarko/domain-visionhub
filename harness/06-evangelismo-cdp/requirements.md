@@ -2,9 +2,11 @@
 
 ## Introducción
 
-Cubre el evangelismo **de casa de paz**: el trabajo chico que hace cada CdP en su salida semanal. El Departamento de Evangelismo — el trabajo grande a nivel de toda la iglesia — es el Módulo 2.
+Cubre el evangelismo **de casa de paz**: el trabajo chico que hace cada CdP en su salida semanal.
 
-La frontera es el campo `escala`: `CASA_DE_PAZ` entra ahora; `RED`, `IGLESIA` y `COBERTURA` entran con el Módulo 2. La columna existe desde hoy para que el Módulo 2 no necesite migración.
+> **Actualización (2026-09-06, KAN-281 a 338):** el "Departamento de Evangelismo" que este documento describía como Módulo 2 (más abajo) **ya se implementó y está en producción** -- no como registros nuevos de `escala = RED/IGLESIA/COBERTURA` (esa frontera sigue igual, ver más abajo), sino como un **rol nuevo** (`LIDER_DEPARTAMENTO`/`EVANGELISMO`, mismo mecanismo genérico que ya tenía Afirmación) con una vista agregada de **toda la iglesia** sobre los registros `CASA_DE_PAZ` existentes: metas asignables por Red completa (`meta_evangelismo_asignada.red_id`, columna que ya existía de antes de esta ronda -- no documentada en el DDL de este paquete, `11-esquema-bd/sql/12_evangelismo.sql` sigue mostrando solo `casa_de_paz_id NOT NULL`, pendiente sincronizar), calendario/resumen semanal con drill-down Red→CdP→persona, y una página nueva "Personas evangelizadas" (`fn_buscar_evangelizados`) con filtros, paginado, exportación a CSV y PDF. También se cerró el Requisito 2.6 de abajo (quién evangelizó): la columna `evangelizado_por_id` existía desde el diseño original pero nunca se conectaba a ningún formulario ni listado -- ahora sí. Rama `feature/kan281-departamento-evangelismo`, migraciones en `supabase/migrations/2026090[5-6]*`. La escala verdadera RED/IGLESIA/COBERTURA (nuevas filas de `evangelismo` con esa escala, no solo una vista agregada de filas CASA_DE_PAZ) sigue sin implementarse.
+
+La frontera del campo `escala` (histórica, sin cambios por lo de arriba): `CASA_DE_PAZ` entra ahora; `RED`, `IGLESIA` y `COBERTURA` entran con el Módulo 2. La columna existe desde hoy para que el Módulo 2 no necesite migración.
 
 El frontend de este módulo **ya está construido** (`iu/rediseno-modulo-evangelismo/`, `iu/meta-evangelismo-kpi/`, `iu/sistema-evangelismo-reportes/`, `iu/mejora-formulario-evangelismo/`). Estos requisitos se alinean con lo que ese front espera consumir.
 
