@@ -40,4 +40,6 @@
 - [ ] Falta: probar en vivo el flujo de "evangelizado por" (registrar con evangelizador elegido, confirmar que aparece en la tabla) antes de cerrar KAN-338
 - [ ] Falta: harness/README.md sigue sin actualizar (Depto. de Evangelismo listado como "No entra ahora" pese a estar en producción) -- confirmado con el owner que se actualiza, pendiente de hacer
 - [x] Headers de sección (Metas de la Red, Tendencia, Calendario, Detalle del día, Resumen semanal) recoloreados a naranja de identidad (`DEPARTAMENTO_META.EVANGELISMO.color`) -- antes mezcla de morado/celeste/azul. Solo títulos/íconos, tarjetas KPI intactas -- verificado en vivo
-- [ ] Nota: `EvangelismoRed.tsx` (vista de Líder de Red) tiene el mismo patrón de colores mezclados (morado/amarillo) -- no se tocó, no fue pedido explícitamente para esa pantalla
+- [x] KAN-341 (nuevo): unificar colores en el resto de pantallas de Evangelismo (`EvangelismoRed.tsx` y otras) -- ticketeado, pedido explícito del owner que se haga DESPUÉS del merge (el Departamento de Evangelismo tiene prioridad para desplegarse ya)
+- [x] harness/README.md + 06-evangelismo-cdp/requirements.md actualizados: Afirmación y Depto. de Evangelismo ya no figuran como "no entra ahora", nota de qué se implementó realmente (rol + vista agregada, no escala RED/IGLESIA/COBERTURA real) y qué sigue sin sincronizar (DDL de `meta_evangelismo_asignada.red_id`)
+- [ ] Cola confirmada por el owner (orden): harness (hecho) → KPIs + donut → merge (al final de todo, con su confirmación) → después del merge, KAN-341 (colores en el resto de pantallas)
