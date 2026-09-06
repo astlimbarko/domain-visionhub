@@ -394,7 +394,12 @@ export function EvangelismoSupervisorVista() {
         >
           <KpiMosaico label="Evangelizados" icon={HeartHandshake} color={VERDE}>{cargandoResumen ? '—' : totalEvangelizados}</KpiMosaico>
         </button>
-        <KpiMosaico label="Total Meta" icon={Flag} color={NARANJA}>{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
+        {/* "Total Meta" -> "Meta General" + sub "Todas las Redes" (pedido
+            explícito del owner, 2026-09-06): esta suma es solo de las metas
+            asignadas a nivel Red (no las de cada CdP individual) -- el
+            nombre viejo no dejaba claro que es "para todo", no una meta
+            puntual de una CdP. */}
+        <KpiMosaico label="Meta General" icon={Flag} color={NARANJA} sub="Todas las Redes">{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
         <KpiMosaico label="Avance" icon={Target} color={AMARILLO}>{cargandoResumen || avance == null ? '—' : `${avance}%`}</KpiMosaico>
         <KpiMosaico label="Casas Activas" icon={Home} color={CELESTE}>{cargandoCdps ? '—' : cdps.length}</KpiMosaico>
       </div>
