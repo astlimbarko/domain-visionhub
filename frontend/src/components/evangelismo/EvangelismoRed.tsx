@@ -13,8 +13,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
-import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
-import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { ListaPersonasDia } from '@/components/evangelismo/ListaPersonasDia';
+import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
+import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
 
 /** Sentinel para distinguir "asignar a todas" de una CdP real en el mismo diálogo. */
@@ -67,6 +68,12 @@ export function EvangelismoRed({ redId }: Props) {
   const { data: evangelizados = [], isLoading: cargandoLista, isFetching: actualizandoLista } = useEvangelismoRed(redId, desde, hasta);
   const { data: metasCdp = [], isLoading: cargandoMetas } = useMetasCdpRed(redId);
   const asignarMeta = useAsignarMetaEvangelismo(redId);
+
+  // Tendencia (KAN-285): mismo rango amplio y fijo que en la vista del
+  // Supervisor/Departamento, independiente del mes navegado arriba.
+  const hoyISO = aISO(hoy);
+  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const { data: evangelizadosTendencia = [], isLoading: cargandoTendencia } = useEvangelismoRed(redId, desdeTendencia, hoyISO);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -175,7 +182,7 @@ export function EvangelismoRed({ redId }: Props) {
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="flex w-36 items-center justify-center gap-1.5 text-center text-sm font-semibold tracking-tight capitalize">
+          <span className="flex w-48 items-center justify-center gap-1.5 text-center text-xl font-bold tracking-tight capitalize">
             {nombreMes(anio, mes)}
             {actualizandoLista && !cargandoLista && <Spinner className="h-3 w-3 text-muted-foreground" />}
           </span>
@@ -282,9 +289,23 @@ export function EvangelismoRed({ redId }: Props) {
         </div>
       </section>
 
+      {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={Flag} color={MORADO} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <div className="p-5">
+          <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={CELESTE} titulo="Calendario de evangelismo" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader
+            icon={CalendarRange}
+            color={CELESTE}
+            titulo="Calendario de evangelismo"
+            descripcion="Días en los que alguna Casa de Paz registró evangelismo"
+            accion={<span className="text-lg font-bold capitalize" style={{ color: CELESTE }}>{nombreMes(anio, mes)}</span>}
+          />
           <div className="p-4">
             {cargandoLista ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
@@ -320,9 +341,17 @@ export function EvangelismoRed({ redId }: Props) {
                       <Home className="h-3.5 w-3.5" style={{ color: AZUL }} /> {g.etiqueta}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{g.personas.length}</span>
                     </p>
-                    {g.personas.map((e) => (
-                      <PersonaNombreLink key={e.id} personaId={e.persona_id} className="pl-5 text-sm text-foreground">{e.nombre_completo}</PersonaNombreLink>
-                    ))}
+                    <div className="pl-5">
+                      <ListaPersonasDia
+                        personas={g.personas.map((e) => ({
+                          id: e.id,
+                          personaId: e.persona_id,
+                          nombre: e.nombre_completo,
+                          tipoNombre: e.tipo_evangelismo_nombre,
+                          tipoColor: e.tipo_evangelismo_color,
+                        }))}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

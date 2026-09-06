@@ -32,6 +32,7 @@ import {
   useCrearEvangelizado,
   useEvangelizados,
   useMetaPropia,
+  useSoyRolSuperiorDeCdp,
   useTasaEvangelismo,
   useTiposEvangelismo,
 } from '@/hooks/useEvangelismo';
@@ -86,6 +87,7 @@ export function Evangelismo() {
   const { data: tasa, isLoading: cargandoTasa } = useTasaEvangelismo(cdpActiva, desde, hasta);
   const { data: tasaAnterior } = useTasaEvangelismo(cdpActiva, desdeAnterior, hastaAnterior);
   const { data: metaPropia } = useMetaPropia(cdpActiva);
+  const { data: esRolSuperior } = useSoyRolSuperiorDeCdp(cdpActiva);
   // El input de meta propia se siembra con lo guardado en la BD -- antes ese
   // valor solo se mostraba como placeholder (texto gris, no el value real),
   // asi que si alguien clickeaba "Guardar" sin volver a escribirlo, se
@@ -169,9 +171,14 @@ export function Evangelismo() {
   // Mientras la meta de la Red esté vigente y todavía no se haya alcanzado,
   // la meta propia queda bloqueada (pedido del owner, 2026-08-03) -- el
   // backend ya lo hace cumplir (trg_bloquear_meta_propia_bajo_asignada,
-  // migración 93), esto solo refleja la misma regla en la UI.
+  // migración 93), esto solo refleja la misma regla en la UI. KAN-290: el
+  // backend exime de este bloqueo a quien ya es rol superior de la CdP
+  // (Pastor, Supervisor, Líder/Sublíder de Red) -- sin este chequeo la UI
+  // bloqueaba el campo con solo mirar el origen, aunque quien mira sea en
+  // realidad superior a quien asignó la meta (ej. una Pastora viendo su
+  // propia CdP con una meta puesta por el Líder de su Red).
   const metaAsignadaCumplida = esMetaAsignada(tasa?.origen) && tasa?.meta != null && evangelizadosActual >= tasa.meta;
-  const metaAsignadaBloqueando = esMetaAsignada(tasa?.origen) && !metaAsignadaCumplida;
+  const metaAsignadaBloqueando = esMetaAsignada(tasa?.origen) && !metaAsignadaCumplida && !esRolSuperior;
 
   async function guardarMeta() {
     const valor = metaLocal.trim() === '' ? null : Number(metaLocal);
@@ -203,6 +210,13 @@ export function Evangelismo() {
   // Red de la iglesia, y con el poder extra de asignarle una meta propia a
   // la Red (pedido del owner, 2026-08-06, ver EvangelismoRed.tsx).
   if (rolUI === 'SUPERVISOR') return <EvangelismoSupervisorVista />;
+
+  // Departamento de Evangelismo (KAN-281): mismo panel iglesia-completa que
+  // el Supervisor -- rol independiente, no depende de rol_sistema_enum
+  // (contextoActivo.alcance === 'DEPARTAMENTO', igual que Afirmación).
+  if (contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO') {
+    return <EvangelismoSupervisorVista />;
+  }
 
   if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
@@ -622,11 +636,15 @@ export function Evangelismo() {
               iglesia_id: iglesiaActivaId as string,
               fecha: valores.fecha,
               primer_nombre: valores.primer_nombre,
+              segundo_nombre: valores.segundo_nombre || undefined,
               primer_apellido: valores.primer_apellido,
+              segundo_apellido: valores.segundo_apellido || undefined,
               sexo: valores.sexo,
+              fecha_nacimiento: valores.fecha_nacimiento || undefined,
               domicilio: valores.domicilio || undefined,
               telefono: valores.telefono || undefined,
               tipo_evangelismo_id: valores.tipo_evangelismo_id,
+              evangelizado_por_id: valores.evangelizado_por_id,
             })
           }
         />

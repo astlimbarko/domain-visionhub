@@ -480,7 +480,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             )
           )}
           <NotificacionesBell />
-          <DropdownMenu>
+          {/* modal={false} (2026-09-06, bug real reportado por el owner): por
+              default Radix bloquea el scroll del body al abrir el menu y
+              agrega su propia compensacion de ancho de scrollbar
+              (react-remove-scroll-bar, margin-right con !important) -- pero
+              `html` ya fuerza `overflow-y: scroll` + `scrollbar-gutter:
+              stable` (ver index.css, fix de 2026-08-27), asi que la
+              scrollbar nunca desaparece y esa compensacion termina siendo un
+              corrimiento de mas, no una correccion real. Con modal={false}
+              el menu no bloquea el scroll (no hace falta, no es un dialogo
+              que exija foco exclusivo) y el corrimiento desaparece. */}
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button className={cn(
                 'flex min-w-0 max-w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-all',

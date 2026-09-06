@@ -1,26 +1,35 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, Heart, HeartHandshake, Home, MapPin, Pencil, Target, UsersRound } from 'lucide-react';
+import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, Heart, HeartHandshake, Home, Pencil, Target, UsersRound } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD } from '@/components/shared/SeccionPerfil';
+import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { KpiMosaico } from '@/components/dashboard/DashboardUI';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
-import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
+import type { PersonaDelDia } from '@/components/evangelismo/ListaPersonasDia';
+import { AcordeonRedesCdp, type RedConActividad } from '@/components/evangelismo/AcordeonRedesCdp';
+import { AnilloSegmentado, type SegmentoAnillo } from '@/components/evangelismo/AnilloSegmentado';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { ROUTES } from '@/utils/constants';
 import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignada, obtenerTasaEvangelismoRed } from '@/services/evangelismo.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
-import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO, primerDiaMesRelativo } from '@/utils/calendario-fechas';
+import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
 
-const { AZUL, VERDE, MORADO, AMARILLO, CELESTE } = EVANGELISMO_COLOR;
+const { AZUL, VERDE, MORADO, AMARILLO, CELESTE, NARANJA, ROSA } = EVANGELISMO_COLOR;
+// Paleta cíclica para los anillos por Red -- si hay más de 7 Redes, se repiten.
+const PALETA_ANILLO = [AZUL, VERDE, MORADO, AMARILLO, CELESTE, NARANJA, ROSA];
 
 /** Sentinel para distinguir "asignar a todas las Redes" de una Red real en el mismo diálogo. */
 const ID_TODAS_LAS_REDES = '__TODAS_REDES__';
@@ -83,6 +92,7 @@ export function EvangelismoSupervisorVista() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const personaId = useAuthStore((s) => s.personaId);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: redesTodas = [], isLoading: cargandoRedes } = useRedes(iglesiaActivaId);
   const redes = useMemo(() => redesTodas.filter((r) => r.activo), [redesTodas]);
@@ -97,9 +107,35 @@ export function EvangelismoSupervisorVista() {
   const [modalMetasAbierto, setModalMetasAbierto] = useState(false);
   const [redParaMeta, setRedParaMeta] = useState<MetaCdpRed | null>(null);
   const [bulkAsignando, setBulkAsignando] = useState(false);
+  // El banner mostraba el color sólido y recién después "aparecía" el PNG de
+  // fondo (pop abrupto que el owner reportó como "parece que carga lento",
+  // 2026-09-06) -- se separa la imagen a una capa propia con fade-in al
+  // cargar, así la transición se ve intencional en vez de un salto.
+  const [bannerCargado, setBannerCargado] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
+
+  /** Navega a "Personas evangelizadas" con el mes actual del dashboard ya
+   * filtrado -- reusa la misma tabla existente, sin inventar una nueva. */
+  function irAPersonasEvangelizadas() {
+    navigate(ROUTES.EVANGELISMO_PERSONAS, { state: { desde, hasta } });
+  }
+
+  // Tendencia (KAN-285): rango amplio y fijo (últimos 12 meses hasta hoy),
+  // independiente del mes que se esté navegando arriba -- el componente
+  // agrupa/recorta en el cliente según la granularidad elegida.
+  const hoyISO = aISO(hoy);
+  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const tendenciaPorRed = useQueries({
+    queries: redes.map((r) => ({
+      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hoyISO],
+      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hoyISO),
+      enabled: !!r.id,
+    })),
+  });
+  const cargandoTendencia = tendenciaPorRed.some((q) => q.isLoading);
+  const evangelizadosTendencia = useMemo(() => tendenciaPorRed.flatMap((q) => q.data ?? []), [tendenciaPorRed]);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -140,21 +176,103 @@ export function EvangelismoSupervisorVista() {
 
   const evangelizadosTodos = useMemo<EvangelizadoRed[]>(() => filas.flatMap((f) => f.evangelizados), [filas]);
 
-  // Agrupado por CdP el día elegido, con su líder -- lo que pidió el owner
-  // ("Detalle del día": Casa de Paz, cantidad, Líder), no una lista plana de personas.
-  const grupoDelDia = useMemo(() => {
-    if (!diaSeleccionado) return [];
-    const conteos = new Map<string, { etiqueta: string; cantidad: number }>();
-    for (const e of evangelizadosTodos) {
-      if (e.fecha !== diaSeleccionado) continue;
-      const g = conteos.get(e.casa_de_paz_id) ?? { etiqueta: e.casa_de_paz_etiqueta, cantidad: 0 };
-      g.cantidad += 1;
-      conteos.set(e.casa_de_paz_id, g);
+  // Anillo "Evangelizados por Red" (pedido explícito del owner, 2026-09-06).
+  // Excluye "Semilla" -- es un conteo agregado sin nombres reales (KAN-335),
+  // no tiene sentido en un anillo pensado para navegar hacia personas concretas.
+  const donutRedes = useMemo<SegmentoAnillo[]>(
+    () =>
+      redes.map((r) => {
+        const fila = filas.find((f) => f.redId === r.id);
+        const cantidad = (fila?.evangelizados ?? []).filter((e) => e.tipo_evangelismo_codigo !== 'SEMILLA').length;
+        return { id: r.id, etiqueta: r.nombre, cantidad };
+      }),
+    [redes, filas]
+  );
+
+
+// Agrupado Red -> Casa de Paz -> personas -- navegabilidad de punta a punta
+  // (KAN-286): clic en una Red la expande, cada persona es un PersonaNombreLink
+  // que abre su ficha. Genérico por rango de fechas (predicado) para reusarlo
+  // tanto en "Detalle del día" como en "Resumen semanal" (KAN-285) -- solo se
+  // listan Redes/CdP que tuvieron actividad en ese rango (nunca la estructura
+  // completa de la iglesia), así el tamaño se mantiene chico sin importar
+  // cuántas Redes/CdP tenga la iglesia.
+  const agruparPorRedYCdp = useCallback((estaEnRango: (fecha: string) => boolean): RedConActividad[] => {
+    const porRed = new Map<string, { redNombre: string; cdps: Map<string, { etiqueta: string; liderId: string | null; liderNombre: string | null; personas: PersonaDelDia[] }> }>();
+    for (const fila of filas) {
+      for (const e of fila.evangelizados) {
+        if (!estaEnRango(e.fecha)) continue;
+        const redNombre = redes.find((r) => r.id === fila.redId)?.nombre ?? '—';
+        let grupoRed = porRed.get(fila.redId);
+        if (!grupoRed) { grupoRed = { redNombre, cdps: new Map() }; porRed.set(fila.redId, grupoRed); }
+        let grupoCdp = grupoRed.cdps.get(e.casa_de_paz_id);
+        if (!grupoCdp) {
+          const cdpInfo = cdpPorId.get(e.casa_de_paz_id);
+          grupoCdp = { etiqueta: e.casa_de_paz_etiqueta, liderId: cdpInfo?.lider_id ?? null, liderNombre: cdpInfo?.lider_nombre ?? null, personas: [] };
+          grupoRed.cdps.set(e.casa_de_paz_id, grupoCdp);
+        }
+        grupoCdp.personas.push({ id: e.id, personaId: e.persona_id, nombre: e.nombre_completo, tipoNombre: e.tipo_evangelismo_nombre, tipoColor: e.tipo_evangelismo_color });
+      }
     }
-    return Array.from(conteos.entries())
-      .map(([casaDePazId, g]) => ({ casaDePazId, etiqueta: g.etiqueta, cantidad: g.cantidad, liderId: cdpPorId.get(casaDePazId)?.lider_id ?? null, liderNombre: cdpPorId.get(casaDePazId)?.lider_nombre ?? null }))
-      .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
-  }, [evangelizadosTodos, diaSeleccionado, cdpPorId]);
+    return Array.from(porRed.entries())
+      .map(([redId, g]) => {
+        const cdps = Array.from(g.cdps.entries())
+          .map(([cdpId, c]) => ({ cdpId, ...c, total: c.personas.length }))
+          .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
+        return { redId, redNombre: g.redNombre, total: cdps.reduce((s, c) => s + c.total, 0), cdps };
+      })
+      .sort((a, b) => a.redNombre.localeCompare(b.redNombre));
+  }, [filas, cdpPorId, redes]);
+
+  const detalleDelDia = useMemo(
+    () => (diaSeleccionado ? agruparPorRedYCdp((fecha) => fecha === diaSeleccionado) : []),
+    [diaSeleccionado, agruparPorRedYCdp],
+  );
+
+  const [redesExpandidas, setRedesExpandidas] = useState<Set<string>>(new Set());
+  function alternarRedExpandida(redId: string) {
+    setRedesExpandidas((prev) => {
+      const next = new Set(prev);
+      if (next.has(redId)) next.delete(redId); else next.add(redId);
+      return next;
+    });
+  }
+  function seleccionarDia(fecha: string | null) {
+    setDiaSeleccionado(fecha);
+    setRedesExpandidas(new Set());
+  }
+
+  // Resumen semanal (KAN-285): semanas ISO (lunes a domingo) que tocan el mes
+  // en pantalla y tuvieron al menos un registro -- no las semanas vacías.
+  const semanasDelMes = useMemo(() => {
+    const totales = new Map<string, number>();
+    for (const e of evangelizadosTodos) {
+      const inicio = inicioSemanaISO(e.fecha);
+      totales.set(inicio, (totales.get(inicio) ?? 0) + 1);
+    }
+    return Array.from(totales.entries())
+      .map(([inicio, total]) => ({ inicio, fin: finSemanaISO(inicio), total }))
+      .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  }, [evangelizadosTodos]);
+
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState<string | null>(null);
+  const [redesExpandidasSemana, setRedesExpandidasSemana] = useState<Set<string>>(new Set());
+  function alternarRedExpandidaSemana(redId: string) {
+    setRedesExpandidasSemana((prev) => {
+      const next = new Set(prev);
+      if (next.has(redId)) next.delete(redId); else next.add(redId);
+      return next;
+    });
+  }
+  function seleccionarSemana(inicio: string | null) {
+    setSemanaSeleccionada((actual) => (actual === inicio ? null : inicio));
+    setRedesExpandidasSemana(new Set());
+  }
+  const semanaActiva = semanasDelMes.find((s) => s.inicio === semanaSeleccionada) ?? null;
+  const detalleSemana = useMemo(
+    () => (semanaActiva ? agruparPorRedYCdp((fecha) => fecha >= semanaActiva.inicio && fecha <= semanaActiva.fin) : []),
+    [semanaActiva, agruparPorRedYCdp],
+  );
 
   const asignarMetaRed = useMutation({
     mutationFn: (params: { redId: string; meta: number; fechaInicio: string; fechaFin: string }) =>
@@ -235,13 +353,37 @@ export function EvangelismoSupervisorVista() {
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:p-8" style={{ background: GRADIENTE_HERO }}>
-        <div className="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-white/15 blur-3xl" />
+      {/* rounded-none a propósito, NO rounded-3xl: pedido explícito del owner
+          (2026-09-06) -- su mockup usa esquinas 100% rectas, sin ningún
+          radio (confirmado explícitamente, no es una aproximación visual).
+          Arranque intencional y acotado de un rediseño gradual -- NO
+          replicar este radio en otros heroes/dashboards todavía sin que el
+          owner lo confirme explícitamente.
+          Márgenes negativos (-mx/-mt) a propósito: en el mockup el banner
+          toca el navbar arriba y los bordes del área de contenido a los
+          costados, sin el padding que trae `<main className="p-5 sm:p-8">`
+          en AppShell.tsx (compartido por TODA la app) -- se cancela ese
+          padding solo acá, sin tocar el layout global. */}
+      <div
+        // Alto de escritorio subido ~10% (pedido explícito del owner,
+        // 2026-09-06): 123.5px -> ~135.5px, vía más padding vertical (no un
+        // alto fijo) para que siga respirando igual si cambia el contenido.
+        // Mobile queda con `p-6` sin tocar -- solo pidió el ajuste en desktop.
+        className="relative -mx-5 -mt-5 overflow-hidden rounded-none p-6 text-white shadow-xl shadow-[var(--brand-navy)]/25 sm:-mx-8 sm:-mt-8 sm:px-8 sm:py-[38px]"
+        style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
+      >
+        <img
+          src="/evangelismo-banner.png"
+          alt=""
+          onLoad={() => setBannerCargado(true)}
+          className={cn(
+            'pointer-events-none absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-500',
+            bannerCargado ? 'opacity-100' : 'opacity-0'
+          )}
+        />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg shadow-black/25" style={{ background: DEGRADADO_IDENTIDAD }}>
-              <HeartHandshake className="h-7 w-7 text-white" />
-            </div>
+            <img src="/icono-evangelismo.svg" alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Evangelismo</h1>
               <p className="text-[13px] text-white/70">Gestioná las metas y el seguimiento mensual</p>
@@ -256,7 +398,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── Navegación de mes ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 self-center rounded-2xl border border-border/60 bg-muted/20 p-2 sm:self-start sm:pl-4">
-        <span className="w-36 text-center text-sm font-semibold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
+        <span className="w-48 text-center text-xl font-bold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -267,70 +409,112 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── 4 KPI agregados de toda la iglesia ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiMosaico label="Total Meta" icon={Flag} color={AZUL}>{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
-        <KpiMosaico label="Evangelizados" icon={HeartHandshake} color={VERDE}>{cargandoResumen ? '—' : totalEvangelizados}</KpiMosaico>
+        {/* Evangelizados primero (pedido explícito del owner, 2026-09-06:
+            "Meta no debe ser la primera, la primera debe ser Evangelizados")
+            -- clicable, lleva a "Personas evangelizadas" con el mes que se
+            está viendo acá ya filtrado. */}
+        <button
+          type="button"
+          onClick={() => irAPersonasEvangelizadas()}
+          className="rounded-2xl text-left transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <KpiMosaico label="Evangelizados" icon={HeartHandshake} color={VERDE}>{cargandoResumen ? '—' : totalEvangelizados}</KpiMosaico>
+        </button>
+        <KpiMosaico label="Total Meta" icon={Flag} color={NARANJA}>{cargandoResumen ? '—' : totalMeta}</KpiMosaico>
         <KpiMosaico label="Avance" icon={Target} color={AMARILLO}>{cargandoResumen || avance == null ? '—' : `${avance}%`}</KpiMosaico>
         <KpiMosaico label="Casas Activas" icon={Home} color={CELESTE}>{cargandoCdps ? '—' : cdps.length}</KpiMosaico>
       </div>
 
-      {/* ── Metas de la Red: barras de PROGRESO (se llenan a medida que evangelizan) + editar ── */}
+      {/* ── Evangelizados por Red + Metas de la Red, lado a lado en desktop ──
+          (pedido explícito del owner, 2026-09-06: "veo que tiene mucho
+          espacio" con cada una en su propia fila completa) ────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={UsersRound}
+            color={DEPARTAMENTO_META.EVANGELISMO.color}
+            titulo="Evangelizados por Red"
+            descripcion="Tocá el anillo o una Red para ver el detalle por Casa de Paz"
+          />
+          <div className="p-6">
+            {cargandoResumen ? (
+              <Skeleton className="h-44 w-full rounded-2xl" />
+            ) : (
+              <AnilloSegmentado
+                datos={donutRedes}
+                colores={PALETA_ANILLO}
+                onSeleccionar={() => navigate(ROUTES.EVANGELISMO_REDES, { state: { desde, hasta } })}
+              />
+            )}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" />
+          <div className="flex flex-col gap-5 p-6">
+            {cargandoResumen ? (
+              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
+                {redes.map((r) => <Skeleton key={r.id} className="h-24 w-full rounded-xl" />)}
+              </div>
+            ) : (
+              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
+                {redes.map((r) => {
+                  const fila = filas.find((f) => f.redId === r.id);
+                  const metaValor = fila?.meta?.meta ?? 0;
+                  const evangelizadosRed = Number(fila?.tasa?.evangelizados ?? 0);
+                  const tieneMeta = metaValor > 0;
+                  const progresoPct = tieneMeta ? Math.min(100, Math.round((evangelizadosRed / metaValor) * 100)) : 0;
+                  const cumplida = tieneMeta && evangelizadosRed >= metaValor;
+                  return (
+                    <button
+                      type="button"
+                      key={r.id}
+                      className="flex flex-col items-center gap-1 rounded-xl border border-border/60 px-3 py-4 text-center transition-colors hover:bg-muted/40"
+                      title={tieneMeta ? `${r.nombre}: ${evangelizadosRed} de ${metaValor} (${progresoPct}%)` : `${r.nombre}: sin meta asignada`}
+                      onClick={() => setRedParaMeta({ casa_de_paz_id: r.id, etiqueta: r.nombre, meta: fila?.meta?.meta ?? null, origen: fila?.meta ? 'ASIGNADA_RED' : null })}
+                    >
+                      <span className="text-2xl font-bold tabular-nums" style={{ color: tieneMeta ? (cumplida ? VERDE : AZUL) : undefined }}>
+                        {tieneMeta ? `${evangelizadosRed}/${metaValor}` : '—'}
+                      </span>
+                      <span className="w-full truncate text-sm font-medium text-muted-foreground">
+                        {r.nombre}{tieneMeta && ` · ${progresoPct}%`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <Button variant="outline" size="sm" className="mx-auto gap-1.5" onClick={() => setModalMetasAbierto(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar metas
+            </Button>
+          </div>
+        </section>
+      </div>
+
+      {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una barra o Editar para cambiarla" />
-        <div className="flex flex-col gap-5 p-6">
-          {cargandoResumen ? (
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
-              {redes.map((r) => <Skeleton key={r.id} className="h-36 w-full rounded-xl" />)}
-            </div>
-          ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
-              {redes.map((r) => {
-                const fila = filas.find((f) => f.redId === r.id);
-                const metaValor = fila?.meta?.meta ?? 0;
-                const evangelizadosRed = Number(fila?.tasa?.evangelizados ?? 0);
-                const tieneMeta = metaValor > 0;
-                const progresoPct = tieneMeta ? Math.min(100, Math.round((evangelizadosRed / metaValor) * 100)) : 0;
-                const cumplida = tieneMeta && evangelizadosRed >= metaValor;
-                return (
-                  <button
-                    type="button"
-                    key={r.id}
-                    className="flex flex-col items-center gap-2 rounded-xl p-1 transition-colors hover:bg-muted/40"
-                    title={tieneMeta ? `${r.nombre}: ${evangelizadosRed} de ${metaValor} (${progresoPct}%)` : `${r.nombre}: sin meta asignada`}
-                    onClick={() => setRedParaMeta({ casa_de_paz_id: r.id, etiqueta: r.nombre, meta: fila?.meta?.meta ?? null, origen: fila?.meta ? 'ASIGNADA_RED' : null })}
-                  >
-                    <span className="text-sm font-bold tabular-nums text-foreground">
-                      {tieneMeta ? `${evangelizadosRed}/${metaValor}` : '—'}
-                    </span>
-                    <div className="flex h-28 w-full items-end overflow-hidden rounded-lg bg-muted/50">
-                      <div
-                        className="w-full rounded-t-md transition-[height]"
-                        style={{ height: tieneMeta ? `${Math.max(progresoPct, evangelizadosRed > 0 ? 6 : 0)}%` : '4%', background: cumplida ? VERDE : AZUL, opacity: tieneMeta ? 1 : 0.3 }}
-                      />
-                    </div>
-                    <span className="w-full truncate text-center text-[11px] font-medium text-muted-foreground">
-                      {r.nombre}{tieneMeta && ` · ${progresoPct}%`}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <Button variant="outline" size="sm" className="mx-auto gap-1.5" onClick={() => setModalMetasAbierto(true)}>
-            <Pencil className="h-3.5 w-3.5" />
-            Editar metas
-          </Button>
+        <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <div className="p-5">
+          <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
       </section>
 
       {/* ── Calendario + Detalle del día, agregado de toda la iglesia ────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader icon={CalendarRange} color={CELESTE} titulo="Calendario" descripcion="Días en los que alguna Casa de Paz registró evangelismo" />
+          <TarjetaHeader
+            icon={CalendarRange}
+            color={DEPARTAMENTO_META.EVANGELISMO.color}
+            titulo="Calendario"
+            descripcion="Días en los que alguna Casa de Paz registró evangelismo"
+            accion={<span className="text-lg font-bold capitalize" style={{ color: DEPARTAMENTO_META.EVANGELISMO.color }}>{nombreMes(anio, mes)}</span>}
+          />
           <div className="p-4">
             {cargandoResumen ? (
               <Skeleton className="h-80 w-full rounded-2xl" />
             ) : (
-              <CalendarioEvangelismo anio={anio} mes={mes} evangelizados={evangelizadosTodos} diaSeleccionado={diaSeleccionado} onSeleccionarDia={setDiaSeleccionado} />
+              <CalendarioEvangelismo anio={anio} mes={mes} evangelizados={evangelizadosTodos} diaSeleccionado={diaSeleccionado} onSeleccionarDia={seleccionarDia} />
             )}
           </div>
         </section>
@@ -338,12 +522,12 @@ export function EvangelismoSupervisorVista() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader
             icon={HeartHandshake}
-            color={AZUL}
+            color={DEPARTAMENTO_META.EVANGELISMO.color}
             titulo={diaSeleccionado ? fechaLegible(diaSeleccionado) : 'Detalle del día'}
-            descripcion={diaSeleccionado ? `${grupoDelDia.length} Casa${grupoDelDia.length === 1 ? '' : 's'} de Paz con actividad` : 'Elegí un día del calendario'}
+            descripcion={diaSeleccionado ? `${detalleDelDia.length} Red${detalleDelDia.length === 1 ? '' : 'es'} con actividad` : 'Elegí un día del calendario'}
             accion={
               diaSeleccionado && (
-                <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => setDiaSeleccionado(null)}>
+                <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => seleccionarDia(null)}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                   Volver
                 </Button>
@@ -352,25 +536,51 @@ export function EvangelismoSupervisorVista() {
           />
           <div className="flex flex-col gap-2 p-5">
             {!diaSeleccionado && <p className="text-sm text-muted-foreground">Elegí un día en el calendario para ver el detalle.</p>}
-            {diaSeleccionado && grupoDelDia.length === 0 && <p className="text-sm text-muted-foreground">Nadie registrado este día.</p>}
-            {diaSeleccionado && grupoDelDia.map((g) => (
-              <div key={g.casaDePazId} className="flex flex-col gap-1 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <Home className="h-3.5 w-3.5 shrink-0" style={{ color: AZUL }} />
-                  {g.etiqueta}
-                </p>
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {g.cantidad} persona{g.cantidad === 1 ? '' : 's'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Líder: {g.liderId && g.liderNombre ? <PersonaNombreLink personaId={g.liderId}>{g.liderNombre}</PersonaNombreLink> : (g.liderNombre ?? 'Sin líder')}
-                </p>
-              </div>
-            ))}
+            {diaSeleccionado && detalleDelDia.length === 0 && <p className="text-sm text-muted-foreground">Nadie registrado este día.</p>}
+            {diaSeleccionado && (
+              <AcordeonRedesCdp datos={detalleDelDia} expandidas={redesExpandidas} onAlternar={alternarRedExpandida} />
+            )}
           </div>
         </section>
       </div>
+
+      {/* ── Resumen semanal (KAN-285): mismo drill-down, agrupado por semana ── */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={CalendarRange}
+          color={DEPARTAMENTO_META.EVANGELISMO.color}
+          titulo="Resumen semanal"
+          descripcion="Semanas del mes con actividad -- tocá una para ver el detalle"
+        />
+        <div className="flex flex-col gap-2 p-5">
+          {semanasDelMes.length === 0 && <p className="text-sm text-muted-foreground">Sin evangelismo registrado este mes.</p>}
+          {semanasDelMes.map((semana) => {
+            const activa = semanaSeleccionada === semana.inicio;
+            return (
+              <div key={semana.inicio} className="rounded-xl border border-border/60 bg-muted/20">
+                <button
+                  type="button"
+                  onClick={() => seleccionarSemana(semana.inicio)}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+                >
+                  <span className="text-sm font-semibold text-foreground">
+                    Semana {numeroSemanaISO(semana.inicio)} · del {fechaLegible(semana.inicio)} al {fechaLegible(semana.fin)}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{semana.total}</span>
+                    {activa ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                  </span>
+                </button>
+                {activa && (
+                  <div className="flex flex-col gap-2 border-t border-border/60 p-3">
+                    <AcordeonRedesCdp datos={detalleSemana} expandidas={redesExpandidasSemana} onAlternar={alternarRedExpandidaSemana} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── Modal "Metas por Red": lista completa + asignar a todas ──────────── */}
       <Dialog open={modalMetasAbierto} onOpenChange={setModalMetasAbierto}>

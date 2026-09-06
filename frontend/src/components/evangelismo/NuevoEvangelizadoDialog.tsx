@@ -24,6 +24,10 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { SelectorTipoEvangelismo } from './SelectorTipoEvangelismo';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { cn } from '@/lib/utils';
+import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Codigo estable de 44_tipo_evangelismo.sql / seed_01_catalogos_globales.sql -- no depender del nombre, que puede editarse. */
 const CODIGO_SEMILLA = 'SEMILLA';
@@ -31,23 +35,42 @@ const CODIGO_SEMILLA = 'SEMILLA';
 const esquema = z.object({
   tipo_evangelismo_id: z.string().min(1, 'Elegí con qué tipo de evangelismo se lo ganó'),
   primer_nombre: z.string().trim().min(1),
+  segundo_nombre: z.string().trim().optional(),
   primer_apellido: z.string().trim().min(1),
+  segundo_apellido: z.string().trim().optional(),
   sexo: z.enum(['M', 'F']),
+  fecha_nacimiento: z.string().optional(),
   fecha: z.string().min(1),
   domicilio: z.string().trim().optional(),
-  telefono: z.string().trim().optional(),
+  telefono_pais: z.string().optional(),
+  telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
 });
 
 type FormValues = z.infer<typeof esquema>;
 
-const FORM_VACIO = { primer_nombre: '', primer_apellido: '', domicilio: '', telefono: '', tipo_evangelismo_id: '' };
+const FORM_VACIO = {
+  primer_nombre: '',
+  segundo_nombre: '',
+  primer_apellido: '',
+  segundo_apellido: '',
+  fecha_nacimiento: '',
+  domicilio: '',
+  telefono_pais: '+591',
+  telefono_numero: '',
+  tipo_evangelismo_id: '',
+};
+
+/** Lo que sale del diálogo hacia afuera: país+número ya combinados en un solo
+ * `telefono` (mismo formato que espera fn_registrar_evangelizado), no los 2
+ * campos separados que usa el formulario internamente. */
+export type ValoresEvangelizado = Omit<FormValues, 'telefono_pais' | 'telefono_numero'> & { telefono?: string; evangelizado_por_id?: string };
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   iglesiaId: string | undefined;
   fechaInicial: string;
-  onCrear: (valores: FormValues) => Promise<void>;
+  onCrear: (valores: ValoresEvangelizado) => Promise<void>;
 }
 
 /**
@@ -66,6 +89,9 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
   const [registrados, setRegistrados] = useState(0);
   const [cantidadSemilla, setCantidadSemilla] = useState('1');
   const [guardandoSemilla, setGuardandoSemilla] = useState(false);
+  // KAN-338, opcional: quién evangelizó -- persona ya existente en el sistema,
+  // no un texto libre (evangelismo.evangelizado_por_id referencia a persona.id).
+  const [evangelizadoPor, setEvangelizadoPor] = useState<PersonaBusqueda | null>(null);
   const {
     register,
     handleSubmit,
@@ -81,11 +107,13 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
   const sexoActual = watch('sexo');
   const tipoActual = watch('tipo_evangelismo_id');
   const fechaActual = watch('fecha');
+  const telefonoPaisActual = watch('telefono_pais');
   const esSemilla = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_SEMILLA;
 
   async function onSubmit(valores: FormValues) {
+    const { telefono_pais, telefono_numero, ...resto } = valores;
     try {
-      await onCrear(valores);
+      await onCrear({ ...resto, telefono: componerTelefono(telefono_pais, telefono_numero), evangelizado_por_id: evangelizadoPor?.id });
       toast.success('Evangelizado registrado');
       setRegistrados((n) => n + 1);
       // Se conserva la fecha y el tipo elegidos: lo más común es cargar a
@@ -123,6 +151,7 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
   function manejarCerrar() {
     setRegistrados(0);
     setCantidadSemilla('1');
+    setEvangelizadoPor(null);
     onOpenChange(false);
   }
 
@@ -197,24 +226,38 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
                   {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
                 </div>
                 <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="segundo_nombre">Segundo nombre</Label>
+                  <Input id="segundo_nombre" {...register('segundo_nombre')} />
+                </div>
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="primer_apellido">Apellido *</Label>
                   <Input id="primer_apellido" {...register('primer_apellido')} />
                   {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="segundo_apellido">Segundo apellido</Label>
+                  <Input id="segundo_apellido" {...register('segundo_apellido')} />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Sexo *</Label>
-                <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculino</SelectItem>
-                    <SelectItem value="F">Femenino</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Sexo *</Label>
+                  <Select value={sexoActual ?? ''} onValueChange={(v) => setValue('sexo', v as 'M' | 'F', { shouldValidate: true })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Masculino</SelectItem>
+                      <SelectItem value="F">Femenino</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.sexo && <p className="text-sm text-destructive">Requerido</p>}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="fecha_nacimiento">Fecha de nacimiento</Label>
+                  <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -222,15 +265,51 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
                 <Input id="fecha" type="date" {...register('fecha')} />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="domicilio">Domicilio</Label>
-                  <Input id="domicilio" {...register('domicilio')} />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="domicilio">Domicilio</Label>
+                <Input id="domicilio" {...register('domicilio')} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Evangelizado por</Label>
+                {evangelizadoPor ? (
+                  <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                    <span className="truncate">{evangelizadoPor.nombre_completo}</span>
+                    <button type="button" onClick={() => setEvangelizadoPor(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                      Cambiar
+                    </button>
+                  </div>
+                ) : (
+                  <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={setEvangelizadoPor} />
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="telefono_numero">Teléfono</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={telefonoPaisActual ?? '+591'}
+                    onValueChange={(v) => setValue('telefono_pais', v)}
+                  >
+                    <SelectTrigger className="w-28 shrink-0 sm:w-32">
+                      <SelectValue>
+                        <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                        {telefonoPaisActual ?? '+591'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAISES_TELEFONO.map((p) => (
+                        <SelectItem key={p.codigo} value={p.codigo}>
+                          <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                          {p.codigo}
+                          <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input id="telefono_numero" inputMode="numeric" placeholder="Opcional" className="min-w-0 flex-1" {...register('telefono_numero')} />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="telefono">Teléfono</Label>
-                  <Input id="telefono" type="tel" placeholder="Opcional" {...register('telefono')} />
-                </div>
+                {errors.telefono_numero && <p className="text-sm text-destructive">{errors.telefono_numero.message}</p>}
               </div>
 
               <DialogFooter>

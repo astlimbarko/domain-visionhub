@@ -11,6 +11,7 @@ export const DEPARTAMENTO_META: Record<string, { verbo: string; color: string }>
   ENVIO: { verbo: 'Enviar', color: '#8E8E93' },
 };
 
-/** Único departamento con gestión funcional hoy (2026-08-01) -- los otros 3
- * ya existen en la BD pero todavía no tienen invitación por correo armada. */
-export const DEPARTAMENTO_FUNCIONAL = 'AFIRMACION';
+/** Departamentos con gestión funcional (2026-08-01 solo Afirmación; KAN-281
+ * suma Evangelismo reutilizando el panel del Supervisor) -- Discipulado y
+ * Envío siguen sin invitación por correo armada. */
+export const DEPARTAMENTOS_FUNCIONALES: string[] = ['AFIRMACION', 'EVANGELISMO'];

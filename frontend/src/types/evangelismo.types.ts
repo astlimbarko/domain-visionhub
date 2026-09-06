@@ -53,6 +53,9 @@ export interface EvangelizadoRed {
   domicilio: string | null;
   tipo_evangelismo_nombre: string | null;
   tipo_evangelismo_color: string | null;
+  /** Para distinguir "Semilla" (conteo agregado) de personas reales en la
+   * Tendencia (KAN-285) -- ver TendenciaEvangelismo.tsx. */
+  tipo_evangelismo_codigo: string | null;
 }
 
 /** Tasa agregada de toda la Red (fn_tasa_evangelismo_red). */
@@ -102,6 +105,29 @@ export interface NuevaMetaAsignadaRed {
   observaciones?: string;
 }
 
+/** Fila de la tabla "Personas evangelizadas" (fn_buscar_evangelizados) --
+ * roster de toda la iglesia con filtros, para Supervisor/Pastor/Departamento
+ * de Evangelismo. `total` viene repetido en cada fila (window function),
+ * mismo patrón que `fn_buscar_personas`. */
+export interface EvangelizadoBusqueda {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  domicilio: string | null;
+  telefono_principal: string | null;
+  red_id: string | null;
+  red_nombre: string | null;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  tipo_evangelismo_nombre: string | null;
+  tipo_evangelismo_color: string | null;
+  /** Nombre de quien evangelizó (persona.evangelizado_por_id) -- KAN-338, columna
+   * existe desde el diseño original pero nunca se llenaba ni se mostraba. */
+  evangelizado_por_nombre: string | null;
+  total: number;
+}
+
 export interface NuevoEvangelizado {
   casa_de_paz_id: string;
   iglesia_id: string;
@@ -118,4 +144,6 @@ export interface NuevoEvangelizado {
   telefono?: string;
   fecha_nacimiento?: string;
   tipo_evangelismo_id?: string;
+  /** KAN-338: quién evangelizó (opcional, persona ya existente en el sistema). */
+  evangelizado_por_id?: string;
 }

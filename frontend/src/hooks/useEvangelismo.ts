@@ -3,6 +3,7 @@ import {
   actualizarMetaPropia,
   asignarMetaEvangelismo,
   asignarMetaRedEvangelismo,
+  buscarEvangelizados,
   crearEvangelizado,
   obtenerEvangelismoRed,
   obtenerEvangelizados,
@@ -12,6 +13,7 @@ import {
   obtenerTasaEvangelismo,
   obtenerTasaEvangelismoRed,
   obtenerTiposEvangelismo,
+  soyRolSuperiorDeCdp,
 } from '@/services/evangelismo.service';
 import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado } from '@/types/evangelismo.types';
 
@@ -43,11 +45,43 @@ export function useMetaPropia(casaDePazId: string | undefined) {
   });
 }
 
+/** KAN-290: si quien mira ya es rol superior de esta CdP (Pastor, Supervisor,
+ * Líder/Sublíder de la Red), el bloqueo de "meta propia" por una meta
+ * asignada no debe aplicarle -- mismo criterio que ya exime el backend. */
+export function useSoyRolSuperiorDeCdp(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'rol-superior-cdp', casaDePazId],
+    queryFn: () => soyRolSuperiorDeCdp(casaDePazId as string),
+    enabled: !!casaDePazId,
+  });
+}
+
 export function useEvangelizados(casaDePazId: string | undefined, desde: string, hasta: string) {
   return useQuery({
     queryKey: ['evangelismo', 'lista', casaDePazId, desde, hasta],
     queryFn: () => obtenerEvangelizados(casaDePazId as string, desde, hasta),
     enabled: !!casaDePazId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Roster completo de la iglesia con filtros/paginación -- página "Personas
+ * evangelizadas" (KAN-335). */
+export function useBuscarEvangelizados(
+  iglesiaId: string | undefined,
+  redId: string | undefined,
+  texto: string,
+  desde: string | undefined,
+  hasta: string | undefined,
+  pagina: number,
+  porPagina: number,
+  casaDePazId?: string,
+  tipoEvangelismoId?: string
+) {
+  return useQuery({
+    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId],
+    queryFn: () => buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId),
+    enabled: !!iglesiaId,
     placeholderData: keepPreviousData,
   });
 }

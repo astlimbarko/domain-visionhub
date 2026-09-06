@@ -1,0 +1,50 @@
+# Gonzalo — 2026-09-06
+
+- [x] KAN-333: formulario "Nuevo evangelizado" ampliado (segundo nombre, segundo apellido, fecha de nacimiento, teléfono con código de país) -- verificado en vivo con registro real
+- [x] KAN-286: navegabilidad del calendario de Evangelismo -- acordeón Red → Casa de Paz → persona, cada nombre abre su ficha. Reusado también en la vista de Líder de Red
+- [x] KAN-285: sección "Resumen semanal" nueva, mismo drill-down agrupado por semana
+- [x] Todo verificado en vivo (localhost contra la base real, iglesia Genesis) -- registro de prueba limpiado después
+- [x] Rama `feature/kan281-departamento-evangelismo` pusheada, KAN-281/282/283/285/286/333 en "En revisión"
+- [x] Sección "Tendencia" (línea de tiempo día/semana/mes) + "Metas de la Red" de barras a texto -- comentado en KAN-285 (faltaba, commit `9500deb` sin ticketear)
+- [x] KAN-334 (nuevo, EV-11): banner y navbar del Depto. de Evangelismo de azul a dorado institucional -- verificado en vivo
+- [x] KAN-290: bug real corregido -- "meta propia" se bloqueaba sin chequear si quien mira ya es rol superior de la CdP. No se pudo reproducir el caso puntual (Pastora Jacqueline) con datos reales de producción
+- [x] KAN-335 (nuevo, EV-12): página "Personas evangelizadas" (filtros Red/texto/fechas + paginado + CSV) -- 3 bugs reales de la RPC nueva encontrados y corregidos en vivo (ambigüedad de columna, tipo CHARACTER vs VARCHAR, error silenciado como "sin datos")
+- [x] Excluida la categoría "Semilla" del listado de personas (es un conteo agregado, no nombres reales) -- pedido explícito del owner
+- [x] KAN-336 (nuevo, EV-13, sin implementar): export a PDF con formato prolijo -- diferido
+- [x] KAN-337: implementado (ya no solo análisis) -- banner con el PNG del owner (evangelismo-banner.png), ícono del badge con el SVG oficial (icono-evangelismo.svg), navbar revertido a claro/neutro (#FFFAFA) según el mockup, en vez del dorado sólido de KAN-334
+- [x] Tendencia (KAN-285): separada en 2 líneas -- Evangelizados vs Semilla (no son lo mismo) -- agregado tipo_evangelismo_codigo a fn_evangelismo_red
+- [x] Personas evangelizadas (KAN-335): filtros de Casa de Paz y Tipo agregados, número de fila, bordes de tabla más suaves
+- [x] KAN-336: detalle agregado del formato del PDF (tamaño carta, sobrio, sin los colores vivos de la app) -- sigue diferido
+- [x] Corte de luz a mitad de sesión -- nada se perdió (todo ya estaba escrito en disco), retomado sin problemas
+- [ ] Falta: aprobación del owner para mergear toda la rama (KAN-281 a 337) a `master` + deploy
+- [ ] Falta: confirmar con la Pastora Jacqueline si KAN-290 resolvió su caso real, o precisar en qué pantalla se bloqueó
+- [ ] Falta: mi opinión pendiente de dar sobre si los filtros de la tabla deberían ir en los encabezados de columna (pedido explícito, a responder)
+- [x] Encontrada causa real de "sigo viendo lo mismo": el contenedor Docker `visionhub-frontend-1` se había caído (parece que por el corte de luz) -- reiniciado (`docker compose up -d frontend`), confirmado con curl que responde 200
+- [x] Banner con esquinas más planas (`rounded-2xl` en vez de `rounded-3xl`) -- confirmado que `rounded-3xl` es la convención documentada del sistema de diseño para "hero" en los 4 dashboards, no un detalle suelto. Cambio acotado solo al banner de Evangelismo, piloto intencional de un rediseño gradual, NO extendido a otros dashboards todavía
+- [x] KAN-337 CERRADO (Finalizada): banner terminó en esquinas 100% rectas (`rounded-none` -- el `--radius` base del proyecto es 20px, no 16px, por eso `rounded-2xl`/`lg` seguían viéndose redondos) + edge-to-edge (márgenes negativos que cancelan el padding de `<main>` solo en este banner) + navbar `#F7F8FA`. Confirmado en vivo por el owner ("objetivo conseguido")
+- [x] Rama nueva `feature/rediseno-hero-plano` (desde `master`, sin conflicto con la de Evangelismo): mismo ajuste de radio pero solo el paso chico (`rounded-3xl`→`rounded-2xl`) en el `DashboardHero` compartido de los 4 dashboards -- sin pushear, pendiente que el owner confirme si quiere el tratamiento completo ahí también
+- [x] KPI "Total Meta" de azul genérico a naranja (color del hero) -- más apropiado para una métrica de Evangelismo
+- [x] Banner: el color sólido aparecía primero y el PNG "saltaba" encima al cargar (se sentía como lento) -- separado a una capa `<img>` propia con fade-in de 500ms
+- [x] Tendencia: orden de botones Semana/Mes/Día → Día/Semana/Mes (cronológico), Semana sigue por defecto. Números de los picos de 11px a 14px + halo blanco para legibilidad
+- [ ] Falta: definir alcance de tarjetas/otros elementos con su propio radio nuevo (el owner lo pidió, sin definir medida todavía)
+- [x] KAN-336: implementado (ya no diferido) -- botón "Exportar PDF" en Personas evangelizadas, `jspdf-autotable` nueva (instalada también en Docker + reinicio), tamaño carta real, paginado, sobrio. Verificado leyendo el PDF generado directamente
+- [x] Tendencia: KPI "Total Meta" a naranja (color del hero), banner con fade-in (evita el salto de color a imagen), orden Día/Semana/Mes, números de picos más grandes (11px→14px + halo)
+- [x] KAN-336: PDF con ícono SVG oficial, título "Departamento de Evangelismo", fecha-hora separada por guion, "Todas las Casas de Paz" → luego afinado a solo "Casas de Paz" -- verificado leyendo el PDF descargado directamente
+- [x] Personas evangelizadas: filtros rápidos de fecha (Hoy/Ayer/Esta semana/Este mes) junto a los inputs
+- [x] KAN-336: márgenes del PDF de 40 a 46pt (zona no imprimible) + nombre del archivo a "departamento-evangelismo-*" -- comentado en el ticket
+- [x] Personas evangelizadas: filtros Red/Casa de Paz/Tipo movidos de la barra superior a selects en los propios encabezados de columna (estilo Excel) -- barra superior queda solo con buscador + fechas, pedido explícito del owner
+- [x] Botón "quitar filtro" (X) junto a los atajos de fecha -- antes no había forma de deseleccionar Hoy/Ayer/etc. salvo borrar las fechas a mano
+- [x] Fix de layout: el botón X (aparece/desaparece según haya fecha) compartía fila con buscador+fechas vía flex-wrap, y ese cambio de ancho hacía saltar el grupo de atajos a una segunda línea al hacer clic -- separado en su propia fila fija abajo
+- [x] KAN-337: banner hero ~10% más alto en desktop (123.5px → 135.5px, medido en vivo) -- solo desktop, móvil sin tocar
+- [x] KAN-338 (nuevo, EV-15): "evangelizado por" -- columna `evangelizado_por_id` ya existía en el diseño original, nunca se llenaba ni se mostraba. Migración aplicada en producción (SQL Editor de Supabase, sin token de Management API disponible en la sesión) + formulario ("Nuevo evangelizado" gana buscador opcional de persona) + columna nueva en tabla/CSV/PDF de "Personas evangelizadas". De paso se limpió un sobrecargo huérfano de `fn_buscar_evangelizados` (7 parámetros, de antes de los filtros CdP/Tipo)
+- [ ] Falta: probar en vivo el flujo de "evangelizado por" (registrar con evangelizador elegido, confirmar que aparece en la tabla) antes de cerrar KAN-338
+- [ ] Falta: harness/README.md sigue sin actualizar (Depto. de Evangelismo listado como "No entra ahora" pese a estar en producción) -- confirmado con el owner que se actualiza, pendiente de hacer
+- [x] Headers de sección (Metas de la Red, Tendencia, Calendario, Detalle del día, Resumen semanal) recoloreados a naranja de identidad (`DEPARTAMENTO_META.EVANGELISMO.color`) -- antes mezcla de morado/celeste/azul. Solo títulos/íconos, tarjetas KPI intactas -- verificado en vivo
+- [x] KAN-341 (nuevo): unificar colores en el resto de pantallas de Evangelismo (`EvangelismoRed.tsx` y otras) -- ticketeado, pedido explícito del owner que se haga DESPUÉS del merge (el Departamento de Evangelismo tiene prioridad para desplegarse ya)
+- [x] harness/README.md + 06-evangelismo-cdp/requirements.md actualizados: Afirmación y Depto. de Evangelismo ya no figuran como "no entra ahora", nota de qué se implementó realmente (rol + vista agregada, no escala RED/IGLESIA/COBERTURA real) y qué sigue sin sincronizar (DDL de `meta_evangelismo_asignada.red_id`)
+- [x] KAN-342 (nuevo, EV-17): KPI "Evangelizados" primero (antes "Total Meta"), clicable -> lleva a "Personas evangelizadas" con el mes del dashboard filtrado
+- [x] KAN-342: anillo "Evangelizados por Red" nuevo (componente `AnilloSegmentado`, excluye Semilla, 0 datos = gris) -- clic abre página nueva `/evangelismo-redes` (NO modal, pedido explícito: "es mejor páginas, hay más espacio, estamos preparados si hay muchas Redes") con anillo grande arriba + un anillo chico por Red partido en sus Casas de Paz. Clic en una CdP navega a "Personas evangelizadas" filtrada por esa CdP + el mes
+- [x] "Evangelizados por Red" y "Metas de la Red" ahora comparten fila en desktop (antes cada una ocupaba una fila completa, "veo que tiene mucho espacio")
+- [x] Todo el flujo de KAN-342 verificado en vivo de punta a punta (KPI, anillo, página, CdP, navegación con filtros)
+- [x] KAN-343 CERRADO (Finalizada): el owner pidió arreglarlo antes del merge (no dejarlo en cola como se había acordado antes). Causa confirmada: Radix bloqueaba scroll + agregaba compensación de scrollbar (`margin-right !important`), mientras `html` ya fuerza scrollbar siempre visible (fix previo 2026-08-27) -- doble compensación = corrimiento de más. Fix: `modal={false}` en el `DropdownMenu` del nombre de usuario (`AppShell.tsx`). Verificado en vivo, ya no se mueve. Acotado a ese menú puntual, no un sweep global
+- [x] Cola confirmada por el owner, ejecutada en orden: harness (hecho) → KPIs + donut + página de detalle (hecho) → falta: merge (al final, con su confirmación) → después del merge: KAN-341 (colores en el resto de pantallas) y KAN-343 (bug del menú de usuario)

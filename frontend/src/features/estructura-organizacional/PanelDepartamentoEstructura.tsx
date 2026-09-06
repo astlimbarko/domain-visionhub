@@ -9,7 +9,7 @@ import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
 import { mensajeError } from './estructura.service';
-import { DEPARTAMENTO_FUNCIONAL, DEPARTAMENTO_META } from '@/utils/departamentos';
+import { DEPARTAMENTOS_FUNCIONALES, DEPARTAMENTO_META } from '@/utils/departamentos';
 import type { DepartamentoEstructura } from './types';
 
 interface Props {
@@ -32,7 +32,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
   const [otpQuitar, setOtpQuitar] = useState('');
   const meta = DEPARTAMENTO_META[departamento.codigo];
-  const esFuncional = departamento.codigo === DEPARTAMENTO_FUNCIONAL;
+  const esFuncional = DEPARTAMENTOS_FUNCIONALES.includes(departamento.codigo);
   const lider = departamento.lideres[0];
   const pendiente = lider?.membresiaPendiente ?? false;
   const etiqueta = lider?.etiqueta ?? 'Sin asignar';

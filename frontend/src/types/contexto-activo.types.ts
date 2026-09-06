@@ -15,7 +15,7 @@ export type ContextoActivo =
       iglesiaId: string;
       /** El RPC de sesión todavía no expone el UUID; se conserva el código estable. */
       departamentoId: string | null;
-      departamentoCodigo: 'AFIRMACION';
+      departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO';
     })
   | (ContextoBase<'LIDER_RED', 'RED'> & {
       iglesiaId: string;
