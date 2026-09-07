@@ -234,6 +234,11 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
                             {p.estado_sigla}
                           </span>
                         )}
+                        {!p.es_miembro_formal && (
+                          <Badge variant="outline" className="shrink-0 rounded-full text-[10px] font-normal text-muted-foreground" title="Todavía no tiene membresía formal (requiere bautismo)">
+                            Sin membresía
+                          </Badge>
+                        )}
                       </p>
                       <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                         {p.edad !== null && <span className="shrink-0">{p.edad} años</span>}
