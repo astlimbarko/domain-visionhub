@@ -82,6 +82,14 @@ export function fechaLegible(fechaISO: string): string {
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
 }
 
+/** Igual que `fechaLegible` pero con el mes abreviado (ej. "31 de ago") --
+ * para etiquetas donde ya hay otro dato al lado (como "Semana N") y el
+ * nombre completo del mes las hace demasiado largas para una sola línea. */
+export function fechaLegibleCorta(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${fecha.getDate()} de ${nombreMesCorto(fecha.getMonth()).toLowerCase()}`;
+}
+
 /** Número de semana ISO-8601 (1-53, lunes a domingo, la semana 1 es la que
  * contiene el primer jueves del año) -- para mostrar junto al rango de
  * fechas en "Resumen semanal" (KAN-285, pedido explícito del owner). */

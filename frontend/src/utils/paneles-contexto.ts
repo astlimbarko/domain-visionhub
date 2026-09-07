@@ -42,7 +42,10 @@ function tituloContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'PASTOR') return 'Pastor';
   if (contexto.rolUI === 'SUPERVISOR') return 'Supervisor de la Visión en Acción';
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
-    return contexto.departamentoCodigo === 'EVANGELISMO' ? 'Líder de Departamento de Evangelismo' : 'Líder de Afirmación';
+    // "Líder de Departamento de Evangelismo" no entraba bien en el navbar
+    // (pedido explícito del owner, 2026-09-07) -- acortado solo acá, el
+    // título completo se sigue viendo en el selector de rol.
+    return contexto.departamentoCodigo === 'EVANGELISMO' ? 'Dpto. de Evangelismo' : 'Líder de Afirmación';
   }
   if (contexto.rolUI === 'LIDER_RED') {
     return contexto.cargoRed === 'SUPERVISOR' ? 'Supervisor de Red' : 'Líder de Red';

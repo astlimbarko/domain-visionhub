@@ -99,7 +99,7 @@ export function EvangelismoRedes() {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={UsersRound} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Toda la iglesia" descripcion="Proporción de evangelizados que aportó cada Red este período" />
+        <TarjetaHeader icon={UsersRound} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Toda la iglesia" descripcion="Proporción de evangelizados que aportó cada Red este período" intensidad={16} />
         <div className="p-6">
           {cargando ? <Skeleton className="h-52 w-full rounded-2xl" /> : <AnilloSegmentado datos={donutRedes} colores={PALETA_ANILLO} tamano={220} />}
         </div>
@@ -108,7 +108,7 @@ export function EvangelismoRedes() {
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {redes.map((r) => (
           <section key={r.id} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <TarjetaHeader icon={UsersRound} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo={r.nombre} descripcion="Tocá una Casa de Paz para ver a sus personas" />
+            <TarjetaHeader icon={UsersRound} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo={r.nombre} descripcion="Tocá una Casa de Paz para ver a sus personas" intensidad={16} />
             <div className="p-5">
               {cargando ? (
                 <Skeleton className="h-40 w-full rounded-2xl" />

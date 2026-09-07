@@ -24,6 +24,7 @@ export function TarjetaHeader({
   descripcion,
   accion,
   oscuro,
+  intensidad,
 }: {
   icon: LucideIcon;
   color: string;
@@ -32,11 +33,18 @@ export function TarjetaHeader({
   accion?: ReactNode;
   /** Variante para tarjetas sobre fondo oscuro (hoy solo el panel de Super Admin). */
   oscuro?: boolean;
+  /** % de mezcla de color en la banda del header -- default 8 (14 en oscuro).
+      Para pantallas con muchas secciones seguidas (ej. Evangelismo) donde ese
+      8% por defecto queda demasiado tenue para distinguir un bloque del
+      siguiente, se puede subir puntualmente sin afectar las demás ~50
+      pantallas que usan este mismo componente con su default de siempre. */
+  intensidad?: number;
 }) {
+  const porcentaje = intensidad ?? (oscuro ? 14 : 8);
   return (
     <div
       className={`flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 ${oscuro ? 'border-white/10' : 'border-border/60'}`}
-      style={{ backgroundColor: `color-mix(in oklab, ${color} ${oscuro ? 14 : 8}%, transparent)` }}
+      style={{ backgroundColor: `color-mix(in oklab, ${color} ${porcentaje}%, transparent)` }}
     >
       <div className="flex items-center gap-3">
         <div
