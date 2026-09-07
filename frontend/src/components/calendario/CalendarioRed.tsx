@@ -186,6 +186,12 @@ export function CalendarioRed({ redId }: Props) {
                 color={MORADO}
                 titulo={fechaLegible(diaSeleccionado)}
                 descripcion={eventosDelDiaSeleccionado.length > 0 ? `${eventosDelDiaSeleccionado.length} para hoy` : 'Sin eventos'}
+                accion={
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => setDialogoAbierto(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Agregar
+                  </Button>
+                }
               />
               <div className="flex flex-col gap-2.5 p-4">
                 {eventosDelDiaSeleccionado.length === 0 && <p className="text-sm text-muted-foreground">Sin eventos.</p>}
