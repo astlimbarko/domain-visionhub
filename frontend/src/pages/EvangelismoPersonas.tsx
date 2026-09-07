@@ -43,6 +43,11 @@ function celdaCsv(valor: string | number | null): string {
   return `"${String(valor).replaceAll('"', '""')}"`;
 }
 
+// Inicial para el avatar de la fila mobile -- no hay foto de persona en el sistema.
+function inicialDe(nombreCompleto: string): string {
+  return nombreCompleto.trim().charAt(0).toUpperCase() || '?';
+}
+
 function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
   const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio', 'Evangelizado por'];
   const lineas = filas.map((e) =>
@@ -254,6 +259,7 @@ export function EvangelismoPersonas() {
           color={DEPARTAMENTO_META.EVANGELISMO.color}
           titulo="Personas evangelizadas"
           descripcion="Toda la iglesia -- click en una fila para ver la ficha completa."
+          intensidad={16}
           accion={
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="gap-1.5" disabled={exportandoPdf || total === 0} onClick={exportarPdf}>
@@ -286,10 +292,10 @@ export function EvangelismoPersonas() {
                   onChange={(e) => setTextoInput(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
                 <Input
                   type="date"
-                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[130px] sm:w-[150px]', CAMPO_ESTILO)}
                   value={desde}
                   onChange={(e) => {
                     setDesde(e.target.value);
@@ -300,7 +306,7 @@ export function EvangelismoPersonas() {
                 <span className="text-xs text-muted-foreground">a</span>
                 <Input
                   type="date"
-                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[130px] sm:w-[150px]', CAMPO_ESTILO)}
                   value={hasta}
                   onChange={(e) => {
                     setHasta(e.target.value);
@@ -335,6 +341,51 @@ export function EvangelismoPersonas() {
                 </button>
               )}
             </div>
+            {/* Filtros de Red/Casa de Paz/Tipo -- en desktop viven en el propio
+                encabezado de la tabla (estilo Excel), pero la vista mobile de
+                abajo no tiene esa tabla -- se repiten acá, compactos, SOLO
+                para mobile (`sm:hidden`), mismos estados/opciones de siempre. */}
+            <div className="grid grid-cols-3 gap-1.5 sm:hidden">
+              <Select value={redId} onValueChange={setRedId}>
+                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
+                  <SelectValue placeholder="Red" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
+                  {redes.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
+                  <SelectValue placeholder="Casa de Paz" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
+                  {cdps.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.etiqueta}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tipoId} onValueChange={setTipoId}>
+                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                  {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {isLoading ? (
@@ -348,7 +399,8 @@ export function EvangelismoPersonas() {
               {texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
             </p>
           ) : (
-            <div className={cn('overflow-x-auto rounded-xl border border-border/30 transition-opacity', isFetching && 'opacity-60')}>
+            <>
+            <div className={cn('hidden overflow-x-auto rounded-xl border border-border/30 transition-opacity sm:block', isFetching && 'opacity-60')}>
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="bg-muted/40">
                   <tr>
@@ -435,6 +487,52 @@ export function EvangelismoPersonas() {
                 </tbody>
               </table>
             </div>
+
+            {/* Vista mobile (< sm): la tabla de arriba obliga a scroll horizontal
+                en un teléfono (min-w-[900px], 8 columnas) -- acá en cambio es una
+                fila por persona, nombre + quién la evangelizó a la izquierda,
+                fecha + tipo a la derecha. Datos completos (Red/CdP/Teléfono) se
+                ven al tocar la fila y abrir la ficha, igual que en desktop.
+                Tablet/desktop (sm+) siguen usando la tabla de arriba sin cambios. */}
+            <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
+              {resultados.map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => setPersonaSeleccionadaId(e.persona_id)}
+                  className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-muted/40"
+                >
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                    style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
+                  >
+                    {inicialDe(e.nombre_completo)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{e.nombre_completo}</p>
+                    {e.evangelizado_por_nombre && (
+                      <p className="truncate text-xs text-muted-foreground">Evangelizado por {e.evangelizado_por_nombre}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums">{e.fecha}</span>
+                    {e.tipo_evangelismo_nombre && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full text-[9px]"
+                        style={{
+                          backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined,
+                          color: e.tipo_evangelismo_color ?? undefined,
+                        }}
+                      >
+                        {e.tipo_evangelismo_nombre}
+                      </Badge>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+            </>
           )}
 
           {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
