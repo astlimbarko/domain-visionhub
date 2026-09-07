@@ -8,7 +8,7 @@
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download, FileText, Search, Users, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,11 @@ function celdaCsv(valor: string | number | null): string {
 // Inicial para el avatar de la fila mobile -- no hay foto de persona en el sistema.
 function inicialDe(nombreCompleto: string): string {
   return nombreCompleto.trim().charAt(0).toUpperCase() || '?';
+}
+
+// wa.me exige solo dígitos (sin "+", espacios ni guiones).
+function soloDigitos(telefono: string): string {
+  return telefono.replace(/\D/g, '');
 }
 
 function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
@@ -132,6 +137,9 @@ export function EvangelismoPersonas() {
   const [rangoRapido, setRangoRapido] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
+  // Tarjeta expandida en la vista mobile -- un solo id (no un Set): pedido
+  // explícito del owner de que solo pueda haber una tarjeta abierta a la vez.
+  const [expandidoId, setExpandidoId] = useState<string>();
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
 
@@ -489,48 +497,83 @@ export function EvangelismoPersonas() {
             </div>
 
             {/* Vista mobile (< sm): la tabla de arriba obliga a scroll horizontal
-                en un teléfono (min-w-[900px], 8 columnas) -- acá en cambio es una
-                fila por persona, nombre + quién la evangelizó a la izquierda,
-                fecha + tipo a la derecha. Datos completos (Red/CdP/Teléfono) se
-                ven al tocar la fila y abrir la ficha, igual que en desktop.
-                Tablet/desktop (sm+) siguen usando la tabla de arriba sin cambios. */}
+                en un teléfono (min-w-[900px], 8 columnas). Acá cada persona es
+                una tarjeta: arriba lo más importante siempre visible (nombre,
+                fecha, teléfono como botón de WhatsApp) -- abajo el resto
+                (Red/CdP/Domicilio/Evangelizado por/Tipo) contraído por
+                defecto, se despliega al tocar la tarjeta. Solo una tarjeta
+                puede estar desplegada a la vez (pedido explícito del owner,
+                para que la lista no quede sobrecargada). Tablet/desktop (sm+)
+                siguen usando la tabla de arriba sin cambios. */}
             <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
-              {resultados.map((e) => (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                  className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-muted/40"
-                >
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
-                  >
-                    {inicialDe(e.nombre_completo)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{e.nombre_completo}</p>
-                    {e.evangelizado_por_nombre && (
-                      <p className="truncate text-xs text-muted-foreground">Evangelizado por {e.evangelizado_por_nombre}</p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="text-xs font-medium text-muted-foreground tabular-nums">{e.fecha}</span>
-                    {e.tipo_evangelismo_nombre && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full text-[9px]"
-                        style={{
-                          backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined,
-                          color: e.tipo_evangelismo_color ?? undefined,
-                        }}
+              {resultados.map((e) => {
+                const expandida = expandidoId === e.id;
+                const detalles = [
+                  e.red_nombre && { etiqueta: 'Red', valor: e.red_nombre },
+                  { etiqueta: 'Casa de Paz', valor: e.casa_de_paz_etiqueta },
+                  e.domicilio && { etiqueta: 'Domicilio', valor: e.domicilio },
+                  e.evangelizado_por_nombre && { etiqueta: 'Evangelizado por', valor: e.evangelizado_por_nombre },
+                ].filter((d): d is { etiqueta: string; valor: string } => !!d);
+                return (
+                  <div key={e.id}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandidoId(expandida ? undefined : e.id)}
+                      className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-muted/40"
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: e.tipo_evangelismo_color ?? DEPARTAMENTO_META.EVANGELISMO.color }}
                       >
-                        {e.tipo_evangelismo_nombre}
-                      </Badge>
+                        {inicialDe(e.nombre_completo)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-foreground">{e.nombre_completo}</p>
+                        <p className="text-xs text-muted-foreground">{e.fecha}</p>
+                      </div>
+                      {e.telefono_principal && (
+                        <a
+                          href={`https://wa.me/${soloDigitos(e.telefono_principal)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(ev) => ev.stopPropagation()}
+                          className="flex shrink-0 items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1.5 text-xs font-semibold text-[#128C4A]"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </a>
+                      )}
+                      {expandida ? (
+                        <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+                    {expandida && (
+                      <div className="flex flex-col gap-2 px-3 pb-3 pl-[3.25rem]">
+                        {detalles.map((d) => (
+                          <p key={d.etiqueta} className="text-sm">
+                            <span className="text-muted-foreground">{d.etiqueta}: </span>
+                            {d.valor}
+                          </p>
+                        ))}
+                        {e.tipo_evangelismo_nombre && (
+                          <Badge
+                            variant="secondary"
+                            className="w-fit rounded-full text-[11px]"
+                            style={{
+                              backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined,
+                              color: e.tipo_evangelismo_color ?? undefined,
+                            }}
+                          >
+                            {e.tipo_evangelismo_nombre}
+                          </Badge>
+                        )}
+                      </div>
                     )}
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
             </>
           )}
