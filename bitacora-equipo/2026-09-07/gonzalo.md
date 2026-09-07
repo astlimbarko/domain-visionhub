@@ -16,3 +16,8 @@
 - [ ] Pendiente: KAN-348 (login por IP LAN desde el celular sigue fallando con "Invalid login credentials" real de Supabase, no era red/CORS) -- sin resolver, falta probar copiar/pegar la contraseña
 - [ ] Pendiente (para más adelante, NO ahora): llevar estos mismos patrones visuales (banner, KPI, hueso, navbar corto) al Departamento de Afirmación
 - [ ] Pendiente: verificar la tarjeta expandida de "Personas evangelizadas" con un registro que tenga TODOS los campos llenos a la vez (Red+CdP+Domicilio+Teléfono+Evangelizado por+Tipo) -- no se probó ese caso, ningún dato de prueba los tenía todos juntos
+- [x] Reordené los campos de la tarjeta: fecha con etiqueta "Convertido el...", WhatsApp muestra el número real, sección expandida en 2 grupos (Domicilio+Tipo, luego separador, luego Evangelizado por+Red+Casa de Paz)
+- [x] Fix real: la fecha envolvía a 2 líneas en las filas con botón de WhatsApp (empujaba la tarjeta hacia abajo) -- ahora trunca, todas las filas quedan a la misma altura
+- [x] Fix real: los 3 filtros (Red/CdP/Tipo) se superponían al abrir el menú en mobile -- ahora un solo botón "Filtros" abre una hoja con los 3 apilados
+- [ ] Pendiente (anotado, "lo hacemos al retornar"): en el avatar circular, mostrar el tipo de evangelismo ("1+1"/"Elite") en vez de la inicial del nombre
+- [ ] Pendiente: verificar visualmente el Sheet de "Filtros" abriendo/cerrando en viewport móvil real (se implementó y compiló, no se llegó a clickear el botón antes de cortar la sesión)
