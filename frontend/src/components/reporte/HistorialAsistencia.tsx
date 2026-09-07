@@ -1,44 +1,19 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Cake, Check, ChevronDown, MessageCircle, Search, User, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Cake, Check, ChevronDown, MessageCircle, Minus, Search, User, UserRound, Users, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL } from '@/components/dashboard/DashboardUI';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
-import { desdeISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
+import { fechaLegible } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
-import type { MiembroAsistencia } from '@/types/reporte.types';
-
-interface ReunionDelMes {
-  indice: number;
-  reunion: { id: string; fecha_reunion: string };
-}
-
-interface MesConReuniones {
-  clave: string;
-  etiqueta: string;
-  reuniones: ReunionDelMes[];
-}
-
-/** Agrupa las reuniones (ya vienen de la más reciente a la más vieja) por
- * mes calendario, conservando ese mismo orden -- Map preserva el orden de
- * inserción, así que el mes más reciente queda primero. `indice` es la
- * posición original en `reuniones`/`asistio` (mismo array, alineado 1 a 1). */
-function agruparPorMes(reuniones: { id: string; fecha_reunion: string }[]): MesConReuniones[] {
-  const mapa = new Map<string, MesConReuniones>();
-  reuniones.forEach((reunion, indice) => {
-    const fecha = desdeISO(reunion.fecha_reunion);
-    const clave = `${fecha.getFullYear()}-${fecha.getMonth()}`;
-    if (!mapa.has(clave)) {
-      mapa.set(clave, { clave, etiqueta: nombreMes(fecha.getFullYear(), fecha.getMonth()), reuniones: [] });
-    }
-    mapa.get(clave)!.reuniones.push({ indice, reunion });
-  });
-  return Array.from(mapa.values());
-}
+import type { EstadoAsistenciaReunion, MiembroAsistencia } from '@/types/reporte.types';
 
 interface Props {
   casaDePazId: string | undefined;
+  anio: number;
+  mes: number;
+  diaReunion: number | null;
 }
 
 const UMBRAL_URGENCIA = 2;
@@ -65,11 +40,16 @@ function colorAvatar(personaId: string) {
   return PALETA_AVATAR[Math.abs(hash)];
 }
 
-/** Cuenta las faltas mas recientes seguidas, contando desde la reunion mas nueva hacia atras. */
-function faltasConsecutivas(asistio: boolean[]) {
+/** Cuenta las faltas mas recientes seguidas. `estados` va de la reunion mas
+ * vieja a la mas nueva (mismo orden que las fechas del mes) -- se cuenta
+ * desde el final hacia atras. 'SIN_REPORTE' no corta la racha ni suma: no
+ * hay reporte cargado para esa fecha, no es una falta de la persona. */
+function faltasConsecutivas(estados: EstadoAsistenciaReunion[]) {
   let n = 0;
-  for (const presente of asistio) {
-    if (presente) break;
+  for (let i = estados.length - 1; i >= 0; i--) {
+    const e = estados[i];
+    if (e === 'SIN_REPORTE') continue;
+    if (e === 'ASISTIO') break;
     n++;
   }
   return n;
@@ -85,8 +65,8 @@ function numeroWhatsapp(numero: string) {
   return digitos.startsWith('591') || digitos.length > 8 ? digitos : `591${digitos}`;
 }
 
-export function HistorialAsistencia({ casaDePazId }: Props) {
-  const { data, isLoading } = useHistorialAsistencia(casaDePazId);
+export function HistorialAsistencia({ casaDePazId, anio, mes, diaReunion }: Props) {
+  const { data, isLoading } = useHistorialAsistencia(casaDePazId, anio, mes, diaReunion);
   const [busqueda, setBusqueda] = useState('');
   const [soloUrgentes, setSoloUrgentes] = useState(false);
   const [mostrarTodos, setMostrarTodos] = useState(false);
@@ -94,7 +74,7 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
   const miembrosOrdenados = useMemo(() => {
     const miembros = data?.miembros ?? [];
     return miembros
-      .map((m) => ({ ...m, faltas: faltasConsecutivas(m.asistio) }))
+      .map((m) => ({ ...m, faltas: faltasConsecutivas(m.estados) }))
       .sort((a, b) => b.faltas - a.faltas || a.nombre_completo.localeCompare(b.nombre_completo));
   }, [data]);
 
@@ -115,10 +95,7 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
   const miembrosVisibles = hayFiltroActivo || mostrarTodos ? miembrosFiltrados : miembrosFiltrados.slice(0, LIMITE_INICIAL);
   const restantes = miembrosFiltrados.length - miembrosVisibles.length;
 
-  // El historial completo va del mas viejo al mas nuevo (lectura natural, izquierda a derecha)
-  // para el detalle expandido; los reuniones ya vienen del backend de la mas nueva a la mas vieja.
-  const reunionesRecientesPrimero = data?.reuniones ?? [];
-  const meses = useMemo(() => agruparPorMes(data?.reuniones ?? []), [data]);
+  const reuniones = data?.reuniones ?? [];
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -165,14 +142,14 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
           <Skeleton className="h-64 w-full rounded-2xl" />
         ) : !data || data.miembros.length === 0 ? (
           <p className="text-sm text-muted-foreground">Esta Casa de Paz todavía no tiene miembros registrados.</p>
-        ) : data.reuniones.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Todavía no hay reuniones reportadas para armar un historial.</p>
+        ) : reuniones.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Según el día de reunión fijado en el Perfil, este mes no tiene ninguna fecha de reunión.</p>
         ) : miembrosFiltrados.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ningún miembro coincide con ese filtro.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {miembrosVisibles.map((m) => (
-              <FilaMiembro key={m.persona_id} miembro={m} reuniones={reunionesRecientesPrimero} meses={meses} />
+              <FilaMiembro key={m.persona_id} miembro={m} reuniones={reuniones} />
             ))}
             {restantes > 0 && (
               <button
@@ -190,22 +167,32 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
   );
 }
 
+function iconoEstado(estado: EstadoAsistenciaReunion) {
+  if (estado === 'ASISTIO') return <Check className="h-3 w-3" />;
+  if (estado === 'FALTO') return <X className="h-3 w-3" />;
+  return <Minus className="h-3 w-3" />;
+}
+
+function etiquetaEstado(estado: EstadoAsistenciaReunion) {
+  if (estado === 'ASISTIO') return 'Asistió';
+  if (estado === 'FALTO') return 'Faltó';
+  return 'Sin reporte';
+}
+
+function clasesEstado(estado: EstadoAsistenciaReunion) {
+  if (estado === 'ASISTIO') return 'bg-[var(--chart-2)]/15 text-[var(--chart-2)]';
+  if (estado === 'FALTO') return 'bg-muted text-muted-foreground';
+  return 'bg-muted/50 text-muted-foreground/60';
+}
+
 function FilaMiembro({
   miembro,
   reuniones,
-  meses,
 }: {
   miembro: MiembroAsistencia & { faltas: number };
-  reuniones: { id: string; fecha_reunion: string }[];
-  meses: MesConReuniones[];
+  reuniones: { fecha_reunion: string; reporte_id: string | null }[];
 }) {
   const [abierto, setAbierto] = useState(false);
-  // El resumen compacto se lee de izquierda a derecha en orden cronologico
-  // (reuniones/asistio vienen del backend de la mas nueva a la mas vieja).
-  const puntosCronologicos = useMemo(() => {
-    const asistioCronologico = [...miembro.asistio].reverse();
-    return [...reuniones].reverse().map((r, i) => ({ reunion: r, asistio: asistioCronologico[i] }));
-  }, [reuniones, miembro.asistio]);
   const urgente = miembro.faltas >= UMBRAL_URGENCIA;
   const whatsapp = miembro.telefono ? numeroWhatsapp(miembro.telefono) : null;
   const colorPersona = colorAvatar(miembro.persona_id);
@@ -240,18 +227,23 @@ function FilaMiembro({
                 </span>
               )}
             </div>
-            {/* Punto lleno = asistió, punto hueco = faltó -- se lee sin depender del color. */}
+            {/* Punto lleno = asistió, punto hueco = faltó, punto tenue = sin reporte -- se lee sin depender del color. */}
             <div className="mt-1.5 flex items-center gap-1">
-              {puntosCronologicos.map(({ reunion, asistio }) => (
-                <span
-                  key={reunion.id}
-                  title={`${fechaLegible(reunion.fecha_reunion)}: ${asistio ? 'Asistió' : 'Faltó'}`}
-                  className={cn(
-                    'h-2.5 w-2.5 shrink-0 rounded-full',
-                    asistio ? 'bg-[var(--chart-2)]' : 'border-[1.5px] border-muted-foreground/30'
-                  )}
-                />
-              ))}
+              {reuniones.map((r, i) => {
+                const estado = miembro.estados[i];
+                return (
+                  <span
+                    key={r.fecha_reunion}
+                    title={`${fechaLegible(r.fecha_reunion)}: ${etiquetaEstado(estado)}`}
+                    className={cn(
+                      'h-2.5 w-2.5 shrink-0 rounded-full',
+                      estado === 'ASISTIO' && 'bg-[var(--chart-2)]',
+                      estado === 'FALTO' && 'border-[1.5px] border-muted-foreground/30',
+                      estado === 'SIN_REPORTE' && 'border-[1.5px] border-dashed border-muted-foreground/20'
+                    )}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>
@@ -301,41 +293,22 @@ function FilaMiembro({
             <p className="text-xs text-muted-foreground">Esta persona no tiene un teléfono principal registrado.</p>
           )}
 
-          <div className="flex flex-col gap-4">
-            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Historial de reuniones por mes</p>
-            {meses.map((mes) => {
-              const asistencias = mes.reuniones.filter(({ indice }) => miembro.asistio[indice]).length;
-              const faltas = mes.reuniones.length - asistencias;
-              return (
-                <div key={mes.clave}>
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-foreground">{mes.etiqueta}</span>
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
-                      Asistió {asistencias} · Faltó {faltas} · {mes.reuniones.length} reunión{mes.reuniones.length === 1 ? '' : 'es'}
+          <div>
+            <p className="mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Reuniones del mes</p>
+            <div className="flex flex-col gap-1">
+              {reuniones.map((r, i) => {
+                const estado = miembro.estados[i];
+                return (
+                  <div key={r.fecha_reunion} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm even:bg-muted/30">
+                    <span className="truncate">{fechaLegible(r.fecha_reunion)}</span>
+                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold', clasesEstado(estado))}>
+                      {iconoEstado(estado)}
+                      {etiquetaEstado(estado)}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    {mes.reuniones.map(({ indice, reunion }) => {
-                      const presente = miembro.asistio[indice];
-                      return (
-                        <div key={reunion.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm even:bg-muted/30">
-                          <span className="truncate">{fechaLegible(reunion.fecha_reunion)}</span>
-                          <span
-                            className={cn(
-                              'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
-                              presente ? 'bg-[var(--chart-2)]/15 text-[var(--chart-2)]' : 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {presente ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                            {presente ? 'Asistió' : 'Faltó'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
