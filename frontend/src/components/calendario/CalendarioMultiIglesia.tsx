@@ -9,7 +9,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
-import { useEsMobile } from '@/hooks/useEsMobile';
 import {
   useCrearEventoIglesia,
   useEliminarEventoIglesia,
@@ -54,7 +53,6 @@ interface Props {
  * sedes (nuevas iglesia_padre_id) aparecen solas vía fn_mis_iglesias_hijas.
  */
 export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrincipal, iglesiasHijas, soloLectura = false }: Props) {
-  const esMobile = useEsMobile();
   const sedes: Sede[] = useMemo(
     () => [
       { id: iglesiaPrincipalId, nombre: nombreIglesiaPrincipal, color: COLORES_SEDE[0] },
@@ -105,13 +103,10 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
   const { data: tipos = [] } = useTiposEvento(iglesiaPrincipalId);
   const tiposCreables = tipos.filter((t) => t.codigo !== 'CUMPLEANOS');
 
-  // En móvil tocar un día abre directo el formulario de nuevo evento, en vez
-  // de tener que bajar hasta la tarjeta de detalle y tocar "Agregar" ahí
-  // (pedido explícito del owner, 2026-09-08) -- salvo en modo solo lectura
-  // (Pastor), que no puede crear eventos.
+  // Revertido (2026-09-08): 1 toque = ver el detalle del día, 2do toque
+  // (botón "Agregar" en esa tarjeta) = recién ahí se abre el formulario.
   function manejarSeleccionarDia(fecha: string) {
     setDiaSeleccionado(fecha);
-    if (esMobile && !soloLectura) setDialogoAbierto(true);
   }
 
   const resultados = useQueries({

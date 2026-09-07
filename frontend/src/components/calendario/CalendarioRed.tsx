@@ -8,7 +8,6 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
-import { useEsMobile } from '@/hooks/useEsMobile';
 import {
   useCrearEventoRed,
   useEliminarEventoRed,
@@ -35,7 +34,6 @@ interface Props {
  */
 export function CalendarioRed({ redId }: Props) {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  const esMobile = useEsMobile();
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -78,12 +76,10 @@ export function CalendarioRed({ redId }: Props) {
   // por rol: cualquier tipo creable sirve para un evento "de toda la Red".
   const tiposCreables = tipos.filter((t) => t.codigo !== 'CUMPLEANOS');
 
-  // En móvil tocar un día abre directo el formulario de nuevo evento, en vez
-  // de tener que bajar hasta la tarjeta de detalle y tocar "Agregar" ahí
-  // (pedido explícito del owner, 2026-09-08).
+  // Revertido (2026-09-08): 1 toque = ver el detalle del día, 2do toque
+  // (botón "Agregar" en esa tarjeta) = recién ahí se abre el formulario.
   function manejarSeleccionarDia(fecha: string) {
     setDiaSeleccionado(fecha);
-    if (esMobile) setDialogoAbierto(true);
   }
 
   function irMesAnterior() {
