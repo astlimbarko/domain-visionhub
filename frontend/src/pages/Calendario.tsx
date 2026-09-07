@@ -434,7 +434,8 @@ export function Calendario() {
 
       {esMobile && (
         <Sheet open={!!diaSeleccionado} onOpenChange={(open) => !open && setDiaSeleccionado(null)}>
-          <SheetContent side="bottom" className="max-h-[85vh] gap-0 overflow-y-auto rounded-t-2xl p-0">
+          <SheetContent side="bottom" showCloseButton={false} className="max-h-[85vh] gap-0 overflow-y-auto rounded-t-2xl p-0">
+            <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
             {contenidoDetalleDia}
           </SheetContent>
         </Sheet>
