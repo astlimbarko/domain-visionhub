@@ -132,6 +132,12 @@ export function useCrearReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
+      // fn_recalcular_estados_cdp_reporte (llamada dentro de crearReporte) puede
+      // haber promovido a alguien a Nuevo Convertido/Creyente -- sin esto, el
+      // pool de "Asistencia regular" queda con datos viejos hasta un refetch
+      // natural (2026-09-07, bug real: era la única invalidación de esta query
+      // y se perdió al sacar el diálogo manual de miembro regular).
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['calendario'] });
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       // El reporte cambia asistencia/miembros/ingresos que el Dashboard ya muestra:
@@ -189,6 +195,7 @@ export function useActualizarReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'red-rango'] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'por-id', reporteId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['calendario'] });
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
