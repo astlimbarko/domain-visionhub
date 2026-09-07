@@ -78,13 +78,22 @@ export async function obtenerTemas(libroId: string, iglesiaId: string): Promise<
 }
 
 export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCdp[]> {
-  const { data, error } = await supabase
-    .from('casa_de_paz_membresia')
-    .select('persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento)')
-    .eq('casa_de_paz_id', casaDePazId)
-    .is('fecha_fin', null);
+  const [{ data, error }, { data: visitas, error: errorVisitas }] = await Promise.all([
+    supabase
+      .from('casa_de_paz_membresia')
+      .select('persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento)')
+      .eq('casa_de_paz_id', casaDePazId)
+      .is('fecha_fin', null),
+    // Asistentes Nuevos que ya llegaron a Nuevo Convertido/Creyente por
+    // asistencia (fn_recalcular_estados_cdp_reporte, 2026-09-06): cuentan
+    // para "Asistencia Regular" aunque todavía no tengan membresía formal
+    // (eso sigue atado al bautismo, es manual -- SugerenciaMiembroRegular).
+    supabase.rpc('fn_visitas_regulares_cdp', { p_casa_de_paz_id: casaDePazId }),
+  ]);
   if (error) throw error;
-  return (data ?? []).map((r) => {
+  if (errorVisitas) throw errorVisitas;
+
+  const miembros = (data ?? []).map((r) => {
     const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
     return {
@@ -94,6 +103,8 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
       edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
     };
   });
+
+  return [...miembros, ...((visitas ?? []) as MiembroCdp[])];
 }
 
 /**
