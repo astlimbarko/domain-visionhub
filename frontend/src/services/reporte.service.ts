@@ -261,11 +261,12 @@ const REUNIONES_HISTORIAL = 12;
  * replicar ese filtro aca.
  */
 export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<HistorialAsistencia> {
-  // reportes y miembros son independientes entre si -- se piden en paralelo
-  // en vez de uno tras otro (eran 4 round-trips en serie, quedan 2).
+  // reportes, miembros y visitas son independientes entre si -- se piden en
+  // paralelo en vez de uno tras otro.
   const [
     { data: reportes, error: errorReportes },
     { data: miembros, error: errorMiembros },
+    { data: visitas, error: errorVisitas },
   ] = await Promise.all([
     supabase
       .from('casa_de_paz_reporte')
@@ -280,13 +281,21 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
       )
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
+    // Asistentes Nuevos que ya llegaron a Nuevo Convertido/Creyente por
+    // asistencia (fn_recalcular_estados_cdp_reporte, 2026-09-06): cuentan
+    // para el Historial igual que "Asistencia Regular", sin membresía formal.
+    supabase.rpc('fn_visitas_regulares_cdp', { p_casa_de_paz_id: casaDePazId }),
   ]);
   if (errorReportes) throw errorReportes;
   if (errorMiembros) throw errorMiembros;
+  if (errorVisitas) throw errorVisitas;
 
   const reuniones = (reportes ?? []).map((r) => ({ id: r.id, fecha_reunion: r.fecha_reunion }));
   const reporteIds = reuniones.map((r) => r.id);
-  const personaIds = (miembros ?? []).map((m) => m.persona_id);
+  const personaIds = [
+    ...(miembros ?? []).map((m) => m.persona_id),
+    ...((visitas ?? []) as { persona_id: string }[]).map((v) => v.persona_id),
+  ];
 
   // asistencias depende solo de reportes, telefonos depende solo de miembros
   // -- independientes entre si, tambien en paralelo.
@@ -318,20 +327,33 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
     if (tel?.numero) telefonoPorPersona.set(t.persona_id, tel.numero);
   }
 
+  const miembrosFormales = (miembros ?? []).map((m) => {
+    const p = Array.isArray(m.persona) ? m.persona[0] : m.persona;
+    const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
+    return {
+      persona_id: m.persona_id,
+      nombre_completo: nombre,
+      sexo: (p?.sexo ?? 'M') as 'M' | 'F',
+      edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+      telefono: telefonoPorPersona.get(m.persona_id) ?? null,
+      asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${m.persona_id}`)),
+    };
+  });
+
+  const visitasRegulares = (
+    (visitas ?? []) as { persona_id: string; nombre_completo: string; sexo: 'M' | 'F'; edad: number | null }[]
+  ).map((v) => ({
+    persona_id: v.persona_id,
+    nombre_completo: v.nombre_completo,
+    sexo: v.sexo,
+    edad: v.edad,
+    telefono: telefonoPorPersona.get(v.persona_id) ?? null,
+    asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${v.persona_id}`)),
+  }));
+
   return {
     reuniones,
-    miembros: (miembros ?? []).map((m) => {
-      const p = Array.isArray(m.persona) ? m.persona[0] : m.persona;
-      const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
-      return {
-        persona_id: m.persona_id,
-        nombre_completo: nombre,
-        sexo: (p?.sexo ?? 'M') as 'M' | 'F',
-        edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
-        telefono: telefonoPorPersona.get(m.persona_id) ?? null,
-        asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${m.persona_id}`)),
-      };
-    }),
+    miembros: [...miembrosFormales, ...visitasRegulares],
   };
 }
 
