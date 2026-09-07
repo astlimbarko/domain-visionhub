@@ -114,3 +114,24 @@ export function primerDiaMesRelativo(fechaISO: string, n: number): string {
 export function nombreMesCorto(mes: number): string {
   return NOMBRES_MES_CORTO[mes];
 }
+
+/**
+ * Fechas exactas del mes en las que le toca reunirse a una Casa de Paz,
+ * según su `dia_reunion` (0=domingo…6=sábado, `casa_de_paz.dia_reunion` /
+ * `fn_mi_cdp_perfil`). Si todavía no lo fijó (`null`), no hay fecha esperada
+ * que calcular -- cada pantalla que use esto decide cómo avisarlo (Control
+ * de Reportes cae a los lunes de cada semana como mejor esfuerzo agregado;
+ * Historial de Asistencia, al ser el propio historial del líder, prefiere
+ * pedirle directamente que lo configure en el Perfil -- no aplica un
+ * fallback ambiguo).
+ */
+export function fechasReunionDelMes(anio: number, mes: number, diaReunion: number | null): string[] {
+  if (diaReunion == null) return [];
+  const fechas: string[] = [];
+  const ultimoDiaMes = new Date(anio, mes + 1, 0).getDate();
+  for (let dia = 1; dia <= ultimoDiaMes; dia++) {
+    const f = new Date(anio, mes, dia);
+    if (f.getDay() === diaReunion) fechas.push(aISO(f));
+  }
+  return fechas;
+}

@@ -116,11 +116,17 @@ export function useHistorialReportes(casaDePazId: string | undefined, desde: str
   });
 }
 
-export function useHistorialAsistencia(casaDePazId: string | undefined) {
+export function useHistorialAsistencia(
+  casaDePazId: string | undefined,
+  anio: number,
+  mes: number,
+  diaReunion: number | null | undefined
+) {
   return useQuery({
-    queryKey: ['reporte', 'historial-asistencia', casaDePazId],
-    queryFn: () => obtenerHistorialAsistencia(casaDePazId as string),
-    enabled: !!casaDePazId,
+    queryKey: ['reporte', 'historial-asistencia', casaDePazId, anio, mes, diaReunion],
+    queryFn: () => obtenerHistorialAsistencia(casaDePazId as string, anio, mes, diaReunion as number | null),
+    enabled: !!casaDePazId && diaReunion !== undefined,
+    placeholderData: keepPreviousData,
   });
 }
 

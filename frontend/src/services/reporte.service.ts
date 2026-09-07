@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { calcularEdad } from '@/utils/edad';
-import { aISO } from '@/utils/calendario-fechas';
+import { aISO, fechasReunionDelMes } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
   DiezmoLinea,
+  EstadoAsistenciaReunion,
   HistorialAsistencia,
   Libro,
   MegaFiestaDelDia,
@@ -247,20 +248,26 @@ export async function obtenerReportesRedRango(
   return (data ?? []) as ReporteRedFila[];
 }
 
-// Ahora vive en su propia página (Historial de Asistencia), no en una card
-// compacta metida en Reportes -- hay más lugar en pantalla, así que se
-// muestran más reuniones que antes (8) para un historial más largo.
-const REUNIONES_HISTORIAL = 12;
-
 /**
- * Historial de asistencia por miembro para las ultimas `REUNIONES_HISTORIAL`
- * reuniones -- suficiente para ver la tendencia y para detectar 2 faltas
- * seguidas sin traer todo el historico. El telefono sale de
- * `telefono_asignacion` (RLS ya filtra datos confidenciales por cargo
- * ministerial, ver 28_invitaciones_y_privacidad.sql), no hace falta
- * replicar ese filtro aca.
+ * Historial de asistencia por miembro para un mes calendario puntual --
+ * pedido del owner (2026-09-07): las columnas ya no son "las últimas N
+ * reuniones cargadas" sino TODAS las fechas en las que a la CdP le tocaba
+ * reunirse ese mes según su `dia_reunion` (Perfil de CdP), incluyendo las
+ * que nunca se llegaron a reportar (`reporte_id: null` -- estado
+ * 'SIN_REPORTE', distinto de 'FALTO': ahí ni siquiera hay reporte cargado).
+ * El telefono sale de `telefono_asignacion` (RLS ya filtra datos
+ * confidenciales por cargo ministerial, ver 28_invitaciones_y_privacidad.sql),
+ * no hace falta replicar ese filtro aca.
  */
-export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<HistorialAsistencia> {
+export async function obtenerHistorialAsistencia(
+  casaDePazId: string,
+  anio: number,
+  mes: number,
+  diaReunion: number | null
+): Promise<HistorialAsistencia> {
+  const fechasEsperadas = fechasReunionDelMes(anio, mes, diaReunion);
+  if (fechasEsperadas.length === 0) return { reuniones: [], miembros: [] };
+
   // reportes, miembros y visitas son independientes entre si -- se piden en
   // paralelo en vez de uno tras otro.
   const [
@@ -272,8 +279,7 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
       .from('casa_de_paz_reporte')
       .select('id, fecha_reunion')
       .eq('casa_de_paz_id', casaDePazId)
-      .order('fecha_reunion', { ascending: false })
-      .limit(REUNIONES_HISTORIAL),
+      .in('fecha_reunion', fechasEsperadas),
     supabase
       .from('casa_de_paz_membresia')
       .select(
@@ -290,8 +296,10 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
   if (errorMiembros) throw errorMiembros;
   if (errorVisitas) throw errorVisitas;
 
-  const reuniones = (reportes ?? []).map((r) => ({ id: r.id, fecha_reunion: r.fecha_reunion }));
-  const reporteIds = reuniones.map((r) => r.id);
+  const reporteIdPorFecha = new Map<string, string>();
+  for (const r of reportes ?? []) reporteIdPorFecha.set(r.fecha_reunion, r.id);
+  const reuniones = fechasEsperadas.map((fecha) => ({ fecha_reunion: fecha, reporte_id: reporteIdPorFecha.get(fecha) ?? null }));
+  const reporteIds = (reportes ?? []).map((r) => r.id);
   const personaIds = [
     ...(miembros ?? []).map((m) => m.persona_id),
     ...((visitas ?? []) as { persona_id: string }[]).map((v) => v.persona_id),
@@ -327,6 +335,13 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
     if (tel?.numero) telefonoPorPersona.set(t.persona_id, tel.numero);
   }
 
+  function estadosDePersona(personaId: string): EstadoAsistenciaReunion[] {
+    return reuniones.map((r) => {
+      if (!r.reporte_id) return 'SIN_REPORTE';
+      return asistioSet.has(`${r.reporte_id}:${personaId}`) ? 'ASISTIO' : 'FALTO';
+    });
+  }
+
   const miembrosFormales = (miembros ?? []).map((m) => {
     const p = Array.isArray(m.persona) ? m.persona[0] : m.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
@@ -336,7 +351,7 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
       sexo: (p?.sexo ?? 'M') as 'M' | 'F',
       edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
       telefono: telefonoPorPersona.get(m.persona_id) ?? null,
-      asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${m.persona_id}`)),
+      estados: estadosDePersona(m.persona_id),
     };
   });
 
@@ -348,7 +363,7 @@ export async function obtenerHistorialAsistencia(casaDePazId: string): Promise<H
     sexo: v.sexo,
     edad: v.edad,
     telefono: telefonoPorPersona.get(v.persona_id) ?? null,
-    asistio: reuniones.map((r) => asistioSet.has(`${r.id}:${v.persona_id}`)),
+    estados: estadosDePersona(v.persona_id),
   }));
 
   return {

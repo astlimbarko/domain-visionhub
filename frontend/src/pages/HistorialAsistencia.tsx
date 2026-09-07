@@ -1,19 +1,30 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Users, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Users, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { mosaico, AZUL, VERDE, MARINO } from '@/components/dashboard/DashboardUI';
 import { DonutRing } from '@/components/dashboard/DonutRing';
 import { HistorialAsistencia as HistorialAsistenciaSeccion } from '@/components/reporte/HistorialAsistencia';
 import { HistorialAsistenciaSupervisorVista } from '@/components/reporte/HistorialAsistenciaSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
+import { useCdpPerfil } from '@/hooks/useCasasDePaz';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
+import { nombreMes } from '@/utils/calendario-fechas';
+import type { EstadoAsistenciaReunion } from '@/types/reporte.types';
 
 const UMBRAL_URGENCIA = 2;
 
-function faltasConsecutivas(asistio: boolean[]) {
+/** Cuenta las faltas mas recientes seguidas -- `estados` va de la reunion mas
+ * vieja a la mas nueva, asi que se cuenta desde el final hacia atras.
+ * 'SIN_REPORTE' no corta la racha ni suma: no hay dato de esa persona, no es
+ * su falta. */
+function faltasConsecutivas(estados: EstadoAsistenciaReunion[]) {
   let n = 0;
-  for (const presente of asistio) {
-    if (presente) break;
+  for (let i = estados.length - 1; i >= 0; i--) {
+    const e = estados[i];
+    if (e === 'SIN_REPORTE') continue;
+    if (e === 'ASISTIO') break;
     n++;
   }
   return n;
@@ -61,14 +72,39 @@ export function HistorialAsistencia() {
   const rolUI = contextoActivo?.rolUI;
   const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
 
+  const hoy = new Date();
+  const [anio, setAnio] = useState(hoy.getFullYear());
+  const [mes, setMes] = useState(hoy.getMonth());
+
+  const { data: perfil } = useCdpPerfil(cdpActiva);
+  const diaReunion = perfil?.dia_reunion;
+
   // Misma queryKey que usa el componente de abajo -- React Query comparte el
   // cache, así que esto no dispara una segunda consulta a la red.
-  const { data } = useHistorialAsistencia(cdpActiva);
+  const { data } = useHistorialAsistencia(cdpActiva, anio, mes, diaReunion);
   const totalMiembros = data?.miembros.length ?? 0;
-  const totalUrgentes = data ? data.miembros.filter((m) => faltasConsecutivas(m.asistio) >= UMBRAL_URGENCIA).length : 0;
-  const totalAsistencias = data ? data.miembros.reduce((acc, m) => acc + m.asistio.filter(Boolean).length, 0) : 0;
-  const totalPosibles = data ? data.miembros.length * data.reuniones.length : 0;
+  const totalUrgentes = data ? data.miembros.filter((m) => faltasConsecutivas(m.estados) >= UMBRAL_URGENCIA).length : 0;
+  const totalAsistencias = data
+    ? data.miembros.reduce((acc, m) => acc + m.estados.filter((e) => e === 'ASISTIO').length, 0)
+    : 0;
+  // "Posibles" excluye las reuniones sin reporte cargado -- no penalizar la
+  // participación de la gente por un reporte que el líder no llegó a subir.
+  const totalPosibles = data
+    ? data.miembros.reduce((acc, m) => acc + m.estados.filter((e) => e !== 'SIN_REPORTE').length, 0)
+    : 0;
   const participacion = totalPosibles > 0 ? Math.round((totalAsistencias / totalPosibles) * 100) : null;
+
+  function irMesAnterior() {
+    const f = new Date(anio, mes - 1, 1);
+    setAnio(f.getFullYear());
+    setMes(f.getMonth());
+  }
+
+  function irMesSiguiente() {
+    const f = new Date(anio, mes + 1, 1);
+    setAnio(f.getFullYear());
+    setMes(f.getMonth());
+  }
 
   // El Supervisor no lidera/sublidera ninguna Casa de Paz propia -- ve el
   // historial agrupado por Red de toda la iglesia, no el de una sola CdP.
@@ -85,31 +121,50 @@ export function HistorialAsistencia() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Navegación de mes ──────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 self-start rounded-2xl border border-border/60 bg-muted/20 p-2 pl-4">
+        <span className="text-sm font-semibold tracking-tight capitalize">{nombreMes(anio, mes)}</span>
+        <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
-      {data && totalMiembros > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatMini color={AZUL} icon={Users} valor={totalMiembros} label="Miembros" />
-          {/* Rojo reservado para esto -- es la única señal realmente urgente de la página. */}
-          <StatMini
-            color={totalUrgentes > 0 ? 'var(--destructive)' : MARINO}
-            icon={AlertTriangle}
-            valor={totalUrgentes}
-            label="Con 2+ faltas seguidas"
-          />
-          <StatMini
-            color={VERDE}
-            label="Participación"
-            sub={`Últimas ${data.reuniones.length} reuniones`}
-            visual={
-              <DonutRing porcentaje={participacion} size={48} strokeWidth={6} color="white" trackColor="rgba(255,255,255,0.3)">
-                <span className="text-[11px] font-bold text-white">{participacion != null ? `${participacion}%` : '—'}</span>
-              </DonutRing>
-            }
-          />
-        </div>
+      {perfil && diaReunion == null ? (
+        <ProximamentePlaceholder
+          titulo="Falta definir el día de reunión"
+          descripcion='Para armar el historial por mes, primero fijá el día en que se reúne tu Casa de Paz desde "Perfil de Casa de Paz".'
+        />
+      ) : (
+        <>
+          {data && totalMiembros > 0 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <StatMini color={AZUL} icon={Users} valor={totalMiembros} label="Miembros" />
+              {/* Rojo reservado para esto -- es la única señal realmente urgente de la página. */}
+              <StatMini
+                color={totalUrgentes > 0 ? 'var(--destructive)' : MARINO}
+                icon={AlertTriangle}
+                valor={totalUrgentes}
+                label="Con 2+ faltas seguidas"
+              />
+              <StatMini
+                color={VERDE}
+                label="Participación"
+                sub={`${nombreMes(anio, mes)}`}
+                visual={
+                  <DonutRing porcentaje={participacion} size={48} strokeWidth={6} color="white" trackColor="rgba(255,255,255,0.3)">
+                    <span className="text-[11px] font-bold text-white">{participacion != null ? `${participacion}%` : '—'}</span>
+                  </DonutRing>
+                }
+              />
+            </div>
+          )}
+
+          <HistorialAsistenciaSeccion casaDePazId={cdpActiva} anio={anio} mes={mes} diaReunion={diaReunion ?? null} />
+        </>
       )}
-
-      <HistorialAsistenciaSeccion casaDePazId={cdpActiva} />
     </div>
   );
 }
