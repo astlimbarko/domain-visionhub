@@ -108,45 +108,6 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
 }
 
 /**
- * Cuántas veces asistió esta persona (como visita, sin membresía) a esta CdP
- * -- para sugerirle al líder que la agregue como miembro regular cuando ya
- * viene seguido (pedido del owner, 2026-09-05). No distingue es_visita: si
- * llegó a tener membresía y la perdió, cuenta todo igual, es información
- * histórica de asistencia, no de estado actual.
- */
-export async function contarAsistenciasVisita(casaDePazId: string, personaId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('casa_de_paz_asistencia')
-    .select('id, casa_de_paz_reporte!inner(casa_de_paz_id)', { count: 'exact', head: true })
-    .eq('persona_id', personaId)
-    .eq('casa_de_paz_reporte.casa_de_paz_id', casaDePazId)
-    .is('fecha_eliminacion', null);
-  if (error) throw error;
-  return count ?? 0;
-}
-
-/**
- * Promueve una visita a miembro regular de la CdP -- inserta directo en
- * casa_de_paz_membresia (RLS: pol_casa_de_paz_membresia_insert ya permite
- * fn_es_lider_cdp, sin necesidad de una RPC nueva). A propósito NO toca
- * persona.membresia_completada: el formulario largo de membresía (CI,
- * ministerios) sigue siendo un trámite aparte, gateado por bautismo -- ver
- * memoria fix-duplicacion-asistentes-nuevos. Es una acción manual explícita
- * del líder, no automática (el owner revirtió una versión automática de
- * esto el 2026-09-04).
- */
-export async function agregarMiembroRegularCdp(iglesiaId: string, casaDePazId: string, personaId: string): Promise<void> {
-  const { error } = await supabase.from('casa_de_paz_membresia').insert({
-    iglesia_id: iglesiaId,
-    casa_de_paz_id: casaDePazId,
-    persona_id: personaId,
-    es_principal: true,
-    fecha_inicio: aISO(new Date()),
-  });
-  if (error) throw error;
-}
-
-/**
  * Umbral de edad que separa "niño" de "regular", configurable por iglesia
  * (`EDAD_MINIMA_CREYENTE`, criterio ya usado por el backend para Estados
  * SSVA y el Dashboard). Antes este umbral estaba hardcodeado en 12 acá: si
