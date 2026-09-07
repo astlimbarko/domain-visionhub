@@ -1,9 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actualizarReporte,
-  agregarMiembroRegularCdp,
   anularReporte,
-  contarAsistenciasVisita,
   crearReporte,
   obtenerCamposObligatorios,
   obtenerDiasPlazoReporte,
@@ -44,24 +42,6 @@ export function useMiembrosCdp(casaDePazId: string | undefined) {
   });
 }
 
-export function useAsistenciasVisita(casaDePazId: string | undefined, personaId: string | undefined) {
-  return useQuery({
-    queryKey: ['reporte', 'asistencias-visita', casaDePazId, personaId],
-    queryFn: () => contarAsistenciasVisita(casaDePazId as string, personaId as string),
-    enabled: !!casaDePazId && !!personaId,
-  });
-}
-
-export function useAgregarMiembroRegularCdp(casaDePazId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ iglesiaId, personaId }: { iglesiaId: string; personaId: string }) =>
-      agregarMiembroRegularCdp(iglesiaId, casaDePazId as string, personaId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros', casaDePazId] });
-    },
-  });
-}
 
 export function useCamposObligatoriosReporte(iglesiaId: string | undefined) {
   return useQuery({

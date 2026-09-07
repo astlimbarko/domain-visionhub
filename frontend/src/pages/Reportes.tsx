@@ -59,7 +59,6 @@ import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
-import { SugerenciaMiembroRegular } from '@/components/reporte/SugerenciaMiembroRegular';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
@@ -358,21 +357,6 @@ export function Reportes() {
       return next;
     });
     setAsistentesNuevosExistentes((prev) => prev.filter((p) => p.id !== personaId));
-  }
-
-  // Se confirmó "Sí, agregar" en SugerenciaMiembroRegular: la persona ya
-  // quedó como miembro (casa_de_paz_membresia insertada ahí mismo). Acá solo
-  // se refleja en el formulario -- sigue contando como asistente de esta
-  // reunión, pero ya no como "visita" (useMiembrosCdp se invalida solo y la
-  // va a mostrar en el pool de "Asistencia regular"/"de niños").
-  function marcarComoRegularPromovida(personaId: string) {
-    setAsistentesNuevosExistentes((prev) => prev.filter((p) => p.id !== personaId));
-    setAsistentes((prev) => {
-      const next = new Map(prev);
-      const actual = next.get(personaId);
-      if (actual) next.set(personaId, { ...actual, esVisita: false });
-      return next;
-    });
   }
 
   // Pedido del owner (2026-09-03): agregar a alguien en Evangelismo pregunta
@@ -973,18 +957,6 @@ export function Reportes() {
                           ))}
                         </div>
                       )}
-                      {/* Umbral fijo en 2 asistencias (pedido del owner,
-                          2026-09-05) -- una por persona, debajo de sus chips. */}
-                      {asistentesNuevosExistentes.map((p) => (
-                        <SugerenciaMiembroRegular
-                          key={p.id}
-                          iglesiaId={iglesiaActivaId as string}
-                          casaDePazId={cdpActiva as string}
-                          personaId={p.id}
-                          nombreCompleto={p.nombre_completo}
-                          onPromovida={() => marcarComoRegularPromovida(p.id)}
-                        />
-                      ))}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
