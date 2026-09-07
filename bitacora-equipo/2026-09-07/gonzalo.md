@@ -15,3 +15,4 @@
 - [x] Rama `fix/evangelismo-mobile-falencias` pusheada a origin (6 commits) -- **sin mergear todavía**, falta aprobación del owner
 - [ ] Pendiente: KAN-348 (login por IP LAN desde el celular sigue fallando con "Invalid login credentials" real de Supabase, no era red/CORS) -- sin resolver, falta probar copiar/pegar la contraseña
 - [ ] Pendiente (para más adelante, NO ahora): llevar estos mismos patrones visuales (banner, KPI, hueso, navbar corto) al Departamento de Afirmación
+- [ ] Pendiente: verificar la tarjeta expandida de "Personas evangelizadas" con un registro que tenga TODOS los campos llenos a la vez (Red+CdP+Domicilio+Teléfono+Evangelizado por+Tipo) -- no se probó ese caso, ningún dato de prueba los tenía todos juntos
