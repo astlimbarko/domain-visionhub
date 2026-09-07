@@ -10,6 +10,7 @@ import { AZUL, MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI'
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
+import { useEsMobile } from '@/hooks/useEsMobile';
 import {
   useCrearEvento,
   useCumpleanosMes,
@@ -40,6 +41,7 @@ export function Calendario() {
   const nombreIglesiaActiva = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Mi iglesia';
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI ?? null;
+  const esMobile = useEsMobile();
 
   const { data: misCasas, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   // El Supervisor puede administrar el calendario de su iglesia, o el de una
@@ -106,6 +108,15 @@ export function Calendario() {
     const f = new Date(anio, mes + 1, 1);
     setAnio(f.getFullYear());
     setMes(f.getMonth());
+  }
+
+  // En móvil (la mayoría no usa la vista de escritorio) tocar un día abre
+  // directo el formulario de nuevo evento -- antes había que tocar el día,
+  // bajar hasta la tarjeta de detalle y recién ahí tocar "Agregar" (pedido
+  // explícito del owner, 2026-09-08).
+  function manejarSeleccionarDia(fecha: string) {
+    setDiaSeleccionado(fecha);
+    if (esMobile) setDialogoAbierto(true);
   }
 
   const eventosDelDiaSeleccionado = useMemo(() => {
@@ -263,7 +274,7 @@ export function Calendario() {
                 eventos={eventos}
                 cumpleanos={cumpleanos}
                 diaSeleccionado={diaSeleccionado}
-                onSeleccionarDia={setDiaSeleccionado}
+                onSeleccionarDia={manejarSeleccionarDia}
               />
             )}
           </div>
