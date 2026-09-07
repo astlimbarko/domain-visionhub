@@ -9,6 +9,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { MARINO, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
+import { useEsMobile } from '@/hooks/useEsMobile';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   useCrearEventoIglesia,
   useEliminarEventoIglesia,
@@ -53,6 +55,7 @@ interface Props {
  * sedes (nuevas iglesia_padre_id) aparecen solas vía fn_mis_iglesias_hijas.
  */
 export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrincipal, iglesiasHijas, soloLectura = false }: Props) {
+  const esMobile = useEsMobile();
   const sedes: Sede[] = useMemo(
     () => [
       { id: iglesiaPrincipalId, nombre: nombreIglesiaPrincipal, color: COLORES_SEDE[0] },
@@ -170,6 +173,72 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
     });
   }, [eventos, diaSeleccionado]);
 
+  // Detalle del día: inline en escritorio, en un panel deslizante desde
+  // abajo (Sheet) en móvil -- si no, "Agregar" quedaba fuera de la pantalla
+  // debajo de la grilla (pedido explícito del owner, 2026-09-08).
+  const contenidoDetalleDia = diaSeleccionado && (
+    <>
+      <TarjetaHeader
+        icon={CalendarDays}
+        color={MORADO}
+        titulo={fechaLegible(diaSeleccionado)}
+        descripcion={eventosDelDiaSeleccionado.length > 0 ? `${eventosDelDiaSeleccionado.length} para hoy` : 'Sin eventos'}
+        accion={
+          !soloLectura ? (
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => setDialogoAbierto(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Agregar
+            </Button>
+          ) : undefined
+        }
+      />
+      <div className="flex flex-col gap-2.5 p-4">
+        {eventosDelDiaSeleccionado.length === 0 && <p className="text-sm text-muted-foreground">Sin eventos.</p>}
+        {eventosDelDiaSeleccionado.map((e) => {
+          const Icono = iconoTipoEvento(e.tipo_codigo);
+          return (
+            <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${e.color} 15%, transparent)` }}>
+                <Icono className="h-5 w-5" style={{ color: e.color }} />
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="flex flex-wrap items-center gap-1.5 font-medium">
+                  {e.titulo}
+                  {/* Simultáneos de sedes distintas se diferencian con este chip -- mismo día, misma grilla. */}
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                    style={{ backgroundColor: `color-mix(in oklab, ${e.sede_color} 18%, transparent)`, color: e.sede_color }}
+                  >
+                    <MapPin className="h-2.5 w-2.5" />
+                    {e.sede_nombre}
+                  </span>
+                </p>
+                <p className="text-xs font-medium" style={{ color: e.color }}>
+                  {e.tipo_nombre}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {e.hora_inicio && `${e.hora_inicio.slice(0, 5)}${e.hora_fin ? ` – ${e.hora_fin.slice(0, 5)}` : ''}`}
+                  {e.es_multi_dia && (e.hora_inicio ? ' · varios días' : 'Varios días')}
+                </p>
+                {e.descripcion && <p className="mt-0.5 text-xs text-muted-foreground">{e.descripcion}</p>}
+              </div>
+              {!soloLectura && e.sede_id === iglesiaPrincipalId && (
+                <button
+                  type="button"
+                  aria-label="Eliminar evento"
+                  onClick={() => setEventoAEliminar({ id: e.id, titulo: e.titulo })}
+                  className="shrink-0 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -270,66 +339,9 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
         </section>
 
         <div className="flex flex-col gap-4">
-          {diaSeleccionado && (
+          {diaSeleccionado && !esMobile && (
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader
-                icon={CalendarDays}
-                color={MORADO}
-                titulo={fechaLegible(diaSeleccionado)}
-                descripcion={eventosDelDiaSeleccionado.length > 0 ? `${eventosDelDiaSeleccionado.length} para hoy` : 'Sin eventos'}
-                accion={
-                  !soloLectura ? (
-                    <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => setDialogoAbierto(true)}>
-                      <Plus className="h-3.5 w-3.5" />
-                      Agregar
-                    </Button>
-                  ) : undefined
-                }
-              />
-              <div className="flex flex-col gap-2.5 p-4">
-                {eventosDelDiaSeleccionado.length === 0 && <p className="text-sm text-muted-foreground">Sin eventos.</p>}
-                {eventosDelDiaSeleccionado.map((e) => {
-                  const Icono = iconoTipoEvento(e.tipo_codigo);
-                  return (
-                    <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-2.5 text-sm">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in oklab, ${e.color} 15%, transparent)` }}>
-                        <Icono className="h-5 w-5" style={{ color: e.color }} />
-                      </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="flex flex-wrap items-center gap-1.5 font-medium">
-                          {e.titulo}
-                          {/* Simultáneos de sedes distintas se diferencian con este chip -- mismo día, misma grilla. */}
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                            style={{ backgroundColor: `color-mix(in oklab, ${e.sede_color} 18%, transparent)`, color: e.sede_color }}
-                          >
-                            <MapPin className="h-2.5 w-2.5" />
-                            {e.sede_nombre}
-                          </span>
-                        </p>
-                        <p className="text-xs font-medium" style={{ color: e.color }}>
-                          {e.tipo_nombre}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {e.hora_inicio && `${e.hora_inicio.slice(0, 5)}${e.hora_fin ? ` – ${e.hora_fin.slice(0, 5)}` : ''}`}
-                          {e.es_multi_dia && (e.hora_inicio ? ' · varios días' : 'Varios días')}
-                        </p>
-                        {e.descripcion && <p className="mt-0.5 text-xs text-muted-foreground">{e.descripcion}</p>}
-                      </div>
-                      {!soloLectura && e.sede_id === iglesiaPrincipalId && (
-                        <button
-                          type="button"
-                          aria-label="Eliminar evento"
-                          onClick={() => setEventoAEliminar({ id: e.id, titulo: e.titulo })}
-                          className="shrink-0 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {contenidoDetalleDia}
             </section>
           )}
 
@@ -384,6 +396,14 @@ export function CalendarioMultiIglesia({ iglesiaPrincipalId, nombreIglesiaPrinci
         textoConfirmar="Sí, eliminar"
         textoProcesando="Eliminando..."
       />
+
+      {esMobile && (
+        <Sheet open={!!diaSeleccionado} onOpenChange={(open) => !open && setDiaSeleccionado(null)}>
+          <SheetContent side="bottom" className="max-h-[85vh] gap-0 overflow-y-auto rounded-t-2xl p-0">
+            {contenidoDetalleDia}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
