@@ -145,6 +145,8 @@ export interface PersonaDeCdp {
   estado_sigla: string | null;
   estado_nombre: string | null;
   fecha_ingreso: string | null;
+  /** false = "visita" que llegó a Nuevo Convertido/Creyente por asistencia, sin membresía formal (gateada por bautismo) todavía. */
+  es_miembro_formal: boolean;
 }
 
 export interface NuevaPersona {
