@@ -8,7 +8,8 @@
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, Users, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
-import { aISO, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 
 const POR_PAGINA = 50;
 // Tope razonable para una exportación completa (mismo criterio que Afirmación).
@@ -168,6 +169,8 @@ export function EvangelismoPersonas() {
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
   const tipoIdFiltro = tipoId === TODOS_LOS_TIPOS ? undefined : tipoId;
+  // Para el badge del botón "Filtros" en mobile.
+  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro].filter(Boolean).length;
   const { data, isLoading, isFetching, error } = useBuscarEvangelizados(
     iglesiaActivaId,
     redIdFiltro,
@@ -350,50 +353,80 @@ export function EvangelismoPersonas() {
               )}
             </div>
             {/* Filtros de Red/Casa de Paz/Tipo -- en desktop viven en el propio
-                encabezado de la tabla (estilo Excel), pero la vista mobile de
-                abajo no tiene esa tabla -- se repiten acá, compactos, SOLO
-                para mobile (`sm:hidden`), mismos estados/opciones de siempre. */}
-            <div className="grid grid-cols-3 gap-1.5 sm:hidden">
-              <Select value={redId} onValueChange={setRedId}>
-                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
-                  <SelectValue placeholder="Red" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
-                  {redes.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={casaDePazId} onValueChange={setCasaDePazId}>
-                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
-                  <SelectValue placeholder="Casa de Paz" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
-                  {cdps.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.etiqueta}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={tipoId} onValueChange={setTipoId}>
-                <SelectTrigger size="sm" className={cn('text-[11px]', CAMPO_ESTILO)}>
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
-                  {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                encabezado de la tabla (estilo Excel). En mobile NO van 3
+                selects apretados en una fila (el menú desplegado de uno
+                terminaba superpuesto sobre el trigger del siguiente, en
+                390px cada columna queda en ~124px) -- ahora es un solo botón
+                "Filtros" que abre una hoja con los 3 selects apilados, cada
+                uno con su propio espacio. Mismos estados/opciones de siempre. */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="w-fit gap-1.5 sm:hidden">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Filtros
+                  {filtrosActivosCount > 0 && (
+                    <Badge variant="secondary" className="rounded-full px-1.5 text-[10px]">
+                      {filtrosActivosCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="sm:hidden">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 px-4 pb-6">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</span>
+                    <Select value={redId} onValueChange={setRedId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Red" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
+                        {redes.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</span>
+                    <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Casa de Paz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
+                        {cdps.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.etiqueta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</span>
+                    <Select value={tipoId} onValueChange={setTipoId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                        {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {isLoading ? (
@@ -508,12 +541,6 @@ export function EvangelismoPersonas() {
             <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
               {resultados.map((e) => {
                 const expandida = expandidoId === e.id;
-                const detalles = [
-                  e.red_nombre && { etiqueta: 'Red', valor: e.red_nombre },
-                  { etiqueta: 'Casa de Paz', valor: e.casa_de_paz_etiqueta },
-                  e.domicilio && { etiqueta: 'Domicilio', valor: e.domicilio },
-                  e.evangelizado_por_nombre && { etiqueta: 'Evangelizado por', valor: e.evangelizado_por_nombre },
-                ].filter((d): d is { etiqueta: string; valor: string } => !!d);
                 return (
                   <div key={e.id}>
                     <button
@@ -529,7 +556,7 @@ export function EvangelismoPersonas() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-foreground">{e.nombre_completo}</p>
-                        <p className="text-xs text-muted-foreground">{e.fecha}</p>
+                        <p className="truncate text-xs text-muted-foreground">Convertido el {fechaLegible(e.fecha)}</p>
                       </div>
                       {e.telefono_principal && (
                         <a
@@ -537,10 +564,10 @@ export function EvangelismoPersonas() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(ev) => ev.stopPropagation()}
-                          className="flex shrink-0 items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1.5 text-xs font-semibold text-[#128C4A]"
+                          className="flex max-w-[108px] shrink-0 items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1.5 text-xs font-semibold text-[#128C4A]"
                         >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          WhatsApp
+                          <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{e.telefono_principal}</span>
                         </a>
                       )}
                       {expandida ? (
@@ -551,12 +578,14 @@ export function EvangelismoPersonas() {
                     </button>
                     {expandida && (
                       <div className="flex flex-col gap-2 px-3 pb-3 pl-[3.25rem]">
-                        {detalles.map((d) => (
-                          <p key={d.etiqueta} className="text-sm">
-                            <span className="text-muted-foreground">{d.etiqueta}: </span>
-                            {d.valor}
+                        {/* Sección 1 -- menos importante que nombre/fecha/teléfono pero de la
+                            propia persona: domicilio + tipo de evangelismo como chip de color. */}
+                        {e.domicilio && (
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Domicilio: </span>
+                            {e.domicilio}
                           </p>
-                        ))}
+                        )}
                         {e.tipo_evangelismo_nombre && (
                           <Badge
                             variant="secondary"
@@ -569,6 +598,25 @@ export function EvangelismoPersonas() {
                             {e.tipo_evangelismo_nombre}
                           </Badge>
                         )}
+                        {/* Sección 2 -- agrupada, quién evangelizó y desde dónde. */}
+                        <div className="mt-1 flex flex-col gap-2 border-t border-border/40 pt-2">
+                          {e.evangelizado_por_nombre && (
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Evangelizado por: </span>
+                              {e.evangelizado_por_nombre}
+                            </p>
+                          )}
+                          {e.red_nombre && (
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Red: </span>
+                              {e.red_nombre}
+                            </p>
+                          )}
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Casa de Paz: </span>
+                            {e.casa_de_paz_etiqueta}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
