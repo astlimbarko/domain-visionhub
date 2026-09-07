@@ -219,8 +219,8 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
 // de Red se eligieron bien distintos entre sí.
 const CATALOGO_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, color: '#0071e3' },
-  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Perfil de Casa de Paz', SUBLIDER_CDP: 'Perfil de Casa de Paz' } },
+  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
