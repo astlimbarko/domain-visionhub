@@ -5,9 +5,37 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL } from '@/components/dashboard/DashboardUI';
 import { useHistorialAsistencia } from '@/hooks/useReporte';
-import { fechaLegible } from '@/utils/calendario-fechas';
+import { desdeISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
 import type { MiembroAsistencia } from '@/types/reporte.types';
+
+interface ReunionDelMes {
+  indice: number;
+  reunion: { id: string; fecha_reunion: string };
+}
+
+interface MesConReuniones {
+  clave: string;
+  etiqueta: string;
+  reuniones: ReunionDelMes[];
+}
+
+/** Agrupa las reuniones (ya vienen de la más reciente a la más vieja) por
+ * mes calendario, conservando ese mismo orden -- Map preserva el orden de
+ * inserción, así que el mes más reciente queda primero. `indice` es la
+ * posición original en `reuniones`/`asistio` (mismo array, alineado 1 a 1). */
+function agruparPorMes(reuniones: { id: string; fecha_reunion: string }[]): MesConReuniones[] {
+  const mapa = new Map<string, MesConReuniones>();
+  reuniones.forEach((reunion, indice) => {
+    const fecha = desdeISO(reunion.fecha_reunion);
+    const clave = `${fecha.getFullYear()}-${fecha.getMonth()}`;
+    if (!mapa.has(clave)) {
+      mapa.set(clave, { clave, etiqueta: nombreMes(fecha.getFullYear(), fecha.getMonth()), reuniones: [] });
+    }
+    mapa.get(clave)!.reuniones.push({ indice, reunion });
+  });
+  return Array.from(mapa.values());
+}
 
 interface Props {
   casaDePazId: string | undefined;
@@ -90,6 +118,7 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
   // El historial completo va del mas viejo al mas nuevo (lectura natural, izquierda a derecha)
   // para el detalle expandido; los reuniones ya vienen del backend de la mas nueva a la mas vieja.
   const reunionesRecientesPrimero = data?.reuniones ?? [];
+  const meses = useMemo(() => agruparPorMes(data?.reuniones ?? []), [data]);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -143,7 +172,7 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
         ) : (
           <div className="flex flex-col gap-2">
             {miembrosVisibles.map((m) => (
-              <FilaMiembro key={m.persona_id} miembro={m} reuniones={reunionesRecientesPrimero} />
+              <FilaMiembro key={m.persona_id} miembro={m} reuniones={reunionesRecientesPrimero} meses={meses} />
             ))}
             {restantes > 0 && (
               <button
@@ -164,9 +193,11 @@ export function HistorialAsistencia({ casaDePazId }: Props) {
 function FilaMiembro({
   miembro,
   reuniones,
+  meses,
 }: {
   miembro: MiembroAsistencia & { faltas: number };
   reuniones: { id: string; fecha_reunion: string }[];
+  meses: MesConReuniones[];
 }) {
   const [abierto, setAbierto] = useState(false);
   // El resumen compacto se lee de izquierda a derecha en orden cronologico
@@ -270,27 +301,41 @@ function FilaMiembro({
             <p className="text-xs text-muted-foreground">Esta persona no tiene un teléfono principal registrado.</p>
           )}
 
-          <div>
-            <p className="mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Historial de reuniones</p>
-            <div className="flex flex-col gap-1">
-              {reuniones.map((r, i) => {
-                const presente = miembro.asistio[i];
-                return (
-                  <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm even:bg-muted/30">
-                    <span className="truncate">{fechaLegible(r.fecha_reunion)}</span>
-                    <span
-                      className={cn(
-                        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
-                        presente ? 'bg-[var(--chart-2)]/15 text-[var(--chart-2)]' : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {presente ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      {presente ? 'Asistió' : 'Faltó'}
+          <div className="flex flex-col gap-4">
+            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Historial de reuniones por mes</p>
+            {meses.map((mes) => {
+              const asistencias = mes.reuniones.filter(({ indice }) => miembro.asistio[indice]).length;
+              const faltas = mes.reuniones.length - asistencias;
+              return (
+                <div key={mes.clave}>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-foreground">{mes.etiqueta}</span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      Asistió {asistencias} · Faltó {faltas} · {mes.reuniones.length} reunión{mes.reuniones.length === 1 ? '' : 'es'}
                     </span>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-col gap-1">
+                    {mes.reuniones.map(({ indice, reunion }) => {
+                      const presente = miembro.asistio[indice];
+                      return (
+                        <div key={reunion.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm even:bg-muted/30">
+                          <span className="truncate">{fechaLegible(reunion.fecha_reunion)}</span>
+                          <span
+                            className={cn(
+                              'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                              presente ? 'bg-[var(--chart-2)]/15 text-[var(--chart-2)]' : 'bg-muted text-muted-foreground'
+                            )}
+                          >
+                            {presente ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                            {presente ? 'Asistió' : 'Faltó'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
