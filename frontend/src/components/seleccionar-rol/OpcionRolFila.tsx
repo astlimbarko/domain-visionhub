@@ -58,9 +58,16 @@ export function OpcionRolFila({ opcion, onSeleccionar }: Props) {
         />
       ))}
 
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--fila-bg-icono)]">
-        <Icon className="h-4 w-4" style={{ color: opcion.colorIcono }} strokeWidth={2} />
-      </span>
+      {opcion.iconoSvg ? (
+        // Ícono propio con su fondo circular ya incluido (ej. Evangelismo) --
+        // no se envuelve en el círculo bg-[--fila-bg-icono], el SVG ya trae
+        // su propio color de fondo.
+        <img src={opcion.iconoSvg} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+      ) : (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--fila-bg-icono)]">
+          <Icon className="h-4 w-4" style={{ color: opcion.colorIcono }} strokeWidth={2} />
+        </span>
+      )}
 
       <span className="min-w-0 flex-1">
         <span className="line-clamp-1 block text-[14px] font-bold leading-snug text-foreground">{opcion.titulo}</span>

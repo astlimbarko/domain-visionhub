@@ -29,6 +29,11 @@ export interface OpcionRolContextual {
   lineas: LineaSecundaria[];
   /** Solo Líder de Red: color real de la red para el punto junto a la flecha. */
   colorRed?: string;
+  /** Ícono propio (SVG con su fondo circular ya incluido, ej. Evangelismo) --
+   * si viene, `OpcionRolFila` lo usa en vez de armar el círculo con
+   * `icon`/`bgIcono`/`colorIcono` (ese SVG ya trae su propio color de fondo,
+   * no es un ícono de línea neutro para tintar). */
+  iconoSvg?: string;
 }
 
 function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesiaId: string): OpcionRolContextual {
@@ -154,6 +159,9 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
       key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO',
       titulo: 'Dpto. de Evangelismo', icon: HeartHandshake,
       bgIcono: '#fdf3d6', colorIcono: DEPARTAMENTO_META.EVANGELISMO.color,
+      // Ícono propio (mismo SVG del banner de Evangelismo) en vez del
+      // corazón genérico -- pedido explícito del owner, 2026-09-08.
+      iconoSvg: '/icono-evangelismo.svg',
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'EVANGELISMO' },
       lineas: [],
     });
