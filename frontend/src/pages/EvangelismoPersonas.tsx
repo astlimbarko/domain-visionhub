@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { useCdpsIglesia, useRedes } from '@/hooks/useCasasDePaz';
 import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { buscarEvangelizados } from '@/services/evangelismo.service';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
@@ -74,6 +77,33 @@ function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null 
       <span className="text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
     </div>
   );
+}
+
+/** Filtro por evangelizador -- a diferencia de Red/Casa de Paz/Tipo (catálogos
+ * chicos y fijos), el evangelizador puede ser cualquier persona de la
+ * iglesia, así que no tiene sentido un <select> con todos los miembros.
+ * Reusa el mismo buscador que ya usa "Nuevo evangelizado" para este mismo
+ * campo (BuscadorPersona) en vez de duplicar la lógica. KAN-350. */
+function FiltroEvangelizador({
+  iglesiaId,
+  valor,
+  onCambiar,
+}: {
+  iglesiaId: string | undefined;
+  valor: PersonaBusqueda | undefined;
+  onCambiar: (persona: PersonaBusqueda | undefined) => void;
+}) {
+  if (valor) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+        <span className="truncate">{valor.nombre_completo}</span>
+        <button type="button" onClick={() => onCambiar(undefined)} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+          Quitar
+        </button>
+      </div>
+    );
+  }
+  return <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={onCambiar} />;
 }
 
 function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
@@ -155,6 +185,8 @@ export function EvangelismoPersonas() {
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
   const [casaDePazId, setCasaDePazId] = useState<string>(filtroInicial?.casaDePazId ?? TODAS_LAS_CDP);
   const [tipoId, setTipoId] = useState<string>(TODOS_LOS_TIPOS);
+  const [evangelizadoPor, setEvangelizadoPor] = useState<PersonaBusqueda>();
+  const [popoverEvangelizadorAbierto, setPopoverEvangelizadorAbierto] = useState(false);
   const [desde, setDesde] = useState(filtroInicial?.desde ?? '');
   const [hasta, setHasta] = useState(filtroInicial?.hasta ?? '');
   const [rangoRapido, setRangoRapido] = useState<string | null>(null);
@@ -188,13 +220,14 @@ export function EvangelismoPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta, porPagina]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, evangelizadoPor, desde, hasta, porPagina]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
   const tipoIdFiltro = tipoId === TODOS_LOS_TIPOS ? undefined : tipoId;
+  const evangelizadoPorIdFiltro = evangelizadoPor?.id;
   // Para el badge del botón "Filtros" en mobile.
-  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro].filter(Boolean).length;
+  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro, evangelizadoPorIdFiltro].filter(Boolean).length;
   const { data, isLoading, isFetching, error } = useBuscarEvangelizados(
     iglesiaActivaId,
     redIdFiltro,
@@ -204,12 +237,15 @@ export function EvangelismoPersonas() {
     pagina,
     porPagina,
     casaDePazIdFiltro,
-    tipoIdFiltro
+    tipoIdFiltro,
+    evangelizadoPorIdFiltro
   );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+  const hayFiltrosActivos = !!(texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || evangelizadoPorIdFiltro || desde || hasta);
+  const mensajeVacio = hayFiltrosActivos ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.';
 
   async function exportarCsv() {
     if (!iglesiaActivaId) return;
@@ -224,7 +260,8 @@ export function EvangelismoPersonas() {
         1,
         LIMITE_EXPORTACION,
         casaDePazIdFiltro,
-        tipoIdFiltro
+        tipoIdFiltro,
+        evangelizadoPorIdFiltro
       );
       const csv = filasACsv(todas);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -248,6 +285,7 @@ export function EvangelismoPersonas() {
     redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
     casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
     tipoIdFiltro && tipos.find((t) => t.id === tipoIdFiltro)?.nombre,
+    evangelizadoPor && `Evangelizado por: ${evangelizadoPor.nombre_completo}`,
     desde && hasta && `${desde} a ${hasta}`,
   ]
     .filter(Boolean)
@@ -266,7 +304,8 @@ export function EvangelismoPersonas() {
         1,
         LIMITE_EXPORTACION,
         casaDePazIdFiltro,
-        tipoIdFiltro
+        tipoIdFiltro,
+        evangelizadoPorIdFiltro
       );
       await exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
     } catch {
@@ -448,6 +487,10 @@ export function EvangelismoPersonas() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Evangelizador</span>
+                    <FiltroEvangelizador iglesiaId={iglesiaActivaId} valor={evangelizadoPor} onCambiar={setEvangelizadoPor} />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -471,12 +514,15 @@ export function EvangelismoPersonas() {
             <p className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-10 text-center text-sm text-destructive">
               No se pudo cargar el listado. Intentá de nuevo en un momento.
             </p>
-          ) : resultados.length === 0 ? (
-            <p className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-              {texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
-            </p>
           ) : (
             <>
+            {/* Los selects de Red/CdP/Tipo/Evangelizador viven en el <thead> --
+                antes, con 0 resultados, toda la tabla (encabezado incluido)
+                desaparecía y no quedaba forma de sacar el filtro salvo
+                recargar la página (bug real encontrado 2026-09-08 al probar
+                el filtro nuevo de Evangelizador). Ahora el <thead> siempre se
+                muestra; solo el <tbody> cambia entre filas reales y el
+                mensaje de "sin resultados". */}
             <div className={cn('hidden overflow-x-auto rounded-xl border border-border/30 transition-opacity sm:block', isFetching && 'opacity-60')}>
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="bg-muted/40">
@@ -533,34 +579,64 @@ export function EvangelismoPersonas() {
                       </Select>
                     </th>
                     <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Evangelizado por</th>
+                    <th className="px-3 py-2">
+                      {/* Sin catálogo fijo (a diferencia de Red/CdP/Tipo de arriba) --
+                          es un Popover con el buscador de personas, no un <select>
+                          con todos los miembros de la iglesia. KAN-350. */}
+                      <Popover open={popoverEvangelizadorAbierto} onOpenChange={setPopoverEvangelizadorAbierto}>
+                        <PopoverTrigger asChild>
+                          <button type="button" className={cn('flex items-center justify-between', SELECT_ENCABEZADO)}>
+                            <span className="truncate">{evangelizadoPor ? evangelizadoPor.nombre_completo : 'Evangelizado por'}</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-72 p-3">
+                          <FiltroEvangelizador
+                            iglesiaId={iglesiaActivaId}
+                            valor={evangelizadoPor}
+                            onCambiar={(p) => {
+                              setEvangelizadoPor(p);
+                              setPopoverEvangelizadorAbierto(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
-                  {resultados.map((e, i) => (
-                    <tr
-                      key={e.id}
-                      onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                      className="cursor-pointer hover:bg-muted/40"
-                    >
-                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
-                      <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
-                      <td className="px-3 py-3">
-                        {e.tipo_evangelismo_nombre ? (
-                          <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
-                            {e.tipo_evangelismo_nombre}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                  {resultados.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                        {mensajeVacio}
                       </td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.evangelizado_por_nombre ?? '—'}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    resultados.map((e, i) => (
+                      <tr
+                        key={e.id}
+                        onClick={() => setPersonaSeleccionadaId(e.persona_id)}
+                        className="cursor-pointer hover:bg-muted/40"
+                      >
+                        <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
+                        <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
+                        <td className="px-3 py-3">
+                          {e.tipo_evangelismo_nombre ? (
+                            <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
+                              {e.tipo_evangelismo_nombre}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{e.evangelizado_por_nombre ?? '—'}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -575,6 +651,7 @@ export function EvangelismoPersonas() {
                 para que la lista no quede sobrecargada). Tablet/desktop (sm+)
                 siguen usando la tabla de arriba sin cambios. */}
             <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
+              {resultados.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">{mensajeVacio}</p>}
               {resultados.map((e) => {
                 const expandida = expandidoId === e.id;
                 return (
