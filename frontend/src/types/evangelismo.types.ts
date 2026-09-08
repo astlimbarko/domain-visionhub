@@ -113,6 +113,13 @@ export interface EvangelizadoBusqueda {
   id: string;
   persona_id: string;
   nombre_completo: string;
+  /** Pedazos sueltos del nombre -- KAN-350 (2026-09-08), para armar el
+   * nombre en 2 líneas (nombres arriba, apellidos abajo) en la tabla
+   * desktop sin tener que parsear `nombre_completo`. */
+  primer_nombre: string | null;
+  segundo_nombre: string | null;
+  primer_apellido: string | null;
+  segundo_apellido: string | null;
   fecha: string;
   domicilio: string | null;
   telefono_principal: string | null;
@@ -125,6 +132,12 @@ export interface EvangelizadoBusqueda {
   /** Nombre de quien evangelizó (persona.evangelizado_por_id) -- KAN-338, columna
    * existe desde el diseño original pero nunca se llenaba ni se mostraba. */
   evangelizado_por_nombre: string | null;
+  /** Pedazos sueltos del evangelizador -- KAN-350 (2026-09-08), para la
+   * abreviación de nombre en la columna "Evangelizado por" de la tabla
+   * desktop (nombres cortos se muestran completos, largos se abrevian). */
+  evangelizado_por_primer_nombre: string | null;
+  evangelizado_por_segundo_nombre: string | null;
+  evangelizado_por_primer_apellido: string | null;
   sexo: 'M' | 'F' | null;
   fecha_nacimiento: string | null;
   total: number;

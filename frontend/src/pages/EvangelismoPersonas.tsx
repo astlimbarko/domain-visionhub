@@ -7,14 +7,16 @@
 // Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, LayoutDashboard, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
@@ -22,14 +24,18 @@ import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
+import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdpsIglesia, useRedes } from '@/hooks/useCasasDePaz';
 import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { buscarEvangelizados } from '@/services/evangelismo.service';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { EvangelizadoBusqueda } from '@/types/evangelismo.types';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
-import { aISO, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { aISO, calcularEdad, fechaBreve, fechaBreveAnioCompleto, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 import { useEsMobile } from '@/hooks/useEsMobile';
 
 // En mobile la tarjeta ocupa mucho más alto que una fila de tabla -- pedido
@@ -59,6 +65,24 @@ function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
 }
 
+/** Nombre abreviado del evangelizador para la columna angosta "Evangelizado
+ * por" de la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08):
+ * nombres cortos se muestran completos (ej. "Ana Maria"), nombres largos
+ * abrevian el segundo a su inicial (ej. "Juan C.") -- en los dos casos, solo
+ * el primer apellido, nunca el segundo, para que la columna no se dispare de
+ * ancho. */
+function nombreEvangelizadorAbreviado(
+  primerNombre: string | null,
+  segundoNombre: string | null,
+  primerApellido: string | null
+): string | null {
+  if (!primerNombre) return null;
+  if (!segundoNombre) return [primerNombre, primerApellido].filter(Boolean).join(' ');
+  const nombresCortos = primerNombre.length + segundoNombre.length <= 12;
+  const nombre = nombresCortos ? `${primerNombre} ${segundoNombre}` : `${primerNombre} ${segundoNombre.charAt(0)}.`;
+  return [nombre, primerApellido].filter(Boolean).join(' ');
+}
+
 /** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
  * flex justify-between) -- así el valor arranca siempre en la misma
  * posición para las 4 filas, alineado a la izquierda (más fácil de leer si
@@ -75,18 +99,81 @@ function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null 
   );
 }
 
-function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
-  const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio', 'Evangelizado por'];
+/** Filtro por evangelizador -- a diferencia de Red/Casa de Paz/Tipo (catálogos
+ * chicos y fijos), el evangelizador puede ser cualquier persona de la
+ * iglesia, así que no tiene sentido un <select> con todos los miembros.
+ * Reusa el mismo buscador que ya usa "Nuevo evangelizado" para este mismo
+ * campo (BuscadorPersona) en vez de duplicar la lógica. KAN-350. */
+function FiltroEvangelizador({
+  iglesiaId,
+  valor,
+  onCambiar,
+}: {
+  iglesiaId: string | undefined;
+  valor: PersonaBusqueda | undefined;
+  onCambiar: (persona: PersonaBusqueda | undefined) => void;
+}) {
+  if (valor) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+        <span className="truncate">{valor.nombre_completo}</span>
+        <button type="button" onClick={() => onCambiar(undefined)} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+          Quitar
+        </button>
+      </div>
+    );
+  }
+  return <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={onCambiar} />;
+}
+
+/** Filas de exportación (CSV y PDF) -- mismas 10 columnas y mismo orden que
+ * la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08), para
+ * que lo que se ve en pantalla y lo que se exporta/imprime sea lo mismo.
+ * A diferencia de la tabla, acá van los valores completos (nombre y
+ * evangelizador sin abreviar) -- un CSV/PDF es para archivo, no tiene el
+ * límite de ancho de una columna en pantalla. */
+interface FilaExportacion {
+  fecha: string;
+  nombre_completo: string;
+  sexo: string;
+  telefono_principal: string | null;
+  tipo_evangelismo_nombre: string | null;
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  evangelizado_por_nombre: string | null;
+  red_nombre: string | null;
+  casa_de_paz_etiqueta: string;
+}
+
+function aFilaExportacion(e: EvangelizadoBusqueda): FilaExportacion {
+  return {
+    fecha: fechaBreve(e.fecha),
+    nombre_completo: e.nombre_completo,
+    sexo: e.sexo ?? '—',
+    telefono_principal: e.telefono_principal,
+    tipo_evangelismo_nombre: e.tipo_evangelismo_nombre,
+    fecha_nacimiento: e.fecha_nacimiento ? fechaBreveAnioCompleto(e.fecha_nacimiento) : null,
+    edad: e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : null,
+    evangelizado_por_nombre: e.evangelizado_por_nombre,
+    red_nombre: e.red_nombre,
+    casa_de_paz_etiqueta: e.casa_de_paz_etiqueta,
+  };
+}
+
+function filasACsv(filas: FilaExportacion[]): string {
+  const encabezados = ['Fecha Evangelizado', 'Nombre', 'Sexo', 'Teléfono', 'Tipo', 'Fecha de nacimiento', 'Edad', 'Evangelizado por', 'Red', 'Casa de Paz'];
   const lineas = filas.map((e) =>
     [
-      celdaCsv(e.nombre_completo),
       celdaCsv(e.fecha),
+      celdaCsv(e.nombre_completo),
+      celdaCsv(e.sexo),
+      celdaCsv(e.telefono_principal),
+      celdaCsv(e.tipo_evangelismo_nombre),
+      celdaCsv(e.fecha_nacimiento),
+      celdaCsv(e.edad),
+      celdaCsv(e.evangelizado_por_nombre),
       celdaCsv(e.red_nombre),
       celdaCsv(e.casa_de_paz_etiqueta),
-      celdaCsv(e.tipo_evangelismo_nombre),
-      celdaCsv(e.telefono_principal),
-      celdaCsv(e.domicilio),
-      celdaCsv(e.evangelizado_por_nombre),
     ].join(',')
   );
   return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
@@ -147,6 +234,7 @@ export function EvangelismoPersonas() {
   const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaActivaId);
   const location = useLocation();
+  const navigate = useNavigate();
   const filtroInicial = location.state as FiltroInicial | null;
 
   const [textoInput, setTextoInput] = useState('');
@@ -154,6 +242,8 @@ export function EvangelismoPersonas() {
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
   const [casaDePazId, setCasaDePazId] = useState<string>(filtroInicial?.casaDePazId ?? TODAS_LAS_CDP);
   const [tipoId, setTipoId] = useState<string>(TODOS_LOS_TIPOS);
+  const [evangelizadoPor, setEvangelizadoPor] = useState<PersonaBusqueda>();
+  const [popoverEvangelizadorAbierto, setPopoverEvangelizadorAbierto] = useState(false);
   const [desde, setDesde] = useState(filtroInicial?.desde ?? '');
   const [hasta, setHasta] = useState(filtroInicial?.hasta ?? '');
   const [rangoRapido, setRangoRapido] = useState<string | null>(null);
@@ -187,13 +277,14 @@ export function EvangelismoPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta, porPagina]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, evangelizadoPor, desde, hasta, porPagina]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
   const tipoIdFiltro = tipoId === TODOS_LOS_TIPOS ? undefined : tipoId;
+  const evangelizadoPorIdFiltro = evangelizadoPor?.id;
   // Para el badge del botón "Filtros" en mobile.
-  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro].filter(Boolean).length;
+  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro, evangelizadoPorIdFiltro].filter(Boolean).length;
   const { data, isLoading, isFetching, error } = useBuscarEvangelizados(
     iglesiaActivaId,
     redIdFiltro,
@@ -203,12 +294,15 @@ export function EvangelismoPersonas() {
     pagina,
     porPagina,
     casaDePazIdFiltro,
-    tipoIdFiltro
+    tipoIdFiltro,
+    evangelizadoPorIdFiltro
   );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+  const hayFiltrosActivos = !!(texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || evangelizadoPorIdFiltro || desde || hasta);
+  const mensajeVacio = hayFiltrosActivos ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.';
 
   async function exportarCsv() {
     if (!iglesiaActivaId) return;
@@ -223,9 +317,10 @@ export function EvangelismoPersonas() {
         1,
         LIMITE_EXPORTACION,
         casaDePazIdFiltro,
-        tipoIdFiltro
+        tipoIdFiltro,
+        evangelizadoPorIdFiltro
       );
-      const csv = filasACsv(todas);
+      const csv = filasACsv(todas.map(aFilaExportacion));
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
@@ -247,6 +342,7 @@ export function EvangelismoPersonas() {
     redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
     casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
     tipoIdFiltro && tipos.find((t) => t.id === tipoIdFiltro)?.nombre,
+    evangelizadoPor && `Evangelizado por: ${evangelizadoPor.nombre_completo}`,
     desde && hasta && `${desde} a ${hasta}`,
   ]
     .filter(Boolean)
@@ -265,9 +361,10 @@ export function EvangelismoPersonas() {
         1,
         LIMITE_EXPORTACION,
         casaDePazIdFiltro,
-        tipoIdFiltro
+        tipoIdFiltro,
+        evangelizadoPorIdFiltro
       );
-      await exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
+      await exportarPersonasEvangelizadasPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion });
     } catch {
       toast.error('No se pudo exportar el PDF');
     } finally {
@@ -279,7 +376,18 @@ export function EvangelismoPersonas() {
     <div className="flex flex-col gap-6">
       {/* Mismo banner del dashboard principal (pedido explícito del owner,
           2026-09-06) -- ver EvangelismoBanner.tsx. */}
-      <EvangelismoBanner />
+      <EvangelismoBanner
+        accion={
+          /* Atajo cruzado con el dashboard (pedido explícito del owner,
+             2026-09-08) -- mismo botón del otro lado con "Lista de
+             Evangelizados", para moverse entre las 2 vistas sin volver al
+             menú lateral. */
+          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
         <KpiChip icon={Users} label="Total encontrados" color={AZUL}>
@@ -447,10 +555,26 @@ export function EvangelismoPersonas() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Evangelizador</span>
+                    <FiltroEvangelizador iglesiaId={iglesiaActivaId} valor={evangelizadoPor} onCambiar={setEvangelizadoPor} />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
+
+          {/* Antes el único indicador de "está cargando la página/filtro
+              nuevo" era bajar la opacidad de la tabla al 60% -- muy sutil,
+              se sentía como que la pantalla no respondía (reporte real del
+              owner, 2026-09-08). Este spinner explícito es el mismo patrón
+              que ya usa Evangelismo.tsx junto al mes. */}
+          {isFetching && !isLoading && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Spinner className="h-3.5 w-3.5" />
+              Actualizando...
+            </div>
+          )}
 
           {isLoading ? (
             <Skeleton className="h-96 w-full rounded-2xl" />
@@ -458,56 +582,53 @@ export function EvangelismoPersonas() {
             <p className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-10 text-center text-sm text-destructive">
               No se pudo cargar el listado. Intentá de nuevo en un momento.
             </p>
-          ) : resultados.length === 0 ? (
-            <p className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-              {texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
-            </p>
           ) : (
             <>
+            {/* Los selects de Red/CdP/Tipo/Evangelizador viven en el <thead> --
+                antes, con 0 resultados, toda la tabla (encabezado incluido)
+                desaparecía y no quedaba forma de sacar el filtro salvo
+                recargar la página (bug real encontrado 2026-09-08 al probar
+                el filtro nuevo de Evangelizador). Ahora el <thead> siempre se
+                muestra; solo el <tbody> cambia entre filas reales y el
+                mensaje de "sin resultados". */}
             <div className={cn('hidden overflow-x-auto rounded-xl border border-border/30 transition-opacity sm:block', isFetching && 'opacity-60')}>
-              <table className="w-full min-w-[900px] text-sm">
+              {/* Rediseño desktop (KAN-350, pedido explícito del owner, 2026-09-08):
+                  9 columnas, todas centradas, `table-fixed` con anchos fijos por
+                  columna -- el Nombre tiene prioridad de ancho para que no se
+                  comprima. La vista mobile (tarjetas, más abajo) no se toca, ya
+                  quedó cerrada en una vuelta anterior. */}
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[4%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[4%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
                 <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
-                    <th className="px-3 py-2">
-                      <Select value={redId} onValueChange={setRedId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
-                          <SelectValue placeholder="Red" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
-                          {redes.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </th>
-                    <th className="px-3 py-2">
-                      <Select value={casaDePazId} onValueChange={setCasaDePazId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
-                          <SelectValue placeholder="Casa de Paz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
-                          {cdps.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.etiqueta}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </th>
-                    <th className="px-3 py-2">
+                  <tr className="divide-x divide-border/40">
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha Evangelizado</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
+                    <th className="px-2 py-2">
                       <Select value={tipoId} onValueChange={setTipoId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
                           <SelectValue placeholder="Tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                          {/* Etiqueta corta a propósito -- esta columna es angosta
+                              (7%). El Sheet "Filtros" de mobile tiene su propio
+                              <Select> aparte con el texto completo "Todos los
+                              tipos", no se toca. */}
+                          <SelectItem value={TODOS_LOS_TIPOS}>Tipo</SelectItem>
                           {/* "Semilla" es un conteo agregado sin nombres reales -- esta
                               página siempre lo excluye (ver fn_buscar_evangelizados),
                               así que no tiene sentido ofrecerlo como filtro. */}
@@ -519,35 +640,130 @@ export function EvangelismoPersonas() {
                         </SelectContent>
                       </Select>
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Evangelizado por</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha de nacimiento</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Edad</th>
+                    <th className="px-2 py-2">
+                      {/* Sin catálogo fijo (a diferencia de Red/CdP/Tipo) -- es un
+                          Popover con el buscador de personas, no un <select> con
+                          todos los miembros de la iglesia. KAN-350. */}
+                      <Popover open={popoverEvangelizadorAbierto} onOpenChange={setPopoverEvangelizadorAbierto}>
+                        <PopoverTrigger asChild>
+                          <button type="button" className={cn('flex items-center', SELECT_ENCABEZADO, 'justify-center')}>
+                            <span className="truncate">{evangelizadoPor ? evangelizadoPor.nombre_completo : 'Evangelizado por'}</span>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="center" className="w-72 p-3">
+                          <FiltroEvangelizador
+                            iglesiaId={iglesiaActivaId}
+                            valor={evangelizadoPor}
+                            onCambiar={(p) => {
+                              setEvangelizadoPor(p);
+                              setPopoverEvangelizadorAbierto(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </th>
+                    <th className="px-2 py-2">
+                      <Select value={redId} onValueChange={setRedId}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
+                          <SelectValue placeholder="Red" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Etiqueta corta -- misma razón que "Tipo" de arriba. */}
+                          <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
+                          {redes.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
+                    <th className="px-2 py-2">
+                      <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
+                          <SelectValue placeholder="Casa de Paz" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Etiqueta corta -- misma razón que "Tipo" de arriba. */}
+                          <SelectItem value={TODAS_LAS_CDP}>Casa de Paz</SelectItem>
+                          {cdps.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.etiqueta}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/20">
-                  {resultados.map((e, i) => (
-                    <tr
-                      key={e.id}
-                      onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                      className="cursor-pointer hover:bg-muted/40"
-                    >
-                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
-                      <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
-                      <td className="px-3 py-3">
-                        {e.tipo_evangelismo_nombre ? (
-                          <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
-                            {e.tipo_evangelismo_nombre}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                <tbody className="divide-y divide-border/40">
+                  {resultados.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                        {mensajeVacio}
                       </td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
-                      <td className="px-3 py-3 text-muted-foreground">{e.evangelizado_por_nombre ?? '—'}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    resultados.map((e, i) => {
+                      const nombreLinea1 = [e.primer_nombre, e.segundo_nombre].filter(Boolean).join(' ');
+                      const nombreLinea2 = [e.primer_apellido, e.segundo_apellido].filter(Boolean).join(' ');
+                      const evangelizadorAbreviado = nombreEvangelizadorAbreviado(
+                        e.evangelizado_por_primer_nombre,
+                        e.evangelizado_por_segundo_nombre,
+                        e.evangelizado_por_primer_apellido
+                      );
+                      return (
+                        <tr
+                          key={e.id}
+                          onClick={() => setPersonaSeleccionadaId(e.persona_id)}
+                          // Fondo alternado -- la 1ra fila queda blanca (sin
+                          // clase) y alterna desde ahí, mismo criterio que ya
+                          // se usa en el PDF (pedido explícito del owner).
+                          className={cn('cursor-pointer divide-x divide-border/40 hover:bg-muted/40', i % 2 === 1 && 'bg-muted/25')}
+                        >
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
+                          <td className="px-2 py-3 text-center leading-tight">
+                            {/* Sin negrita -- pedido explícito del owner: la
+                              negrita queda reservada para los títulos del
+                              encabezado, no para los datos de la fila.
+                              Mismo peso en las 2 líneas (nombres y apellidos). */}
+                            <p className="truncate">{nombreLinea1 || e.nombre_completo}</p>
+                            {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.sexo ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                          <td className="px-2 py-3 text-center">
+                            {e.tipo_evangelismo_nombre ? (
+                              <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
+                                {e.tipo_evangelismo_nombre}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
+                            {e.fecha_nacimiento ? fechaBreveAnioCompleto(e.fecha_nacimiento) : '—'}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
+                            {e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : '—'}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">
+                            {/* Mismo formato que el nombre de arriba (misma
+                                celda centrada, sin recorte agresivo) pero sin
+                                negrita -- "menos protagonista" (pedido
+                                explícito del owner), es un dato secundario. */}
+                            <span className="truncate">{evangelizadorAbreviado ?? '—'}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.red_nombre ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -562,6 +778,7 @@ export function EvangelismoPersonas() {
                 para que la lista no quede sobrecargada). Tablet/desktop (sm+)
                 siguen usando la tabla de arriba sin cambios. */}
             <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
+              {resultados.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">{mensajeVacio}</p>}
               {resultados.map((e) => {
                 const expandida = expandidoId === e.id;
                 return (
@@ -632,7 +849,11 @@ export function EvangelismoPersonas() {
             </>
           )}
 
-          {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
+          {/* Siempre visible (aunque haya una sola página) -- pedido explícito
+              del owner, 2026-09-08: con pocos datos de prueba nunca se veía
+              y quedaba la duda de si de verdad existía. Los botones quedan
+              deshabilitados solos cuando no hay a dónde ir. */}
+          {!isLoading && resultados.length > 0 && (
             <div className="flex items-center justify-center gap-3 text-[13px]">
               <Button
                 variant="outline"

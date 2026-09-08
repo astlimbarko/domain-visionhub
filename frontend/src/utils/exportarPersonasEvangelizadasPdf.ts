@@ -2,14 +2,21 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DEPARTAMENTO_META } from './departamentos';
 
+/** Mismas 10 columnas y mismo orden que la tabla desktop (KAN-350, pedido
+ * explícito del owner, 2026-09-08) -- valores ya formateados por el
+ * llamador (`aFilaExportacion` en EvangelismoPersonas.tsx), acá solo se
+ * arman en la tabla del PDF. */
 export interface FilaPersonaEvangelizadaPdf {
-  nombre_completo: string;
   fecha: string;
+  nombre_completo: string;
+  sexo: string;
+  telefono_principal: string | null;
+  tipo_evangelismo_nombre: string | null;
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  evangelizado_por_nombre: string | null;
   red_nombre: string | null;
   casa_de_paz_etiqueta: string;
-  tipo_evangelismo_nombre: string | null;
-  telefono_principal: string | null;
-  evangelizado_por_nombre: string | null;
 }
 
 function nombreArchivoConFecha(): string {
@@ -101,23 +108,43 @@ export async function exportarPersonasEvangelizadasPdf(
 
   autoTable(doc, {
     startY: 78,
-    head: [['#', 'Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Evangelizado por']],
-    body: filas.map((f, i) => [
-      String(i + 1),
-      f.nombre_completo,
+    // "Fecha. Evang." acortado a propósito (pedido explícito del owner,
+    // 2026-09-08) -- "Fecha Evangelizado" completo no entraba sin partirse
+    // a mitad de palabra en una columna angosta. El resto de los títulos
+    // van completos.
+    head: [['Fecha. Evang.', 'Nombre', 'Sexo', 'Teléfono', 'Tipo', 'Fecha de nacimiento', 'Edad', 'Evangelizado por:', 'Red', 'Casa de Paz']],
+    body: filas.map((f) => [
       f.fecha,
+      f.nombre_completo,
+      f.sexo,
+      f.telefono_principal ?? '—',
+      f.tipo_evangelismo_nombre ?? '—',
+      f.fecha_nacimiento ?? '—',
+      f.edad != null ? String(f.edad) : '—',
+      f.evangelizado_por_nombre ?? '—',
       f.red_nombre ?? '—',
       f.casa_de_paz_etiqueta,
-      f.tipo_evangelismo_nombre ?? '—',
-      f.telefono_principal ?? '—',
-      f.evangelizado_por_nombre ?? '—',
     ]),
     theme: 'plain',
-    styles: { fontSize: 8.5, textColor: 30, cellPadding: 5, lineColor: [225, 225, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5 },
-    alternateRowStyles: { fillColor: [250, 250, 251] },
-    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 55 } },
+    styles: { fontSize: 8, textColor: 30, cellPadding: 4, lineColor: [225, 225, 225], lineWidth: 0.5 },
+    headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5, halign: 'center', valign: 'middle' },
+    columnStyles: {
+      0: { cellWidth: 60 },
+      1: { cellWidth: 78 },
+      2: { cellWidth: 32 },
+      5: { cellWidth: 52 },
+      6: { cellWidth: 28 },
+    },
     margin: { top: 78, left: MARGEN, right: MARGEN, bottom: 50 },
+    // Fila blanca justo debajo del encabezado, después alterna -- pedido
+    // explícito del owner. No se usa `alternateRowStyles` (su paridad
+    // par/impar no es controlable a ojo) -- se fija a mano por índice real
+    // de fila, así queda garantizado sin importar el default de la librería.
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.row.index % 2 === 1) {
+        data.cell.styles.fillColor = [250, 250, 251];
+      }
+    },
     didDrawPage: (data) => {
       // Encabezado se repite en cada página nueva (autoTable ya recorta el
       // primero con margin.top, esto es para la 2da en adelante).
