@@ -68,6 +68,8 @@ const RUTAS_LIDER_CDP: string[] = [
   ROUTES.EVANGELISMO,
   ROUTES.CALENDARIO,
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Gestión de Sublíder"
+  // Card "Testimonio" del dashboard (2026-09-08) -- ver TESTIMONIOS_CDP en constants.ts.
+  ROUTES.TESTIMONIOS_CDP,
 ];
 
 // A diferencia del líder real, el sublíder tiene un alcance de navegación
@@ -97,6 +99,7 @@ const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,
   ROUTES.PERSONAS,
+  ROUTES.TESTIMONIOS_CDP,
 ];
 
 // El Líder de Red supervisa, no carga reportes: en vez de "Reportes" (el

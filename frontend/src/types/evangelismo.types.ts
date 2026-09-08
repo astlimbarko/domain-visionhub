@@ -147,3 +147,37 @@ export interface NuevoEvangelizado {
   /** KAN-338: quién evangelizó (opcional, persona ya existente en el sistema). */
   evangelizado_por_id?: string;
 }
+
+/** Evangelizado registrado directo por un Líder de Red sin Casa de Paz propia
+ * (tabla `evangelismo_red`, independiente de `evangelismo`) -- pedido del
+ * owner 2026-09-08. Sin `casa_de_paz_id`: queda fuera del ciclo SIM/NC/CRE. */
+export interface NuevoEvangelizadoRed {
+  red_id: string;
+  iglesia_id: string;
+  fecha: string;
+  domicilio?: string;
+  observaciones?: string;
+  persona_id?: string;
+  primer_nombre?: string;
+  segundo_nombre?: string;
+  primer_apellido?: string;
+  segundo_apellido?: string;
+  sexo?: 'M' | 'F';
+  telefono?: string;
+  fecha_nacimiento?: string;
+  tipo_evangelismo_id?: string;
+  evangelizado_por_id?: string;
+}
+
+/** Fila de fn_evangelismo_red_directo -- lo que un Líder de Red sin CdP
+ * propia registró directo en su Red, sin pasar por ninguna Casa de Paz. */
+export interface EvangelizadoRedDirecto {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  domicilio: string | null;
+  tipo_evangelismo_nombre: string | null;
+  tipo_evangelismo_color: string | null;
+  tipo_evangelismo_codigo: string | null;
+}

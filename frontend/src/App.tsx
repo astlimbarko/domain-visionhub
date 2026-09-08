@@ -39,6 +39,7 @@ const Evangelismo = lazy(() => import('@/pages/Evangelismo').then((m) => ({ defa
 const EvangelismoPersonas = lazy(() => import('@/pages/EvangelismoPersonas').then((m) => ({ default: m.EvangelismoPersonas })));
 const EvangelismoRedes = lazy(() => import('@/pages/EvangelismoRedes').then((m) => ({ default: m.EvangelismoRedes })));
 const Visitas = lazy(() => import('@/pages/Visitas').then((m) => ({ default: m.Visitas })));
+const TestimoniosCdp = lazy(() => import('@/pages/TestimoniosCdp').then((m) => ({ default: m.TestimoniosCdp })));
 const Finanzas = lazy(() => import('@/pages/Finanzas').then((m) => ({ default: m.Finanzas })));
 const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) => ({ default: m.PanelSupervisor })));
 const Departamentos = lazy(() => import('@/pages/Departamentos').then((m) => ({ default: m.Departamentos })));
@@ -243,6 +244,11 @@ function App() {
             <Route path={ROUTES.VISITAS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.VISITAS)}><Visitas /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.TESTIMONIOS_CDP} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.TESTIMONIOS_CDP)}><TestimoniosCdp /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.FINANZAS} element={
