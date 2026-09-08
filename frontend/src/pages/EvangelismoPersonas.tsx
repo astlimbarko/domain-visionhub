@@ -626,7 +626,8 @@ export function EvangelismoPersonas() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="font-medium text-muted-foreground">
-                {pagina} <span className="text-muted-foreground/60">de {totalPaginas}</span>
+                Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, total)}{' '}
+                <span className="text-muted-foreground/60">de {total}</span>
               </span>
               <Button
                 variant="outline"
