@@ -15,7 +15,6 @@
 - [x] Rama `fix/evangelismo-mobile-falencias` pusheada a origin (6 commits) -- **sin mergear todavía**, falta aprobación del owner
 - [ ] Pendiente: KAN-348 (login por IP LAN desde el celular sigue fallando con "Invalid login credentials" real de Supabase, no era red/CORS) -- sin resolver, falta probar copiar/pegar la contraseña
 - [ ] Pendiente (para más adelante, NO ahora): llevar estos mismos patrones visuales (banner, KPI, hueso, navbar corto) al Departamento de Afirmación
-- [ ] Pendiente: verificar la tarjeta expandida de "Personas evangelizadas" con un registro que tenga TODOS los campos llenos a la vez (Red+CdP+Domicilio+Teléfono+Evangelizado por+Tipo) -- no se probó ese caso, ningún dato de prueba los tenía todos juntos
 - [x] Reordené los campos de la tarjeta: fecha con etiqueta "Convertido el...", WhatsApp muestra el número real, sección expandida en 2 grupos (Domicilio+Tipo, luego separador, luego Evangelizado por+Red+Casa de Paz)
 - [x] Fix real: la fecha envolvía a 2 líneas en las filas con botón de WhatsApp (empujaba la tarjeta hacia abajo) -- ahora trunca, todas las filas quedan a la misma altura
 - [x] Fix real: los 3 filtros (Red/CdP/Tipo) se superponían al abrir el menú en mobile -- ahora un solo botón "Filtros" abre una hoja con los 3 apilados
@@ -27,3 +26,9 @@
 - [x] Fix real: "Convertido el {fecha}" quedaba cortado por el pill de WhatsApp -- ahora es "Evangelizado: {fecha}" en su propia fila, nunca se corta
 - [x] Reduje el padding lateral del contenido en mobile (p-5 -> p-3) por pedido del owner ("mucho espacio a los costados")
 - [x] Migración nueva aplicada directo a la base remota (`supabase db query`, no `db push`) -- **hallazgo importante**: el historial del CLI muestra ~15 migraciones desde el 2026-09-05 nunca registradas como aplicadas en remoto (aunque su funcionalidad ya está viva) -- pendiente de investigar/limpiar ese historial en otro momento, no se tocó hoy
+- [x] Quité el chip de "Tipo" duplicado de la sección expandida (ya se ve en el avatar) + unifiqué Domicilio/Evangelizado por/Red/Casa de Paz en una sola lista (grid 2 columnas, mismo tamaño de letra, todos siempre visibles con "Sin registrar")
+- [x] Fix real: el pill de WhatsApp dejaba un hueco fantasma abajo (12px arriba vs 16px abajo) -- `inline-flex` -> `flex`, ahora simétrico
+- [x] Fix real: campos de fecha Desde/Hasta se veían cortados en mobile (130px no alcanzaba para el texto + ícono del calendario) -- ahora 150px
+- [x] Paginación dice "Mostrando X-Y de Z" en vez de "página N de M"; mobile pagina de a 25 (antes 50 como desktop) -- nuevo hook `useEsMobile()`
+- [x] Fila de WhatsApp siempre visible, "(vacío)" gris si no hay teléfono -- todas las tarjetas quedan a la misma altura
+- [ ] Pendiente: verificar la tarjeta con un registro que tenga TODOS los campos llenos a la vez (sigue sin probarse, ningún dato de prueba los tiene todos juntos)
