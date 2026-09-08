@@ -54,6 +54,18 @@ function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
 }
 
+/** Fila de dato de la tarjeta mobile expandida: etiqueta a la izquierda,
+ * valor a la derecha -- mismo tratamiento visual siempre, con "Sin
+ * registrar" cuando el valor falta (no se oculta la fila). */
+function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-sm">
+      <span className="shrink-0 text-muted-foreground">{etiqueta}</span>
+      <span className="text-right text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
+    </div>
+  );
+}
+
 function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
   const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio', 'Evangelizado por'];
   const lineas = filas.map((e) =>
@@ -563,7 +575,7 @@ export function EvangelismoPersonas() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(ev) => ev.stopPropagation()}
-                            className="mt-1 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-xs font-semibold text-[#128C4A]"
+                            className="mt-1 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-xs font-semibold text-[#128C4A]"
                           >
                             <MessageCircle className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{e.telefono_principal}</span>
@@ -577,46 +589,17 @@ export function EvangelismoPersonas() {
                       )}
                     </button>
                     {expandida && (
-                      <div className="flex flex-col gap-2 px-3 pb-3 pl-[3.25rem]">
-                        {/* Sección 1 -- menos importante que nombre/fecha/teléfono pero de la
-                            propia persona: domicilio + tipo de evangelismo como chip de color. */}
-                        {e.domicilio && (
-                          <p className="text-sm">
-                            <span className="text-muted-foreground">Domicilio: </span>
-                            {e.domicilio}
-                          </p>
-                        )}
-                        {e.tipo_evangelismo_nombre && (
-                          <Badge
-                            variant="secondary"
-                            className="w-fit rounded-full text-[11px]"
-                            style={{
-                              backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined,
-                              color: e.tipo_evangelismo_color ?? undefined,
-                            }}
-                          >
-                            {e.tipo_evangelismo_nombre}
-                          </Badge>
-                        )}
-                        {/* Sección 2 -- agrupada, quién evangelizó y desde dónde. */}
-                        <div className="mt-1 flex flex-col gap-2 border-t border-border/40 pt-2">
-                          {e.evangelizado_por_nombre && (
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Evangelizado por: </span>
-                              {e.evangelizado_por_nombre}
-                            </p>
-                          )}
-                          {e.red_nombre && (
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Red: </span>
-                              {e.red_nombre}
-                            </p>
-                          )}
-                          <p className="text-sm">
-                            <span className="text-muted-foreground">Casa de Paz: </span>
-                            {e.casa_de_paz_etiqueta}
-                          </p>
-                        </div>
+                      <div className="flex flex-col gap-1.5 px-3 pb-3 pl-[3.25rem]">
+                        {/* Una sola lista, mismo tratamiento visual en todas las filas
+                            (etiqueta a la izquierda, valor a la derecha) -- pedido explícito
+                            del owner. Todo lo que pide el formulario se muestra SIEMPRE, con
+                            "Sin registrar" si falta -- que la ausencia se note, no desaparezca
+                            en silencio. El tipo de evangelismo ya se ve en el avatar de
+                            arriba, no se repite acá. */}
+                        <FilaDato etiqueta="Domicilio" valor={e.domicilio} />
+                        <FilaDato etiqueta="Evangelizado por" valor={e.evangelizado_por_nombre} />
+                        <FilaDato etiqueta="Red" valor={e.red_nombre} />
+                        <FilaDato etiqueta="Casa de Paz" valor={e.casa_de_paz_etiqueta} />
                       </div>
                     )}
                   </div>
