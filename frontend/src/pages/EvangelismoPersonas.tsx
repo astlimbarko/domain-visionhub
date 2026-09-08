@@ -579,7 +579,7 @@ export function EvangelismoPersonas() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(ev) => ev.stopPropagation()}
-                            className="mt-1 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-xs font-semibold text-[#128C4A]"
+                            className="mt-1 flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-xs font-semibold text-[#128C4A]"
                           >
                             <MessageCircle className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{e.telefono_principal}</span>
