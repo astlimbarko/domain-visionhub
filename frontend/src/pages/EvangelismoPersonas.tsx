@@ -69,7 +69,7 @@ function soloDigitos(telefono: string): string {
 function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
     <div className="grid grid-cols-[7rem_1fr] items-baseline gap-x-3 text-xs">
-      <span className="text-muted-foreground">{etiqueta}</span>
+      <span className="truncate text-muted-foreground">{etiqueta}</span>
       <span className="text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
     </div>
   );
@@ -618,6 +618,8 @@ export function EvangelismoPersonas() {
                             en silencio. El tipo de evangelismo ya se ve en el avatar de
                             arriba, no se repite acá. */}
                         <FilaDato etiqueta="Domicilio" valor={e.domicilio} />
+                        <FilaDato etiqueta="Sexo" valor={e.sexo === 'M' ? 'Masculino' : e.sexo === 'F' ? 'Femenino' : null} />
+                        <FilaDato etiqueta="Nacimiento" valor={e.fecha_nacimiento ? fechaLegible(e.fecha_nacimiento) : null} />
                         <FilaDato etiqueta="Evangelizado por" valor={e.evangelizado_por_nombre} />
                         <FilaDato etiqueta="Red" valor={e.red_nombre} />
                         <FilaDato etiqueta="Casa de Paz" valor={e.casa_de_paz_etiqueta} />
