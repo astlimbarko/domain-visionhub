@@ -19,6 +19,19 @@ import { GOOGLE_AUTH_HABILITADO, ROUTES } from '@/utils/constants';
 const esquema = z.object({ correo: z.string().email(), contrasena: z.string().min(1) });
 type FormLogin = z.infer<typeof esquema>;
 
+// Antes el catch de abajo mostraba siempre "credenciales incorrectas" pase lo
+// que pase (red caída, límite de intentos, lo que sea) -- imposible saber qué
+// pasó de verdad. Se distinguen los casos conocidos y, si no matchea ninguno,
+// se muestra el mensaje real de Supabase en vez de adivinar.
+function mensajeErrorLogin(error: unknown): string {
+  const mensaje = error instanceof Error ? error.message : '';
+  if (/invalid login credentials/i.test(mensaje)) return 'Correo o contraseña incorrectos.';
+  if (/email not confirmed/i.test(mensaje)) return 'Todavía no confirmaste tu correo.';
+  if (/too many requests|rate limit/i.test(mensaje)) return 'Demasiados intentos. Esperá un momento e intentá de nuevo.';
+  if (/failed to fetch|networkerror|load failed/i.test(mensaje)) return 'No se pudo conectar con el servidor. Revisá tu conexión a internet.';
+  return mensaje || 'No se pudo iniciar sesión.';
+}
+
 export function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -38,7 +51,7 @@ export function Login() {
       queryClient.clear();
       setSesion(await construirSesionDesdeAuth());
       navigate(ROUTES.DASHBOARD, { replace: true });
-    } catch { toast.error(t('auth.errorCredenciales')); }
+    } catch (error) { toast.error(mensajeErrorLogin(error)); }
     finally { setEnviando(false); }
   }
 

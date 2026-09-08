@@ -125,6 +125,8 @@ export interface EvangelizadoBusqueda {
   /** Nombre de quien evangelizó (persona.evangelizado_por_id) -- KAN-338, columna
    * existe desde el diseño original pero nunca se llenaba ni se mostraba. */
   evangelizado_por_nombre: string | null;
+  sexo: 'M' | 'F' | null;
+  fecha_nacimiento: string | null;
   total: number;
 }
 

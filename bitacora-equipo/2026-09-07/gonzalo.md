@@ -1,0 +1,34 @@
+# Gonzalo — 2026-09-07
+
+- [x] Auditoría de mobile del Departamento de Evangelismo (viewport real 360-390px) -- 4 falencias reales encontradas
+- [x] Fix: tabla de "Personas evangelizadas" (min-w-900px, scroll horizontal) -- lista de tarjetas nueva solo en mobile, tabla intacta en tablet/desktop
+- [x] Fix: eje X de "Tendencia" con etiquetas superpuestas en Semana/Mes -- ahora Recharts decide cuántas entran según el ancho real
+- [x] Fix: encabezados de días del calendario pegados entre sí en pantallas angostas
+- [x] Fix: rango de fechas Desde/Hasta podía desbordar en teléfonos angostos
+- [x] Rama nueva `fix/evangelismo-mobile-falencias` (no se reutilizó ninguna existente)
+- [x] Ronda de ajustes visuales pedidos viendo el panel en vivo: banner (imagen anclada a la izquierda), tarjetas KPI desiguales en altura, explicación de "Avance", color "hueso" de los headers subido de contraste (8% -> 16%), "Semana N" partido en 2 líneas, título de navbar acortado a "Dpto. de Evangelismo"
+- [x] Bug real encontrado y corregido: modal "Asignar metas" dejaba ver un manchón de color de las tarjetas KPI detrás (bg-popover/95 -> /98, componente compartido de toda la app)
+- [x] Fix aparte: Login.tsx mostraba siempre "credenciales incorrectas" pase lo que pase (contraseña mal, red caída, lo que sea) -- ahora muestra el error real
+- [x] Rediseño de la tarjeta mobile de "Personas evangelizadas" (2da vuelta, viendo la 1ra versión en vivo): arriba nombre en negrita + fecha + teléfono como botón de WhatsApp (wa.me), abajo contraído por defecto Red/Casa de Paz/Domicilio/Evangelizado por/Tipo (chip de color) -- se despliega al tocar, solo una tarjeta abierta a la vez (acordeón). Avatar coloreado por tipo de evangelismo.
+- [x] Todo verificado en vivo con Playwright (viewport móvil real y desktop), 6 commits en la rama, `tsc -b` limpio en cada uno
+- [x] Jira KAN-347 creado y actualizado, cubre todo este bloque -- "En revisión" (falta merge a master + deploy, no "Finalizada" todavía)
+- [x] Rama `fix/evangelismo-mobile-falencias` pusheada a origin (6 commits) -- **sin mergear todavía**, falta aprobación del owner
+- [ ] Pendiente: KAN-348 (login por IP LAN desde el celular sigue fallando con "Invalid login credentials" real de Supabase, no era red/CORS) -- sin resolver, falta probar copiar/pegar la contraseña
+- [ ] Pendiente (para más adelante, NO ahora): llevar estos mismos patrones visuales (banner, KPI, hueso, navbar corto) al Departamento de Afirmación
+- [x] Reordené los campos de la tarjeta: fecha con etiqueta "Convertido el...", WhatsApp muestra el número real, sección expandida en 2 grupos (Domicilio+Tipo, luego separador, luego Evangelizado por+Red+Casa de Paz)
+- [x] Fix real: la fecha envolvía a 2 líneas en las filas con botón de WhatsApp (empujaba la tarjeta hacia abajo) -- ahora trunca, todas las filas quedan a la misma altura
+- [x] Fix real: los 3 filtros (Red/CdP/Tipo) se superponían al abrir el menú en mobile -- ahora un solo botón "Filtros" abre una hoja con los 3 apilados
+- [x] Retomé: primero pedí estado SSVA en el avatar, pero me retracté (no es relevante) -- revertido, el avatar muestra el **tipo de evangelismo** (1+1/Elite) con su color real
+- [x] Bug real encontrado y corregido de paso: `tipo_evangelismo_color` en `fn_buscar_evangelizados` se truncaba a `"#"` desde el día 1 (CHARACTER(1) en vez de VARCHAR) -- rompía el color del tipo en toda la pantalla, no solo mobile
+- [x] Fix: WhatsApp bajó a su propia 3ra línea (ya no comparte fila con la fecha)
+- [x] Fix: avatar alineado arriba (con el nombre), no centrado en todo el bloque de texto
+- [x] Verifiqué en vivo el Sheet de "Filtros": abre bien, los 3 selects no se superponen, el desplegable de cada uno tampoco
+- [x] Fix real: "Convertido el {fecha}" quedaba cortado por el pill de WhatsApp -- ahora es "Evangelizado: {fecha}" en su propia fila, nunca se corta
+- [x] Reduje el padding lateral del contenido en mobile (p-5 -> p-3) por pedido del owner ("mucho espacio a los costados")
+- [x] Migración nueva aplicada directo a la base remota (`supabase db query`, no `db push`) -- **hallazgo importante**: el historial del CLI muestra ~15 migraciones desde el 2026-09-05 nunca registradas como aplicadas en remoto (aunque su funcionalidad ya está viva) -- pendiente de investigar/limpiar ese historial en otro momento, no se tocó hoy
+- [x] Quité el chip de "Tipo" duplicado de la sección expandida (ya se ve en el avatar) + unifiqué Domicilio/Evangelizado por/Red/Casa de Paz en una sola lista (grid 2 columnas, mismo tamaño de letra, todos siempre visibles con "Sin registrar")
+- [x] Fix real: el pill de WhatsApp dejaba un hueco fantasma abajo (12px arriba vs 16px abajo) -- `inline-flex` -> `flex`, ahora simétrico
+- [x] Fix real: campos de fecha Desde/Hasta se veían cortados en mobile (130px no alcanzaba para el texto + ícono del calendario) -- ahora 150px
+- [x] Paginación dice "Mostrando X-Y de Z" en vez de "página N de M"; mobile pagina de a 25 (antes 50 como desktop) -- nuevo hook `useEsMobile()`
+- [x] Fila de WhatsApp siempre visible, "(vacío)" gris si no hay teléfono -- todas las tarjetas quedan a la misma altura
+- [ ] Pendiente: verificar la tarjeta con un registro que tenga TODOS los campos llenos a la vez (sigue sin probarse, ningún dato de prueba los tiene todos juntos)

@@ -62,12 +62,14 @@ function DialogContent({
           // overflow-x-hidden explícito: con solo overflow-y-auto, CSS computa
           // overflow-x como auto y el modal habilita scroll horizontal fantasma
           // (jiggle táctil en móvil). Ningún modal necesita scroll horizontal.
-          // Sin backdrop-blur-xl: a bg-popover/95 (95% opaco) el blur de lo
-          // que hay detrás casi no se nota, pero animarlo junto con el
-          // zoom-in-95 fuerza recompositar un backdrop-filter caro en cada
-          // frame -- trababa la apertura en celulares de gama baja (GPU
-          // débil), reportado por el owner 2026-09-04.
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[90dvh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl bg-popover/95 p-6 text-sm text-popover-foreground shadow-xl shadow-black/[0.08] ring-1 ring-foreground/[0.06] duration-200 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Sin backdrop-blur-xl: animarlo junto con el zoom-in-95 fuerza
+          // recompositar un backdrop-filter caro en cada frame -- trababa la
+          // apertura en celulares de gama baja (GPU débil), reportado por el
+          // owner 2026-09-04. bg-popover/95 (95% opaco) se subió a /98: sobre
+          // fondos muy saturados (ej. las tarjetas KPI de Evangelismo) ese 5%
+          // de transparencia se notaba de más -- 98% lo deja imperceptible
+          // sin volver a pagar el costo del blur.
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[90dvh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl bg-popover/98 p-6 text-sm text-popover-foreground shadow-xl shadow-black/[0.08] ring-1 ring-foreground/[0.06] duration-200 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}

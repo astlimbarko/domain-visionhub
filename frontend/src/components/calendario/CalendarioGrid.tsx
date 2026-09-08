@@ -38,7 +38,7 @@ export function CalendarioGrid({ anio, mes, eventos, cumpleanos, diaSeleccionado
     <div className="overflow-hidden rounded-xl border border-border/60">
       <div className="grid grid-cols-7 border-b border-border/70 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
         {nombresDias().map((d, i) => (
-          <div key={d} className={cn('py-2.5', esFinDeSemana(i) && 'text-muted-foreground/60')}>
+          <div key={d} className={cn('truncate px-0.5 py-2.5', esFinDeSemana(i) && 'text-muted-foreground/60')}>
             {d}
           </div>
         ))}

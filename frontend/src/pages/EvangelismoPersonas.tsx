@@ -8,7 +8,8 @@
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download, FileText, Search, Users, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,9 +29,14 @@ import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
-import { aISO, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { useEsMobile } from '@/hooks/useEsMobile';
 
+// En mobile la tarjeta ocupa mucho más alto que una fila de tabla -- pedido
+// explícito del owner de acortar la página a 25 en vez de 50 para que no
+// haya que scrollear tanto antes de llegar al paginador.
 const POR_PAGINA = 50;
+const POR_PAGINA_MOBILE = 25;
 // Tope razonable para una exportación completa (mismo criterio que Afirmación).
 const LIMITE_EXPORTACION = 5000;
 
@@ -41,6 +47,32 @@ const { AZUL } = EVANGELISMO_COLOR;
 function celdaCsv(valor: string | number | null): string {
   if (valor === null) return '';
   return `"${String(valor).replaceAll('"', '""')}"`;
+}
+
+// Inicial para el avatar de la fila mobile -- no hay foto de persona en el sistema.
+function inicialDe(nombreCompleto: string): string {
+  return nombreCompleto.trim().charAt(0).toUpperCase() || '?';
+}
+
+// wa.me exige solo dígitos (sin "+", espacios ni guiones).
+function soloDigitos(telefono: string): string {
+  return telefono.replace(/\D/g, '');
+}
+
+/** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
+ * flex justify-between) -- así el valor arranca siempre en la misma
+ * posición para las 4 filas, alineado a la izquierda (más fácil de leer si
+ * envuelve a 2 líneas, ej. domicilios largos), en vez de quedar pegado
+ * cada uno al borde derecho según su propio largo. Mismo tamaño que la
+ * fecha de arriba (`text-xs`), con "Sin registrar" cuando el valor falta
+ * (no se oculta la fila). */
+function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
+  return (
+    <div className="grid grid-cols-[7rem_1fr] items-baseline gap-x-3 text-xs">
+      <span className="truncate text-muted-foreground">{etiqueta}</span>
+      <span className="text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
+    </div>
+  );
 }
 
 function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
@@ -127,8 +159,13 @@ export function EvangelismoPersonas() {
   const [rangoRapido, setRangoRapido] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
+  // Tarjeta expandida en la vista mobile -- un solo id (no un Set): pedido
+  // explícito del owner de que solo pueda haber una tarjeta abierta a la vez.
+  const [expandidoId, setExpandidoId] = useState<string>();
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
+  const esMobile = useEsMobile();
+  const porPagina = esMobile ? POR_PAGINA_MOBILE : POR_PAGINA;
 
   function aplicarAtajoFecha(atajo: string) {
     const { desde: d, hasta: h } = rangoDeAtajo(atajo);
@@ -150,11 +187,13 @@ export function EvangelismoPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta, porPagina]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
   const tipoIdFiltro = tipoId === TODOS_LOS_TIPOS ? undefined : tipoId;
+  // Para el badge del botón "Filtros" en mobile.
+  const filtrosActivosCount = [redIdFiltro, casaDePazIdFiltro, tipoIdFiltro].filter(Boolean).length;
   const { data, isLoading, isFetching, error } = useBuscarEvangelizados(
     iglesiaActivaId,
     redIdFiltro,
@@ -162,14 +201,14 @@ export function EvangelismoPersonas() {
     desde || undefined,
     hasta || undefined,
     pagina,
-    POR_PAGINA,
+    porPagina,
     casaDePazIdFiltro,
     tipoIdFiltro
   );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
 
   async function exportarCsv() {
     if (!iglesiaActivaId) return;
@@ -254,6 +293,7 @@ export function EvangelismoPersonas() {
           color={DEPARTAMENTO_META.EVANGELISMO.color}
           titulo="Personas evangelizadas"
           descripcion="Toda la iglesia -- click en una fila para ver la ficha completa."
+          intensidad={16}
           accion={
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="gap-1.5" disabled={exportandoPdf || total === 0} onClick={exportarPdf}>
@@ -267,7 +307,7 @@ export function EvangelismoPersonas() {
             </div>
           }
         />
-        <div className="flex flex-col gap-4 p-5">
+        <div className="flex flex-col gap-4 p-3 sm:p-5">
           <div className="flex flex-col gap-3">
             {/* Buscador + rango de fechas -- fila propia, ancho estable. Los
                 atajos van en su PROPIA fila de abajo (no en esta misma línea
@@ -286,10 +326,10 @@ export function EvangelismoPersonas() {
                   onChange={(e) => setTextoInput(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
                 <Input
                   type="date"
-                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[150px] px-2', CAMPO_ESTILO)}
                   value={desde}
                   onChange={(e) => {
                     setDesde(e.target.value);
@@ -300,7 +340,7 @@ export function EvangelismoPersonas() {
                 <span className="text-xs text-muted-foreground">a</span>
                 <Input
                   type="date"
-                  className={cn('w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[150px] px-2', CAMPO_ESTILO)}
                   value={hasta}
                   onChange={(e) => {
                     setHasta(e.target.value);
@@ -335,6 +375,81 @@ export function EvangelismoPersonas() {
                 </button>
               )}
             </div>
+            {/* Filtros de Red/Casa de Paz/Tipo -- en desktop viven en el propio
+                encabezado de la tabla (estilo Excel). En mobile NO van 3
+                selects apretados en una fila (el menú desplegado de uno
+                terminaba superpuesto sobre el trigger del siguiente, en
+                390px cada columna queda en ~124px) -- ahora es un solo botón
+                "Filtros" que abre una hoja con los 3 selects apilados, cada
+                uno con su propio espacio. Mismos estados/opciones de siempre. */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="w-fit gap-1.5 sm:hidden">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Filtros
+                  {filtrosActivosCount > 0 && (
+                    <Badge variant="secondary" className="rounded-full px-1.5 text-[10px]">
+                      {filtrosActivosCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="sm:hidden">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 px-4 pb-6">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</span>
+                    <Select value={redId} onValueChange={setRedId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Red" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
+                        {redes.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Casa de Paz</span>
+                    <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Casa de Paz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
+                        {cdps.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.etiqueta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Tipo</span>
+                    <Select value={tipoId} onValueChange={setTipoId}>
+                      <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                        {tipos.filter((t) => t.codigo !== 'SEMILLA').map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {isLoading ? (
@@ -348,7 +463,8 @@ export function EvangelismoPersonas() {
               {texto.trim() || redIdFiltro || casaDePazIdFiltro || tipoIdFiltro || desde || hasta ? 'Sin resultados para ese filtro.' : 'Esta iglesia todavía no tiene evangelizados registrados.'}
             </p>
           ) : (
-            <div className={cn('overflow-x-auto rounded-xl border border-border/30 transition-opacity', isFetching && 'opacity-60')}>
+            <>
+            <div className={cn('hidden overflow-x-auto rounded-xl border border-border/30 transition-opacity sm:block', isFetching && 'opacity-60')}>
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="bg-muted/40">
                   <tr>
@@ -414,7 +530,7 @@ export function EvangelismoPersonas() {
                       onClick={() => setPersonaSeleccionadaId(e.persona_id)}
                       className="cursor-pointer hover:bg-muted/40"
                     >
-                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
+                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
                       <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
                       <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
                       <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
@@ -435,6 +551,85 @@ export function EvangelismoPersonas() {
                 </tbody>
               </table>
             </div>
+
+            {/* Vista mobile (< sm): la tabla de arriba obliga a scroll horizontal
+                en un teléfono (min-w-[900px], 8 columnas). Acá cada persona es
+                una tarjeta: arriba lo más importante siempre visible (nombre,
+                fecha, teléfono como botón de WhatsApp) -- abajo el resto
+                (Red/CdP/Domicilio/Evangelizado por/Tipo) contraído por
+                defecto, se despliega al tocar la tarjeta. Solo una tarjeta
+                puede estar desplegada a la vez (pedido explícito del owner,
+                para que la lista no quede sobrecargada). Tablet/desktop (sm+)
+                siguen usando la tabla de arriba sin cambios. */}
+            <div className={cn('divide-y divide-border/20 rounded-xl border border-border/30 transition-opacity sm:hidden', isFetching && 'opacity-60')}>
+              {resultados.map((e) => {
+                const expandida = expandidoId === e.id;
+                return (
+                  <div key={e.id}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandidoId(expandida ? undefined : e.id)}
+                      className="flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-muted/40"
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full px-0.5 text-center text-[9px] leading-none font-bold text-white"
+                        style={{ backgroundColor: e.tipo_evangelismo_color ?? DEPARTAMENTO_META.EVANGELISMO.color }}
+                      >
+                        {e.tipo_evangelismo_nombre ?? inicialDe(e.nombre_completo)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-foreground">{e.nombre_completo}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Evangelizado: {fechaLegible(e.fecha)}</p>
+                        {/* Siempre se muestra la fila de WhatsApp, con o sin teléfono -- mismo
+                            criterio que "Sin registrar" en el resto de los campos: que la
+                            ausencia se note, y de paso todas las filas quedan a la misma
+                            altura (antes las sin teléfono tenían 2 líneas y las con teléfono 3,
+                            se sentían desparejas). Sin teléfono no es clickeable ni verde. */}
+                        {e.telefono_principal ? (
+                          <a
+                            href={`https://wa.me/${soloDigitos(e.telefono_principal)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(ev) => ev.stopPropagation()}
+                            className="mt-1 flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-xs font-semibold text-[#128C4A]"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{e.telefono_principal}</span>
+                          </a>
+                        ) : (
+                          <span className="mt-1 flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground italic">
+                            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                            (vacío)
+                          </span>
+                        )}
+                      </div>
+                      {expandida ? (
+                        <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+                    {expandida && (
+                      <div className="flex flex-col gap-1.5 px-3 pb-3 pl-[3.75rem]">
+                        {/* Una sola lista, mismo tratamiento visual en todas las filas
+                            (etiqueta a la izquierda, valor a la derecha) -- pedido explícito
+                            del owner. Todo lo que pide el formulario se muestra SIEMPRE, con
+                            "Sin registrar" si falta -- que la ausencia se note, no desaparezca
+                            en silencio. El tipo de evangelismo ya se ve en el avatar de
+                            arriba, no se repite acá. */}
+                        <FilaDato etiqueta="Domicilio" valor={e.domicilio} />
+                        <FilaDato etiqueta="Sexo" valor={e.sexo === 'M' ? 'Masculino' : e.sexo === 'F' ? 'Femenino' : null} />
+                        <FilaDato etiqueta="Nacimiento" valor={e.fecha_nacimiento ? fechaLegibleConAno(e.fecha_nacimiento) : null} />
+                        <FilaDato etiqueta="Evangelizado por" valor={e.evangelizado_por_nombre} />
+                        <FilaDato etiqueta="Red" valor={e.red_nombre} />
+                        <FilaDato etiqueta="Casa de Paz" valor={e.casa_de_paz_etiqueta} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            </>
           )}
 
           {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
@@ -450,7 +645,8 @@ export function EvangelismoPersonas() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="font-medium text-muted-foreground">
-                {pagina} <span className="text-muted-foreground/60">de {totalPaginas}</span>
+                Mostrando {(pagina - 1) * porPagina + 1}–{Math.min(pagina * porPagina, total)}{' '}
+                <span className="text-muted-foreground/60">de {total}</span>
               </span>
               <Button
                 variant="outline"
