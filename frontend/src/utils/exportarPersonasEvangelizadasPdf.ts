@@ -108,7 +108,11 @@ export async function exportarPersonasEvangelizadasPdf(
 
   autoTable(doc, {
     startY: 78,
-    head: [['Fecha Evangelizado', 'Nombre', 'Sexo', 'Teléfono', 'Tipo', 'Fecha de nacimiento', 'Edad', 'Evangelizado por', 'Red', 'Casa de Paz']],
+    // "Fecha. Evang." acortado a propósito (pedido explícito del owner,
+    // 2026-09-08) -- "Fecha Evangelizado" completo no entraba sin partirse
+    // a mitad de palabra en una columna angosta. El resto de los títulos
+    // van completos.
+    head: [['Fecha. Evang.', 'Nombre', 'Sexo', 'Teléfono', 'Tipo', 'Fecha de nacimiento', 'Edad', 'Evangelizado por:', 'Red', 'Casa de Paz']],
     body: filas.map((f) => [
       f.fecha,
       f.nombre_completo,
@@ -123,16 +127,24 @@ export async function exportarPersonasEvangelizadasPdf(
     ]),
     theme: 'plain',
     styles: { fontSize: 8, textColor: 30, cellPadding: 4, lineColor: [225, 225, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5 },
-    alternateRowStyles: { fillColor: [250, 250, 251] },
+    headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5, halign: 'center', valign: 'middle' },
     columnStyles: {
-      0: { cellWidth: 46 },
+      0: { cellWidth: 60 },
       1: { cellWidth: 78 },
-      2: { cellWidth: 24 },
+      2: { cellWidth: 32 },
       5: { cellWidth: 52 },
       6: { cellWidth: 28 },
     },
     margin: { top: 78, left: MARGEN, right: MARGEN, bottom: 50 },
+    // Fila blanca justo debajo del encabezado, después alterna -- pedido
+    // explícito del owner. No se usa `alternateRowStyles` (su paridad
+    // par/impar no es controlable a ojo) -- se fija a mano por índice real
+    // de fila, así queda garantizado sin importar el default de la librería.
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.row.index % 2 === 1) {
+        data.cell.styles.fillColor = [250, 250, 251];
+      }
+    },
     didDrawPage: (data) => {
       // Encabezado se repite en cada página nueva (autoTable ya recorta el
       // primero con margin.top, esto es para la 2da en adelante).
