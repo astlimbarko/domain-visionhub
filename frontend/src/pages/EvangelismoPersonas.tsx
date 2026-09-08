@@ -29,7 +29,7 @@ import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
-import { aISO, fechaLegible, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 import { useEsMobile } from '@/hooks/useEsMobile';
 
 // En mobile la tarjeta ocupa mucho más alto que una fila de tabla -- pedido
@@ -619,7 +619,7 @@ export function EvangelismoPersonas() {
                             arriba, no se repite acá. */}
                         <FilaDato etiqueta="Domicilio" valor={e.domicilio} />
                         <FilaDato etiqueta="Sexo" valor={e.sexo === 'M' ? 'Masculino' : e.sexo === 'F' ? 'Femenino' : null} />
-                        <FilaDato etiqueta="Nacimiento" valor={e.fecha_nacimiento ? fechaLegible(e.fecha_nacimiento) : null} />
+                        <FilaDato etiqueta="Nacimiento" valor={e.fecha_nacimiento ? fechaLegibleConAno(e.fecha_nacimiento) : null} />
                         <FilaDato etiqueta="Evangelizado por" valor={e.evangelizado_por_nombre} />
                         <FilaDato etiqueta="Red" valor={e.red_nombre} />
                         <FilaDato etiqueta="Casa de Paz" valor={e.casa_de_paz_etiqueta} />

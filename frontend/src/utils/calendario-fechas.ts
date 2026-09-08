@@ -82,6 +82,15 @@ export function fechaLegible(fechaISO: string): string {
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
 }
 
+/** Igual que `fechaLegible` pero con el año -- `fechaLegible` lo omite a
+ * propósito para fechas "de este año" (ej. "Evangelizado: 5 de septiembre"),
+ * pero una fecha de nacimiento puede ser de hace décadas y sin año pierde
+ * el dato más importante. */
+export function fechaLegibleConAno(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()} de ${fecha.getFullYear()}`;
+}
+
 /** Igual que `fechaLegible` pero con el mes abreviado (ej. "31 de ago") --
  * para etiquetas donde ya hay otro dato al lado (como "Semana N") y el
  * nombre completo del mes las hace demasiado largas para una sola línea. */
