@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
@@ -451,6 +452,18 @@ export function EvangelismoPersonas() {
               </SheetContent>
             </Sheet>
           </div>
+
+          {/* Antes el único indicador de "está cargando la página/filtro
+              nuevo" era bajar la opacidad de la tabla al 60% -- muy sutil,
+              se sentía como que la pantalla no respondía (reporte real del
+              owner, 2026-09-08). Este spinner explícito es el mismo patrón
+              que ya usa Evangelismo.tsx junto al mes. */}
+          {isFetching && !isLoading && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Spinner className="h-3.5 w-3.5" />
+              Actualizando...
+            </div>
+          )}
 
           {isLoading ? (
             <Skeleton className="h-96 w-full rounded-2xl" />

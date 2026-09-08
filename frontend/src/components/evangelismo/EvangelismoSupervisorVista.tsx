@@ -117,20 +117,40 @@ export function EvangelismoSupervisorVista() {
     navigate(ROUTES.EVANGELISMO_PERSONAS, { state: { desde, hasta } });
   }
 
-  // Tendencia (KAN-285): rango amplio y fijo (últimos 12 meses hasta hoy),
-  // independiente del mes que se esté navegando arriba -- el componente
-  // agrupa/recorta en el cliente según la granularidad elegida.
+  // Tendencia (KAN-285): rango amplio de últimos 12 meses, ampliado para
+  // siempre cubrir también el mes que se esté navegando arriba (normalmente
+  // ya está adentro, salvo que se navegue muy atrás/adelante) -- así el
+  // resumen mensual de abajo puede recortar este mismo dato en vez de
+  // pedirle a fn_evangelismo_red los mismos registros una segunda vez por
+  // Red. Bug real encontrado 2026-09-08 (reporte del owner: demora extra en
+  // el panel de Líder de Evangelismo) -- duplicaba hasta N idas y vueltas a
+  // la base según la cantidad de Redes activas; mismo patrón que ya se
+  // corrigió hoy en fn_alertas_supervisor (20260908010000), acá el fix es
+  // en el frontend, no en la base.
   const hoyISO = aISO(hoy);
-  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const baseTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const desdeTendencia = desde < baseTendencia ? desde : baseTendencia;
+  const hastaTendencia = hasta > hoyISO ? hasta : hoyISO;
   const tendenciaPorRed = useQueries({
     queries: redes.map((r) => ({
-      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hoyISO],
-      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hoyISO),
+      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hastaTendencia],
+      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hastaTendencia),
       enabled: !!r.id,
     })),
   });
   const cargandoTendencia = tendenciaPorRed.some((q) => q.isLoading);
   const evangelizadosTendencia = useMemo(() => tendenciaPorRed.flatMap((q) => q.data ?? []), [tendenciaPorRed]);
+  // Evangelizados del mes en pantalla, por Red -- recortado del mismo dato de
+  // Tendencia de arriba (que ya cubre [desde, hasta]) en vez de una llamada
+  // aparte a fn_evangelismo_red.
+  const evangelizadosDelMesPorRed = useMemo(() => {
+    const mapa = new Map<string, EvangelizadoRed[]>();
+    redes.forEach((r, i) => {
+      const datos = tendenciaPorRed[i]?.data ?? [];
+      mapa.set(r.id, datos.filter((e) => e.fecha >= desde && e.fecha <= hasta));
+    });
+    return mapa;
+  }, [redes, tendenciaPorRed, desde, hasta]);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -152,18 +172,24 @@ export function EvangelismoSupervisorVista() {
     queries: redes.map((r) => ({
       queryKey: ['evangelismo', 'supervisor-resumen-red', r.id, desde, hasta],
       queryFn: async () => {
-        const [meta, tasa, evangelizados] = await Promise.all([
+        const [meta, tasa] = await Promise.all([
           obtenerMetaRedAsignada(r.id),
           obtenerTasaEvangelismoRed(r.id, desde, hasta),
-          obtenerEvangelismoRed(r.id, desde, hasta),
         ]);
-        return { redId: r.id, meta, tasa, evangelizados };
+        return { redId: r.id, meta, tasa };
       },
       enabled: !!r.id,
     })),
   });
-  const cargandoResumen = resumenPorRed.some((q) => q.isLoading);
-  const filas = useMemo(() => resumenPorRed.map((q) => q.data).filter((d): d is NonNullable<typeof d> => !!d), [resumenPorRed]);
+  const cargandoResumen = resumenPorRed.some((q) => q.isLoading) || cargandoTendencia;
+  const filas = useMemo(
+    () =>
+      resumenPorRed
+        .map((q) => q.data)
+        .filter((d): d is NonNullable<typeof d> => !!d)
+        .map((d) => ({ ...d, evangelizados: evangelizadosDelMesPorRed.get(d.redId) ?? [] })),
+    [resumenPorRed, evangelizadosDelMesPorRed]
+  );
 
   const totalMeta = filas.reduce((s, f) => s + (f.meta?.meta ?? 0), 0);
   const totalEvangelizados = filas.reduce((s, f) => s + Number(f.tasa?.evangelizados ?? 0), 0);
