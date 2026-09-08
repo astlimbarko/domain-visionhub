@@ -598,7 +598,7 @@ export function EvangelismoPersonas() {
                   <col className="w-[15%]" />
                 </colgroup>
                 <thead className="bg-muted/40">
-                  <tr className="divide-x divide-border/20">
+                  <tr className="divide-x divide-border/40">
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha Evangelizado</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
@@ -633,7 +633,7 @@ export function EvangelismoPersonas() {
                           todos los miembros de la iglesia. KAN-350. */}
                       <Popover open={popoverEvangelizadorAbierto} onOpenChange={setPopoverEvangelizadorAbierto}>
                         <PopoverTrigger asChild>
-                          <button type="button" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
+                          <button type="button" className={cn('flex items-center', SELECT_ENCABEZADO, 'justify-center')}>
                             <span className="truncate">{evangelizadoPor ? evangelizadoPor.nombre_completo : 'Evangelizado por'}</span>
                             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
                           </button>
@@ -684,7 +684,7 @@ export function EvangelismoPersonas() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/20">
+                <tbody className="divide-y divide-border/40">
                   {resultados.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -704,7 +704,7 @@ export function EvangelismoPersonas() {
                         <tr
                           key={e.id}
                           onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                          className="cursor-pointer divide-x divide-border/20 hover:bg-muted/40"
+                          className="cursor-pointer divide-x divide-border/40 hover:bg-muted/40"
                         >
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
                           <td className="px-2 py-3 text-center leading-tight">
