@@ -547,7 +547,7 @@ export function EvangelismoPersonas() {
                     <button
                       type="button"
                       onClick={() => setExpandidoId(expandida ? undefined : e.id)}
-                      className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-muted/40"
+                      className="flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-muted/40"
                     >
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
@@ -574,9 +574,9 @@ export function EvangelismoPersonas() {
                         )}
                       </div>
                       {expandida ? (
-                        <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
                     </button>
                     {expandida && (
