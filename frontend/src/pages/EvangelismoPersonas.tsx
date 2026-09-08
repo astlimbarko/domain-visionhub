@@ -30,8 +30,13 @@ import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
 import { aISO, fechaLegible, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { useEsMobile } from '@/hooks/useEsMobile';
 
+// En mobile la tarjeta ocupa mucho más alto que una fila de tabla -- pedido
+// explícito del owner de acortar la página a 25 en vez de 50 para que no
+// haya que scrollear tanto antes de llegar al paginador.
 const POR_PAGINA = 50;
+const POR_PAGINA_MOBILE = 25;
 // Tope razonable para una exportación completa (mismo criterio que Afirmación).
 const LIMITE_EXPORTACION = 5000;
 
@@ -159,6 +164,8 @@ export function EvangelismoPersonas() {
   const [expandidoId, setExpandidoId] = useState<string>();
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
+  const esMobile = useEsMobile();
+  const porPagina = esMobile ? POR_PAGINA_MOBILE : POR_PAGINA;
 
   function aplicarAtajoFecha(atajo: string) {
     const { desde: d, hasta: h } = rangoDeAtajo(atajo);
@@ -180,7 +187,7 @@ export function EvangelismoPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, tipoId, desde, hasta, porPagina]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
@@ -194,14 +201,14 @@ export function EvangelismoPersonas() {
     desde || undefined,
     hasta || undefined,
     pagina,
-    POR_PAGINA,
+    porPagina,
     casaDePazIdFiltro,
     tipoIdFiltro
   );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
 
   async function exportarCsv() {
     if (!iglesiaActivaId) return;
@@ -523,7 +530,7 @@ export function EvangelismoPersonas() {
                       onClick={() => setPersonaSeleccionadaId(e.persona_id)}
                       className="cursor-pointer hover:bg-muted/40"
                     >
-                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
+                      <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
                       <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
                       <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
                       <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
@@ -626,7 +633,7 @@ export function EvangelismoPersonas() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="font-medium text-muted-foreground">
-                Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, total)}{' '}
+                Mostrando {(pagina - 1) * porPagina + 1}–{Math.min(pagina * porPagina, total)}{' '}
                 <span className="text-muted-foreground/60">de {total}</span>
               </span>
               <Button
