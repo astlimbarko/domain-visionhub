@@ -112,6 +112,9 @@ function RedFidelidadCard({ red, iglesiaId, onAbrir }: { red: RedResumen; iglesi
 function ModalHistorialRed({ red, iglesiaId }: { red: RedResumen; iglesiaId: string | undefined }) {
   const { data: cdpsTodas = [], isLoading } = useCdps(iglesiaId, red.id);
   const cdps = useMemo(() => cdpsTodas.filter((c) => c.activo), [cdpsTodas]);
+  // Vista de solo lectura del Supervisor: siempre el mes en curso, sin
+  // navegación propia (a diferencia de la pantalla del Líder de CdP).
+  const hoy = new Date();
 
   return (
     <>
@@ -133,7 +136,7 @@ function ModalHistorialRed({ red, iglesiaId }: { red: RedResumen; iglesiaId: str
           </TabsList>
           {cdps.map((c) => (
             <TabsContent key={c.id} value={c.id}>
-              <HistorialAsistenciaSeccion casaDePazId={c.id} />
+              <HistorialAsistenciaSeccion casaDePazId={c.id} anio={hoy.getFullYear()} mes={hoy.getMonth()} diaReunion={c.dia_reunion} />
             </TabsContent>
           ))}
         </Tabs>

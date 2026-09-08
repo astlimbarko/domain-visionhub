@@ -22,7 +22,7 @@ import { useCdps } from '@/hooks/useCasasDePaz';
 import { useDiasPlazoReporte, useReportesRedRango, useUltimaFechaReporteRed } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
-import { aISO, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
+import { aISO, fechasReunionDelMes as fechasSegunDiaReunion, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
 import type { CdpResumen } from '@/types/casas-de-paz.types';
 
 const LOTE = 12;
@@ -75,13 +75,7 @@ function semanasDelMes(anio: number, mes: number): { inicio: string; fin: string
  */
 function fechasReunionDelMes(anio: number, mes: number, diaReunion: number | null): string[] {
   if (diaReunion == null) return semanasDelMes(anio, mes).map((s) => s.inicio);
-  const fechas: string[] = [];
-  const ultimoDiaMes = new Date(anio, mes + 1, 0).getDate();
-  for (let dia = 1; dia <= ultimoDiaMes; dia++) {
-    const f = new Date(anio, mes, dia);
-    if (f.getDay() === diaReunion) fechas.push(aISO(f));
-  }
-  return fechas;
+  return fechasSegunDiaReunion(anio, mes, diaReunion);
 }
 
 /** DATE 'YYYY-MM-DD' → 'DD/MM' sin corrimiento de zona horaria. */

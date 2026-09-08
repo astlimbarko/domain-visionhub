@@ -77,13 +77,17 @@ const RUTAS_LIDER_CDP: string[] = [
 // Historial de Reportes se suma después (KAN-271, 2026-08-27, pedido
 // explícito del owner): es desde ahí (lista "Reportes recientes") que el
 // sublíder llega al botón "Editar" de sus propios reportes, dentro de la
-// ventana de 7 días. Además de ver menos módulos, dentro de los que sí ve la
-// restricción es de acciones -- no puede modificar nada, solo subir/editar
-// reportes (eso ya notifica al Líder de CdP vigente, trg_notificar_reporte_
-// sublider/trg_notificar_reporte_editado en 57_notificaciones.sql /
-// 20260827000000_kan271_editar_reporte_cdp.sql) -- no puede designar/eliminar
-// sublíderes ni modificar la CdP, tampoco editar nada de Evangelismo -- eso
-// se aplica en CasasDePaz.tsx y Evangelismo.tsx, no acá.
+// ventana de 7 días. Calendario y Personas se suman después (2026-09-07,
+// pedido explícito del owner) -- el backend ya lo permitía de antes
+// (fn_puede_crear_evento/fn_personas_de_cdp ya incluían sublíder de esa CdP
+// en su chequeo de permiso), solo faltaba la ruta. Además de ver menos
+// módulos, dentro de los que sí ve la restricción es de acciones -- no puede
+// modificar nada, solo subir/editar reportes (eso ya notifica al Líder de
+// CdP vigente, trg_notificar_reporte_sublider/trg_notificar_reporte_editado
+// en 57_notificaciones.sql / 20260827000000_kan271_editar_reporte_cdp.sql)
+// -- no puede designar/eliminar sublíderes ni modificar la CdP, tampoco
+// editar nada de Evangelismo -- eso se aplica en CasasDePaz.tsx y
+// Evangelismo.tsx, no acá.
 const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.REPORTES,
   ROUTES.REPORTES_EDITAR,
@@ -91,6 +95,8 @@ const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.CASAS_DE_PAZ, // Se muestra como "Perfil de Casa de Paz"
   ROUTES.EVANGELISMO,
   ROUTES.HISTORIAL_ASISTENCIA,
+  ROUTES.CALENDARIO,
+  ROUTES.PERSONAS,
 ];
 
 // El Líder de Red supervisa, no carga reportes: en vez de "Reportes" (el
@@ -213,8 +219,8 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
 // de Red se eligieron bien distintos entre sí.
 const CATALOGO_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, color: '#0071e3' },
-  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Perfil de Casa de Paz', SUBLIDER_CDP: 'Perfil de Casa de Paz' } },
+  { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
   { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },

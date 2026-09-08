@@ -33,9 +33,11 @@ function PersonasDeRed({ redId }: { redId: string }) {
 }
 
 /**
- * Líder de CdP: ve el roster de solo lectura de los miembros vigentes de su
- * propia Casa de Paz. La CdP visible proviene del ContextoActivo, igual que
- * Personas de Red.
+ * Líder o Sublíder de CdP: ve el roster de solo lectura de los miembros
+ * vigentes de su propia Casa de Paz (2026-09-07: se sumó Sublíder, backend
+ * ya lo permitía -- fn_personas_de_cdp ya incluía fn_es_sublider_cdp en su
+ * chequeo de permiso). La CdP visible proviene del ContextoActivo, igual
+ * que Personas de Red.
  */
 function PersonasDeCdp({ casaDePazId }: { casaDePazId: string }) {
   return <PersonasDeCdpVista key={casaDePazId} casaDePazId={casaDePazId} />;
@@ -154,16 +156,16 @@ function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
 }
 
 /**
- * El Líder de Red visualiza el roster de su Red y el Líder de CdP el de su
- * propia Casa de Paz (ambos solo lectura); el resto de los roles con acceso
- * usan la búsqueda global de la iglesia. Cada vista maneja sus propios hooks,
- * igual que pages/CasasDePaz.tsx.
+ * El Líder de Red visualiza el roster de su Red y el Líder/Sublíder de CdP
+ * el de su propia Casa de Paz (todos solo lectura); el resto de los roles
+ * con acceso usan la búsqueda global de la iglesia. Cada vista maneja sus
+ * propios hooks, igual que pages/CasasDePaz.tsx.
  */
 export function Personas() {
   const { contextoActivo, cargando } = useContextoActivo();
   if (cargando || !contextoActivo) return <CargandoPersonas />;
   if (contextoActivo.alcance === 'RED') return <PersonasDeRed redId={contextoActivo.redId} />;
-  if (contextoActivo.alcance === 'CDP' && contextoActivo.rolUI === 'LIDER_CDP') {
+  if (contextoActivo.alcance === 'CDP') {
     return <PersonasDeCdp casaDePazId={contextoActivo.cdpId} />;
   }
   return <BusquedaPersonas rolUI={contextoActivo.rolUI} />;

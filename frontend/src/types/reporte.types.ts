@@ -179,10 +179,15 @@ export interface ReporteRedFila {
   estado_carga: 'VERDE' | 'NARANJA';
 }
 
+/** Fecha en la que a la CdP le tocaba reunirse ese mes (según `dia_reunion`
+ * de su Perfil) -- `reporte_id` es null si nunca se cargó el reporte de esa
+ * fecha (distinto de "faltó": acá ni siquiera hay reporte). */
 export interface ReunionAsistencia {
-  id: string;
   fecha_reunion: string;
+  reporte_id: string | null;
 }
+
+export type EstadoAsistenciaReunion = 'ASISTIO' | 'FALTO' | 'SIN_REPORTE';
 
 export interface MiembroAsistencia {
   persona_id: string;
@@ -192,11 +197,11 @@ export interface MiembroAsistencia {
   /** Numero crudo tal cual esta guardado -- el link de WhatsApp se arma en el componente. */
   telefono: string | null;
   /** Alineado 1 a 1 con `HistorialAsistencia.reuniones` (mismo orden). */
-  asistio: boolean[];
+  estados: EstadoAsistenciaReunion[];
 }
 
 export interface HistorialAsistencia {
-  /** Ultimas reuniones de la CdP, de la mas reciente a la mas vieja. */
+  /** Todas las fechas en las que a la CdP le tocaba reunirse ese mes, de la más vieja a la más nueva. */
   reuniones: ReunionAsistencia[];
   miembros: MiembroAsistencia[];
 }
