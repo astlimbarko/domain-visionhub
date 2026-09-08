@@ -561,7 +561,7 @@ export function EvangelismoPersonas() {
                   <col className="w-[15%]" />
                 </colgroup>
                 <thead className="bg-muted/40">
-                  <tr>
+                  <tr className="divide-x divide-border/20">
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha Evangelizado</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
@@ -667,7 +667,7 @@ export function EvangelismoPersonas() {
                         <tr
                           key={e.id}
                           onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                          className="cursor-pointer hover:bg-muted/40"
+                          className="cursor-pointer divide-x divide-border/20 hover:bg-muted/40"
                         >
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
                           <td className="px-2 py-3 text-center leading-tight">
