@@ -54,14 +54,18 @@ function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
 }
 
-/** Fila de dato de la tarjeta mobile expandida: etiqueta a la izquierda,
- * valor a la derecha -- mismo tratamiento visual siempre, con "Sin
- * registrar" cuando el valor falta (no se oculta la fila). */
+/** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
+ * flex justify-between) -- así el valor arranca siempre en la misma
+ * posición para las 4 filas, alineado a la izquierda (más fácil de leer si
+ * envuelve a 2 líneas, ej. domicilios largos), en vez de quedar pegado
+ * cada uno al borde derecho según su propio largo. Mismo tamaño que la
+ * fecha de arriba (`text-xs`), con "Sin registrar" cuando el valor falta
+ * (no se oculta la fila). */
 function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 text-sm">
-      <span className="shrink-0 text-muted-foreground">{etiqueta}</span>
-      <span className="text-right text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
+    <div className="grid grid-cols-[7rem_1fr] items-baseline gap-x-3 text-xs">
+      <span className="text-muted-foreground">{etiqueta}</span>
+      <span className="text-foreground">{valor || <span className="text-muted-foreground italic">Sin registrar</span>}</span>
     </div>
   );
 }
@@ -589,7 +593,7 @@ export function EvangelismoPersonas() {
                       )}
                     </button>
                     {expandida && (
-                      <div className="flex flex-col gap-1.5 px-3 pb-3 pl-[3.25rem]">
+                      <div className="flex flex-col gap-1.5 px-3 pb-3 pl-[3.75rem]">
                         {/* Una sola lista, mismo tratamiento visual en todas las filas
                             (etiqueta a la izquierda, valor a la derecha) -- pedido explícito
                             del owner. Todo lo que pide el formulario se muestra SIEMPRE, con
