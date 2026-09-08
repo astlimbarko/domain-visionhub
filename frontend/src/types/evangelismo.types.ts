@@ -125,6 +125,10 @@ export interface EvangelizadoBusqueda {
   /** Nombre de quien evangelizó (persona.evangelizado_por_id) -- KAN-338, columna
    * existe desde el diseño original pero nunca se llenaba ni se mostraba. */
   evangelizado_por_nombre: string | null;
+  /** Estado SSVA vigente de la persona (SIM/NC/CRE/RE) -- KAN-347, se usa para
+   * colorear la burbuja de avatar de la tarjeta mobile en vez de la inicial. */
+  estado_sigla: string | null;
+  estado_nombre: string | null;
   total: number;
 }
 
