@@ -30,6 +30,7 @@ import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangeli
 import { buscarEvangelizados } from '@/services/evangelismo.service';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { EvangelizadoBusqueda } from '@/types/evangelismo.types';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
@@ -124,18 +125,54 @@ function FiltroEvangelizador({
   return <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={onCambiar} />;
 }
 
-function filasACsv(filas: { nombre_completo: string; fecha: string; red_nombre: string | null; casa_de_paz_etiqueta: string; tipo_evangelismo_nombre: string | null; telefono_principal: string | null; domicilio: string | null; evangelizado_por_nombre: string | null }[]): string {
-  const encabezados = ['Nombre', 'Fecha', 'Red', 'Casa de Paz', 'Tipo', 'Teléfono', 'Domicilio', 'Evangelizado por'];
+/** Filas de exportación (CSV y PDF) -- mismas 10 columnas y mismo orden que
+ * la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08), para
+ * que lo que se ve en pantalla y lo que se exporta/imprime sea lo mismo.
+ * A diferencia de la tabla, acá van los valores completos (nombre y
+ * evangelizador sin abreviar) -- un CSV/PDF es para archivo, no tiene el
+ * límite de ancho de una columna en pantalla. */
+interface FilaExportacion {
+  fecha: string;
+  nombre_completo: string;
+  sexo: string;
+  telefono_principal: string | null;
+  tipo_evangelismo_nombre: string | null;
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  evangelizado_por_nombre: string | null;
+  red_nombre: string | null;
+  casa_de_paz_etiqueta: string;
+}
+
+function aFilaExportacion(e: EvangelizadoBusqueda): FilaExportacion {
+  return {
+    fecha: fechaBreve(e.fecha),
+    nombre_completo: e.nombre_completo,
+    sexo: e.sexo ?? '—',
+    telefono_principal: e.telefono_principal,
+    tipo_evangelismo_nombre: e.tipo_evangelismo_nombre,
+    fecha_nacimiento: e.fecha_nacimiento ? fechaBreveAnioCompleto(e.fecha_nacimiento) : null,
+    edad: e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : null,
+    evangelizado_por_nombre: e.evangelizado_por_nombre,
+    red_nombre: e.red_nombre,
+    casa_de_paz_etiqueta: e.casa_de_paz_etiqueta,
+  };
+}
+
+function filasACsv(filas: FilaExportacion[]): string {
+  const encabezados = ['Fecha Evangelizado', 'Nombre', 'Sexo', 'Teléfono', 'Tipo', 'Fecha de nacimiento', 'Edad', 'Evangelizado por', 'Red', 'Casa de Paz'];
   const lineas = filas.map((e) =>
     [
-      celdaCsv(e.nombre_completo),
       celdaCsv(e.fecha),
+      celdaCsv(e.nombre_completo),
+      celdaCsv(e.sexo),
+      celdaCsv(e.telefono_principal),
+      celdaCsv(e.tipo_evangelismo_nombre),
+      celdaCsv(e.fecha_nacimiento),
+      celdaCsv(e.edad),
+      celdaCsv(e.evangelizado_por_nombre),
       celdaCsv(e.red_nombre),
       celdaCsv(e.casa_de_paz_etiqueta),
-      celdaCsv(e.tipo_evangelismo_nombre),
-      celdaCsv(e.telefono_principal),
-      celdaCsv(e.domicilio),
-      celdaCsv(e.evangelizado_por_nombre),
     ].join(',')
   );
   return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
@@ -281,7 +318,7 @@ export function EvangelismoPersonas() {
         tipoIdFiltro,
         evangelizadoPorIdFiltro
       );
-      const csv = filasACsv(todas);
+      const csv = filasACsv(todas.map(aFilaExportacion));
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
@@ -325,7 +362,7 @@ export function EvangelismoPersonas() {
         tipoIdFiltro,
         evangelizadoPorIdFiltro
       );
-      await exportarPersonasEvangelizadasPdf(todas, { iglesiaNombre, filtroDescripcion });
+      await exportarPersonasEvangelizadasPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion });
     } catch {
       toast.error('No se pudo exportar el PDF');
     } finally {
