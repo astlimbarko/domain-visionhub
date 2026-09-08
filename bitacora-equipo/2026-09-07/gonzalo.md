@@ -19,5 +19,8 @@
 - [x] Reordené los campos de la tarjeta: fecha con etiqueta "Convertido el...", WhatsApp muestra el número real, sección expandida en 2 grupos (Domicilio+Tipo, luego separador, luego Evangelizado por+Red+Casa de Paz)
 - [x] Fix real: la fecha envolvía a 2 líneas en las filas con botón de WhatsApp (empujaba la tarjeta hacia abajo) -- ahora trunca, todas las filas quedan a la misma altura
 - [x] Fix real: los 3 filtros (Red/CdP/Tipo) se superponían al abrir el menú en mobile -- ahora un solo botón "Filtros" abre una hoja con los 3 apilados
-- [ ] Pendiente (anotado, "lo hacemos al retornar"): en el avatar circular, mostrar el tipo de evangelismo ("1+1"/"Elite") en vez de la inicial del nombre
-- [ ] Pendiente: verificar visualmente el Sheet de "Filtros" abriendo/cerrando en viewport móvil real (se implementó y compiló, no se llegó a clickear el botón antes de cortar la sesión)
+- [x] Retomé: en vez de tipo de evangelismo, el owner pidió mostrar el estado SSVA (SIM/NC/CRE/RE) en el avatar -- agregado a `fn_buscar_evangelizados` (join persona_estado/estado) + color por estado nuevo (`utils/estados-ssva.ts`)
+- [x] Verifiqué en vivo el Sheet de "Filtros": abre bien, los 3 selects no se superponen, el desplegable de cada uno tampoco
+- [x] Fix real: "Convertido el {fecha}" quedaba cortado por el pill de WhatsApp -- ahora es "Evangelizado: {fecha}" en su propia fila, nunca se corta
+- [x] Reduje el padding lateral del contenido en mobile (p-5 -> p-3) por pedido del owner ("mucho espacio a los costados")
+- [x] Migración nueva aplicada directo a la base remota (`supabase db query`, no `db push`) -- **hallazgo importante**: el historial del CLI muestra ~15 migraciones desde el 2026-09-05 nunca registradas como aplicadas en remoto (aunque su funcionalidad ya está viva) -- pendiente de investigar/limpiar ese historial en otro momento, no se tocó hoy
