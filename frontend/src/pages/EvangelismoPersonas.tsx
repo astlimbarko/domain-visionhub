@@ -322,7 +322,7 @@ export function EvangelismoPersonas() {
               <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
                 <Input
                   type="date"
-                  className={cn('w-[130px] sm:w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[150px] px-2', CAMPO_ESTILO)}
                   value={desde}
                   onChange={(e) => {
                     setDesde(e.target.value);
@@ -333,7 +333,7 @@ export function EvangelismoPersonas() {
                 <span className="text-xs text-muted-foreground">a</span>
                 <Input
                   type="date"
-                  className={cn('w-[130px] sm:w-[150px]', CAMPO_ESTILO)}
+                  className={cn('w-[150px] px-2', CAMPO_ESTILO)}
                   value={hasta}
                   onChange={(e) => {
                     setHasta(e.target.value);
