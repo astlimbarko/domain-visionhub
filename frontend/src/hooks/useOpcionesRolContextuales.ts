@@ -152,7 +152,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   if (esLiderEvangelismo) {
     opciones.push({
       key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO',
-      titulo: 'Líder de Departamento de Evangelismo', icon: HeartHandshake,
+      titulo: 'Dpto. de Evangelismo', icon: HeartHandshake,
       bgIcono: '#fdf3d6', colorIcono: DEPARTAMENTO_META.EVANGELISMO.color,
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'EVANGELISMO' },
       lineas: [],

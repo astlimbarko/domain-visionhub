@@ -31,7 +31,7 @@ export const FILA_ROL_VISUAL: Record<FilaRolKind, FilaRolVisual> = {
   SUBLIDER_CDP: { titulo: 'Sublíder de Casa de Paz', icon: Home, bgIcono: '#e3f6fb', colorIcono: '#0891b2' },
   // Hoy solo Afirmación es funcional (DEPARTAMENTO_FUNCIONAL, utils/departamentos.ts) --
   // título específico en vez del genérico "Líder de Departamento" de ROL_UI_META.
-  LIDER_DEPARTAMENTO: { titulo: 'Líder del Departamento de Afirmación', icon: UserPlus, bgIcono: '#e9e4fb', colorIcono: '#7c3aed' },
+  LIDER_DEPARTAMENTO: { titulo: 'Dpto. de Afirmación', icon: UserPlus, bgIcono: '#e9e4fb', colorIcono: '#7c3aed' },
   LIDER_JOVENES: { titulo: 'Líder de Jóvenes', icon: Users, bgIcono: '#fff2df', colorIcono: '#c76a00' },
   ENCARGADO_MATRIMONIOS: { titulo: 'Encargado de Matrimonios', icon: Heart, bgIcono: '#fde8ef', colorIcono: '#c6285b' },
 };
