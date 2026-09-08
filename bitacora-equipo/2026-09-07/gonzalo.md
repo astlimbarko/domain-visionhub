@@ -19,7 +19,10 @@
 - [x] Reordené los campos de la tarjeta: fecha con etiqueta "Convertido el...", WhatsApp muestra el número real, sección expandida en 2 grupos (Domicilio+Tipo, luego separador, luego Evangelizado por+Red+Casa de Paz)
 - [x] Fix real: la fecha envolvía a 2 líneas en las filas con botón de WhatsApp (empujaba la tarjeta hacia abajo) -- ahora trunca, todas las filas quedan a la misma altura
 - [x] Fix real: los 3 filtros (Red/CdP/Tipo) se superponían al abrir el menú en mobile -- ahora un solo botón "Filtros" abre una hoja con los 3 apilados
-- [x] Retomé: en vez de tipo de evangelismo, el owner pidió mostrar el estado SSVA (SIM/NC/CRE/RE) en el avatar -- agregado a `fn_buscar_evangelizados` (join persona_estado/estado) + color por estado nuevo (`utils/estados-ssva.ts`)
+- [x] Retomé: primero pedí estado SSVA en el avatar, pero me retracté (no es relevante) -- revertido, el avatar muestra el **tipo de evangelismo** (1+1/Elite) con su color real
+- [x] Bug real encontrado y corregido de paso: `tipo_evangelismo_color` en `fn_buscar_evangelizados` se truncaba a `"#"` desde el día 1 (CHARACTER(1) en vez de VARCHAR) -- rompía el color del tipo en toda la pantalla, no solo mobile
+- [x] Fix: WhatsApp bajó a su propia 3ra línea (ya no comparte fila con la fecha)
+- [x] Fix: avatar alineado arriba (con el nombre), no centrado en todo el bloque de texto
 - [x] Verifiqué en vivo el Sheet de "Filtros": abre bien, los 3 selects no se superponen, el desplegable de cada uno tampoco
 - [x] Fix real: "Convertido el {fecha}" quedaba cortado por el pill de WhatsApp -- ahora es "Evangelizado: {fecha}" en su propia fila, nunca se corta
 - [x] Reduje el padding lateral del contenido en mobile (p-5 -> p-3) por pedido del owner ("mucho espacio a los costados")
