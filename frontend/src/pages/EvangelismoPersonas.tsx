@@ -33,7 +33,7 @@ import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { exportarPersonasEvangelizadasPdf } from '@/utils/exportarPersonasEvangelizadasPdf';
 import { EvangelismoBanner } from '@/components/evangelismo/EvangelismoBanner';
-import { aISO, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
+import { aISO, calcularEdad, fechaBreve, fechaBreveAnioCompleto, fechaLegible, fechaLegibleConAno, inicioSemanaISO, primerDiaMesRelativo, sumarDiasISO } from '@/utils/calendario-fechas';
 import { useEsMobile } from '@/hooks/useEsMobile';
 
 // En mobile la tarjeta ocupa mucho más alto que una fila de tabla -- pedido
@@ -61,6 +61,24 @@ function inicialDe(nombreCompleto: string): string {
 // wa.me exige solo dígitos (sin "+", espacios ni guiones).
 function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
+}
+
+/** Nombre abreviado del evangelizador para la columna angosta "Evangelizado
+ * por" de la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08):
+ * nombres cortos se muestran completos (ej. "Ana Maria"), nombres largos
+ * abrevian el segundo a su inicial (ej. "Juan C.") -- en los dos casos, solo
+ * el primer apellido, nunca el segundo, para que la columna no se dispare de
+ * ancho. */
+function nombreEvangelizadorAbreviado(
+  primerNombre: string | null,
+  segundoNombre: string | null,
+  primerApellido: string | null
+): string | null {
+  if (!primerNombre) return null;
+  if (!segundoNombre) return [primerNombre, primerApellido].filter(Boolean).join(' ');
+  const nombresCortos = primerNombre.length + segundoNombre.length <= 12;
+  const nombre = nombresCortos ? `${primerNombre} ${segundoNombre}` : `${primerNombre} ${segundoNombre.charAt(0)}.`;
+  return [nombre, primerApellido].filter(Boolean).join(' ');
 }
 
 /** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
@@ -524,49 +542,41 @@ export function EvangelismoPersonas() {
                 muestra; solo el <tbody> cambia entre filas reales y el
                 mensaje de "sin resultados". */}
             <div className={cn('hidden overflow-x-auto rounded-xl border border-border/30 transition-opacity sm:block', isFetching && 'opacity-60')}>
-              <table className="w-full min-w-[900px] text-sm">
+              {/* Rediseño desktop (KAN-350, pedido explícito del owner, 2026-09-08):
+                  9 columnas, todas centradas, `table-fixed` con anchos fijos por
+                  columna -- el Nombre tiene prioridad de ancho para que no se
+                  comprima. La vista mobile (tarjetas, más abajo) no se toca, ya
+                  quedó cerrada en una vuelta anterior. */}
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[9%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[4%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[15%]" />
+                </colgroup>
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
-                    <th className="px-3 py-2">
-                      <Select value={redId} onValueChange={setRedId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
-                          <SelectValue placeholder="Red" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODAS_LAS_REDES}>Todas las Redes</SelectItem>
-                          {redes.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </th>
-                    <th className="px-3 py-2">
-                      <Select value={casaDePazId} onValueChange={setCasaDePazId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
-                          <SelectValue placeholder="Casa de Paz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODAS_LAS_CDP}>Todas las Casas de Paz</SelectItem>
-                          {cdps.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.etiqueta}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </th>
-                    <th className="px-3 py-2">
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha Evangelizado</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
+                    <th className="px-2 py-2">
                       <Select value={tipoId} onValueChange={setTipoId}>
-                        <SelectTrigger size="sm" className={SELECT_ENCABEZADO}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
                           <SelectValue placeholder="Tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={TODOS_LOS_TIPOS}>Todos los tipos</SelectItem>
+                          {/* Etiqueta corta a propósito -- esta columna es angosta
+                              (7%). El Sheet "Filtros" de mobile tiene su propio
+                              <Select> aparte con el texto completo "Todos los
+                              tipos", no se toca. */}
+                          <SelectItem value={TODOS_LOS_TIPOS}>Tipo</SelectItem>
                           {/* "Semilla" es un conteo agregado sin nombres reales -- esta
                               página siempre lo excluye (ver fn_buscar_evangelizados),
                               así que no tiene sentido ofrecerlo como filtro. */}
@@ -578,19 +588,20 @@ export function EvangelismoPersonas() {
                         </SelectContent>
                       </Select>
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    <th className="px-3 py-2">
-                      {/* Sin catálogo fijo (a diferencia de Red/CdP/Tipo de arriba) --
-                          es un Popover con el buscador de personas, no un <select>
-                          con todos los miembros de la iglesia. KAN-350. */}
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha de nacimiento</th>
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Edad</th>
+                    <th className="px-2 py-2">
+                      {/* Sin catálogo fijo (a diferencia de Red/CdP/Tipo) -- es un
+                          Popover con el buscador de personas, no un <select> con
+                          todos los miembros de la iglesia. KAN-350. */}
                       <Popover open={popoverEvangelizadorAbierto} onOpenChange={setPopoverEvangelizadorAbierto}>
                         <PopoverTrigger asChild>
-                          <button type="button" className={cn('flex items-center justify-between', SELECT_ENCABEZADO)}>
+                          <button type="button" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
                             <span className="truncate">{evangelizadoPor ? evangelizadoPor.nombre_completo : 'Evangelizado por'}</span>
                             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-72 p-3">
+                        <PopoverContent align="center" className="w-72 p-3">
                           <FiltroEvangelizador
                             iglesiaId={iglesiaActivaId}
                             valor={evangelizadoPor}
@@ -602,40 +613,99 @@ export function EvangelismoPersonas() {
                         </PopoverContent>
                       </Popover>
                     </th>
+                    <th className="px-2 py-2">
+                      <Select value={redId} onValueChange={setRedId}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
+                          <SelectValue placeholder="Red" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Etiqueta corta -- misma razón que "Tipo" de arriba. */}
+                          <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
+                          {redes.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
+                    <th className="px-2 py-2">
+                      <Select value={casaDePazId} onValueChange={setCasaDePazId}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-center')}>
+                          <SelectValue placeholder="Casa de Paz" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Etiqueta corta -- misma razón que "Tipo" de arriba. */}
+                          <SelectItem value={TODAS_LAS_CDP}>Casa de Paz</SelectItem>
+                          {cdps.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.etiqueta}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
                   {resultados.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         {mensajeVacio}
                       </td>
                     </tr>
                   ) : (
-                    resultados.map((e, i) => (
-                      <tr
-                        key={e.id}
-                        onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                        className="cursor-pointer hover:bg-muted/40"
-                      >
-                        <td className="px-3 py-3 text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
-                        <td className="px-3 py-3 font-medium">{e.nombre_completo}</td>
-                        <td className="px-3 py-3 text-muted-foreground">{e.fecha}</td>
-                        <td className="px-3 py-3 text-muted-foreground">{e.red_nombre ?? '—'}</td>
-                        <td className="px-3 py-3 text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
-                        <td className="px-3 py-3">
-                          {e.tipo_evangelismo_nombre ? (
-                            <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
-                              {e.tipo_evangelismo_nombre}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">{e.telefono_principal ?? '—'}</td>
-                        <td className="px-3 py-3 text-muted-foreground">{e.evangelizado_por_nombre ?? '—'}</td>
-                      </tr>
-                    ))
+                    resultados.map((e) => {
+                      const nombreLinea1 = [e.primer_nombre, e.segundo_nombre].filter(Boolean).join(' ');
+                      const nombreLinea2 = [e.primer_apellido, e.segundo_apellido].filter(Boolean).join(' ');
+                      const evangelizadorAbreviado = nombreEvangelizadorAbreviado(
+                        e.evangelizado_por_primer_nombre,
+                        e.evangelizado_por_segundo_nombre,
+                        e.evangelizado_por_primer_apellido
+                      );
+                      return (
+                        <tr
+                          key={e.id}
+                          onClick={() => setPersonaSeleccionadaId(e.persona_id)}
+                          className="cursor-pointer hover:bg-muted/40"
+                        >
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
+                          <td className="px-2 py-3 text-center leading-tight">
+                            {/* Mismo peso de letra en las 2 líneas (nombres y
+                                apellidos) -- pedido explícito del owner, no
+                                queríamos que el apellido se viera "secundario". */}
+                            <p className="truncate font-semibold">{nombreLinea1 || e.nombre_completo}</p>
+                            {nombreLinea2 && <p className="truncate font-semibold">{nombreLinea2}</p>}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.sexo ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                          <td className="px-2 py-3 text-center">
+                            {e.tipo_evangelismo_nombre ? (
+                              <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
+                                {e.tipo_evangelismo_nombre}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
+                            {e.fecha_nacimiento ? fechaBreveAnioCompleto(e.fecha_nacimiento) : '—'}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
+                            {e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : '—'}
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">
+                            {/* Mismo formato que el nombre de arriba (misma
+                                celda centrada, sin recorte agresivo) pero sin
+                                negrita -- "menos protagonista" (pedido
+                                explícito del owner), es un dato secundario. */}
+                            <span className="truncate">{evangelizadorAbreviado ?? '—'}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.red_nombre ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">{e.casa_de_paz_etiqueta}</td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
