@@ -21,4 +21,8 @@
 - [x] Líneas de la grilla (verticales y horizontales) casi no se distinguían a simple vista -- oscurecidas de /20 a /40 de opacidad, pedido explícito del owner
 - [x] Paginador de "Personas evangelizadas" ahora se muestra siempre (antes solo con más de 1 página, con pocos datos de prueba nunca se veía) -- botones deshabilitados solos cuando no hay a dónde ir
 - [x] Fondo alternado por fila agregado a la tabla desktop (1ra fila blanca, alterna gris/blanco) -- mismo criterio que ya tenía el PDF, verificado en vivo con Playwright
+- [x] Columna "#" (número de fila) de vuelta al inicio de la tabla desktop -- restando ancho a Nombre/Casa de Paz (tenían más margen), sin apretar Sexo/Tipo/Edad (ya en el límite)
+- [x] El nombre de la persona ya no va en negrita en el cuerpo de la tabla -- la negrita queda reservada para los títulos del encabezado
+- [x] Botón cruzado en el banner (mobile y desktop) entre Evangelismo y "Personas evangelizadas": "Lista de Evangelizados" ↔ "Dashboard" -- se evaluó renombrar también el ítem del menú lateral a "Dashboard" pero se descartó de común acuerdo (inconsistencia con el resto del menú + choca con el "Dashboard" global de la app)
+- [x] Todo lo de hoy verificado en vivo con Playwright (desktop 1500px y mobile 412px), navegación entre las 2 páginas probada en ambos sentidos
 - [ ] Pendiente en KAN-350: filtros clickeables desde la fila (Red/Evangelizador/Tipo), filtro por semana, "Esta semana" como default
