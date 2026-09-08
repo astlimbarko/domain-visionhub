@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
-import { ESTADO_SSVA_COLOR } from '@/utils/estados-ssva';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
@@ -550,12 +549,10 @@ export function EvangelismoPersonas() {
                       className="flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-muted/40"
                     >
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                        style={{
-                          backgroundColor: (e.estado_sigla && ESTADO_SSVA_COLOR[e.estado_sigla]) ?? e.tipo_evangelismo_color ?? DEPARTAMENTO_META.EVANGELISMO.color,
-                        }}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full px-0.5 text-center text-[9px] leading-none font-bold text-white"
+                        style={{ backgroundColor: e.tipo_evangelismo_color ?? DEPARTAMENTO_META.EVANGELISMO.color }}
                       >
-                        {e.estado_sigla ?? inicialDe(e.nombre_completo)}
+                        {e.tipo_evangelismo_nombre ?? inicialDe(e.nombre_completo)}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-foreground">{e.nombre_completo}</p>
