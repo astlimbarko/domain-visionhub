@@ -692,7 +692,7 @@ export function EvangelismoPersonas() {
                       </td>
                     </tr>
                   ) : (
-                    resultados.map((e) => {
+                    resultados.map((e, i) => {
                       const nombreLinea1 = [e.primer_nombre, e.segundo_nombre].filter(Boolean).join(' ');
                       const nombreLinea2 = [e.primer_apellido, e.segundo_apellido].filter(Boolean).join(' ');
                       const evangelizadorAbreviado = nombreEvangelizadorAbreviado(
@@ -704,7 +704,10 @@ export function EvangelismoPersonas() {
                         <tr
                           key={e.id}
                           onClick={() => setPersonaSeleccionadaId(e.persona_id)}
-                          className="cursor-pointer divide-x divide-border/40 hover:bg-muted/40"
+                          // Fondo alternado -- la 1ra fila queda blanca (sin
+                          // clase) y alterna desde ahí, mismo criterio que ya
+                          // se usa en el PDF (pedido explícito del owner).
+                          className={cn('cursor-pointer divide-x divide-border/40 hover:bg-muted/40', i % 2 === 1 && 'bg-muted/25')}
                         >
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
                           <td className="px-2 py-3 text-center leading-tight">
@@ -829,7 +832,11 @@ export function EvangelismoPersonas() {
             </>
           )}
 
-          {!isLoading && resultados.length > 0 && totalPaginas > 1 && (
+          {/* Siempre visible (aunque haya una sola página) -- pedido explícito
+              del owner, 2026-09-08: con pocos datos de prueba nunca se veía
+              y quedaba la duda de si de verdad existía. Los botones quedan
+              deshabilitados solos cuando no hay a dónde ir. */}
+          {!isLoading && resultados.length > 0 && (
             <div className="flex items-center justify-center gap-3 text-[13px]">
               <Button
                 variant="outline"
