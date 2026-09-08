@@ -19,4 +19,6 @@
 - [x] PDF confirmado en vivo con Playwright (ya reconectado) -- los 5 ajustes de formato quedaron bien: "Fecha. Evang." en 2 líneas sin cortar palabras, "Sexo" completo, encabezado centrado, "Evangelizado por:" con los dos puntos, primera fila de datos blanca alternando correctamente
 - [x] Bug real encontrado y corregido viendo la tabla desktop en pantalla: la flecha del filtro "Evangelizado por" se había vuelto a caer a una segunda línea (regresión al centrar los encabezados, se perdió el `flex` del botón) -- mismo bug que ya se había arreglado antes en el header viejo
 - [x] Líneas de la grilla (verticales y horizontales) casi no se distinguían a simple vista -- oscurecidas de /20 a /40 de opacidad, pedido explícito del owner
+- [x] Paginador de "Personas evangelizadas" ahora se muestra siempre (antes solo con más de 1 página, con pocos datos de prueba nunca se veía) -- botones deshabilitados solos cuando no hay a dónde ir
+- [x] Fondo alternado por fila agregado a la tabla desktop (1ra fila blanca, alterna gris/blanco) -- mismo criterio que ya tenía el PDF, verificado en vivo con Playwright
 - [ ] Pendiente en KAN-350: filtros clickeables desde la fila (Red/Evangelizador/Tipo), filtro por semana, "Esta semana" como default
