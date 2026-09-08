@@ -559,21 +559,19 @@ export function EvangelismoPersonas() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-foreground">{e.nombre_completo}</p>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          <p className="shrink-0 text-xs text-muted-foreground">Evangelizado: {fechaLegible(e.fecha)}</p>
-                          {e.telefono_principal && (
-                            <a
-                              href={`https://wa.me/${soloDigitos(e.telefono_principal)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(ev) => ev.stopPropagation()}
-                              className="flex max-w-[108px] min-w-0 items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-xs font-semibold text-[#128C4A]"
-                            >
-                              <MessageCircle className="h-3.5 w-3.5 shrink-0" />
-                              <span className="truncate">{e.telefono_principal}</span>
-                            </a>
-                          )}
-                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Evangelizado: {fechaLegible(e.fecha)}</p>
+                        {e.telefono_principal && (
+                          <a
+                            href={`https://wa.me/${soloDigitos(e.telefono_principal)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(ev) => ev.stopPropagation()}
+                            className="mt-1 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-[#25D366]/15 px-2.5 py-1 text-xs font-semibold text-[#128C4A]"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{e.telefono_principal}</span>
+                          </a>
+                        )}
                       </div>
                       {expandida ? (
                         <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
