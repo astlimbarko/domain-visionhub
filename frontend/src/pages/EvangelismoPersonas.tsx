@@ -7,8 +7,8 @@
 // Departamento de Evangelismo -- el Líder de Red y el Líder/Sublíder de CdP
 // ya tienen su propio listado acotado en los paneles existentes.
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, LayoutDashboard, MessageCircle, Search, SlidersHorizontal, Users, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
+import { ROUTES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdpsIglesia, useRedes } from '@/hooks/useCasasDePaz';
 import { useBuscarEvangelizados, useTiposEvangelismo } from '@/hooks/useEvangelismo';
@@ -233,6 +234,7 @@ export function EvangelismoPersonas() {
   const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaActivaId);
   const location = useLocation();
+  const navigate = useNavigate();
   const filtroInicial = location.state as FiltroInicial | null;
 
   const [textoInput, setTextoInput] = useState('');
@@ -374,7 +376,18 @@ export function EvangelismoPersonas() {
     <div className="flex flex-col gap-6">
       {/* Mismo banner del dashboard principal (pedido explícito del owner,
           2026-09-06) -- ver EvangelismoBanner.tsx. */}
-      <EvangelismoBanner />
+      <EvangelismoBanner
+        accion={
+          /* Atajo cruzado con el dashboard (pedido explícito del owner,
+             2026-09-08) -- mismo botón del otro lado con "Lista de
+             Evangelizados", para moverse entre las 2 vistas sin volver al
+             menú lateral. */
+          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
         <KpiChip icon={Users} label="Total encontrados" color={AZUL}>
@@ -586,8 +599,9 @@ export function EvangelismoPersonas() {
                   quedó cerrada en una vuelta anterior. */}
               <table className="w-full table-fixed text-sm">
                 <colgroup>
+                  <col className="w-[4%]" />
                   <col className="w-[9%]" />
-                  <col className="w-[17%]" />
+                  <col className="w-[15%]" />
                   <col className="w-[4%]" />
                   <col className="w-[9%]" />
                   <col className="w-[7%]" />
@@ -595,10 +609,11 @@ export function EvangelismoPersonas() {
                   <col className="w-[5%]" />
                   <col className="w-[12%]" />
                   <col className="w-[11%]" />
-                  <col className="w-[15%]" />
+                  <col className="w-[13%]" />
                 </colgroup>
                 <thead className="bg-muted/40">
                   <tr className="divide-x divide-border/40">
+                    <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha Evangelizado</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nombre</th>
                     <th className="px-2 py-3 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Sexo</th>
@@ -687,7 +702,7 @@ export function EvangelismoPersonas() {
                 <tbody className="divide-y divide-border/40">
                   {resultados.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      <td colSpan={11} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         {mensajeVacio}
                       </td>
                     </tr>
@@ -709,13 +724,15 @@ export function EvangelismoPersonas() {
                           // se usa en el PDF (pedido explícito del owner).
                           className={cn('cursor-pointer divide-x divide-border/40 hover:bg-muted/40', i % 2 === 1 && 'bg-muted/25')}
                         >
+                          <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{(pagina - 1) * porPagina + i + 1}</td>
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">{fechaBreve(e.fecha)}</td>
                           <td className="px-2 py-3 text-center leading-tight">
-                            {/* Mismo peso de letra en las 2 líneas (nombres y
-                                apellidos) -- pedido explícito del owner, no
-                                queríamos que el apellido se viera "secundario". */}
-                            <p className="truncate font-semibold">{nombreLinea1 || e.nombre_completo}</p>
-                            {nombreLinea2 && <p className="truncate font-semibold">{nombreLinea2}</p>}
+                            {/* Sin negrita -- pedido explícito del owner: la
+                              negrita queda reservada para los títulos del
+                              encabezado, no para los datos de la fila.
+                              Mismo peso en las 2 líneas (nombres y apellidos). */}
+                            <p className="truncate">{nombreLinea1 || e.nombre_completo}</p>
+                            {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
                           </td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.sexo ?? '—'}</td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.telefono_principal ?? '—'}</td>

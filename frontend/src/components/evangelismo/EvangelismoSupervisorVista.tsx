@@ -389,10 +389,20 @@ export function EvangelismoSupervisorVista() {
           "Personas evangelizadas", pedido explícito del owner. */}
       <EvangelismoBanner
         accion={
-          <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
-            <Flag className="h-4 w-4" />
-            Asignar metas
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            {/* Atajo cruzado con "Personas evangelizadas" (pedido explícito
+                del owner, 2026-09-08) -- misma idea del lado allá con
+                "Dashboard", para moverse entre las 2 vistas sin volver al
+                menú lateral. */}
+            <Button onClick={() => irAPersonasEvangelizadas()} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+              <UsersRound className="h-4 w-4" />
+              Lista de Evangelizados
+            </Button>
+            <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+              <Flag className="h-4 w-4" />
+              Asignar metas
+            </Button>
+          </div>
         }
       />
 
