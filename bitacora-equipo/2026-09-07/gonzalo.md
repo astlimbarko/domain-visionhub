@@ -32,3 +32,8 @@
 - [x] Paginación dice "Mostrando X-Y de Z" en vez de "página N de M"; mobile pagina de a 25 (antes 50 como desktop) -- nuevo hook `useEsMobile()`
 - [x] Fila de WhatsApp siempre visible, "(vacío)" gris si no hay teléfono -- todas las tarjetas quedan a la misma altura
 - [ ] Pendiente: verificar la tarjeta con un registro que tenga TODOS los campos llenos a la vez (sigue sin probarse, ningún dato de prueba los tiene todos juntos)
+- [x] Agregué Sexo y Fecha de nacimiento a la lista (con año -- fix real, `fechaLegible` lo omitía a propósito)
+- [x] KAN-349 creado: modal de edición con switch "desbloquear" -- pospuesto, no implementado hoy
+- [x] KAN-350 creado: filtros clickeables (Red/Evangelizador/Tipo) + falta filtro por Evangelizador + filtro por semana + default semanal -- pospuesto, no implementado hoy
+- [x] **PR #40 mergeado a `master`** (commit `d0d354d`) -- único conflicto real: hook `useEsMobile` duplicado con Matías (trabajo en paralelo, mismo nombre/idea), resuelto sin pisar su código. `tsc -b` y lint limpios sobre el código combinado.
+- [ ] Pendiente: falta que Matías haga build + deploy de `frontend/dist/` (mensaje ya redactado y entregado al owner)
