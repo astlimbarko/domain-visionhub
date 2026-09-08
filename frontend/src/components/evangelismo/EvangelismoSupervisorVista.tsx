@@ -22,7 +22,7 @@ import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignad
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
-import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO, primerDiaMesRelativo } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, fechaLegibleCorta, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO, primerDiaMesRelativo } from '@/utils/calendario-fechas';
 import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { RedResumen } from '@/types/casas-de-paz.types';
 import type { EvangelizadoRed, MetaCdpRed } from '@/types/evangelismo.types';
@@ -117,20 +117,40 @@ export function EvangelismoSupervisorVista() {
     navigate(ROUTES.EVANGELISMO_PERSONAS, { state: { desde, hasta } });
   }
 
-  // Tendencia (KAN-285): rango amplio y fijo (últimos 12 meses hasta hoy),
-  // independiente del mes que se esté navegando arriba -- el componente
-  // agrupa/recorta en el cliente según la granularidad elegida.
+  // Tendencia (KAN-285): rango amplio de últimos 12 meses, ampliado para
+  // siempre cubrir también el mes que se esté navegando arriba (normalmente
+  // ya está adentro, salvo que se navegue muy atrás/adelante) -- así el
+  // resumen mensual de abajo puede recortar este mismo dato en vez de
+  // pedirle a fn_evangelismo_red los mismos registros una segunda vez por
+  // Red. Bug real encontrado 2026-09-08 (reporte del owner: demora extra en
+  // el panel de Líder de Evangelismo) -- duplicaba hasta N idas y vueltas a
+  // la base según la cantidad de Redes activas; mismo patrón que ya se
+  // corrigió hoy en fn_alertas_supervisor (20260908010000), acá el fix es
+  // en el frontend, no en la base.
   const hoyISO = aISO(hoy);
-  const desdeTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const baseTendencia = primerDiaMesRelativo(hoyISO, 11);
+  const desdeTendencia = desde < baseTendencia ? desde : baseTendencia;
+  const hastaTendencia = hasta > hoyISO ? hasta : hoyISO;
   const tendenciaPorRed = useQueries({
     queries: redes.map((r) => ({
-      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hoyISO],
-      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hoyISO),
+      queryKey: ['evangelismo', 'tendencia-red', r.id, desdeTendencia, hastaTendencia],
+      queryFn: () => obtenerEvangelismoRed(r.id, desdeTendencia, hastaTendencia),
       enabled: !!r.id,
     })),
   });
   const cargandoTendencia = tendenciaPorRed.some((q) => q.isLoading);
   const evangelizadosTendencia = useMemo(() => tendenciaPorRed.flatMap((q) => q.data ?? []), [tendenciaPorRed]);
+  // Evangelizados del mes en pantalla, por Red -- recortado del mismo dato de
+  // Tendencia de arriba (que ya cubre [desde, hasta]) en vez de una llamada
+  // aparte a fn_evangelismo_red.
+  const evangelizadosDelMesPorRed = useMemo(() => {
+    const mapa = new Map<string, EvangelizadoRed[]>();
+    redes.forEach((r, i) => {
+      const datos = tendenciaPorRed[i]?.data ?? [];
+      mapa.set(r.id, datos.filter((e) => e.fecha >= desde && e.fecha <= hasta));
+    });
+    return mapa;
+  }, [redes, tendenciaPorRed, desde, hasta]);
 
   function irMesAnterior() {
     const f = new Date(anio, mes - 1, 1);
@@ -152,18 +172,24 @@ export function EvangelismoSupervisorVista() {
     queries: redes.map((r) => ({
       queryKey: ['evangelismo', 'supervisor-resumen-red', r.id, desde, hasta],
       queryFn: async () => {
-        const [meta, tasa, evangelizados] = await Promise.all([
+        const [meta, tasa] = await Promise.all([
           obtenerMetaRedAsignada(r.id),
           obtenerTasaEvangelismoRed(r.id, desde, hasta),
-          obtenerEvangelismoRed(r.id, desde, hasta),
         ]);
-        return { redId: r.id, meta, tasa, evangelizados };
+        return { redId: r.id, meta, tasa };
       },
       enabled: !!r.id,
     })),
   });
-  const cargandoResumen = resumenPorRed.some((q) => q.isLoading);
-  const filas = useMemo(() => resumenPorRed.map((q) => q.data).filter((d): d is NonNullable<typeof d> => !!d), [resumenPorRed]);
+  const cargandoResumen = resumenPorRed.some((q) => q.isLoading) || cargandoTendencia;
+  const filas = useMemo(
+    () =>
+      resumenPorRed
+        .map((q) => q.data)
+        .filter((d): d is NonNullable<typeof d> => !!d)
+        .map((d) => ({ ...d, evangelizados: evangelizadosDelMesPorRed.get(d.redId) ?? [] })),
+    [resumenPorRed, evangelizadosDelMesPorRed]
+  );
 
   const totalMeta = filas.reduce((s, f) => s + (f.meta?.meta ?? 0), 0);
   const totalEvangelizados = filas.reduce((s, f) => s + Number(f.tasa?.evangelizados ?? 0), 0);
@@ -363,10 +389,20 @@ export function EvangelismoSupervisorVista() {
           "Personas evangelizadas", pedido explícito del owner. */}
       <EvangelismoBanner
         accion={
-          <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
-            <Flag className="h-4 w-4" />
-            Asignar metas
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            {/* Atajo cruzado con "Personas evangelizadas" (pedido explícito
+                del owner, 2026-09-08) -- misma idea del lado allá con
+                "Dashboard", para moverse entre las 2 vistas sin volver al
+                menú lateral. */}
+            <Button onClick={() => irAPersonasEvangelizadas()} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+              <UsersRound className="h-4 w-4" />
+              Lista de Evangelizados
+            </Button>
+            <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+              <Flag className="h-4 w-4" />
+              Asignar metas
+            </Button>
+          </div>
         }
       />
 
@@ -387,10 +423,14 @@ export function EvangelismoSupervisorVista() {
             "Meta no debe ser la primera, la primera debe ser Evangelizados")
             -- clicable, lleva a "Personas evangelizadas" con el mes que se
             está viendo acá ya filtrado. */}
+        {/* [&>div]:h-full -- sin esto, el botón (estirado por el grid a la
+            altura de "Meta General", que es más alta por su `sub`) no
+            traspasaba esa altura al KpiMosaico de adentro, y la tarjeta
+            "Evangelizados" quedaba más baja/desigual que sus vecinas. */}
         <button
           type="button"
           onClick={() => irAPersonasEvangelizadas()}
-          className="rounded-2xl text-left transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-2xl text-left transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>div]:h-full"
         >
           <KpiMosaico label="Evangelizados" icon={HeartHandshake} color={VERDE}>{cargandoResumen ? '—' : totalEvangelizados}</KpiMosaico>
         </button>
@@ -414,6 +454,7 @@ export function EvangelismoSupervisorVista() {
             color={DEPARTAMENTO_META.EVANGELISMO.color}
             titulo="Evangelizados por Red"
             descripcion="Tocá el anillo o una Red para ver el detalle por Casa de Paz"
+            intensidad={16}
           />
           <div className="p-6">
             {cargandoResumen ? (
@@ -429,7 +470,7 @@ export function EvangelismoSupervisorVista() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" />
+          <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Metas de la Red" descripcion="Avance del mes contra la meta que le asignaste a cada Red -- tocá una tarjeta o Editar para cambiarla" intensidad={16} />
           <div className="flex flex-col gap-5 p-6">
             {cargandoResumen ? (
               <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${redes.length}, minmax(0, 1fr))` }}>
@@ -473,7 +514,7 @@ export function EvangelismoSupervisorVista() {
 
       {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <TarjetaHeader icon={Flag} color={DEPARTAMENTO_META.EVANGELISMO.color} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" intensidad={16} />
         <div className="p-5">
           <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
@@ -488,6 +529,7 @@ export function EvangelismoSupervisorVista() {
             titulo="Calendario"
             descripcion="Días en los que alguna Casa de Paz registró evangelismo"
             accion={<span className="text-lg font-bold capitalize" style={{ color: DEPARTAMENTO_META.EVANGELISMO.color }}>{nombreMes(anio, mes)}</span>}
+            intensidad={16}
           />
           <div className="p-4">
             {cargandoResumen ? (
@@ -512,6 +554,7 @@ export function EvangelismoSupervisorVista() {
                 </Button>
               )
             }
+            intensidad={16}
           />
           <div className="flex flex-col gap-2 p-5">
             {!diaSeleccionado && <p className="text-sm text-muted-foreground">Elegí un día en el calendario para ver el detalle.</p>}
@@ -530,6 +573,7 @@ export function EvangelismoSupervisorVista() {
           color={DEPARTAMENTO_META.EVANGELISMO.color}
           titulo="Resumen semanal"
           descripcion="Semanas del mes con actividad -- tocá una para ver el detalle"
+          intensidad={16}
         />
         <div className="flex flex-col gap-2 p-5">
           {semanasDelMes.length === 0 && <p className="text-sm text-muted-foreground">Sin evangelismo registrado este mes.</p>}
@@ -542,8 +586,11 @@ export function EvangelismoSupervisorVista() {
                   onClick={() => seleccionarSemana(semana.inicio)}
                   className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
                 >
-                  <span className="text-sm font-semibold text-foreground">
-                    Semana {numeroSemanaISO(semana.inicio)} · del {fechaLegible(semana.inicio)} al {fechaLegible(semana.fin)}
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold text-foreground">Semana {numeroSemanaISO(semana.inicio)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      del {fechaLegibleCorta(semana.inicio)} al {fechaLegibleCorta(semana.fin)}
+                    </span>
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{semana.total}</span>

@@ -172,7 +172,11 @@ export function TendenciaEvangelismo({
     return buckets.map((b) => ({ ...b, cantidad: conteo.get(b.clave) ?? 0, cantidadSemilla: conteoSemilla.get(b.clave) ?? 0 }));
   }, [evangelizados, granularidad]);
 
-  const intervalo = granularidad === 'dia' ? 2 : 0;
+  // 'semana'/'mes' pueden acumular ~50 puntos (12 meses de historial) -- se deja que
+  // Recharts calcule cuántas etiquetas entran según el ancho real (se adapta solo
+  // entre mobile y desktop), en vez de forzar "mostralas todas" con interval={0}
+  // como antes -- eso era lo que hacía que se superpongan en pantallas angostas.
+  const intervalo = granularidad === 'dia' ? 2 : 'preserveStartEnd';
 
   return (
     <div className="flex flex-col gap-3">

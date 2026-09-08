@@ -30,7 +30,7 @@ export function EvangelismoBanner({ titulo = 'Evangelismo', subtitulo = 'Gestion
         alt=""
         onLoad={() => setBannerCargado(true)}
         className={cn(
-          'pointer-events-none absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-500',
+          'pointer-events-none absolute inset-0 h-full w-full object-cover object-left transition-opacity duration-500',
           bannerCargado ? 'opacity-100' : 'opacity-0'
         )}
       />

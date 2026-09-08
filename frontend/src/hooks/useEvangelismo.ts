@@ -78,11 +78,13 @@ export function useBuscarEvangelizados(
   pagina: number,
   porPagina: number,
   casaDePazId?: string,
-  tipoEvangelismoId?: string
+  tipoEvangelismoId?: string,
+  evangelizadoPorId?: string
 ) {
   return useQuery({
-    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId],
-    queryFn: () => buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId),
+    queryKey: ['evangelismo', 'buscar', iglesiaId, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId, evangelizadoPorId],
+    queryFn: () =>
+      buscarEvangelizados(iglesiaId as string, redId, texto, desde, hasta, pagina, porPagina, casaDePazId, tipoEvangelismoId, evangelizadoPorId),
     enabled: !!iglesiaId,
     placeholderData: keepPreviousData,
   });

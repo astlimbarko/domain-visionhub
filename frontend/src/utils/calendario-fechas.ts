@@ -82,6 +82,56 @@ export function fechaLegible(fechaISO: string): string {
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
 }
 
+/** Igual que `fechaLegible` pero con el año -- `fechaLegible` lo omite a
+ * propósito para fechas "de este año" (ej. "Evangelizado: 5 de septiembre"),
+ * pero una fecha de nacimiento puede ser de hace décadas y sin año pierde
+ * el dato más importante. */
+export function fechaLegibleConAno(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()} de ${fecha.getFullYear()}`;
+}
+
+/** Igual que `fechaLegible` pero con el mes abreviado (ej. "31 de ago") --
+ * para etiquetas donde ya hay otro dato al lado (como "Semana N") y el
+ * nombre completo del mes las hace demasiado largas para una sola línea. */
+export function fechaLegibleCorta(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${fecha.getDate()} de ${nombreMesCorto(fecha.getMonth()).toLowerCase()}`;
+}
+
+/** Formato numérico breve `DD/mes/AA` (ej. "23/ago/26") -- para columnas de
+ * tabla muy angostas donde ni `fechaLegible` ni `fechaLegibleCorta` entran
+ * sin envolver (KAN-350, tabla desktop de "Personas evangelizadas"). */
+export function fechaBreve(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const anio = String(fecha.getFullYear()).slice(-2);
+  return `${dia}/${nombreMesCorto(fecha.getMonth()).toLowerCase()}/${anio}`;
+}
+
+/** Igual que `fechaBreve` pero con el año completo (ej. "23/ago/1990") --
+ * para fecha de nacimiento en la misma tabla (KAN-350): el mismo formato
+ * corto que "Fecha Evangelizado", pero un año recortado a 2 dígitos pierde
+ * demasiado en una fecha que puede ser de hace décadas. */
+export function fechaBreveAnioCompleto(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${dia}/${nombreMesCorto(fecha.getMonth()).toLowerCase()}/${fecha.getFullYear()}`;
+}
+
+/** Edad en años cumplidos a partir de una fecha de nacimiento ISO (KAN-350,
+ * columna "Edad" en "Personas evangelizadas") -- resta simple de años, con
+ * el ajuste de si todavía no pasó el cumpleaños este año. */
+export function calcularEdad(fechaNacimientoISO: string): number {
+  const nacimiento = desdeISO(fechaNacimientoISO);
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const noCumplioAunEsteAnio =
+    hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+  if (noCumplioAunEsteAnio) edad -= 1;
+  return edad;
+}
+
 /** Número de semana ISO-8601 (1-53, lunes a domingo, la semana 1 es la que
  * contiene el primer jueves del año) -- para mostrar junto al rango de
  * fechas en "Resumen semanal" (KAN-285, pedido explícito del owner). */
