@@ -4,7 +4,7 @@ interface Props {
   pctBautizados: number;
   pctConMinisterio: number;
   pctMembresiaFormal: number;
-  pctDiscipuladoActivo: number;
+  pctAfirmados: number;
 }
 
 /** Una sola serie (identidad nominal: swapear el orden de las 4 categorías no
@@ -17,12 +17,12 @@ const COLOR = 'var(--chart-1)';
  * como % del total de tu gente -- mismo denominador en las 4 barras para que
  * sean directamente comparables entre sí.
  */
-export function CompromisoPersonasChart({ pctBautizados, pctConMinisterio, pctMembresiaFormal, pctDiscipuladoActivo }: Props) {
+export function CompromisoPersonasChart({ pctBautizados, pctConMinisterio, pctMembresiaFormal, pctAfirmados }: Props) {
   const datos = [
     { name: 'Bautizados', value: pctBautizados },
     { name: 'Con ministerio', value: pctConMinisterio },
     { name: 'Membresía formal', value: pctMembresiaFormal },
-    { name: 'Discipulado activo', value: pctDiscipuladoActivo },
+    { name: 'Afirmados', value: pctAfirmados },
   ];
 
   return (
