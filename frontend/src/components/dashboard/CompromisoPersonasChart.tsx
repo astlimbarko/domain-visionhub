@@ -8,7 +8,7 @@ interface Props {
   pctAfirmados: number;
 }
 
-const COLOR = 'var(--chart-4)';
+const COLOR = 'var(--brand-navy-soft)';
 
 /**
  * KPIs "de compromiso" -- 4 anillos de progreso (reusa `DonutRing`, el mismo
@@ -30,7 +30,7 @@ export function CompromisoPersonasChart({ pctBautizados, pctConMinisterio, pctMe
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       {datos.map(({ label, icon: Icon, valor }) => (
         <div key={label} className="flex flex-col items-center gap-2 text-center">
-          <DonutRing porcentaje={valor} size={76} strokeWidth={8} color={COLOR} trackColor="color-mix(in oklab, var(--chart-4) 12%, transparent)">
+          <DonutRing porcentaje={valor} size={76} strokeWidth={8} color={COLOR} trackColor="color-mix(in oklab, var(--brand-navy-soft) 12%, transparent)">
             <div className="flex flex-col items-center">
               <Icon className="h-3.5 w-3.5" style={{ color: COLOR }} />
               <span className="text-[15px] font-bold text-foreground">{valor}%</span>

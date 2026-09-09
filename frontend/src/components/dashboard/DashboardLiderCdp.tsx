@@ -598,7 +598,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader
                 icon={Layers}
-                color={MORADO}
+                color={MARINO}
                 titulo="Compromiso de tu gente"
                 descripcion="% del total que llegó a cada hito -- una barra corta es una oportunidad, no un error"
               />
