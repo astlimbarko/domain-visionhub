@@ -204,8 +204,16 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
     let conMinisterio = 0;
     let miembrosFormales = 0;
     for (const p of personasCdp) {
-      if (p.estado_sigla === 'DA' || p.estado_sigla === 'DI') discipulos++;
-      if (p.estado_sigla === 'CRE') creyentes++;
+      // Discípulo/Creyente/Afirmado son RANGOS de membresía autodeclarados
+      // (persona_censo_membresia.rango_miembro), no estados SSVA. Antes
+      // Discípulos/Creyentes leían estado_sigla ('DA'/'DI'/'CRE') por error
+      // -- DA/DI no se asigna nunca (siempre 0) y a los miembros formales casi
+      // no se les pone estado SSVA, así que ambas cards subcontaban. El dato
+      // real vive en el rango, igual que ya hacía "Afirmados" (2026-09-08).
+      if (p.rango_miembro === 'DISCIPULO') discipulos++;
+      if (p.rango_miembro === 'CREYENTE') creyentes++;
+      // Simpatizante NO es un rango de membresía (es un visitante pre-membresía):
+      // se queda en el estado SSVA 'SIM', que es su fuente correcta.
       if (p.estado_sigla === 'SIM') simpatizantes++;
       if (p.bautizado) bautizados++;
       if (p.rango_miembro === 'AFIRMADO') afirmados++;
@@ -538,16 +546,16 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               icon={BookOpen}
               color={AZUL}
               valor={conteosAccesoRapido.discipulos}
-              descripcion="DA + DI"
-              onClick={() => irAPersonas({ tipo: 'ESTADO', siglas: ['DA', 'DI'] })}
+              descripcion="Rango de membresía"
+              onClick={() => irAPersonas({ tipo: 'RANGO_MIEMBRO', valor: 'DISCIPULO' })}
             />
             <CardIndicadorPastel
               label="Creyentes"
               icon={UserCheck}
               color={MENTA}
               valor={conteosAccesoRapido.creyentes}
-              descripcion="Estado CRE"
-              onClick={() => irAPersonas({ tipo: 'ESTADO', siglas: ['CRE'] })}
+              descripcion="Rango de membresía"
+              onClick={() => irAPersonas({ tipo: 'RANGO_MIEMBRO', valor: 'CREYENTE' })}
             />
             <CardIndicadorPastel
               label="Simpatizantes"
