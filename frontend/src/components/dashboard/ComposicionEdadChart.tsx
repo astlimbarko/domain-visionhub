@@ -1,4 +1,4 @@
-import { Bar, BarChart, Cell, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Baby, GraduationCap, Briefcase, Users as IconAdultos, Armchair, type LucideIcon } from 'lucide-react';
 
 export interface RangoEtario {
   etiqueta: string;
@@ -9,35 +9,51 @@ interface Props {
   rangos: RangoEtario[];
 }
 
+/** Un ícono reconocible por rango, en vez de solo un rótulo de texto -- se entiende de un vistazo sin leer los números del eje. */
+const ICONO_POR_ETIQUETA: Record<string, LucideIcon> = {
+  '0-11': Baby,
+  '12-17': GraduationCap,
+  '18-30': Briefcase,
+  '31-59': IconAdultos,
+  '60+': Armchair,
+};
+
 /** Un solo hue en rampa (más oscuro = más edad) -- son buckets ORDINALES (niños → mayores), no identidad nominal. */
 function colorPorIndice(i: number, total: number) {
   const pct = total <= 1 ? 0 : i / (total - 1);
   return `color-mix(in oklab, var(--chart-1) ${Math.round(40 + pct * 55)}%, white)`;
 }
 
-/** Composición por edad del roster de la CdP (2026-09-08, pedido del owner: gráfico nuevo, exclusivo de la pestaña Personas). */
+/**
+ * Composición por edad -- barras con un ícono propio por rango arriba
+ * (2026-09-08, pedido del owner: más entendible de un vistazo, no solo un
+ * eje con números).
+ */
 export function ComposicionEdadChart({ rangos }: Props) {
-  const datos = rangos.map((r, i) => ({ ...r, fill: colorPorIndice(i, rangos.length) }));
+  const total = rangos.reduce((acc, r) => acc + r.cantidad, 0);
+  const max = Math.max(1, ...rangos.map((r) => r.cantidad));
+
+  if (total === 0) return <p className="text-sm text-muted-foreground">Sin personas todavía.</p>;
 
   return (
-    <div className="h-56 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={datos} margin={{ top: 20, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="etiqueta" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-          <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-          <Tooltip
-            formatter={(value) => [`${value} persona${value === 1 ? '' : 's'}`, undefined]}
-            contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, color: 'var(--popover-foreground)' }}
-          />
-          <Bar dataKey="cantidad" radius={[8, 8, 0, 0]} maxBarSize={44}>
-            <LabelList dataKey="cantidad" position="top" style={{ fontSize: 12, fontWeight: 600, fill: 'var(--foreground)' }} />
-            {datos.map((d, i) => (
-              <Cell key={i} fill={d.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="flex items-end justify-between gap-2 sm:gap-4">
+      {rangos.map((r, i) => {
+        const Icon = ICONO_POR_ETIQUETA[r.etiqueta] ?? IconAdultos;
+        const color = colorPorIndice(i, rangos.length);
+        const alturaPct = Math.max(6, Math.round((r.cantidad / max) * 100));
+        return (
+          <div key={r.etiqueta} className="flex flex-1 flex-col items-center gap-1.5">
+            <span className="text-[13px] font-bold text-foreground">{r.cantidad}</span>
+            <div className="flex h-28 w-full items-end justify-center">
+              <div className="w-full max-w-9 rounded-t-lg transition-[height] duration-500" style={{ height: `${alturaPct}%`, background: color }} />
+            </div>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: `color-mix(in oklab, ${color} 30%, transparent)` }}>
+              <Icon className="h-4 w-4" style={{ color }} />
+            </span>
+            <span className="text-[10.5px] text-muted-foreground">{r.etiqueta}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

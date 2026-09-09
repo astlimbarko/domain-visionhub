@@ -1,4 +1,5 @@
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Droplets, Handshake, IdCard, Sparkles } from 'lucide-react';
+import { DonutRing } from './DonutRing';
 
 interface Props {
   pctBautizados: number;
@@ -7,46 +8,37 @@ interface Props {
   pctAfirmados: number;
 }
 
-/** Una sola serie (identidad nominal: swapear el orden de las 4 categorías no
- * cambia el significado), así que las 4 barras van del mismo color -- sin
- * leyenda, el título de la sección ya dice qué se mide. */
 const COLOR = 'var(--chart-1)';
 
 /**
- * KPIs "de compromiso" (2026-09-08, pedido del owner: gráfico, no más cards)
- * como % del total de tu gente -- mismo denominador en las 4 barras para que
- * sean directamente comparables entre sí.
+ * KPIs "de compromiso" -- 4 anillos de progreso (reusa `DonutRing`, el mismo
+ * lenguaje visual que ya usa "Índice de fidelidad" en esta pantalla) en vez
+ * de una barra horizontal más -- 2026-09-08, pedido del owner: los gráficos
+ * quedaban repetidos entre sí (varios eran la misma barra horizontal) y
+ * poco entendibles a primera vista. Un anillo por hito se lee de un vistazo,
+ * sin tener que comparar largos de barra.
  */
 export function CompromisoPersonasChart({ pctBautizados, pctConMinisterio, pctMembresiaFormal, pctAfirmados }: Props) {
   const datos = [
-    { name: 'Bautizados', value: pctBautizados },
-    { name: 'Con ministerio', value: pctConMinisterio },
-    { name: 'Membresía formal', value: pctMembresiaFormal },
-    { name: 'Afirmados', value: pctAfirmados },
+    { label: 'Bautizados', icon: Droplets, valor: pctBautizados },
+    { label: 'Con ministerio', icon: Handshake, valor: pctConMinisterio },
+    { label: 'Membresía formal', icon: IdCard, valor: pctMembresiaFormal },
+    { label: 'Afirmados', icon: Sparkles, valor: pctAfirmados },
   ];
 
   return (
-    <div className="h-56 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={datos} layout="vertical" margin={{ top: 4, right: 32, left: 8, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-          <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} unit="%" />
-          <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} width={112} />
-          <Tooltip
-            formatter={(value) => [`${value}%`, 'del total de tu gente']}
-            contentStyle={{
-              background: 'var(--popover)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              fontSize: 12,
-              color: 'var(--popover-foreground)',
-            }}
-          />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22} fill={COLOR}>
-            <LabelList dataKey="value" position="right" formatter={(v) => `${v}%`} style={{ fontSize: 12, fontWeight: 600, fill: 'var(--foreground)' }} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {datos.map(({ label, icon: Icon, valor }) => (
+        <div key={label} className="flex flex-col items-center gap-2 text-center">
+          <DonutRing porcentaje={valor} size={76} strokeWidth={8} color={COLOR} trackColor="color-mix(in oklab, var(--chart-1) 12%, transparent)">
+            <div className="flex flex-col items-center">
+              <Icon className="h-3.5 w-3.5" style={{ color: COLOR }} />
+              <span className="text-[15px] font-bold text-foreground">{valor}%</span>
+            </div>
+          </DonutRing>
+          <p className="text-[11.5px] leading-tight text-muted-foreground">{label}</p>
+        </div>
+      ))}
     </div>
   );
 }

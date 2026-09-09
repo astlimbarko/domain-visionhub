@@ -313,12 +313,25 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
     }));
   }, [testimoniosSeisMeses, hoyTendencias]);
 
+  const pctsSeguimiento = useMemo(() => {
+    const inactivos = data?.alertas.inactivos?.length ?? 0;
+    const reconciliados = data?.alertas.reconciliados?.length ?? 0;
+    const simpatizantes = conteosAccesoRapido.simpatizantes;
+    const totalMiembrosLocal = data?.miembros?.length ?? 0;
+    const pct = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+    return {
+      pctInactivos: pct(inactivos, totalMiembrosLocal),
+      pctReconciliados: pct(reconciliados, totalMiembrosLocal),
+      pctSimpatizantes: pct(simpatizantes, personasCdp.length),
+    };
+  }, [data?.alertas, data?.miembros, conteosAccesoRapido.simpatizantes, personasCdp.length]);
+
   const semanasCumplimiento = useMemo(() => semanasVentana(hoyTendencias, VENTANA_SEMANAS_CUMPLIMIENTO), [hoyTendencias]);
   const desdeVentanaCumplimiento = semanasCumplimiento[semanasCumplimiento.length - 1].inicio;
   const hastaVentanaCumplimiento = semanasCumplimiento[0].fin;
   const { data: fechasReportadasVentana = [] } = useHistorialReportes(casaDePazId, desdeVentanaCumplimiento, hastaVentanaCumplimiento);
 
-  const { cumplimientoReportes, rachaReportes } = useMemo(() => {
+  const { cumplimientoReportes, rachaReportes, detalleSemanasReportes } = useMemo(() => {
     const semanasConReporte = new Set(fechasReportadasVentana.map((f) => inicioSemanaISO(f)));
     const semanasCerradas = semanasCumplimiento.filter((s) => s.fin < hoyISOTendencias);
     const cumplimientoCalc =
@@ -330,7 +343,11 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
       if (semanasConReporte.has(s.inicio)) rachaCalc++;
       else break;
     }
-    return { cumplimientoReportes: cumplimientoCalc, rachaReportes: rachaCalc };
+    // De la más vieja a la más reciente, para la grilla de racha semanal (semanasCumplimiento viene al revés).
+    const detalleCalc = [...semanasCumplimiento]
+      .reverse()
+      .map((s) => ({ cerrada: s.fin < hoyISOTendencias, reportado: semanasConReporte.has(s.inicio) }));
+    return { cumplimientoReportes: cumplimientoCalc, rachaReportes: rachaCalc, detalleSemanasReportes: detalleCalc };
   }, [fechasReportadasVentana, semanasCumplimiento, hoyISOTendencias]);
 
   // Bug real reportado por el owner (2026-09-08): "primero muestra azul y
@@ -650,6 +667,9 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
                     inactivos={alertas.inactivos?.length ?? 0}
                     reconciliados={alertas.reconciliados?.length ?? 0}
                     simpatizantes={conteosAccesoRapido.simpatizantes}
+                    pctInactivos={pctsSeguimiento.pctInactivos}
+                    pctReconciliados={pctsSeguimiento.pctReconciliados}
+                    pctSimpatizantes={pctsSeguimiento.pctSimpatizantes}
                   />
                 </Suspense>
               </div>
@@ -676,7 +696,12 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={Calendar} color={MORADO} titulo="Cumplimiento de reportes" descripcion={`Últimas ${VENTANA_SEMANAS_CUMPLIMIENTO} semanas`} />
               <div className="p-5">
-                <CumplimientoReportesChart cumplimiento={cumplimientoReportes} racha={rachaReportes} ventanaSemanas={VENTANA_SEMANAS_CUMPLIMIENTO} />
+                <CumplimientoReportesChart
+                  cumplimiento={cumplimientoReportes}
+                  racha={rachaReportes}
+                  ventanaSemanas={VENTANA_SEMANAS_CUMPLIMIENTO}
+                  detalleSemanas={detalleSemanasReportes}
+                />
               </div>
             </section>
           </div>
