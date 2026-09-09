@@ -7,6 +7,7 @@ import {
   Flag,
   Flame,
   Heart,
+  LayoutGrid,
   MapPin,
   Network,
   Plus,
@@ -20,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/components/shared/SeccionPerfil';
 import { gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { useRedes } from '@/hooks/useCasasDePaz';
@@ -342,6 +344,22 @@ export function Evangelismo() {
         </div>
       </div>
 
+      {/* Pestañas (2026-09-09, pedido de Matías: seguía siendo mucho scroll,
+          sobre todo en móvil) -- mismo patrón que ya usa el Dashboard de CdP
+          (Tabs de shadcn/radix) para el mismo problema. "Resumen" agrupa
+          métricas/meta/tipo/gráfico; "Calendario" queda solo, es el bloque
+          más alto de la pantalla y ahora no compite con el resto. */}
+      <Tabs defaultValue="resumen">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="resumen" className="gap-1.5">
+            <LayoutGrid /> Resumen
+          </TabsTrigger>
+          <TabsTrigger value="calendario" className="gap-1.5">
+            <CalendarRange /> Calendario
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resumen">
       {/* 3 métricas protagonistas -- reemplaza el KpiCard+DonutRing de antes
           por el mismo lenguaje "SaaS pastel" que ya usa el Dashboard de CdP
           (CardIndicadorPastel, 2026-09-08). Un solo número grande por card,
@@ -543,7 +561,9 @@ export function Evangelismo() {
           </div>
         </section>
       </div>
+        </TabsContent>
 
+        <TabsContent value="calendario">
       {/* Calendario: qué días se salió a evangelizar, con el detalle de a quién se ganó ese día */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
@@ -683,6 +703,8 @@ export function Evangelismo() {
           </div>
         </section>
       </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Tarjeta motivacional -- puramente emocional, sin dato ni lógica.
           Achicada a una tira de una sola línea (2026-09-09, pedido de
