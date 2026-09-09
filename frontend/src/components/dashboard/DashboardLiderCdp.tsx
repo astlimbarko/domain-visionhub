@@ -598,7 +598,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader
                 icon={Layers}
-                color={AZUL}
+                color={MORADO}
                 titulo="Compromiso de tu gente"
                 descripcion="% del total que llegó a cada hito -- una barra corta es una oportunidad, no un error"
               />
@@ -624,7 +624,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={Baby} color={AZUL} titulo="Composición por edad" descripcion="Rangos etarios de tu gente" />
+              <TarjetaHeader icon={Baby} color={AMBAR} titulo="Composición por edad" descripcion="Rangos etarios de tu gente" />
               <div className="p-5">
                 <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
                   <ComposicionEdadChart rangos={composicionEdad} />
