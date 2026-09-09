@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
-import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico, degradadoIdentidadColor } from './DashboardUI';
+import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, degradadoIdentidadColor } from './DashboardUI';
 import { CardIndicadorPastel } from './CardIndicadorPastel';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
@@ -198,34 +198,48 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
       {/* ── Pestañas (2026-09-09, pedido del owner: acceso directo tipo Dashboard
              de CdP, sin solapar la vista con demasiadas secciones apiladas) ──── */}
       <Tabs defaultValue="indicadores">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="indicadores" className="gap-1.5">
             <LayoutGrid /> Indicadores
           </TabsTrigger>
-          <TabsTrigger value="membresia" className="gap-1.5">
-            <UsersRound /> Membresía y Ministerio
+          <TabsTrigger value="liderazgo" className="gap-1.5">
+            <UsersRound /> Liderazgo
+          </TabsTrigger>
+          <TabsTrigger value="censo" className="gap-1.5">
+            <Crown /> Censo espiritual
+          </TabsTrigger>
+          <TabsTrigger value="crecimiento" className="gap-1.5">
+            <Flame /> Crecimiento
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="indicadores">
-      {/* ── Indicadores: mosaicos de color pleno (una sola fila) ──────────────── */}
+      {/* ── Indicadores: mismo lenguaje pastel que el resto del dashboard
+             (2026-09-09, antes eran KpiMosaico de color pleno -- convivían 2
+             estilos distintos en la misma pantalla). ──────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiMosaico label="Casas de Paz activas" icon={Home} color={AZUL}>{kpi.cdp_activas}</KpiMosaico>
-        <KpiMosaico label="Miembros totales" icon={Users} color={MORADO}>{kpi.miembros_totales}</KpiMosaico>
-        <KpiMosaico label="Asistencia promedio" icon={Activity} color={VERDE}>{kpi.asistencia_promedio ?? '—'}</KpiMosaico>
-        <KpiMosaico label="Asistencia total" icon={UserCheck} color={MARINO}>{asistenciaTotal || '—'}</KpiMosaico>
-        <KpiMosaico label="Reportes al día" icon={ClipboardCheck} color={AMBAR}>{reportadas}/{kpi.cdp_activas}</KpiMosaico>
-        <KpiMosaico label={`Ingresos de ${etiquetaPeriodo}`} icon={Wallet} color={TEAL}>
-          {ingresosEntradas.length === 0 ? (
-            '—'
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {ingresosEntradas.map(([simbolo, total]) => (
-                <span key={simbolo} className="text-lg leading-tight">{simbolo} {total.toFixed(2)}</span>
-              ))}
-            </div>
-          )}
-        </KpiMosaico>
+        <CardIndicadorPastel icon={Home} label="Casas de Paz activas" color={AZUL} valor={kpi.cdp_activas} descripcion="Vigentes en la Red" />
+        <CardIndicadorPastel icon={Users} label="Miembros totales" color={MORADO} valor={kpi.miembros_totales} descripcion="En toda la Red" />
+        <CardIndicadorPastel icon={Activity} label="Asistencia promedio" color={VERDE} valor={kpi.asistencia_promedio ?? '—'} descripcion="Por reunión" />
+        <CardIndicadorPastel icon={UserCheck} label="Asistencia total" color={MARINO} valor={asistenciaTotal || '—'} descripcion="Última reunión de cada CdP" />
+        <CardIndicadorPastel icon={ClipboardCheck} label="Reportes al día" color={AMBAR} valor={`${reportadas}/${kpi.cdp_activas}`} descripcion="Esta semana" />
+        <CardIndicadorPastel
+          icon={Wallet} label="Ingresos" color={TEAL}
+          valor={
+            ingresosEntradas.length === 0
+              ? '—'
+              : ingresosEntradas.length === 1
+                ? `${ingresosEntradas[0][0]} ${ingresosEntradas[0][1].toFixed(2)}`
+                : (
+                  <div className="flex flex-col gap-0.5 text-[18px]">
+                    {ingresosEntradas.map(([simbolo, total]) => (
+                      <span key={simbolo} className="leading-tight">{simbolo} {total.toFixed(2)}</span>
+                    ))}
+                  </div>
+                )
+          }
+          descripcion={`De ${etiquetaPeriodo}`}
+        />
       </div>
 
       {/* ── Aviso: sin reporte esta semana ───────────────────────────────────────── */}
@@ -319,11 +333,27 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
       )}
         </TabsContent>
 
-        <TabsContent value="membresia">
-      {/* ── Accesos rápidos de censo/cargos/milagros (2026-09-09, con base en
-             REPORTE 2026 VISION.xlsx) -- cada card lleva a "Personas de Red"
-             ya filtrada, mismo patrón que el Dashboard de CdP. ──────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* ── Liderazgo: cargos reales (no autodeclarados) ─────────────────── */}
+        <TabsContent value="liderazgo">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <CardIndicadorPastel
+          icon={Home} label="Líderes de Casa de Paz" color={AZUL} valor={conteosAccesoRapido.lideresCdp}
+          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'LIDER_CDP' })}
+        />
+        <CardIndicadorPastel
+          icon={UsersRound} label="Sub líderes" color={MARINO} valor={conteosAccesoRapido.sublideres}
+          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'SUBLIDER_CDP' })}
+        />
+        <CardIndicadorPastel
+          icon={BadgeCheck} label="Líderes de ministerios" color={MORADO} valor={conteosAccesoRapido.lideresMinisterio}
+          descripcion="Ujieres, comunicación, alabanza, etc." onClick={() => irAPersonas({ tipo: 'LIDER_MINISTERIO' })}
+        />
+      </div>
+        </TabsContent>
+
+        {/* ── Censo espiritual: cargos autodeclarados en el formulario de membresía ── */}
+        <TabsContent value="censo">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <CardIndicadorPastel
           icon={Crown} label="EFESIOS" color={MORADO} valor={conteosAccesoRapido.efesios}
           descripcion="Con tipo Efesio declarado" onClick={() => irAPersonas({ tipo: 'EFESIO' })}
@@ -348,18 +378,12 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           icon={Sparkles} label="Mentores" color={VERDE} valor={conteosAccesoRapido.mentores}
           descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'MENTOR' })}
         />
-        <CardIndicadorPastel
-          icon={Home} label="Líderes de Casa de Paz" color={AZUL} valor={conteosAccesoRapido.lideresCdp}
-          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'LIDER_CDP' })}
-        />
-        <CardIndicadorPastel
-          icon={UsersRound} label="Sub líderes" color={MARINO} valor={conteosAccesoRapido.sublideres}
-          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'SUBLIDER_CDP' })}
-        />
-        <CardIndicadorPastel
-          icon={BadgeCheck} label="Líderes de ministerios" color={MORADO} valor={conteosAccesoRapido.lideresMinisterio}
-          descripcion="Ujieres, comunicación, alabanza, etc." onClick={() => irAPersonas({ tipo: 'LIDER_MINISTERIO' })}
-        />
+      </div>
+        </TabsContent>
+
+        {/* ── Crecimiento: rango de membresía, bautismo, milagros, evangelismo ── */}
+        <TabsContent value="crecimiento">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CardIndicadorPastel
           icon={BookOpen} label="Discípulos" color={VERDE} valor={conteosAccesoRapido.discipulos}
           descripcion="Rango de membresía" onClick={() => irAPersonas({ tipo: 'RANGO_MIEMBRO', valor: 'DISCIPULO' })}
@@ -373,7 +397,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           descripcion="Personas con al menos 1 milagro" onClick={() => irAPersonas({ tipo: 'MILAGRO' })}
         />
         <CardIndicadorPastel
-          icon={UserPlus} label="Evangelizados de 1+1" color={VERDE} valor={evangelizadosUnoAUno}
+          icon={UserPlus} label="Evangelizados de 1+1" color={MORADO} valor={evangelizadosUnoAUno}
           descripcion={`En ${etiquetaPeriodo}`} onClick={() => navigate(ROUTES.EVANGELISMO)}
         />
       </div>
