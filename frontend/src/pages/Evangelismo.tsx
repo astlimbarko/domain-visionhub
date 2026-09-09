@@ -10,7 +10,6 @@ import {
   MapPin,
   Network,
   Plus,
-  Quote,
   Target,
   Trophy,
   UserPlus,
@@ -52,7 +51,7 @@ import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 // Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
 // módulo -- ver `evangelismo-colores.ts`. Un color por sección para que se
 // distingan a simple vista, no un solo tono repetido en toda la pantalla.
-const { AZUL, VERDE, NARANJA, AMARILLO, MORADO, ROSA, CELESTE } = EVANGELISMO_COLOR;
+const { AZUL, VERDE, NARANJA, MORADO, ROSA, CELESTE } = EVANGELISMO_COLOR;
 
 export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
@@ -309,45 +308,37 @@ export function Evangelismo() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
-        <div className="flex items-center gap-2">
+      {/* Barra combinada: intro chica del módulo + navegador de mes + PDF, en
+          una sola fila (2026-09-09, pedido explícito de Matías: eran 2
+          bloques separados y sumaban scroll sin aportar información nueva --
+          se fusionan para bajar la altura total de la pantalla). Se sacó la
+          cita bíblica decorativa (Marcos 16:15) para priorizar menos scroll;
+          si se quiere de vuelta, era un <p> chico a la derecha del título. */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex"
+            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
+          >
+            <Users className="h-4 w-4" style={{ color: MORADO }} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold tracking-tight text-foreground">Evangelismo</p>
+            <p className="truncate text-[11px] text-muted-foreground">Llevando el mensaje de esperanza a más personas</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:ml-auto">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="flex w-36 items-center justify-center gap-1.5 text-center text-sm font-semibold tracking-tight capitalize">
+          <span className="flex w-32 items-center justify-center gap-1.5 text-center text-sm font-semibold tracking-tight capitalize">
             {nombreMes(anio, mes)}
             {actualizandoLista && !cargandoLista && <Spinner className="h-3 w-3 text-muted-foreground" />}
           </span>
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesSiguiente} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </div>
-        <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="evangelismo" className="ml-auto" />
-      </div>
-
-      {/* Intro chica del módulo (no es un hero, ya está el banner de arriba) --
-          pedido del owner (rediseño 2026-09-09): título + bajada cálida a la
-          izquierda, cita bíblica discreta a la derecha. Puramente decorativo,
-          sin datos ni lógica. */}
-      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
-          >
-            <Users className="h-5 w-5" style={{ color: MORADO }} />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground">Evangelismo</h2>
-            <p className="text-[13px] text-muted-foreground">Llevando el mensaje de esperanza a más personas</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2 sm:max-w-xs">
-          <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
-          <p className="text-[12px] leading-snug text-muted-foreground italic">
-            "Id por todo el mundo y predicad el evangelio a toda criatura."
-            <span className="mt-0.5 block not-italic text-muted-foreground/70">Marcos 16:15</span>
-          </p>
+          <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="evangelismo" />
         </div>
       </div>
 
@@ -407,19 +398,13 @@ export function Evangelismo() {
       {/* Editor de meta: mismo control de siempre (Input + Guardar de la meta
           propia, estado de la meta de Red), solo reubicado -- ya no hace
           falta que compita visualmente con las 3 cards de arriba. */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader
-          icon={Flag}
-          color={AMARILLO}
-          titulo="Meta"
-          descripcion={tasa?.origen ? `Meta ${esMetaAsignada(tasa.origen) ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
-        />
-        <div className="p-5">
-          {cargandoTasa ? (
-            <Skeleton className="h-24 w-full rounded-xl" />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div
+      <div className="flex flex-col gap-2">
+        <p className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Ajustá tu meta</p>
+        {cargandoTasa ? (
+          <Skeleton className="h-24 w-full rounded-xl" />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div
                 className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
                 style={
                   tasa?.origen === 'PROPIA'
@@ -503,8 +488,7 @@ export function Evangelismo() {
               </div>
             </div>
           )}
-        </div>
-      </section>
+      </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -701,24 +685,15 @@ export function Evangelismo() {
       </div>
 
       {/* Tarjeta motivacional -- puramente emocional, sin dato ni lógica.
-          Cierra la pantalla con algo humano, no con una tabla más. */}
-      <section
-        className="overflow-hidden rounded-2xl border p-5"
-        style={{ background: `color-mix(in oklab, ${ROSA} 6%, white)`, borderColor: `color-mix(in oklab, ${ROSA} 18%, white)` }}
-      >
-        <div className="flex items-center gap-4">
-          <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-            style={{ background: `color-mix(in oklab, ${ROSA} 16%, transparent)` }}
-          >
-            <Heart className="h-5 w-5" style={{ color: ROSA }} />
-          </span>
-          <div>
-            <p className="text-[15px] font-bold text-foreground">Cada persona cuenta</p>
-            <p className="text-[13px] text-muted-foreground">Tu obediencia hoy puede transformar una vida para siempre.</p>
-          </div>
-        </div>
-      </section>
+          Achicada a una tira de una sola línea (2026-09-09, pedido de
+          Matías: "muchos cuadros, mucho scroll" -- ya no es una card con su
+          propio borde/ícono circular, solo un renglón discreto de cierre). */}
+      <div className="flex items-center gap-2 rounded-xl px-4 py-2.5" style={{ background: `color-mix(in oklab, ${ROSA} 6%, white)` }}>
+        <Heart className="h-3.5 w-3.5 shrink-0" style={{ color: ROSA }} />
+        <p className="truncate text-[12.5px] text-muted-foreground">
+          <span className="font-semibold text-foreground">Cada persona cuenta</span> — tu obediencia hoy puede transformar una vida para siempre.
+        </p>
+      </div>
 
       {cdpActiva && (
         <NuevoEvangelizadoDialog
