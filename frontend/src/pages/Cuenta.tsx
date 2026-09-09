@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Lock } from 'lucide-react';
+import { CheckCircle2, Circle, Lock, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { EditorFotoPerfilDialog } from '@/components/shared/EditorFotoPerfilDialog';
 import { AZUL } from '@/components/dashboard/DashboardUI';
 import { establecerContrasena, mensajeErrorContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
+import { useEliminarFotoPerfil, useFotoPerfilPath, useUrlFirmadaFotoPerfil } from '@/hooks/usePersonaFoto';
 
 const REQUISITOS_CONTRASENA = [
   { clave: 'longitud', texto: 'Mínimo 8 caracteres', test: (v: string) => v.length >= 8 },
@@ -36,12 +39,28 @@ type FormContrasena = z.infer<typeof esquemaContrasena>;
 
 export function Cuenta() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
+  const personaId = useAuthStore((s) => s.personaId);
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const [correo, setCorreo] = useState<string | null>(null);
   const [enviandoContrasena, setEnviandoContrasena] = useState(false);
   const formContrasena = useForm<FormContrasena>({ resolver: zodResolver(esquemaContrasena) });
   const nuevaContrasena = formContrasena.watch('contrasena') ?? '';
 
+  const { data: fotoPath, isLoading: cargandoFotoPath } = useFotoPerfilPath(personaId ?? undefined);
+  const { data: fotoUrl } = useUrlFirmadaFotoPerfil(fotoPath);
+  const eliminarFoto = useEliminarFotoPerfil();
+  const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => { obtenerCorreoActual().then(setCorreo); }, []);
+
+  function onQuitarFoto() {
+    if (!personaId || !fotoPath) return;
+    eliminarFoto.mutate(
+      { personaId, path: fotoPath },
+      { onError: () => toast.error('No se pudo quitar la foto'), onSuccess: () => toast.success('Foto quitada') }
+    );
+  }
 
   async function onSubmitContrasena(datos: FormContrasena) {
     setEnviandoContrasena(true);
@@ -54,14 +73,62 @@ export function Cuenta() {
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4">
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
-          {(nombreCompleto ?? '?')[0]?.toUpperCase()}
+        <div className="relative h-20 w-20">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary text-xl font-bold text-primary-foreground">
+            {cargandoFotoPath ? (
+              <Spinner className="h-5 w-5 text-primary-foreground/70" />
+            ) : fotoUrl ? (
+              <img src={fotoUrl} alt={nombreCompleto ?? 'Foto de perfil'} className="h-full w-full object-cover" />
+            ) : (
+              (nombreCompleto ?? '?')[0]?.toUpperCase()
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => inputArchivoRef.current?.click()}
+            className="absolute -right-1 -bottom-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-background text-foreground shadow-sm hover:bg-muted"
+            aria-label="Cambiar foto de perfil"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          {fotoUrl && (
+            <button
+              type="button"
+              onClick={onQuitarFoto}
+              disabled={eliminarFoto.isPending}
+              className="absolute -bottom-1 -left-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-background text-destructive shadow-sm hover:bg-destructive/10"
+              aria-label="Quitar foto de perfil"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <input
+            ref={inputArchivoRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const archivo = e.target.files?.[0];
+              if (archivo) setArchivoParaRecortar(archivo);
+              e.target.value = '';
+            }}
+          />
         </div>
         <div className="text-center">
           <p className="text-lg font-bold tracking-tight text-foreground">{nombreCompleto ?? '—'}</p>
           <p className="text-[13px] text-muted-foreground">{correo ?? '—'}</p>
         </div>
       </div>
+
+      {archivoParaRecortar && personaId && iglesiaActivaId && (
+        <EditorFotoPerfilDialog
+          archivo={archivoParaRecortar}
+          iglesiaId={iglesiaActivaId}
+          personaId={personaId}
+          onCerrar={() => setArchivoParaRecortar(null)}
+          onSubida={() => setArchivoParaRecortar(null)}
+        />
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Lock} color={AZUL} titulo="Cambiar contraseña" descripcion="Usá una contraseña que no repitas en otro lado" />

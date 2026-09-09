@@ -37,6 +37,7 @@ plan de implementación para separar con precisión lo existente de lo propuesto
 | [14](14-afirmacion/) | Departamento de Afirmación | Especificación, impacto de base y plan del módulo de Afirmación |
 | [15](15-gestion-administrativa/) | Gestión administrativa | Super Admin, Pastor, Supervisor, iglesias hijas/satélite y OTP |
 | [16](16-constructor-estructura-organizacional/) | Constructor de Estructura Organizacional | Lienzo dinámico por iglesia, layout, asignaciones, OTP local y responsividad |
+| [18](18-fotos-perfil/) | Fotos de perfil | Compresor reusable, Supabase Storage por persona, recorte 1:1 con zoom y avatar en todos los perfiles (KAN-207/209/210) |
 | [99](99-modulos-futuros.md) | Módulos futuros | Esbozo de los módulos 2 al 6 |
 
 | Documento | Contenido |
