@@ -6,11 +6,15 @@ import {
   ChevronRight,
   Flag,
   Flame,
+  Heart,
   MapPin,
   Network,
   Plus,
+  Quote,
   Target,
   Trophy,
+  UserPlus,
+  Users,
   HeartHandshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +25,7 @@ import { TarjetaHeader, GRADIENTE_HERO, DEGRADADO_IDENTIDAD, HeroDato } from '@/
 import { gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { useRedes } from '@/hooks/useCasasDePaz';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { CardIndicadorPastel } from '@/components/dashboard/CardIndicadorPastel';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
@@ -48,7 +52,7 @@ import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 // Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
 // módulo -- ver `evangelismo-colores.ts`. Un color por sección para que se
 // distingan a simple vista, no un solo tono repetido en toda la pantalla.
-const { AZUL, VERDE, NARANJA, AMARILLO, CELESTE } = EVANGELISMO_COLOR;
+const { AZUL, VERDE, NARANJA, AMARILLO, MORADO, ROSA, CELESTE } = EVANGELISMO_COLOR;
 
 export function Evangelismo() {
   const personaId = useAuthStore((s) => s.personaId);
@@ -235,8 +239,15 @@ export function Evangelismo() {
     );
   }
 
-  const porcentaje = tasa?.tasa != null ? Math.min(tasa.tasa, 100) : 0;
   const cdpNombreActiva = misCasas.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
+  // Variación de la card "Evangelizados este mes" -- mismo criterio que
+  // variacionPct de arriba (null si el mes pasado tuvo 0, para no mostrar un
+  // % engañoso), solo que acá se traduce a la forma que espera CardIndicadorPastel.
+  const tendenciaCard: 'positiva' | 'negativa' | 'neutral' = variacionAbsoluta > 0 ? 'positiva' : variacionAbsoluta < 0 ? 'negativa' : 'neutral';
+  const variacionCard =
+    variacionPct != null
+      ? { texto: `${variacionPct > 0 ? '+' : ''}${variacionPct}% vs. mes pasado`, tendencia: tendenciaCard }
+      : null;
 
   return (
     <div ref={contenedorRef} className="flex flex-col gap-6">
@@ -314,154 +325,213 @@ export function Evangelismo() {
         <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="evangelismo" className="ml-auto" />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
-          <TarjetaHeader
-            icon={Target}
-            color={AMARILLO}
-            titulo="Tasa de evangelismo"
-            descripcion={tasa?.origen ? `Meta ${esMetaAsignada(tasa.origen) ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
-          />
-          <div className="flex flex-col gap-4 p-6">
-            {cargandoTasa ? (
-              <Skeleton className="h-24 w-full rounded-xl" />
-            ) : (
-              <>
-                {/* Un solo número que mirar: cuántos evangelizados hay este mes, contra la
-                    meta que esté rigiendo (asignada si hay, si no la propia), y cómo viene
-                    vs. el mes pasado. Antes eran 5 cards grandes de igual peso visual --
-                    nadie sabía cuál mirar primero. */}
-                <KpiCard
-                  icon={Target}
-                  color={AMARILLO}
-                  titulo="Evangelizados este mes"
-                  valor={evangelizadosActual}
-                  porcentaje={tasa?.meta != null ? porcentaje : null}
-                  variacionPct={variacionPct}
-                  subtitulo={
-                    tasa?.meta != null
-                      ? `${tasa.tasa}% de la meta de ${tasa.meta} · ${evangelizadosAnterior} el mes pasado`
-                      : `Sin meta definida · ${evangelizadosAnterior} el mes pasado`
-                  }
-                />
+      {/* Intro chica del módulo (no es un hero, ya está el banner de arriba) --
+          pedido del owner (rediseño 2026-09-09): título + bajada cálida a la
+          izquierda, cita bíblica discreta a la derecha. Puramente decorativo,
+          sin datos ni lógica. */}
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
+          >
+            <Users className="h-5 w-5" style={{ color: MORADO }} />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">Evangelismo</h2>
+            <p className="text-[13px] text-muted-foreground">Llevando el mensaje de esperanza a más personas</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 sm:max-w-xs">
+          <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+          <p className="text-[12px] leading-snug text-muted-foreground italic">
+            "Id por todo el mundo y predicad el evangelio a toda criatura."
+            <span className="mt-0.5 block not-italic text-muted-foreground/70">Marcos 16:15</span>
+          </p>
+        </div>
+      </div>
 
-                {/* Dos cards separadas en vez de una sola fila con una nota chica --
-                    el owner reportó que así no se distinguía bien cuál meta manda
-                    (2026-08-03). "Vigente" marca cuál de las dos rige el % de arriba;
-                    son mutuamente excluyentes en la BD (fn_meta_efectiva), nunca las
-                    dos a la vez. */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div
-                    className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
-                    style={
-                      tasa?.origen === 'PROPIA'
-                        ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
-                        : undefined
-                    }
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
-                        <Flag className="h-3.5 w-3.5 shrink-0" /> Meta propia
-                      </span>
-                      {tasa?.origen === 'PROPIA' && (
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
-                          Vigente
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="meta_propia"
-                        type="number"
-                        min={1}
-                        className="h-8 w-20 rounded-lg text-sm"
-                        placeholder="Sin definir"
-                        value={metaLocal}
-                        onChange={(e) => setMetaLocal(e.target.value)}
-                        disabled={esSublider || metaAsignadaBloqueando}
+      {/* 3 métricas protagonistas -- reemplaza el KpiCard+DonutRing de antes
+          por el mismo lenguaje "SaaS pastel" que ya usa el Dashboard de CdP
+          (CardIndicadorPastel, 2026-09-08). Un solo número grande por card,
+          sin competir entre sí por atención. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cargandoTasa ? (
+          <>
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+          </>
+        ) : (
+          <>
+            <CardIndicadorPastel
+              icon={UserPlus}
+              label="Evangelizados este mes"
+              color={AZUL}
+              valor={evangelizadosActual}
+              descripcion={tasa?.meta != null ? `${tasa.tasa}% de la meta de ${tasa.meta}` : `${evangelizadosAnterior} el mes pasado`}
+              variacion={variacionCard}
+            />
+            <CardIndicadorPastel
+              icon={Target}
+              label="Meta vigente"
+              color={MORADO}
+              valor={tasa?.meta ?? '—'}
+              descripcion={
+                tasa?.meta == null
+                  ? 'Todavía sin definir'
+                  : esMetaAsignada(tasa.origen)
+                    ? metaAsignadaCumplida
+                      ? '¡Meta cumplida!'
+                      : `Faltan ${tasa.meta - evangelizadosActual} · asignada por ${quienAsignoMeta(tasa.origen)}`
+                    : 'Meta propia de tu Casa de Paz'
+              }
+            />
+            <CardIndicadorPastel
+              icon={Flame}
+              label="Racha actual"
+              color={NARANJA}
+              valor={rachaDias}
+              descripcion={
+                rachaDias > 0
+                  ? `día${rachaDias === 1 ? '' : 's'} seguidos con evangelismo`
+                  : mejorDia
+                    ? `Mejor día: ${mejorDia.cantidad} el ${fechaLegible(mejorDia.fecha)}`
+                    : 'Sin actividad este mes'
+              }
+            />
+          </>
+        )}
+      </div>
+
+      {/* Editor de meta: mismo control de siempre (Input + Guardar de la meta
+          propia, estado de la meta de Red), solo reubicado -- ya no hace
+          falta que compita visualmente con las 3 cards de arriba. */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Flag}
+          color={AMARILLO}
+          titulo="Meta"
+          descripcion={tasa?.origen ? `Meta ${esMetaAsignada(tasa.origen) ? 'asignada por un rol superior' : 'propia'}` : 'Seguimiento del mes'}
+        />
+        <div className="p-5">
+          {cargandoTasa ? (
+            <Skeleton className="h-24 w-full rounded-xl" />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div
+                className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
+                style={
+                  tasa?.origen === 'PROPIA'
+                    ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
+                    : undefined
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                    <Flag className="h-3.5 w-3.5 shrink-0" /> Meta propia
+                  </span>
+                  {tasa?.origen === 'PROPIA' && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
+                      Vigente
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="meta_propia"
+                    type="number"
+                    min={1}
+                    className="h-8 w-20 rounded-lg text-sm"
+                    placeholder="Sin definir"
+                    value={metaLocal}
+                    onChange={(e) => setMetaLocal(e.target.value)}
+                    disabled={esSublider || metaAsignadaBloqueando}
+                  />
+                  {!esSublider && (
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg" onClick={guardarMeta} disabled={actualizarMeta.isPending || metaAsignadaBloqueando}>
+                      {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
+                      Guardar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {metaAsignadaBloqueando
+                    ? 'Bloqueada hasta cumplir la meta de la Red (mirá la card de al lado).'
+                    : 'La que vos definiste para tu Casa de Paz.'}
+                </p>
+              </div>
+
+              <div
+                className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
+                style={
+                  esMetaAsignada(tasa?.origen)
+                    ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
+                    : undefined
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                    <Network className="h-3.5 w-3.5 shrink-0" /> Meta de la Red
+                  </span>
+                  {esMetaAsignada(tasa?.origen) && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
+                      Vigente
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xl font-bold tracking-tight text-foreground">
+                  {esMetaAsignada(tasa?.origen) ? tasa?.meta : '—'}
+                </p>
+                {esMetaAsignada(tasa?.origen) && tasa?.meta != null ? (
+                  <>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full transition-[width]"
+                        style={{ width: `${Math.min(100, Math.round((evangelizadosActual / tasa.meta) * 100))}%`, background: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}
                       />
-                      {!esSublider && (
-                        <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg" onClick={guardarMeta} disabled={actualizarMeta.isPending || metaAsignadaBloqueando}>
-                          {actualizarMeta.isPending && <Spinner className="h-3.5 w-3.5" />}
-                          Guardar
-                        </Button>
-                      )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      {metaAsignadaBloqueando
-                        ? 'Bloqueada hasta cumplir la meta de la Red (mirá la card de al lado).'
-                        : 'La que vos definiste para tu Casa de Paz.'}
+                    <p className="text-[11px] font-medium" style={{ color: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}>
+                      {metaAsignadaCumplida
+                        ? '¡Meta cumplida! Ya podés editar tu meta propia.'
+                        : `${evangelizadosActual} de ${tasa.meta} -- faltan ${tasa.meta - evangelizadosActual} para poder editar la propia.`}
                     </p>
-                  </div>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">Tu líder de red no asignó una meta para este período.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
-                  <div
-                    className="flex flex-col gap-2.5 rounded-xl border px-4 py-3"
-                    style={
-                      esMetaAsignada(tasa?.origen)
-                        ? { borderColor: 'color-mix(in oklab, var(--chart-4) 40%, transparent)', background: 'color-mix(in oklab, var(--chart-4) 6%, transparent)' }
-                        : undefined
-                    }
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader icon={Users} color={CELESTE} titulo="Por tipo de persona" descripcion="Desglose de este mes" />
+          <div className="flex flex-col gap-2 p-5">
+            {tiposEvangelismo.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin tipos configurados.</p>
+            ) : (
+              porTipoEvangelismo.map((t) => (
+                <div key={t.nombre} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-muted/40">
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: `color-mix(in oklab, ${t.color} 14%, transparent)` }}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
-                        <Network className="h-3.5 w-3.5 shrink-0" /> Meta de la Red
-                      </span>
-                      {esMetaAsignada(tasa?.origen) && (
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase" style={{ background: 'color-mix(in oklab, var(--chart-4) 16%, transparent)', color: 'var(--chart-4)' }}>
-                          Vigente
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-2xl font-bold tracking-tight text-foreground">
-                      {esMetaAsignada(tasa?.origen) ? tasa?.meta : '—'}
-                    </p>
-                    {esMetaAsignada(tasa?.origen) && tasa?.meta != null ? (
-                      <>
-                        {/* Barra + "faltan N": el nuevo candado de la meta propia depende
-                            de esto, así que la card tiene que explicar por sí sola qué
-                            falta para destrabarla, no solo mostrar el número (2026-08-03). */}
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full transition-[width]"
-                            style={{ width: `${Math.min(100, Math.round((evangelizadosActual / tasa.meta) * 100))}%`, background: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}
-                          />
-                        </div>
-                        <p className="text-[11px] font-medium" style={{ color: metaAsignadaCumplida ? VERDE : 'var(--chart-4)' }}>
-                          {metaAsignadaCumplida
-                            ? '¡Meta cumplida! Ya podés editar tu meta propia.'
-                            : `${evangelizadosActual} de ${tasa.meta} -- faltan ${tasa.meta - evangelizadosActual} para poder editar la propia.`}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-[11px] text-muted-foreground">Tu líder de red no asignó una meta para este período.</p>
-                    )}
+                    <Users className="h-4 w-4" style={{ color: t.color }} />
+                  </span>
+                  <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium text-foreground">{t.nombre}</span>
+                    <span className="text-lg font-bold tabular-nums text-foreground">{t.cantidad}</span>
                   </div>
                 </div>
-              </>
-            )}
-
-            {/* Metricas extra: desglose de evangelizados por tipo de evangelismo (1+1, Elite, Semilla...).
-                Siempre muestra los mismos 3 chips del catálogo (con 0 si todavía no hay datos), para
-                que el alto de la card no cambie cada vez que se agrega un evangelizado de un tipo nuevo. */}
-            {tiposEvangelismo.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
-                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Por tipo</span>
-                {porTipoEvangelismo.map((t) => (
-                  <span
-                    key={t.nombre}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                    style={{ backgroundColor: `color-mix(in oklab, ${t.color} 14%, transparent)`, color: t.color }}
-                  >
-                    {t.nombre}
-                    <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-bold">{t.cantidad}</span>
-                  </span>
-                ))}
-              </div>
+              ))
             )}
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={HeartHandshake}
             color={VERDE}
@@ -495,7 +565,7 @@ export function Evangelismo() {
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
             icon={CalendarRange}
-            color={CELESTE}
+            color={AZUL}
             titulo="Calendario de evangelismo"
             descripcion="Días en los que se registró al menos un evangelizado"
           />
@@ -629,6 +699,26 @@ export function Evangelismo() {
           </div>
         </section>
       </div>
+
+      {/* Tarjeta motivacional -- puramente emocional, sin dato ni lógica.
+          Cierra la pantalla con algo humano, no con una tabla más. */}
+      <section
+        className="overflow-hidden rounded-2xl border p-5"
+        style={{ background: `color-mix(in oklab, ${ROSA} 6%, white)`, borderColor: `color-mix(in oklab, ${ROSA} 18%, white)` }}
+      >
+        <div className="flex items-center gap-4">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+            style={{ background: `color-mix(in oklab, ${ROSA} 16%, transparent)` }}
+          >
+            <Heart className="h-5 w-5" style={{ color: ROSA }} />
+          </span>
+          <div>
+            <p className="text-[15px] font-bold text-foreground">Cada persona cuenta</p>
+            <p className="text-[13px] text-muted-foreground">Tu obediencia hoy puede transformar una vida para siempre.</p>
+          </div>
+        </div>
+      </section>
 
       {cdpActiva && (
         <NuevoEvangelizadoDialog
