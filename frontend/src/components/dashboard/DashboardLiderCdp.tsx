@@ -587,7 +587,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               color={ROJO}
               valor={conteosAccesoRapido.conMinisterio}
               descripcion="Con ministerio"
-              onClick={() => irAPersonas()}
+              onClick={() => irAPersonas({ tipo: 'MINISTERIO' })}
             />
           </div>
 
