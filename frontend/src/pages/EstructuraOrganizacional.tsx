@@ -93,26 +93,34 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   const navigate = useNavigate();
   const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
-  // KAN-339: "Visualizar" un Departamento funcional como Super Admin --
-  // mismo mecanismo que el selector de rol multi-sombrero (setIglesiaActiva
-  // primero, que resetea contextoActivo/rolActivo, y recién despues
-  // setContextoActivo con el contexto SINTETICO soloLectura). El orden
-  // importa: setIglesiaActiva por si sola ya limpia contextoActivo.
-  const visualizarDepartamentoComoSuperAdmin = useCallback(
+  // KAN-339 (ampliado 2026-09-09, pedido explicito del owner): el menu de 3
+  // puntos "Visualizar" es un acceso directo al panel real del Departamento
+  // para todos los roles que administran el Constructor (Pastor/Supervisor/
+  // Super Admin) -- no exclusivo de Super Admin. Pastor/Supervisor ya tienen
+  // control total ahi via su propio rolUI/contextoActivo real (el que ya
+  // trae la sesion) -- para ellos alcanza con navegar, TOCAR setIglesiaActiva
+  // les resetearia rolActivo/contextoActivo a null (ver auth.store.ts) y los
+  // manda de vuelta a /seleccionar-rol, mas roto que el bug que se queria
+  // arreglar. Super Admin si necesita setIglesiaActiva + el contexto
+  // SINTETICO soloLectura (mismo mecanismo que el selector de rol
+  // multi-sombrero) porque su rolUI real no tiene acceso de por si.
+  const visualizarDepartamento = useCallback(
     (departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO') => {
-      setIglesiaActiva(iglesiaId);
-      setContextoActivo({
-        clave: `SUPER_ADMIN_LECTURA:${iglesiaId}:${departamentoCodigo}`,
-        rolUI: 'LIDER_DEPARTAMENTO',
-        alcance: 'DEPARTAMENTO',
-        iglesiaId,
-        departamentoId: null,
-        departamentoCodigo,
-        soloLectura: true,
-      });
+      if (rolUI === 'SUPER_ADMIN') {
+        setIglesiaActiva(iglesiaId);
+        setContextoActivo({
+          clave: `SUPER_ADMIN_LECTURA:${iglesiaId}:${departamentoCodigo}`,
+          rolUI: 'LIDER_DEPARTAMENTO',
+          alcance: 'DEPARTAMENTO',
+          iglesiaId,
+          departamentoId: null,
+          departamentoCodigo,
+          soloLectura: true,
+        });
+      }
       navigate(departamentoCodigo === 'EVANGELISMO' ? ROUTES.EVANGELISMO : ROUTES.AFIRMACION);
     },
-    [iglesiaId, navigate, setContextoActivo, setIglesiaActiva],
+    [iglesiaId, navigate, rolUI, setContextoActivo, setIglesiaActiva],
   );
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
@@ -172,17 +180,17 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       ocultarDepartamentos: esRolRed,
       ocultarPastorSupervisor: esRolRed,
       soloRedesIds: esRolRed ? redesEditablesIds : undefined,
-      // KAN-339: el menú de 3 puntos "Visualizar" es exclusivo de Super
-      // Admin -- Pastor/Supervisor ya tienen control total real (nav propio),
-      // no necesitan el modo lectura sintético.
+      // KAN-339: el menú de 3 puntos "Visualizar" es un atajo al panel real,
+      // visible para todo rol que administra el Constructor (Super Admin,
+      // Pastor, Supervisor) -- ver comentario en visualizarDepartamento.
       // El cast es seguro: layout.ts solo invoca este callback para
       // departamentos en DEPARTAMENTOS_FUNCIONALES ('AFIRMACION'/'EVANGELISMO').
-      onVisualizarSoloLectura:
-        rolUI === 'SUPER_ADMIN'
-          ? (codigo: string) => visualizarDepartamentoComoSuperAdmin(codigo as 'AFIRMACION' | 'EVANGELISMO')
+      onVisualizarDepartamento:
+        rolUI === 'SUPER_ADMIN' || rolUI === 'PASTOR' || rolUI === 'SUPERVISOR'
+          ? (codigo: string) => visualizarDepartamento(codigo as 'AFIRMACION' | 'EVANGELISMO')
           : undefined,
     });
-  }, [data, rolUI, redesEditablesIds, visualizarDepartamentoComoSuperAdmin]);
+  }, [data, rolUI, redesEditablesIds, visualizarDepartamento]);
 
   useEffect(() => {
     setNodes(grafoBase.nodes);
@@ -612,9 +620,10 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               // KAN-339: mismo menú de 3 puntos "Visualizar" que la tarjeta
               // del lienzo, ahora en el panel lateral (REQ-339-5, "dos
               // lugares equivalentes").
-              onVisualizarSoloLectura={
-                rolUI === 'SUPER_ADMIN' && DEPARTAMENTOS_FUNCIONALES.includes(departamento.codigo.toUpperCase())
-                  ? () => visualizarDepartamentoComoSuperAdmin(departamento.codigo.toUpperCase() as 'AFIRMACION' | 'EVANGELISMO')
+              onVisualizarDepartamento={
+                (rolUI === 'SUPER_ADMIN' || rolUI === 'PASTOR' || rolUI === 'SUPERVISOR') &&
+                DEPARTAMENTOS_FUNCIONALES.includes(departamento.codigo.toUpperCase())
+                  ? () => visualizarDepartamento(departamento.codigo.toUpperCase() as 'AFIRMACION' | 'EVANGELISMO')
                   : undefined
               }
               onClose={() => {

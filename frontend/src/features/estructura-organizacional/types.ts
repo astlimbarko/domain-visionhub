@@ -106,14 +106,15 @@ export interface DatosNodoEstructura extends Record<string, unknown> {
   redId?: string;
   sublideres?: PersonaEstructura[];
   /** KAN-339: solo en nodos DEPARTAMENTO -- código estable para el menú de
-   * "Visualizar" (Super Admin, modo lectura). */
+   * "Visualizar" (atajo al panel real o modo lectura, según el rol). */
   departamentoCodigo?: string;
-  /** KAN-339: true cuando el usuario actual (Super Admin) puede abrir este
-   * Departamento en modo lectura desde el menú de 3 puntos de la tarjeta. */
-  puedeVisualizarSoloLectura?: boolean;
-  /** KAN-339: dispara el modo lectura sintético -- solo presente si
-   * `puedeVisualizarSoloLectura` es true. */
-  onVisualizarSoloLectura?: () => void;
+  /** KAN-339: true cuando el usuario actual (Pastor/Supervisor/Super Admin)
+   * puede abrir este Departamento desde el menú de 3 puntos de la tarjeta. */
+  puedeVisualizarDepartamento?: boolean;
+  /** KAN-339: navega al panel real (Pastor/Supervisor) o dispara el modo
+   * lectura sintético (Super Admin) -- solo presente si
+   * `puedeVisualizarDepartamento` es true. */
+  onVisualizarDepartamento?: () => void;
 }
 export interface PersonaOpcionEstructura {
   id: string;

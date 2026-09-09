@@ -22,9 +22,10 @@ interface Props {
   iglesiaId: string;
   departamento: DepartamentoEstructura;
   otpRequerido: boolean;
-  /** KAN-339: presente solo para Super Admin + Departamento funcional --
-   * abre el modo lectura sintético (mismo menú que la tarjeta del lienzo). */
-  onVisualizarSoloLectura?: () => void;
+  /** KAN-339: presente para Pastor/Supervisor/Super Admin + Departamento
+   * funcional -- atajo al panel real (Pastor/Supervisor) o modo lectura
+   * sintético (Super Admin), mismo menú que la tarjeta del lienzo. */
+  onVisualizarDepartamento?: () => void;
   onClose: () => void;
 }
 
@@ -35,7 +36,7 @@ interface Props {
  * líder, pero es el lugar donde van a vivir más opciones a futuro que
  * todavía no existen (mismo patrón que Red y Casa de Paz).
  */
-export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequerido, onVisualizarSoloLectura, onClose }: Props) {
+export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequerido, onVisualizarDepartamento, onClose }: Props) {
   const queryClient = useQueryClient();
   const [asignando, setAsignando] = useState(false);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
@@ -109,7 +110,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
           <div className="flex items-center gap-1">
             {/* KAN-339: mismo menú "Visualizar" que la tarjeta del lienzo,
                 REQ-339-5 -- dos lugares equivalentes. */}
-            {onVisualizarSoloLectura && (
+            {onVisualizarDepartamento && (
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -121,7 +122,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem className="gap-2" onSelect={onVisualizarSoloLectura}>
+                  <DropdownMenuItem className="gap-2" onSelect={onVisualizarDepartamento}>
                     <Eye className="h-4 w-4" /> Visualizar
                   </DropdownMenuItem>
                 </DropdownMenuContent>

@@ -119,12 +119,13 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
         <span className="block truncate text-sm font-bold" style={{ color: texto }}>
           {data.titulo}
         </span>
-        {/* KAN-339: menu de 3 puntos "Visualizar" (Super Admin, modo lectura)
+        {/* KAN-339: menu de 3 puntos "Visualizar" -- atajo al panel real
+            (Pastor/Supervisor) o modo lectura sintetico (Super Admin)
             -- stopPropagation para que el click en el trigger no dispare
             tambien el onNodeClick del lienzo (abriria el panel normal). El
             item del menu vive en un Portal (fuera del nodo), asi que no
             necesita el mismo tratamiento. */}
-        {data.puedeVisualizarSoloLectura && data.onVisualizarSoloLectura && (
+        {data.puedeVisualizarDepartamento && data.onVisualizarDepartamento && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
@@ -139,7 +140,7 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem className="gap-2" onSelect={() => data.onVisualizarSoloLectura?.()}>
+              <DropdownMenuItem className="gap-2" onSelect={() => data.onVisualizarDepartamento?.()}>
                 <Eye className="h-4 w-4" /> Visualizar
               </DropdownMenuItem>
             </DropdownMenuContent>

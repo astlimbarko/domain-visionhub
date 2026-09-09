@@ -62,8 +62,8 @@ function nodo(
     redId?: string;
     sublideres?: PersonaEstructura[];
     departamentoCodigo?: string;
-    puedeVisualizarSoloLectura?: boolean;
-    onVisualizarSoloLectura?: () => void;
+    puedeVisualizarDepartamento?: boolean;
+    onVisualizarDepartamento?: () => void;
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -110,8 +110,9 @@ export function crearGrafoEstructura(
     soloRedesIds?: Set<string>;
     /** KAN-339: si se pasa, cada tarjeta de Departamento funcional
      * (Afirmación/Evangelismo) recibe el flag + callback para su menú de 3
-     * puntos "Visualizar" (Super Admin, modo lectura). */
-    onVisualizarSoloLectura?: (departamentoCodigo: string) => void;
+     * puntos "Visualizar" -- atajo al panel real (Pastor/Supervisor) o al
+     * modo lectura sintético (Super Admin), según quién esté logueado. */
+    onVisualizarDepartamento?: (departamentoCodigo: string) => void;
   },
 ): {
   nodes: Node<DatosNodoEstructura>[];
@@ -198,7 +199,7 @@ export function crearGrafoEstructura(
     const codigo = departamento.codigo.toUpperCase();
     // KAN-339: solo Afirmación/Evangelismo (esFuncional) tienen algo que
     // "Visualizar" -- Discipulado/Envío siguen "Próximamente".
-    const puedeVisualizar = !!opciones?.onVisualizarSoloLectura && DEPARTAMENTOS_FUNCIONALES.includes(codigo);
+    const puedeVisualizar = !!opciones?.onVisualizarDepartamento && DEPARTAMENTOS_FUNCIONALES.includes(codigo);
     nodes.push(
       nodo(id, 610 + indice * 250, -165, {
         tipo: 'DEPARTAMENTO',
@@ -209,8 +210,8 @@ export function crearGrafoEstructura(
         buscable: `${departamento.nombre} ${departamento.lideres.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
         estadoIncompleto: departamento.lideres.length === 0,
         departamentoCodigo: codigo,
-        puedeVisualizarSoloLectura: puedeVisualizar,
-        onVisualizarSoloLectura: puedeVisualizar ? () => opciones!.onVisualizarSoloLectura!(codigo) : undefined,
+        puedeVisualizarDepartamento: puedeVisualizar,
+        onVisualizarDepartamento: puedeVisualizar ? () => opciones!.onVisualizarDepartamento!(codigo) : undefined,
       }),
     );
   });
