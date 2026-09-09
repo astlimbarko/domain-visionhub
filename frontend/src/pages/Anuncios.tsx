@@ -41,7 +41,7 @@ import {
   useMoverPrioridadAnuncio,
   useQuitarEncargadoAnuncio,
   useToggleActivoAnuncio,
-  useUrlFirmadaAnuncio,
+  useUrlAnuncio,
 } from '@/hooks/useAnuncios';
 import { ROUTES } from '@/utils/constants';
 import type { AnuncioGestion, RolDestinatarioAnuncio } from '@/types/anuncio.types';
@@ -55,7 +55,7 @@ const ETIQUETA_ROL_CORTA: Record<RolDestinatarioAnuncio, string> = {
 };
 
 function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: string; titulo: string; onAmpliar: () => void }) {
-  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
+  const { data: url, isLoading, isError } = useUrlAnuncio(imagenPath);
   return (
     <button
       type="button"
@@ -93,7 +93,7 @@ function ImagenAnuncioAmpliada({
 }) {
   // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
   // servidor falla) -- misma logica que ModalAnuncios, ver su comentario.
-  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
+  const { data: url, isLoading, isError } = useUrlAnuncio(imagenPath);
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>

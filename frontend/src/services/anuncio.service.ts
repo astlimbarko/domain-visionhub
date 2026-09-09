@@ -101,10 +101,12 @@ export async function subirImagenAnuncio(iglesiaId: string, archivo: File): Prom
   return path;
 }
 
-export async function obtenerUrlFirmadaAnuncio(imagenPath: string, expiraSegundos = 3600): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(BUCKET_ANUNCIOS).createSignedUrl(imagenPath, expiraSegundos);
+/** `.download()` en vez de `.createSignedUrl()` -- ver comentario equivalente
+ * en persona-foto.service.ts, mismo ahorro de 1 viaje de red por imagen. */
+export async function obtenerUrlAnuncio(imagenPath: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(BUCKET_ANUNCIOS).download(imagenPath);
   if (error) throw error;
-  return data?.signedUrl ?? null;
+  return data ? URL.createObjectURL(data) : null;
 }
 
 export async function eliminarImagenAnuncio(imagenPath: string): Promise<void> {

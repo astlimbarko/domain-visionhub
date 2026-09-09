@@ -46,7 +46,7 @@ import {
   usePublicarAnuncio,
   useRolesDisponiblesAnuncio,
   useSubirImagenAnuncio,
-  useUrlFirmadaAnuncio,
+  useUrlAnuncio,
 } from '@/hooks/useAnuncios';
 import type { AlcanceTipoAnuncio, OrientacionImagenAnuncio, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
@@ -137,7 +137,7 @@ export function AnuncioForm() {
   }, [inicializado, cargando, esEdicion, anuncio, capacidad]);
 
   const { data: rolesDisponibles = [] } = useRolesDisponiblesAnuncio(iglesiaActivaId ?? undefined, alcanceTipo, redIds, cdpIds);
-  const { data: imagenActualUrl } = useUrlFirmadaAnuncio(esEdicion && !archivo ? anuncio?.imagen_path : undefined);
+  const { data: imagenActualUrl } = useUrlAnuncio(esEdicion && !archivo ? anuncio?.imagen_path : undefined);
 
   // Si la zona se achica (ej. de "Toda la iglesia" a una Red puntual) y
   // algún rol ya marcado deja de estar disponible ahí, se saca solo -- sin

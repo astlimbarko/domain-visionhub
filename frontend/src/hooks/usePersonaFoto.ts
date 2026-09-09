@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { eliminarFotoPerfil, obtenerUrlFirmadaFotoPerfil, subirFotoPerfil } from '@/services/persona-foto.service';
+import { eliminarFotoPerfil, obtenerUrlFotoPerfil, subirFotoPerfil } from '@/services/persona-foto.service';
 
 async function obtenerFotoPerfilPath(personaId: string): Promise<string | null> {
   const { data, error } = await supabase.from('persona').select('foto_perfil_path').eq('id', personaId).single();
@@ -16,10 +16,10 @@ export function useFotoPerfilPath(personaId: string | undefined) {
   });
 }
 
-export function useUrlFirmadaFotoPerfil(path: string | null | undefined) {
+export function useUrlFotoPerfil(path: string | null | undefined) {
   return useQuery({
     queryKey: ['persona', 'foto-perfil-url', path],
-    queryFn: () => obtenerUrlFirmadaFotoPerfil(path as string),
+    queryFn: () => obtenerUrlFotoPerfil(path as string),
     enabled: !!path,
     staleTime: 1000 * 60 * 30,
   });

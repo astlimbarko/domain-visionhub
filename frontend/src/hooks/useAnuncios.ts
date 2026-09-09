@@ -10,7 +10,7 @@ import {
   obtenerCapacidadAnuncio,
   obtenerMisAnunciosGestion,
   obtenerRolesDisponiblesAnuncio,
-  obtenerUrlFirmadaAnuncio,
+  obtenerUrlAnuncio,
   previsualizarDestinatariosAnuncio,
   publicarAnuncio,
   quitarEncargadoAnuncio,
@@ -130,12 +130,12 @@ export function useMoverPrioridadAnuncio() {
   });
 }
 
-export function useUrlFirmadaAnuncio(imagenPath: string | undefined) {
+export function useUrlAnuncio(imagenPath: string | undefined) {
   return useQuery({
-    queryKey: ['anuncios', 'url-firmada', imagenPath],
-    queryFn: () => obtenerUrlFirmadaAnuncio(imagenPath as string),
+    queryKey: ['anuncios', 'url', imagenPath],
+    queryFn: () => obtenerUrlAnuncio(imagenPath as string),
     enabled: !!imagenPath,
-    staleTime: 1000 * 60 * 30, // la URL firmada dura 1h; se refresca bastante antes
+    staleTime: 1000 * 60 * 30,
   });
 }
 

@@ -2,7 +2,7 @@
 // Montado en PrivateLayout.tsx (2026-08-15, KAN-106/107).
 //
 // No requiere props: resuelve todo (cola, imagen, cierre) via
-// useAnunciosPendientes() + useUrlFirmadaAnuncio(). Se auto-oculta (retorna
+// useAnunciosPendientes() + useUrlAnuncio(). Se auto-oculta (retorna
 // null) cuando no hay nada pendiente, asi que es seguro montarlo siempre.
 //
 // Imagen sin recortar (KAN-109, T8): anuncios.txt SS7 es explicito -- "la
@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ImagenAnuncioZoom } from '@/components/anuncios/ImagenAnuncioZoom';
 import { useAnunciosPendientes } from '@/hooks/useAnunciosPendientes';
-import { useUrlFirmadaAnuncio } from '@/hooks/useAnuncios';
+import { useUrlAnuncio } from '@/hooks/useAnuncios';
 
 const MAX_ALTO_RATIO = 0.78;
 const MAX_ALTO_CAP_PX = 720;
@@ -40,7 +40,7 @@ export function ModalAnuncios() {
   // flotando sin ningun contexto. Nunca bloquea el resto de la app (las 3
   // formas de cerrar -- X, Escape, clic afuera -- funcionan igual), pero
   // sin este aviso se veia como un modal roto en vez de "algo fallo".
-  const { data: imagenUrl, isLoading: cargandoImagen, isError: fallaImagen } = useUrlFirmadaAnuncio(anuncioActual?.imagen_path);
+  const { data: imagenUrl, isLoading: cargandoImagen, isError: fallaImagen } = useUrlAnuncio(anuncioActual?.imagen_path);
 
   if (!anuncioActual) return null;
 
