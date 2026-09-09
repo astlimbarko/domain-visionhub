@@ -25,6 +25,8 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, AMBAR, MORADO, MARINO, DashboardHero } from './DashboardUI';
 import { CardIndicadorPastel } from './CardIndicadorPastel';
+// Sin recharts -- no hace falta cargarlo bajo demanda como el resto de los gráficos.
+import { CumplimientoReportesChart } from './CumplimientoReportesChart';
 import { IndiceFidelidadRing } from './IndiceFidelidadRing';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import {
@@ -34,9 +36,10 @@ import {
 } from '@/hooks/useDashboard';
 import { useTasaEvangelismo } from '@/hooks/useEvangelismo';
 import { usePersonasDeCdp } from '@/hooks/usePersonas';
-import { useTestimoniosCdp } from '@/hooks/useReporte';
+import { useHistorialReportes, useTestimoniosCdp } from '@/hooks/useReporte';
 import type { FiltroInicialPersonasCdp } from '@/components/personas/PersonasDeCdpVista';
 import { ROUTES } from '@/utils/constants';
+import { aISO, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import {
   cantidadPorDefecto,
   etiquetaCantidad,
@@ -62,6 +65,31 @@ const CompromisoPersonasChart = lazy(() =>
   import('./CompromisoPersonasChart').then((m) => ({ default: m.CompromisoPersonasChart }))
 );
 const SeguimientoChart = lazy(() => import('./SeguimientoChart').then((m) => ({ default: m.SeguimientoChart })));
+const ComposicionSexoChart = lazy(() => import('./ComposicionSexoChart').then((m) => ({ default: m.ComposicionSexoChart })));
+const ComposicionEdadChart = lazy(() => import('./ComposicionEdadChart').then((m) => ({ default: m.ComposicionEdadChart })));
+const MinisteriosChart = lazy(() => import('./MinisteriosChart').then((m) => ({ default: m.MinisteriosChart })));
+const AntiguedadInactividadChart = lazy(() =>
+  import('./AntiguedadInactividadChart').then((m) => ({ default: m.AntiguedadInactividadChart }))
+);
+const TestimoniosTendenciaChart = lazy(() =>
+  import('./TestimoniosTendenciaChart').then((m) => ({ default: m.TestimoniosTendenciaChart }))
+);
+
+/** Últimas `n` semanas ISO (lunes a domingo), de la más reciente a la más vieja -- mismo cálculo que HistorialReportes.tsx, para el medidor de "Cumplimiento de reportes". */
+function semanasVentana(hoy: Date, n: number): { inicio: string; fin: string }[] {
+  const semanas: { inicio: string; fin: string }[] = [];
+  let cursorISO = inicioSemanaISO(aISO(hoy));
+  for (let i = 0; i < n; i++) {
+    semanas.push({ inicio: cursorISO, fin: finSemanaISO(cursorISO) });
+    const anterior = new Date(`${cursorISO}T00:00:00`);
+    anterior.setDate(anterior.getDate() - 7);
+    cursorISO = aISO(anterior);
+  }
+  return semanas;
+}
+
+const NOMBRES_MES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const VENTANA_SEMANAS_CUMPLIMIENTO = 8;
 
 // Paleta extendida solo para este dashboard (2026-09-08, pedido del owner:
 // 13 cards de indicadores, ninguna repetida). La paleta compartida de
@@ -168,7 +196,6 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
 
   const conteosAccesoRapido = useMemo(() => {
     let discipulos = 0;
-    let discipulosActivos = 0;
     let creyentes = 0;
     let simpatizantes = 0;
     let bautizados = 0;
@@ -178,7 +205,6 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
     let miembrosFormales = 0;
     for (const p of personasCdp) {
       if (p.estado_sigla === 'DA' || p.estado_sigla === 'DI') discipulos++;
-      if (p.estado_sigla === 'DA') discipulosActivos++;
       if (p.estado_sigla === 'CRE') creyentes++;
       if (p.estado_sigla === 'SIM') simpatizantes++;
       if (p.bautizado) bautizados++;
@@ -200,9 +226,112 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
       pctBautizados: pct(bautizados),
       pctConMinisterio: pct(conMinisterio),
       pctMembresiaFormal: pct(miembrosFormales),
-      pctDiscipuladoActivo: pct(discipulosActivos),
+      pctAfirmados: pct(afirmados),
     };
   }, [personasCdp]);
+
+  // ── Datos de los 4 gráficos nuevos de "Personas" (2026-09-08, pedido del
+  //    owner: mínimo 4 gráficos nuevos por pestaña, sin repetir estadísticas
+  //    entre sí ni con lo que ya muestra Indicadores) ──────────────────────
+  const composicionSexo = useMemo(() => {
+    let hombres = 0;
+    let mujeres = 0;
+    for (const p of personasCdp) {
+      if (p.sexo === 'M') hombres++;
+      else if (p.sexo === 'F') mujeres++;
+    }
+    return { hombres, mujeres };
+  }, [personasCdp]);
+
+  const composicionEdad = useMemo(() => {
+    const buckets = [
+      { etiqueta: '0-11', min: 0, max: 11, cantidad: 0 },
+      { etiqueta: '12-17', min: 12, max: 17, cantidad: 0 },
+      { etiqueta: '18-30', min: 18, max: 30, cantidad: 0 },
+      { etiqueta: '31-59', min: 31, max: 59, cantidad: 0 },
+      { etiqueta: '60+', min: 60, max: Infinity, cantidad: 0 },
+    ];
+    for (const p of personasCdp) {
+      if (p.edad === null) continue;
+      const b = buckets.find((bucket) => p.edad! >= bucket.min && p.edad! <= bucket.max);
+      if (b) b.cantidad++;
+    }
+    return buckets.map(({ etiqueta, cantidad }) => ({ etiqueta, cantidad }));
+  }, [personasCdp]);
+
+  const ministeriosTop = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const p of personasCdp) {
+      for (const m of p.ministerios) mapa.set(m.nombre, (mapa.get(m.nombre) ?? 0) + 1);
+    }
+    const ordenados = Array.from(mapa.entries())
+      .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+      .sort((a, b) => b.cantidad - a.cantidad);
+    const TOP = 6;
+    if (ordenados.length <= TOP) return ordenados;
+    const resto = ordenados.slice(TOP).reduce((acc, m) => acc + m.cantidad, 0);
+    return [...ordenados.slice(0, TOP), { nombre: 'Otros', cantidad: resto }];
+  }, [personasCdp]);
+
+  // ── Datos de los 4 gráficos nuevos de "Seguimiento" ─────────────────────
+  const antiguedadInactividad = useMemo(() => {
+    const buckets = [
+      { etiqueta: 'Sin registro', min: -1, max: -1, cantidad: 0 },
+      { etiqueta: '1-4 sem', min: 1, max: 4, cantidad: 0 },
+      { etiqueta: '5-8 sem', min: 5, max: 8, cantidad: 0 },
+      { etiqueta: '9-12 sem', min: 9, max: 12, cantidad: 0 },
+      { etiqueta: '13+ sem', min: 13, max: Infinity, cantidad: 0 },
+    ];
+    for (const m of data?.miembros ?? []) {
+      if (m.semaforo !== 'ROJO') continue;
+      const semanas = m.semanas_sin_venir;
+      const b = semanas === null ? buckets[0] : buckets.find((bucket) => semanas >= bucket.min && semanas <= bucket.max);
+      if (b) b.cantidad++;
+    }
+    return buckets.map(({ etiqueta, cantidad }) => ({ etiqueta, cantidad }));
+  }, [data?.miembros]);
+
+  const hoyTendencias = useMemo(() => new Date(), []);
+  const desdeSeisMeses = aISO(new Date(hoyTendencias.getFullYear(), hoyTendencias.getMonth() - 5, 1));
+  const hoyISOTendencias = aISO(hoyTendencias);
+  const { data: testimoniosSeisMeses = [] } = useTestimoniosCdp(casaDePazId, desdeSeisMeses, hoyISOTendencias);
+
+  const testimoniosPorMes = useMemo(() => {
+    const mapa = new Map<string, number>();
+    const cursor = new Date(hoyTendencias.getFullYear(), hoyTendencias.getMonth() - 5, 1);
+    for (let i = 0; i < 6; i++) {
+      mapa.set(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`, 0);
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    for (const t of testimoniosSeisMeses) {
+      const clave = t.fecha_reunion.slice(0, 7);
+      if (mapa.has(clave)) mapa.set(clave, (mapa.get(clave) ?? 0) + 1);
+    }
+    return Array.from(mapa.entries()).map(([clave, cantidad]) => ({
+      mes: NOMBRES_MES_CORTOS[Number(clave.slice(5, 7)) - 1],
+      cantidad,
+    }));
+  }, [testimoniosSeisMeses, hoyTendencias]);
+
+  const semanasCumplimiento = useMemo(() => semanasVentana(hoyTendencias, VENTANA_SEMANAS_CUMPLIMIENTO), [hoyTendencias]);
+  const desdeVentanaCumplimiento = semanasCumplimiento[semanasCumplimiento.length - 1].inicio;
+  const hastaVentanaCumplimiento = semanasCumplimiento[0].fin;
+  const { data: fechasReportadasVentana = [] } = useHistorialReportes(casaDePazId, desdeVentanaCumplimiento, hastaVentanaCumplimiento);
+
+  const { cumplimientoReportes, rachaReportes } = useMemo(() => {
+    const semanasConReporte = new Set(fechasReportadasVentana.map((f) => inicioSemanaISO(f)));
+    const semanasCerradas = semanasCumplimiento.filter((s) => s.fin < hoyISOTendencias);
+    const cumplimientoCalc =
+      semanasCerradas.length > 0
+        ? Math.round((semanasCerradas.filter((s) => semanasConReporte.has(s.inicio)).length / semanasCerradas.length) * 100)
+        : null;
+    let rachaCalc = 0;
+    for (const s of semanasCerradas) {
+      if (semanasConReporte.has(s.inicio)) rachaCalc++;
+      else break;
+    }
+    return { cumplimientoReportes: cumplimientoCalc, rachaReportes: rachaCalc };
+  }, [fechasReportadasVentana, semanasCumplimiento, hoyISOTendencias]);
 
   // Bug real reportado por el owner (2026-09-08): "primero muestra azul y
   // luego cambia al color que corresponde a la red". Causa: los hooks usan
@@ -333,6 +462,56 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               onClick={() => navigate(ROUTES.HISTORIAL_REPORTES)}
             />
           </div>
+
+          {/* ── Gráficos exclusivos de Indicadores (2026-09-08, pedido del
+                 owner: los que ya existían quedan solo acá, Personas y
+                 Seguimiento tienen los suyos propios, sin repetir) ───────── */}
+          <div className="mt-5 flex flex-col gap-5">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={Heart} color={MORADO} titulo="Índice de fidelidad" descripcion="Semáforo espiritual de los miembros" />
+              <div className="p-5">
+                <IndiceFidelidadRing verdes={verdes} amarillos={amarillos} rojos={rojos} />
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                <TarjetaHeader icon={UserPlus} color={AMBAR} titulo="Evangelismo" descripcion={`Evangelizados de ${etiquetaPeriodo}`} />
+                <div className="p-5">
+                  <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+                    <EvangelismoComparativoChart evangelizados={tasaEvangelismo?.evangelizados ?? 0} meta={tasaEvangelismo?.meta ?? null} />
+                  </Suspense>
+                </div>
+              </section>
+
+              <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                <TarjetaHeader icon={BookOpen} color={AZUL} titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
+                <div className="p-5">
+                  {totalMiembros > 0 ? (
+                    <Suspense fallback={<Skeleton className="h-44 w-full rounded-xl" />}>
+                      <EstadosMiembrosChart miembros={miembros ?? []} />
+                    </Suspense>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin miembros todavía.</p>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader
+                icon={Calendar}
+                color={MARINO}
+                titulo="Tendencia de asistencia"
+                descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
+              />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
+                  <TendenciaAsistenciaChart datos={tendenciaAsistencia} granularidad={granularidad} />
+                </Suspense>
+              </div>
+            </section>
+          </div>
         </TabsContent>
 
         <TabsContent value="personas">
@@ -395,26 +574,56 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             />
           </div>
 
-          {/* ── KPIs de compromiso (2026-09-08, pedido del owner: como
-                 gráfico, no más cards) ──────────────────────────────────── */}
-          <section className="mt-5 overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <TarjetaHeader
-              icon={Layers}
-              color={AZUL}
-              titulo="Compromiso de tu gente"
-              descripcion="% del total que llegó a cada hito -- una barra corta es una oportunidad, no un error"
-            />
-            <div className="p-5">
-              <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
-                <CompromisoPersonasChart
-                  pctBautizados={conteosAccesoRapido.pctBautizados}
-                  pctConMinisterio={conteosAccesoRapido.pctConMinisterio}
-                  pctMembresiaFormal={conteosAccesoRapido.pctMembresiaFormal}
-                  pctDiscipuladoActivo={conteosAccesoRapido.pctDiscipuladoActivo}
-                />
-              </Suspense>
-            </div>
-          </section>
+          {/* ── 4 gráficos nuevos y exclusivos de Personas (2026-09-08,
+                 pedido del owner) -- ninguno repite lo que ya muestra
+                 Indicadores (Estados SSVA/Índice de fidelidad) ──────────── */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader
+                icon={Layers}
+                color={AZUL}
+                titulo="Compromiso de tu gente"
+                descripcion="% del total que llegó a cada hito -- una barra corta es una oportunidad, no un error"
+              />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
+                  <CompromisoPersonasChart
+                    pctBautizados={conteosAccesoRapido.pctBautizados}
+                    pctConMinisterio={conteosAccesoRapido.pctConMinisterio}
+                    pctMembresiaFormal={conteosAccesoRapido.pctMembresiaFormal}
+                    pctAfirmados={conteosAccesoRapido.pctAfirmados}
+                  />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={UsersRound} color={AZUL} titulo="Composición por sexo" descripcion="Hombres y mujeres de tu Casa de Paz" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+                  <ComposicionSexoChart hombres={composicionSexo.hombres} mujeres={composicionSexo.mujeres} />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={Baby} color={AZUL} titulo="Composición por edad" descripcion="Rangos etarios de tu gente" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
+                  <ComposicionEdadChart rangos={composicionEdad} />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={Layers} color={VERDE_INDICADOR} titulo="Ministerios con más gente" descripcion="Qué ministerios concentran más personas" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
+                  <MinisteriosChart ministerios={ministeriosTop} />
+                </Suspense>
+              </div>
+            </section>
+          </div>
         </TabsContent>
 
         <TabsContent value="seguimiento">
@@ -430,70 +639,49 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             <CardIndicadorPastel label="Boletas Entregadas" icon={Ticket} color={GRIS} valor="—" descripcion="Próximamente" />
           </div>
 
-          {/* ── KPIs de seguimiento pastoral (2026-09-08, pedido del owner:
-                 como gráfico, no más cards) ─────────────────────────────── */}
-          <section className="mt-5 overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <TarjetaHeader icon={HeartHandshake} color={MORADO} titulo="A quiénes seguir de cerca" descripcion="Quiénes necesitan una acción pastoral concreta" />
-            <div className="p-5">
-              <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
-                <SeguimientoChart
-                  inactivos={alertas.inactivos?.length ?? 0}
-                  reconciliados={alertas.reconciliados?.length ?? 0}
-                  simpatizantes={conteosAccesoRapido.simpatizantes}
-                />
-              </Suspense>
-            </div>
-          </section>
+          {/* ── 4 gráficos nuevos y exclusivos de Seguimiento (2026-09-08,
+                 pedido del owner) -- ninguno repite Personas ni Indicadores ── */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={HeartHandshake} color={MORADO} titulo="A quiénes seguir de cerca" descripcion="Quiénes necesitan una acción pastoral concreta" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
+                  <SeguimientoChart
+                    inactivos={alertas.inactivos?.length ?? 0}
+                    reconciliados={alertas.reconciliados?.length ?? 0}
+                    simpatizantes={conteosAccesoRapido.simpatizantes}
+                  />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={UserCheck} color={MORADO} titulo="Antigüedad de la inactividad" descripcion="Hace cuánto que los inactivos no vienen" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
+                  <AntiguedadInactividadChart rangos={antiguedadInactividad} />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={MessageCircleHeart} color={ROSA} titulo="Testimonios por mes" descripcion="Tendencia de los últimos 6 meses" />
+              <div className="p-5">
+                <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
+                  <TestimoniosTendenciaChart datos={testimoniosPorMes} />
+                </Suspense>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <TarjetaHeader icon={Calendar} color={MORADO} titulo="Cumplimiento de reportes" descripcion={`Últimas ${VENTANA_SEMANAS_CUMPLIMIENTO} semanas`} />
+              <div className="p-5">
+                <CumplimientoReportesChart cumplimiento={cumplimientoReportes} racha={rachaReportes} ventanaSemanas={VENTANA_SEMANAS_CUMPLIMIENTO} />
+              </div>
+            </section>
+          </div>
         </TabsContent>
       </Tabs>
-
-      {/* ── Índice de fidelidad ───────────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Heart} color={MORADO} titulo="Índice de fidelidad" descripcion="Semáforo espiritual de los miembros" />
-        <div className="p-5">
-          <IndiceFidelidadRing verdes={verdes} amarillos={amarillos} rojos={rojos} />
-        </div>
-      </section>
-
-      {/* ── Evangelismo + Estados SSVA ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={UserPlus} color={AMBAR} titulo="Evangelismo" descripcion={`Evangelizados de ${etiquetaPeriodo}`} />
-          <div className="p-5">
-            <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
-              <EvangelismoComparativoChart evangelizados={tasaEvangelismo?.evangelizados ?? 0} meta={tasaEvangelismo?.meta ?? null} />
-            </Suspense>
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader icon={BookOpen} color={AZUL} titulo="Estados SSVA" descripcion="Distribución espiritual de miembros" />
-          <div className="p-5">
-            {totalMiembros > 0 ? (
-              <Suspense fallback={<Skeleton className="h-44 w-full rounded-xl" />}>
-                <EstadosMiembrosChart miembros={miembros ?? []} />
-              </Suspense>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin miembros todavía.</p>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {/* ── Tendencia de asistencia ───────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader
-          icon={Calendar}
-          color={MARINO}
-          titulo="Tendencia de asistencia"
-          descripcion={`${etiquetaCantidad(periodo, cantidad)}, agrupado por ${granularidad}`}
-        />
-        <div className="p-5">
-          <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
-            <TendenciaAsistenciaChart datos={tendenciaAsistencia} granularidad={granularidad} />
-          </Suspense>
-        </div>
-      </section>
     </div>
   );
 }
