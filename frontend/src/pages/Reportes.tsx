@@ -156,6 +156,7 @@ export function Reportes() {
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
   const [diezmos, setDiezmos] = useState<DiezmoLinea[]>([]);
+  const [textoBuscadorDiezmante, setTextoBuscadorDiezmante] = useState('');
   const [mostrarFormDiezmante, setMostrarFormDiezmante] = useState(false);
   const [nombreDiezmante, setNombreDiezmante] = useState('');
   const [apellidoDiezmante, setApellidoDiezmante] = useState('');
@@ -457,6 +458,7 @@ export function Reportes() {
       if (prev.some((d) => d.personaId === persona.id)) return prev; // ya está en la lista
       return [...prev, { clave: crypto.randomUUID(), personaId: persona.id, nombre_completo: persona.nombre_completo, monto: 0 }];
     });
+    setTextoBuscadorDiezmante('');
   }
 
   function agregarDiezmanteManual() {
@@ -710,6 +712,7 @@ export function Reportes() {
       setAsistentesNuevosExistentes([]);
       setTextoAsistenteNuevo('');
       setDiezmos([]);
+      setTextoBuscadorDiezmante('');
       setEvangelizadosPendientes([]);
       setEsMegaFiesta(false);
       setDisertadorNombre('');
@@ -1142,9 +1145,9 @@ export function Reportes() {
 
               <BuscadorPersonaCampo
                 iglesiaId={iglesiaActivaId}
-                valor=""
+                valor={textoBuscadorDiezmante}
                 seleccionado={false}
-                onCambiarTexto={() => {}}
+                onCambiarTexto={setTextoBuscadorDiezmante}
                 onSeleccionar={agregarDiezmanteExistente}
                 placeholder="Buscar diezmante por nombre..."
               />
