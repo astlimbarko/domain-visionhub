@@ -1131,7 +1131,11 @@ export function Reportes() {
                 </div>
 
             {/* Diezmos por persona: cada diezmante con su monto (+ celular
-                opcional). Se busca en la iglesia o se agrega a mano. Total = suma. */}
+                opcional). Prioriza miembros de esta Casa de Paz (Q-MR-12) y
+                cae a toda la iglesia solo si no aparece nadie ahí -- para
+                poder anotar a un visitante de otra CdP que diezmó en la
+                reunión (2026-09-09, pedido de Matías: antes buscaba en toda
+                la iglesia sin ninguna prioridad). O se agrega a mano. Total = suma. */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label>Diezmos por persona</Label>
@@ -1145,12 +1149,14 @@ export function Reportes() {
 
               <BuscadorPersonaCampo
                 iglesiaId={iglesiaActivaId}
+                cdpId={cdpActiva}
                 valor={textoBuscadorDiezmante}
                 seleccionado={false}
                 onCambiarTexto={setTextoBuscadorDiezmante}
                 onSeleccionar={agregarDiezmanteExistente}
                 placeholder="Buscar diezmante por nombre..."
               />
+              <p className="text-[11px] text-muted-foreground">Prioriza a los miembros de tu Casa de Paz; si no aparece, busca en toda la iglesia.</p>
 
               {diezmos.map((d) => (
                 <div key={d.clave} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2 text-sm">
