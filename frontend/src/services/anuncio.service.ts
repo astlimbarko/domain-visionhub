@@ -71,11 +71,12 @@ export async function obtenerMisAnunciosGestion(iglesiaId: string, redId?: strin
   return (data ?? []) as AnuncioGestion[];
 }
 
-/** Lado más largo del anuncio ya comprimido -- se ve en un modal a pantalla
- * completa, no una miniatura, así que necesita más resolución que un
- * avatar; 1600px alcanza de sobra para cualquier pantalla real y sigue
- * bajando muchísimo el peso de una foto de cámara/celular sin comprimir. */
-const LADO_MAXIMO_ANUNCIO = 1600;
+/** Altura máxima del anuncio ya comprimido (el ancho se ajusta solo) -- el
+ * modal lo muestra a lo sumo a 720px de alto (ver MAX_ALTO_CAP_PX en
+ * ModalAnuncios.tsx), 600px de imagen real ya alcanza de sobra para
+ * cualquier pantalla y baja mucho más el peso que un tope de 1600px
+ * (2026-09-08, pedido explícito del owner: bajar más el tamaño). */
+const ALTO_MAXIMO_ANUNCIO = 600;
 
 /**
  * Sube la imagen a Storage ANTES de crear la fila `anuncio` -- convencion de
@@ -90,7 +91,7 @@ const LADO_MAXIMO_ANUNCIO = 1600;
  * sin importar el formato de entrada.
  */
 export async function subirImagenAnuncio(iglesiaId: string, archivo: File): Promise<string> {
-  const comprimida = await comprimirImagenProporcional(archivo, { ladoMaximo: LADO_MAXIMO_ANUNCIO });
+  const comprimida = await comprimirImagenProporcional(archivo, { altoMaximo: ALTO_MAXIMO_ANUNCIO });
   const path = `${iglesiaId}/${crypto.randomUUID()}.jpg`;
   const { error } = await supabase.storage.from(BUCKET_ANUNCIOS).upload(path, comprimida, {
     contentType: 'image/jpeg',

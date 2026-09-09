@@ -9,9 +9,10 @@
  *   entrada ya viene recortada por el usuario y el destino es siempre
  *   cuadrado 250x250.
  * - `comprimirImagenProporcional` -- achica manteniendo la proporción
- *   original, sin recortar nada, hasta que el lado más largo mida como
- *   máximo `ladoMaximo`. Para anuncios, que pueden ser cuadrados O
- *   verticales -- un recorte "cover" a un tamaño fijo rompería el caso
+ *   original, sin recortar nada, hasta que la ALTURA mida como máximo
+ *   `altoMaximo` (el ancho se ajusta solo). Para anuncios, que pueden ser
+ *   cuadrados O verticales pero nunca horizontales (rechazados antes de
+ *   comprimir) -- un recorte "cover" a un tamaño fijo rompería el caso
  *   vertical.
  *
  * Ambas comparten la decodificación y el dibujado en `<canvas>`, la única
@@ -97,19 +98,23 @@ export async function comprimirImagenExacta(archivo: File | Blob, opciones: Opci
 }
 
 export interface OpcionesCompresionProporcional {
-  /** Máximo del lado más largo -- si la imagen ya es más chica, no se agranda. */
-  ladoMaximo: number;
+  /** Tope de ALTURA -- el ancho se ajusta solo, en la misma proporción, para
+   * no deformar nunca. Si la imagen ya es más chica, no se agranda. Válido
+   * porque quien llama a esta función (anuncios) ya rechazó lo horizontal
+   * antes de comprimir (ver detectarOrientacionImagen) -- la altura siempre
+   * es el lado que hay que acotar. */
+  altoMaximo: number;
   calidad?: number;
 }
 
 /** Achica manteniendo la proporción original (cuadrada o vertical), sin
  * recortar nada. Pensada para anuncios. */
 export async function comprimirImagenProporcional(archivo: File | Blob, opciones: OpcionesCompresionProporcional): Promise<Blob> {
-  const { ladoMaximo, calidad = CALIDAD_DEFAULT } = opciones;
+  const { altoMaximo, calidad = CALIDAD_DEFAULT } = opciones;
   const imagen = await decodificarImagen(archivo);
   const { ancho: anchoOrigen, alto: altoOrigen } = dimensionesDe(imagen);
 
-  const escala = Math.min(1, ladoMaximo / Math.max(anchoOrigen, altoOrigen));
+  const escala = Math.min(1, altoMaximo / altoOrigen);
   const anchoDestino = Math.round(anchoOrigen * escala);
   const altoDestino = Math.round(altoOrigen * escala);
 
