@@ -21,7 +21,7 @@ const ICONO_POR_ETIQUETA: Record<string, LucideIcon> = {
 /** Un solo hue en rampa (más oscuro = más edad) -- son buckets ORDINALES (niños → mayores), no identidad nominal. */
 function colorPorIndice(i: number, total: number) {
   const pct = total <= 1 ? 0 : i / (total - 1);
-  return `color-mix(in oklab, var(--chart-1) ${Math.round(40 + pct * 55)}%, white)`;
+  return `color-mix(in oklab, var(--chart-3) ${Math.round(40 + pct * 55)}%, white)`;
 }
 
 /**
