@@ -15,6 +15,8 @@ interface Props {
   placeholder?: string;
   /** Si viene informado, excluye de los resultados a quien tenga fecha de nacimiento y sea menor de esta edad. */
   edadMinima?: number;
+  /** Q-MR-12: si se pasa, prioriza miembros de esta Casa de Paz antes de caer a toda la iglesia (ver `buscarPersonas` en casas-de-paz.service.ts). */
+  cdpId?: string;
 }
 
 /**
@@ -23,9 +25,9 @@ interface Props {
  * patrón que el campo "disertador" del prototipo (temporal_pages/NuevoReporte),
  * pero con estilo Apple y datos reales (`useBuscarPersonas`).
  */
-export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiarTexto, onSeleccionar, placeholder, edadMinima }: Props) {
+export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiarTexto, onSeleccionar, placeholder, edadMinima, cdpId }: Props) {
   const [abierto, setAbierto] = useState(false);
-  const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, valor, edadMinima);
+  const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, valor, edadMinima, cdpId);
   const mostrarDropdown = abierto && !seleccionado && valor.trim().length >= 2;
 
   return (
