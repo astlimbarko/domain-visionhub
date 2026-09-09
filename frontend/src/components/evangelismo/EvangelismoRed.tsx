@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, Pencil, Target, Users, UsersRound } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, Pencil, Plus, Target, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -10,10 +10,19 @@ import { KpiCard } from '@/components/dashboard/KpiCard';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
-import { useTasaEvangelismoRed, useEvangelismoRed, useMetasCdpRed, useAsignarMetaEvangelismo } from '@/hooks/useEvangelismo';
+import { useMisRoles } from '@/hooks/useDashboard';
+import {
+  useTasaEvangelismoRed,
+  useEvangelismoRed,
+  useEvangelismoRedDirecto,
+  useCrearEvangelizadoRed,
+  useMetasCdpRed,
+  useAsignarMetaEvangelismo,
+} from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { ListaPersonasDia } from '@/components/evangelismo/ListaPersonasDia';
+import { NuevoEvangelizadoDialog, type ValoresEvangelizado } from '@/components/evangelismo/NuevoEvangelizadoDialog';
 import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
 import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
@@ -60,6 +69,7 @@ export function EvangelismoRed({ redId }: Props) {
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [cdpParaMeta, setCdpParaMeta] = useState<MetaCdpRed | null>(null);
   const [bulkAsignando, setBulkAsignando] = useState(false);
+  const [dialogoEvangelizadoAbierto, setDialogoEvangelizadoAbierto] = useState(false);
 
   const desde = aISO(new Date(anio, mes, 1));
   const hasta = aISO(new Date(anio, mes + 1, 0));
@@ -68,6 +78,21 @@ export function EvangelismoRed({ redId }: Props) {
   const { data: evangelizados = [], isLoading: cargandoLista, isFetching: actualizandoLista } = useEvangelismoRed(redId, desde, hasta);
   const { data: metasCdp = [], isLoading: cargandoMetas } = useMetasCdpRed(redId);
   const asignarMeta = useAsignarMetaEvangelismo(redId);
+
+  // Líder de Red sin Casa de Paz propia (pedido del owner, 2026-09-08): si ya
+  // lidera una CdP dentro de ESTA misma Red, ya puede registrar evangelizados
+  // por ese otro rol (Evangelismo.tsx) -- no se le duplica el flujo acá.
+  const { data: misRoles } = useMisRoles(iglesiaActivaId);
+  const tieneCdpPropiaEnEstaRed = (misRoles?.cdp_lider ?? []).some((c) => c.red_id === redId);
+  const { data: evangelizadosDirecto = [], isLoading: cargandoDirecto } = useEvangelismoRedDirecto(redId, desde, hasta);
+  const crearDirecto = useCrearEvangelizadoRed(redId);
+
+  // Registrado sin Casa de Paz -- queda fuera del ciclo SIM/NC/CRE (decisión
+  // aceptada por el owner, no es un olvido).
+  async function handleCrearDirecto(valores: ValoresEvangelizado) {
+    if (!iglesiaActivaId) return;
+    await crearDirecto.mutateAsync({ ...valores, red_id: redId, iglesia_id: iglesiaActivaId });
+  }
 
   // Tendencia (KAN-285): mismo rango amplio y fijo que en la vista del
   // Supervisor/Departamento, independiente del mes navegado arriba.
@@ -220,6 +245,40 @@ export function EvangelismoRed({ redId }: Props) {
         </div>
       </section>
 
+      {!tieneCdpPropiaEnEstaRed && (
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <TarjetaHeader
+            icon={HeartHandshake}
+            color={VERDE}
+            titulo="Evangelismo propio"
+            descripcion="Para Líderes de Red sin Casa de Paz propia -- estas personas no quedan asignadas a ninguna CdP"
+            accion={
+              <Button size="sm" className="shrink-0 gap-1.5" onClick={() => setDialogoEvangelizadoAbierto(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Nuevo evangelizado
+              </Button>
+            }
+          />
+          <div className="p-5">
+            {cargandoDirecto ? (
+              <Skeleton className="h-20 w-full rounded-xl" />
+            ) : evangelizadosDirecto.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Todavía no registraste a nadie este mes.</p>
+            ) : (
+              <ListaPersonasDia
+                personas={evangelizadosDirecto.map((e) => ({
+                  id: e.id,
+                  personaId: e.persona_id,
+                  nombre: e.nombre_completo,
+                  tipoNombre: e.tipo_evangelismo_nombre,
+                  tipoColor: e.tipo_evangelismo_color,
+                }))}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Flag}
@@ -366,6 +425,14 @@ export function EvangelismoRed({ redId }: Props) {
         cdp={cdpParaMeta}
         asignando={cdpParaMeta?.casa_de_paz_id === ID_TODAS ? bulkAsignando : asignarMeta.isPending}
         onAsignar={handleAsignar}
+      />
+
+      <NuevoEvangelizadoDialog
+        open={dialogoEvangelizadoAbierto}
+        onOpenChange={setDialogoEvangelizadoAbierto}
+        iglesiaId={iglesiaActivaId}
+        fechaInicial={aISO(hoy)}
+        onCrear={handleCrearDirecto}
       />
     </div>
   );

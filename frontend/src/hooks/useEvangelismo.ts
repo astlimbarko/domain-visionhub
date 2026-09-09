@@ -5,7 +5,9 @@ import {
   asignarMetaRedEvangelismo,
   buscarEvangelizados,
   crearEvangelizado,
+  crearEvangelizadoRed,
   obtenerEvangelismoRed,
+  obtenerEvangelismoRedDirecto,
   obtenerEvangelizados,
   obtenerMetaPropia,
   obtenerMetaRedAsignada,
@@ -15,7 +17,7 @@ import {
   obtenerTiposEvangelismo,
   soyRolSuperiorDeCdp,
 } from '@/services/evangelismo.service';
-import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado } from '@/types/evangelismo.types';
+import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado, NuevoEvangelizadoRed } from '@/types/evangelismo.types';
 
 export function useTiposEvangelismo(iglesiaId: string | undefined) {
   return useQuery({
@@ -116,6 +118,27 @@ export function useEvangelismoRed(redId: string | undefined, desde: string, hast
     queryFn: () => obtenerEvangelismoRed(redId as string, desde, hasta),
     enabled: !!redId,
     placeholderData: keepPreviousData,
+  });
+}
+
+/** Lo que un Líder de Red sin Casa de Paz propia registró directo en su Red
+ * (tabla `evangelismo_red`) -- ver EvangelismoRed.tsx. */
+export function useEvangelismoRedDirecto(redId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['evangelismo', 'red-directo', redId, desde, hasta],
+    queryFn: () => obtenerEvangelismoRedDirecto(redId as string, desde, hasta),
+    enabled: !!redId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCrearEvangelizadoRed(redId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: NuevoEvangelizadoRed) => crearEvangelizadoRed(datos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'red-directo', redId] });
+    },
   });
 }
 

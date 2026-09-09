@@ -16,6 +16,7 @@ import type {
   ReporteReciente,
   ResultadoReporte,
   Tema,
+  TestimonioCdp,
 } from '@/types/reporte.types';
 
 /**
@@ -222,6 +223,25 @@ export async function obtenerFechasReportadas(casaDePazId: string, desde: string
     .lte('fecha_reunion', hasta);
   if (error) throw error;
   return (data ?? []).map((r) => r.fecha_reunion);
+}
+
+/**
+ * Testimonios ya guardados en los reportes semanales de una CdP (campo libre
+ * `casa_de_paz_reporte.testimonios`), agrupados por reunión -- card
+ * "Testimonio" del dashboard del Líder de CdP (2026-09-08).
+ */
+export async function obtenerTestimoniosCdp(casaDePazId: string, desde?: string, hasta?: string): Promise<TestimonioCdp[]> {
+  const { data, error } = await supabase.rpc('fn_testimonios_cdp', {
+    p_casa_de_paz_id: casaDePazId,
+    p_desde: desde ?? null,
+    p_hasta: hasta ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []).map((r: { reporte_id: string; fecha_reunion: string; testimonios: string }) => ({
+    reporte_id: r.reporte_id,
+    fecha_reunion: r.fecha_reunion,
+    testimonios: r.testimonios,
+  }));
 }
 
 /**

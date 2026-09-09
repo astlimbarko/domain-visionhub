@@ -28,6 +28,10 @@ export const ROUTES = {
   // (no modal) para tener espacio si la iglesia tiene muchas Redes.
   EVANGELISMO_REDES: '/evangelismo-redes',
   VISITAS: '/visitas',
+  // Card "Testimonio" del dashboard del Líder de CdP (2026-09-08): sin item
+  // de nav propio, se llega por el botón de acceso rápido del dashboard --
+  // mismo patrón que EVANGELISMO_REDES/ANUNCIOS (ruta directa, no en el menú).
+  TESTIMONIOS_CDP: '/testimonios',
   FINANZAS: '/finanzas',
   PANEL_SUPERVISOR: '/panel-supervisor',
   DEPARTAMENTOS: '/departamentos',

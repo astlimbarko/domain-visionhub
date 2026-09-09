@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Phone, Search, UserRound, Users } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Phone, Search, UserRound, Users, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -14,8 +16,24 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { useAuthStore } from '@/store/auth.store';
 import { usePersonasDeCdp } from '@/hooks/usePersonas';
+import { useEdadMinimaCreyente } from '@/hooks/useReporte';
 import type { PersonaDeCdp } from '@/types/persona.types';
+import { OPCIONES_RANGO_MIEMBRO, type RangoMiembro } from '@/types/membresia-extendida.types';
+
+/**
+ * Filtro con el que se puede abrir esta pantalla desde afuera (dashboard del
+ * Líder de CdP, 2026-09-08) -- cada card de acceso rápido navega acá con uno
+ * de estos en `location.state.filtroInicial`. `ESTADO` acepta más de una
+ * sigla para el caso "Discípulos" (DA + DI juntos en un solo botón).
+ */
+export type FiltroInicialPersonasCdp =
+  | { tipo: 'ESTADO'; siglas: string[] }
+  | { tipo: 'BAUTIZADO' }
+  | { tipo: 'RANGO_MIEMBRO'; valor: RangoMiembro }
+  | { tipo: 'SUBLIDER' }
+  | { tipo: 'MENOR' };
 
 const GRIS = '#8e8e93';
 const INDIGO = '#5856d6';
@@ -66,19 +84,44 @@ interface Props {
  */
 export function PersonasDeCdpVista({ casaDePazId }: Props) {
   const { data: personas = [], isLoading } = usePersonasDeCdp(casaDePazId);
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const { data: edadMinimaCreyente } = useEdadMinimaCreyente(iglesiaActivaId);
+  const location = useLocation();
+  // Se lee una sola vez al montar (lazy initializer) -- si la persona navega
+  // manualmente después, no se vuelve a pisar lo que ella misma eligió.
+  const [filtroInicial] = useState<FiltroInicialPersonasCdp | undefined>(
+    () => (location.state as { filtroInicial?: FiltroInicialPersonasCdp } | null)?.filtroInicial
+  );
 
   const [texto, setTexto] = useState('');
-  const [estado, setEstado] = useState('TODOS');
+  const [estados, setEstados] = useState<string[]>(() => (filtroInicial?.tipo === 'ESTADO' ? filtroInicial.siglas : []));
+  const [soloBautizados, setSoloBautizados] = useState(() => filtroInicial?.tipo === 'BAUTIZADO');
+  const [rangoFiltro, setRangoFiltro] = useState<'TODOS' | RangoMiembro>(() =>
+    filtroInicial?.tipo === 'RANGO_MIEMBRO' ? filtroInicial.valor : 'TODOS'
+  );
+  const [soloSublideres, setSoloSublideres] = useState(() => filtroInicial?.tipo === 'SUBLIDER');
+  const [soloMenores, setSoloMenores] = useState(() => filtroInicial?.tipo === 'MENOR');
   const [orden, setOrden] = useState<Orden>('NOMBRE');
   const [visibles, setVisibles] = useState(LOTE);
   const [seleccionadaId, setSeleccionadaId] = useState<string>();
 
   function alternarEstado(sigla: string) {
-    setEstado((actual) => (actual === sigla ? 'TODOS' : sigla));
+    setEstados((actual) => (actual.length === 1 && actual[0] === sigla ? [] : [sigla]));
     setVisibles(LOTE);
   }
 
-  const estados = useMemo(() => {
+  function limpiarFiltrosRapidos() {
+    setEstados([]);
+    setSoloBautizados(false);
+    setRangoFiltro('TODOS');
+    setSoloSublideres(false);
+    setSoloMenores(false);
+    setVisibles(LOTE);
+  }
+
+  const hayFiltroRapidoActivo = estados.length > 0 || soloBautizados || rangoFiltro !== 'TODOS' || soloSublideres || soloMenores;
+
+  const estadosDisponibles = useMemo(() => {
     const m = new Map<string, string>();
     for (const p of personas) if (p.estado_sigla) m.set(p.estado_sigla, p.estado_nombre ?? p.estado_sigla);
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
@@ -107,7 +150,11 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
     const q = texto.trim().toLowerCase();
     const resultado = personas.filter((p: PersonaDeCdp) => {
       if (q && !p.nombre_completo.toLowerCase().includes(q) && !(p.ci ?? '').toLowerCase().includes(q)) return false;
-      if (estado !== 'TODOS' && p.estado_sigla !== estado) return false;
+      if (estados.length > 0 && (!p.estado_sigla || !estados.includes(p.estado_sigla))) return false;
+      if (soloBautizados && !p.bautizado) return false;
+      if (rangoFiltro !== 'TODOS' && p.rango_miembro !== rangoFiltro) return false;
+      if (soloSublideres && !p.es_sublider) return false;
+      if (soloMenores && (p.edad === null || edadMinimaCreyente === undefined || p.edad >= edadMinimaCreyente)) return false;
       return true;
     });
     const ordenadas = [...resultado];
@@ -123,7 +170,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
       });
     }
     return ordenadas;
-  }, [personas, texto, estado, orden]);
+  }, [personas, texto, estados, soloBautizados, rangoFiltro, soloSublideres, soloMenores, edadMinimaCreyente, orden]);
   const visiblesLista = filtradas.slice(0, visibles);
 
   return (
@@ -145,7 +192,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
           {composicion.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {composicion.map((c) => {
-                const activo = estado === c.sigla;
+                const activo = estados.length === 1 && estados[0] === c.sigla;
                 const clickable = c.sigla !== '—';
                 return (
                   <button
@@ -173,12 +220,12 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
           <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
           <Input className="h-11 rounded-2xl border-border bg-muted/50 pl-10 text-[14px]" placeholder="Buscar por nombre o CI..." value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(LOTE); }} />
         </div>
-        {estados.length > 0 && (
-          <Select value={estado} onValueChange={(v) => { setEstado(v); setVisibles(LOTE); }}>
+        {estadosDisponibles.length > 0 && (
+          <Select value={estados.length === 1 ? estados[0] : 'TODOS'} onValueChange={(v) => { setEstados(v === 'TODOS' ? [] : [v]); setVisibles(LOTE); }}>
             <SelectTrigger className="h-11 w-full rounded-2xl sm:w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="TODOS">Todos los estados</SelectItem>
-              {estados.map(([sigla, nombre]) => (
+              {estadosDisponibles.map(([sigla, nombre]) => (
                 <SelectItem key={sigla} value={sigla}>
                   {nombre} ({conteoPorEstado.get(sigla) ?? 0})
                 </SelectItem>
@@ -186,13 +233,39 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
             </SelectContent>
           </Select>
         )}
+        <Select value={rangoFiltro} onValueChange={(v) => { setRangoFiltro(v as 'TODOS' | RangoMiembro); setVisibles(LOTE); }}>
+          <SelectTrigger className="h-11 w-full rounded-2xl sm:w-44"><SelectValue placeholder="Rango" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="TODOS">Cualquier rango</SelectItem>
+            {OPCIONES_RANGO_MIEMBRO.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
+          </SelectContent>
+        </Select>
         <Select value={orden} onValueChange={(v) => setOrden(v as Orden)}>
           <SelectTrigger className="h-11 w-full rounded-2xl sm:w-48"><SelectValue placeholder="Ordenar" /></SelectTrigger>
           <SelectContent>
             {OPCIONES_ORDEN.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
           </SelectContent>
         </Select>
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+          <Switch checked={soloBautizados} onCheckedChange={(v) => { setSoloBautizados(v); setVisibles(LOTE); }} /> Bautizados
+        </label>
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+          <Switch checked={soloSublideres} onCheckedChange={(v) => { setSoloSublideres(v); setVisibles(LOTE); }} /> Sublíderes
+        </label>
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+          <Switch checked={soloMenores} onCheckedChange={(v) => { setSoloMenores(v); setVisibles(LOTE); }} /> Menores
+        </label>
       </div>
+
+      {hayFiltroRapidoActivo && (
+        <button
+          type="button"
+          onClick={limpiarFiltrosRapidos}
+          className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/15"
+        >
+          <X className="h-3.5 w-3.5" /> Quitar filtro
+        </button>
+      )}
 
       {/* ── Listado ────────────────────────────────────────────────────────────── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -239,6 +312,9 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
                             Sin membresía
                           </Badge>
                         )}
+                        {p.es_sublider && (
+                          <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">Sublíder</Badge>
+                        )}
                       </p>
                       <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                         {p.edad !== null && <span className="shrink-0">{p.edad} años</span>}
@@ -251,6 +327,15 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
                           </span>
                         )}
                       </p>
+                      {p.ministerios.length > 0 && (
+                        <p className="mt-1 flex flex-wrap items-center gap-1">
+                          {p.ministerios.map((m) => (
+                            <span key={m.nombre} className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {m.nombre}{m.es_lider ? ' (líder)' : ''}
+                            </span>
+                          ))}
+                        </p>
+                      )}
                     </div>
                     {p.ci && <Badge variant="secondary" className="hidden shrink-0 rounded-full text-[10px] sm:inline-flex">CI {p.ci}</Badge>}
                   </button>

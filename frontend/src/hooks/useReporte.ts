@@ -15,6 +15,7 @@ import {
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
+  obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
   puedeEditarReporte,
 } from '@/services/reporte.service';
@@ -85,6 +86,15 @@ export function useReportesRecientes(casaDePazIds: string[]) {
     queryKey: ['reporte', 'recientes', casaDePazIds],
     queryFn: () => obtenerReportesRecientes(casaDePazIds),
     enabled: casaDePazIds.length > 0,
+  });
+}
+
+/** Testimonios ya guardados en los reportes semanales de una CdP -- card "Testimonio" del dashboard del Líder de CdP. */
+export function useTestimoniosCdp(casaDePazId: string | undefined, desde?: string, hasta?: string) {
+  return useQuery({
+    queryKey: ['reporte', 'testimonios', casaDePazId, desde, hasta],
+    queryFn: () => obtenerTestimoniosCdp(casaDePazId as string, desde, hasta),
+    enabled: !!casaDePazId,
   });
 }
 

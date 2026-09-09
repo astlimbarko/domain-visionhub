@@ -4,12 +4,14 @@ import type {
   Evangelizado,
   EvangelizadoBusqueda,
   EvangelizadoRed,
+  EvangelizadoRedDirecto,
   MetaCdpRed,
   MetaPropia,
   MetaRedAsignada,
   NuevaMetaAsignada,
   NuevaMetaAsignadaRed,
   NuevoEvangelizado,
+  NuevoEvangelizadoRed,
   TasaEvangelismo,
   TasaEvangelismoRed,
   TipoEvangelismo,
@@ -171,6 +173,41 @@ export async function buscarEvangelizados(
   if (error) throw error;
   const resultados = data ?? [];
   return { resultados, total: resultados[0]?.total ?? 0 };
+}
+
+/**
+ * Registra un evangelizado directo a nivel Red, sin Casa de Paz (tabla
+ * `evangelismo_red`, independiente de `evangelismo`) -- solo para Líderes de
+ * Red que no tienen CdP propia. Mismo patrón transaccional que
+ * `crearEvangelizado` (fn_registrar_evangelizado_red).
+ */
+export async function crearEvangelizadoRed(datos: NuevoEvangelizadoRed) {
+  const { error } = await supabase.rpc('fn_registrar_evangelizado_red', {
+    p_datos: {
+      persona_id: datos.persona_id ?? null,
+      iglesia_id: datos.iglesia_id,
+      red_id: datos.red_id,
+      primer_nombre: datos.primer_nombre,
+      segundo_nombre: datos.segundo_nombre || null,
+      primer_apellido: datos.primer_apellido,
+      segundo_apellido: datos.segundo_apellido || null,
+      sexo: datos.sexo,
+      fecha_nacimiento: datos.fecha_nacimiento || null,
+      telefono: datos.telefono || null,
+      fecha: datos.fecha,
+      domicilio: datos.domicilio,
+      observaciones: datos.observaciones,
+      tipo_evangelismo_id: datos.tipo_evangelismo_id || null,
+      evangelizado_por_id: datos.evangelizado_por_id || null,
+    },
+  });
+  if (error) throw error;
+}
+
+export async function obtenerEvangelismoRedDirecto(redId: string, desde: string, hasta: string): Promise<EvangelizadoRedDirecto[]> {
+  const { data, error } = await supabase.rpc('fn_evangelismo_red_directo', { p_red_id: redId, p_desde: desde, p_hasta: hasta });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function obtenerTasaEvangelismoRed(redId: string, desde: string, hasta: string): Promise<TasaEvangelismoRed> {

@@ -73,7 +73,13 @@ export function GestionSubliderVista() {
 
   const { data: perfil } = useCdpPerfil(cdpActiva);
   const nombreCdpActiva = perfil?.nombre;
-  const { data: redes = [] } = useRedes(iglesiaActivaId);
+  // 2026-09-08: bug real reportado por el owner ("primero muestra azul y
+  // luego cambia al color de la red") -- `redes` arranca en `[]` mientras
+  // useRedes todavía está cargando, así que el banner se pintaba de una vez
+  // con ese default (sin encontrar el color) y recién cambiaba cuando la
+  // consulta terminaba. Se suma `cargandoRedes` al gate de abajo para no
+  // pintar el banner hasta saber el color real.
+  const { data: redes = [], isLoading: cargandoRedes } = useRedes(iglesiaActivaId);
   const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
   // KAN-251: color elegido para la Red en el Constructor -- blanco es el
   // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
@@ -183,7 +189,7 @@ export function GestionSubliderVista() {
     );
   }
 
-  if (cargandoContexto) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (cargandoContexto || cargandoRedes) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
   if (!contextoCdp) {
     return (

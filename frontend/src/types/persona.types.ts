@@ -1,3 +1,5 @@
+import type { RangoMiembro } from './membresia-extendida.types';
+
 export type Sexo = 'M' | 'F';
 export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO';
 export type GradoInstruccion =
@@ -134,6 +136,12 @@ export interface PersonaDeRed {
   proviene_de_fusion: boolean;
 }
 
+/** Ministerio en el que participa una persona del roster de CdP (autodeclarado en el formulario de membresía). */
+export interface MinisterioDePersonaCdp {
+  nombre: string;
+  es_lider: boolean;
+}
+
 /** Fila del roster de "Personas" del Líder de CdP — solo lectura, scopeada a su Casa de Paz. */
 export interface PersonaDeCdp {
   persona_id: string;
@@ -147,6 +155,13 @@ export interface PersonaDeCdp {
   fecha_ingreso: string | null;
   /** false = "visita" que llegó a Nuevo Convertido/Creyente por asistencia, sin membresía formal (gateada por bautismo) todavía. */
   es_miembro_formal: boolean;
+  /** Dashboard del Líder de CdP (2026-09-08): campos para las cards de acceso rápido. */
+  bautizado: boolean;
+  /** Autodeclarado en el formulario de membresía (persona_censo_membresia) -- distinto del estado SSVA. */
+  rango_miembro: RangoMiembro | null;
+  /** Cargo SUBLIDER_CDP vigente en esta misma Casa de Paz. */
+  es_sublider: boolean;
+  ministerios: MinisterioDePersonaCdp[];
 }
 
 export interface NuevaPersona {

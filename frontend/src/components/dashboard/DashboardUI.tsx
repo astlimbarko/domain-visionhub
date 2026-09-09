@@ -23,6 +23,41 @@ export const TEAL = 'color-mix(in oklab, var(--chart-2) 55%, var(--chart-1))';
 /** Degradado sólido y elegante: mismo tono, apenas más profundo, sin pastel ni neón. */
 export const mosaico = (c: string) => `linear-gradient(150deg, color-mix(in oklab, ${c} 92%, #000) 0%, color-mix(in oklab, ${c} 70%, #000) 100%)`;
 
+/**
+ * Variante "vidrio" de `mosaico()`: degradado de color con un poco de
+ * transparencia real (para que `backdrop-blur-sm` tenga sentido), sin el
+ * velo blanco que tenían las 2 versiones anteriores (2026-09-08) -- ese
+ * brillo diagonal blanco + mezclar el color con transparente sobre el fondo
+ * claro de la página era justo lo que lavaba el color ("le pierde el color,
+ * capa blanquecina", pedido del owner). Vivo y transparente tiran para
+ * lados opuestos: cuanto más se ve "a través" del fondo claro, más se lava
+ * el color. Acá se prioriza el color -- opacidad alta (90%/74%, cerca del
+ * `mosaico()` opaco de 92%/70%), transparencia real pero apenas perceptible,
+ * el "vidrio" lo dan `backdrop-blur-sm` + `sombraVidrio()` (filo de luz +
+ * sombra interna), no el color en sí.
+ *
+ * OJO -- riesgo de rendimiento conocido: `backdrop-blur-xl` real causó lag
+ * confirmado en celulares de gama baja en este mismo proyecto (ver
+ * `fix-lag-backdrop-blur-y-chunking`, 2026-09-05, sacado de Dialog/Select/
+ * Popover). Acá se usa `backdrop-blur-sm` (4px, el más chico de Tailwind, no
+ * el -xl de 24px que causó el problema) para acotar el costo, pero sigue
+ * siendo blur real sobre 13 elementos en una grilla con scroll -- pedido
+ * explícito del owner asumiendo que falta confirmar en un celular real de
+ * gama baja antes de darlo por bueno del todo.
+ */
+export const mosaicoVidrio = (c: string) =>
+  `linear-gradient(150deg, color-mix(in oklab, ${c} 90%, transparent) 0%, color-mix(in oklab, ${c} 74%, transparent) 100%)`;
+
+/**
+ * Sombras internas que le dan "volumen" al vidrio (2026-09-08, pedido del
+ * owner: la primera versión traslúcida se veía plana) -- un filo de luz
+ * arriba (como si el borde de vidrio atrapara la luz) y una sombra oscura
+ * curva abajo (como si el vidrio tuviera espesor real), combinadas con el
+ * resplandor de color de siempre hacia afuera.
+ */
+export const sombraVidrio = (c: string) =>
+  `inset 0 1px 1px 0 rgba(255,255,255,0.55), inset 0 -18px 26px -20px rgba(0,0,0,0.4), 0 14px 26px -14px color-mix(in oklab, ${c} 75%, transparent)`;
+
 /** Variantes de GRADIENTE_HERO/DEGRADADO_IDENTIDAD derivadas de un color propio
  * (ej. el de la Red) en vez del navy institucional fijo. El texto del banner
  * es blanco siempre -- si el color elegido es demasiado claro para eso
@@ -112,6 +147,8 @@ export function KpiMosaico({
   color,
   sub,
   compact = false,
+  onClick,
+  vidrio = false,
   children,
 }: {
   icon: LucideIcon;
@@ -120,14 +157,22 @@ export function KpiMosaico({
   sub?: ReactNode;
   /** Variante angosta en fila (ícono + valor + label en una línea) para grupos de KPIs con poco contenido cada uno. */
   compact?: boolean;
+  /** Si se pasa, la card se vuelve un botón de acceso rápido (mismo look de siempre, con affordance de hover/click) en vez de una card puramente informativa. */
+  onClick?: () => void;
+  /** Look "vidrio" de Apple: fondo translúcido de color + backdrop-blur real (chico, `blur-sm`) + brillo diagonal + borde de luz -- ver `mosaicoVidrio()`. Por defecto sigue siendo el mosaico sólido y opaco de siempre. */
+  vidrio?: boolean;
   children: ReactNode;
 }) {
+  const estiloBase = {
+    background: vidrio ? mosaicoVidrio(color) : mosaico(color),
+    boxShadow: vidrio ? sombraVidrio(color) : `0 14px 26px -14px color-mix(in oklab, ${color} 75%, transparent)`,
+  };
+  const clasesInteractivas = onClick ? ' cursor-pointer text-left transition-transform hover:brightness-110 active:scale-[0.98]' : '';
+  const clasesVidrio = vidrio ? ' border border-white/25 backdrop-blur-sm' : '';
+
   if (compact) {
-    return (
-      <div
-        className="relative flex items-center gap-3 overflow-hidden rounded-2xl p-3.5 text-white"
-        style={{ background: mosaico(color), boxShadow: `0 14px 26px -14px color-mix(in oklab, ${color} 75%, transparent)` }}
-      >
+    const contenido = (
+      <>
         <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
         <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
           <Icon className="h-4 w-4" strokeWidth={2.2} />
@@ -139,15 +184,18 @@ export function KpiMosaico({
           </div>
           {sub && <p className="mt-0.5 truncate text-[11px] text-white/70">{sub}</p>}
         </div>
-      </div>
+      </>
+    );
+    const clases = `relative flex w-full items-center gap-3 overflow-hidden rounded-2xl p-3.5 text-white${clasesInteractivas}${clasesVidrio}`;
+    return onClick ? (
+      <button type="button" onClick={onClick} className={clases} style={estiloBase}>{contenido}</button>
+    ) : (
+      <div className={clases} style={estiloBase}>{contenido}</div>
     );
   }
 
-  return (
-    <div
-      className="relative flex flex-col justify-between gap-6 overflow-hidden rounded-2xl p-4 text-white"
-      style={{ background: mosaico(color), boxShadow: `0 14px 26px -14px color-mix(in oklab, ${color} 75%, transparent)` }}
-    >
+  const contenido = (
+    <>
       <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
       <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
         <Icon className="h-5 w-5" strokeWidth={2.2} />
@@ -157,7 +205,13 @@ export function KpiMosaico({
         <p className="mt-1.5 text-[12px] font-medium text-white/85">{label}</p>
         {sub && <p className="mt-0.5 text-[11px] text-white/70">{sub}</p>}
       </div>
-    </div>
+    </>
+  );
+  const clases = `relative flex w-full flex-col justify-between gap-6 overflow-hidden rounded-2xl p-4 text-white${clasesInteractivas}${clasesVidrio}`;
+  return onClick ? (
+    <button type="button" onClick={onClick} className={clases} style={estiloBase}>{contenido}</button>
+  ) : (
+    <div className={clases} style={estiloBase}>{contenido}</div>
   );
 }
 

@@ -130,6 +130,14 @@ export interface ResultadoReporte {
   visitasNuevasCreadas: { clave: string; personaId: string }[];
 }
 
+/** Testimonio ya guardado en un reporte semanal (fn_testimonios_cdp) -- card
+ * "Testimonio" del dashboard del Líder de CdP, 2026-09-08. */
+export interface TestimonioCdp {
+  reporte_id: string;
+  fecha_reunion: string;
+  testimonios: string;
+}
+
 /** KAN-271: datos de un reporte ya enviado, para precargar el formulario en modo edición. */
 export interface ReporteExistente {
   id: string;
