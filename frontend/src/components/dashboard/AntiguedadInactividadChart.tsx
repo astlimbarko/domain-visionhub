@@ -1,5 +1,3 @@
-import { Bar, BarChart, Cell, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-
 export interface RangoInactividad {
   etiqueta: string;
   cantidad: number;
@@ -16,38 +14,42 @@ function colorPorIndice(i: number, total: number) {
 }
 
 /**
- * Hace cuánto que los inactivos no vienen (2026-09-08, pedido del owner:
- * gráfico nuevo, exclusivo de la pestaña Seguimiento) -- distinto de "A
- * quiénes seguir de cerca" (esa es un conteo por categoría; esta es la
- * severidad DENTRO de la categoría "Inactivos").
+ * Hace cuánto que los inactivos no vienen -- una sola barra proporcional
+ * partida por severidad (no un gráfico de barras horizontales más, 2026-09-08:
+ * el owner pidió que dejara de repetir la misma forma que otros 3 gráficos).
+ * Se lee como "de todos los inactivos, qué proporción es reciente vs.
+ * crónica" de un solo vistazo, sin comparar largos de barras distintas.
  */
 export function AntiguedadInactividadChart({ rangos }: Props) {
-  const datos = rangos.map((r, i) => ({ ...r, fill: colorPorIndice(i, rangos.length) }));
-  const total = rangos.reduce((acc, r) => acc + r.cantidad, 0);
+  const datos = rangos.map((r, i) => ({ ...r, color: colorPorIndice(i, rangos.length) })).filter((d) => d.cantidad > 0);
+  const total = datos.reduce((acc, d) => acc + d.cantidad, 0);
 
   if (total === 0) {
     return <p className="text-sm text-muted-foreground">Nadie superó el umbral de inactividad -- buena señal.</p>;
   }
 
   return (
-    <div className="h-52 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={datos} layout="vertical" margin={{ top: 4, right: 28, left: 8, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-          <XAxis type="number" allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-          <YAxis type="category" dataKey="etiqueta" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} width={90} />
-          <Tooltip
-            formatter={(value) => [`${value} persona${value === 1 ? '' : 's'}`, undefined]}
-            contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, color: 'var(--popover-foreground)' }}
-          />
-          <Bar dataKey="cantidad" radius={[0, 6, 6, 0]} maxBarSize={22}>
-            <LabelList dataKey="cantidad" position="right" style={{ fontSize: 12, fontWeight: 600, fill: 'var(--foreground)' }} />
-            {datos.map((d, i) => (
-              <Cell key={i} fill={d.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="flex flex-col gap-4">
+      <div className="flex h-9 w-full gap-0.5 overflow-hidden rounded-full">
+        {datos.map((d) => (
+          <div
+            key={d.etiqueta}
+            className="flex items-center justify-center transition-[flex-grow] duration-500"
+            style={{ flexGrow: d.cantidad, flexBasis: 0, background: d.color }}
+            title={`${d.etiqueta}: ${d.cantidad}`}
+          >
+            {d.cantidad / total >= 0.12 && <span className="text-[12px] font-bold text-white">{d.cantidad}</span>}
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {datos.map((d) => (
+          <span key={d.etiqueta} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
+            <span className="font-medium text-foreground">{d.cantidad}</span> {d.etiqueta}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
