@@ -44,4 +44,8 @@
 - [x] Bug real encontrado y corregido viendo la pantalla: el botón de "quitar foto" quedaba superpuesto sobre el nombre -- reposicionado simétrico al lápiz de editar
 - [ ] **Alcance parcial, documentado en KAN-209**: solo autoservicio en Cuenta -- la foto NO aparece todavía en listados/tarjetas de otras pantallas (Constructor, gestión de sublíderes, historial de asistencia, etc.), eso requiere sumar `foto_perfil_path` a varias RPC y reemplazar el componente de iniciales en ~15 archivos candidatos. Sin hacer, para no salirme del pedido original sin aprobación
 - [x] Owner decidió: Finalizar KAN-209 con el alcance de autoservicio ya hecho. Creado ticket nuevo **KAN-353** (mostrar avatar en listados/tarjetas) para el rollout completo, sin código todavía
-- [x] **Plan de 3 fases (KAN-207/209/210) cerrado en código** en rama `feature/fotos-perfil-compresor-storage`, las 3 Finalizadas en Jira -- falta abrir PR y mergear a master
+- [x] **Plan de 3 fases (KAN-207/209/210) cerrado en código** en rama `feature/fotos-perfil-compresor-storage`, las 3 Finalizadas en Jira
+- [x] Medido en vivo el tiempo de carga real del anuncio de login con throttling de red real (Chrome DevTools contra Supabase real): 93KB comprimido tarda 215ms (banda ancha) a 4s (3G lento) -- el original de 2,27MB hubiera tardado ~5s a ~98s en esos mismos escenarios (estimado proporcional a la misma velocidad medida)
+- [x] Confirmado con el owner viendo la pantalla: el avatar de perfil "luce muy bien", aprobado como DONE
+- [x] **PR #45 abierta** (las 3 fases juntas) -- pendiente: probar en vivo con el resto del equipo mañana antes de mergear
+- [ ] Para mañana: probar en vivo con otras personas del equipo + arrancar KAN-353 (avatar en listados/tarjetas del resto de la app)
