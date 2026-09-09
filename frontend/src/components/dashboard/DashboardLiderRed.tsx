@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -128,8 +128,20 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
     return { efesios, ministros, ancianos, diaconos, subMentores, mentores, lideresCdp, sublideres, lideresMinisterio, discipulos, bautizados, milagros };
   }, [personasRed]);
 
-  function irAPersonas(filtroInicial: FiltroInicialPersonasRed) {
-    navigate(ROUTES.PERSONAS, { state: { filtroInicial } });
+  function irAPersonas(filtroInicial?: FiltroInicialPersonasRed) {
+    navigate(ROUTES.PERSONAS, filtroInicial ? { state: { filtroInicial } } : undefined);
+  }
+
+  // Asistencia/Reportes/Ingresos no tienen una página propia que soporte el
+  // alcance de Red (Historial de Reportes/Asistencia y Finanzas solo
+  // manejan CdP o Supervisor -- un Líder de Red ahí vería un placeholder
+  // roto de "sin CdP asignada"). En vez de mandar a una página rota, estas
+  // 3 cards bajan a la sección de esta misma pantalla que ya tiene ese dato
+  // por CdP (2026-09-09).
+  const casasRef = useRef<HTMLDivElement>(null);
+  const contabilidadRef = useRef<HTMLDivElement>(null);
+  function irASeccion(ref: RefObject<HTMLDivElement | null>) {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   if (isLoading || !data) {
@@ -218,11 +230,26 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
              (2026-09-09, antes eran KpiMosaico de color pleno -- convivían 2
              estilos distintos en la misma pantalla). ──────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <CardIndicadorPastel icon={Home} label="Casas de Paz activas" color={AZUL} valor={kpi.cdp_activas} descripcion="Vigentes en la Red" />
-        <CardIndicadorPastel icon={Users} label="Miembros totales" color={MORADO} valor={kpi.miembros_totales} descripcion="En toda la Red" />
-        <CardIndicadorPastel icon={Activity} label="Asistencia promedio" color={VERDE} valor={kpi.asistencia_promedio ?? '—'} descripcion="Por reunión" />
-        <CardIndicadorPastel icon={UserCheck} label="Asistencia total" color={MARINO} valor={asistenciaTotal || '—'} descripcion="Última reunión de cada CdP" />
-        <CardIndicadorPastel icon={ClipboardCheck} label="Reportes al día" color={AMBAR} valor={`${reportadas}/${kpi.cdp_activas}`} descripcion="Esta semana" />
+        <CardIndicadorPastel
+          icon={Home} label="Casas de Paz activas" color={AZUL} valor={kpi.cdp_activas}
+          descripcion="Vigentes en la Red" onClick={() => navigate(ROUTES.CASAS_DE_PAZ)}
+        />
+        <CardIndicadorPastel
+          icon={Users} label="Miembros totales" color={MORADO} valor={kpi.miembros_totales}
+          descripcion="En toda la Red" onClick={() => irAPersonas()}
+        />
+        <CardIndicadorPastel
+          icon={Activity} label="Asistencia promedio" color={VERDE} valor={kpi.asistencia_promedio ?? '—'}
+          descripcion="Por reunión" onClick={() => irASeccion(casasRef)}
+        />
+        <CardIndicadorPastel
+          icon={UserCheck} label="Asistencia total" color={MARINO} valor={asistenciaTotal || '—'}
+          descripcion="Última reunión de cada CdP" onClick={() => irASeccion(casasRef)}
+        />
+        <CardIndicadorPastel
+          icon={ClipboardCheck} label="Reportes al día" color={AMBAR} valor={`${reportadas}/${kpi.cdp_activas}`}
+          descripcion="Esta semana" onClick={() => irASeccion(casasRef)}
+        />
         <CardIndicadorPastel
           icon={Wallet} label="Ingresos" color={TEAL}
           valor={
@@ -239,6 +266,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
                 )
           }
           descripcion={`De ${etiquetaPeriodo}`}
+          onClick={casas.length > 0 ? () => irASeccion(contabilidadRef) : undefined}
         />
       </div>
 
@@ -262,7 +290,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
       )}
 
       {/* ── Casas de Paz: navegación a cada dashboard + finanzas por CdP ───────── */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <section ref={casasRef} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Home} color={AZUL} titulo="Casas de Paz" descripcion="Entrá para ver el dashboard de cada casa, o mirá sus finanzas acá mismo" />
         <div className="flex flex-col gap-4 p-5">
           {casas.length === 0 ? (
@@ -324,7 +352,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
 
       {/* ── Contabilidad total de la Red: [Ofrenda][Diezmo][Total] global ──────── */}
       {casas.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <section ref={contabilidadRef} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader icon={Wallet} color={VERDE} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
           <div className="p-5">
             <BloqueFinanciero resumen={finanzasGlobal} />
