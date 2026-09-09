@@ -109,10 +109,18 @@ export function useEliminarAnuncio() {
     // baja logica del anuncio igual queda hecha -- no se bloquea al usuario
     // por un archivo suelto que no lo perjudica (ver policy de storage select,
     // deja de ser legible una vez que el anuncio no existe/es visible).
-    mutationFn: async ({ anuncioId, imagenPath }: { anuncioId: string; imagenPath: string }) => {
+    mutationFn: async ({
+      anuncioId,
+      imagenPath,
+      imagenThumbPath,
+    }: {
+      anuncioId: string;
+      imagenPath: string;
+      imagenThumbPath: string | null;
+    }) => {
       await eliminarAnuncio(anuncioId);
       try {
-        await eliminarImagenAnuncio(imagenPath);
+        await eliminarImagenAnuncio(imagenPath, imagenThumbPath);
       } catch (e) {
         console.warn('No se pudo borrar la imagen del anuncio eliminado', e);
       }

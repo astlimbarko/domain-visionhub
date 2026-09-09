@@ -77,28 +77,45 @@ export async function obtenerMisAnunciosGestion(iglesiaId: string, redId?: strin
  * cualquier pantalla y baja mucho más el peso que un tope de 1600px
  * (2026-09-08, pedido explícito del owner: bajar más el tamaño). */
 const ALTO_MAXIMO_ANUNCIO = 600;
+/** Miniatura para el panel de gestion (KAN-354): ese listado la muestra a
+ * 28x28 (Tailwind), no hace falta bajar los ~90KB de la imagen completa
+ * (600px de alto) solo para eso. Mismo compresor, mismo bucket/carpeta, con
+ * un tope de altura mucho menor. */
+const ALTO_MAXIMO_MINIATURA_ANUNCIO = 140;
+
+export interface ImagenAnuncioSubida {
+  path: string;
+  thumbPath: string;
+}
 
 /**
- * Sube la imagen a Storage ANTES de crear la fila `anuncio` -- convencion de
- * path {iglesiaId}/{uuid}.{ext} (ver politicas de storage.objects en la
- * migracion): la policy de INSERT solo exige permiso de "crear algun anuncio
- * en esa iglesia", el alcance fino (propia Red) lo valida recien
- * fn_anuncio_crear/actualizar. Devuelve el path relativo (imagen_path), no
- * una URL -- la lectura tambien pasa por RLS de storage.objects.
+ * Sube la imagen (y su miniatura) a Storage ANTES de crear la fila `anuncio`
+ * -- convencion de path {iglesiaId}/{uuid}.jpg + {iglesiaId}/{uuid}-thumb.jpg
+ * (ver politicas de storage.objects en la migracion): la policy de INSERT
+ * solo exige permiso de "crear algun anuncio en esa iglesia", el alcance
+ * fino (propia Red) lo valida recien fn_anuncio_crear/actualizar. Devuelve
+ * los paths relativos, no URLs -- la lectura tambien pasa por RLS de
+ * storage.objects.
  *
  * KAN-207: comprime antes de subir (proporcional, respeta cuadrada/vertical,
  * nunca la sube "cruda") -- por eso la extension siempre queda en .jpg,
  * sin importar el formato de entrada.
  */
-export async function subirImagenAnuncio(iglesiaId: string, archivo: File): Promise<string> {
-  const comprimida = await comprimirImagenProporcional(archivo, { altoMaximo: ALTO_MAXIMO_ANUNCIO });
-  const path = `${iglesiaId}/${crypto.randomUUID()}.jpg`;
-  const { error } = await supabase.storage.from(BUCKET_ANUNCIOS).upload(path, comprimida, {
-    contentType: 'image/jpeg',
-    upsert: false,
-  });
-  if (error) throw error;
-  return path;
+export async function subirImagenAnuncio(iglesiaId: string, archivo: File): Promise<ImagenAnuncioSubida> {
+  const [comprimida, miniatura] = await Promise.all([
+    comprimirImagenProporcional(archivo, { altoMaximo: ALTO_MAXIMO_ANUNCIO }),
+    comprimirImagenProporcional(archivo, { altoMaximo: ALTO_MAXIMO_MINIATURA_ANUNCIO }),
+  ]);
+  const uuid = crypto.randomUUID();
+  const path = `${iglesiaId}/${uuid}.jpg`;
+  const thumbPath = `${iglesiaId}/${uuid}-thumb.jpg`;
+  const [{ error: errorImagen }, { error: errorMiniatura }] = await Promise.all([
+    supabase.storage.from(BUCKET_ANUNCIOS).upload(path, comprimida, { contentType: 'image/jpeg', upsert: false }),
+    supabase.storage.from(BUCKET_ANUNCIOS).upload(thumbPath, miniatura, { contentType: 'image/jpeg', upsert: false }),
+  ]);
+  if (errorImagen) throw errorImagen;
+  if (errorMiniatura) throw errorMiniatura;
+  return { path, thumbPath };
 }
 
 /** `.download()` en vez de `.createSignedUrl()` -- ver comentario equivalente
@@ -109,8 +126,9 @@ export async function obtenerUrlAnuncio(imagenPath: string): Promise<string | nu
   return data ? URL.createObjectURL(data) : null;
 }
 
-export async function eliminarImagenAnuncio(imagenPath: string): Promise<void> {
-  const { error } = await supabase.storage.from(BUCKET_ANUNCIOS).remove([imagenPath]);
+export async function eliminarImagenAnuncio(imagenPath: string, imagenThumbPath: string | null): Promise<void> {
+  const paths = imagenThumbPath ? [imagenPath, imagenThumbPath] : [imagenPath];
+  const { error } = await supabase.storage.from(BUCKET_ANUNCIOS).remove(paths);
   if (error) throw error;
 }
 
@@ -123,6 +141,7 @@ export async function crearAnuncio(datos: DatosNuevoAnuncio): Promise<string> {
     p_titulo: datos.titulo,
     p_mensaje: datos.mensaje,
     p_imagen_path: datos.imagenPath,
+    p_imagen_thumb_path: datos.imagenThumbPath,
     p_imagen_orientacion: datos.imagenOrientacion,
     p_roles_destinatarios: datos.rolesDestinatarios,
     p_fecha_publicacion: datos.fechaPublicacion ?? undefined,
@@ -142,6 +161,7 @@ export async function actualizarAnuncio(datos: DatosEditarAnuncio): Promise<stri
     p_titulo: datos.titulo,
     p_mensaje: datos.mensaje,
     p_imagen_path: datos.imagenPath,
+    p_imagen_thumb_path: datos.imagenThumbPath,
     p_imagen_orientacion: datos.imagenOrientacion,
     p_roles_destinatarios: datos.rolesDestinatarios,
     p_fecha_publicacion: datos.fechaPublicacion ?? null,
