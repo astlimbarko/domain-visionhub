@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   CalendarRange,
@@ -43,7 +43,13 @@ import {
 } from '@/hooks/useEvangelismo';
 import { NuevoEvangelizadoDialog } from '@/components/evangelismo/NuevoEvangelizadoDialog';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
-import { EvangelismoTrendChart } from '@/components/evangelismo/EvangelismoTrendChart';
+// recharts es ~129 kB gzip (vendor-charts). Cargado bajo demanda -- mismo
+// patrón que DashboardLiderCdp.tsx -- para que la página (cards + calendario +
+// meta) pinte sin esperar a que baje todo recharts. Si el usuario entra
+// directo a la pestaña Calendario, ese chunk no se descarga nunca.
+const EvangelismoTrendChart = lazy(() =>
+  import('@/components/evangelismo/EvangelismoTrendChart').then((m) => ({ default: m.EvangelismoTrendChart }))
+);
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
 import { EvangelismoSupervisorVista } from '@/components/evangelismo/EvangelismoSupervisorVista';
@@ -545,7 +551,11 @@ export function Evangelismo() {
             {!cargandoLista && evangelizados.length === 0 && (
               <p className="text-sm text-muted-foreground">Nadie registrado todavía este mes.</p>
             )}
-            {!cargandoLista && <EvangelismoTrendChart anio={anio} mes={mes} evangelizados={evangelizados} />}
+            {!cargandoLista && evangelizados.length > 0 && (
+              <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
+                <EvangelismoTrendChart anio={anio} mes={mes} evangelizados={evangelizados} />
+              </Suspense>
+            )}
             {/* Alto fijo con scroll propio: la lista no debe estirar la card entera
                 cuando hay muchos evangelizados -- el resto del layout no se entera. */}
             {evangelizados.length > 0 && (
