@@ -16,6 +16,14 @@ export type ContextoActivo =
       /** El RPC de sesión todavía no expone el UUID; se conserva el código estable. */
       departamentoId: string | null;
       departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO';
+      /** KAN-339: contexto SINTÉTICO que arma el Super Admin al hacer clic en
+       * "Visualizar" desde el Constructor -- nunca viene de
+       * construirContextosDisponibles() (el Super Admin no es de verdad
+       * Líder de Departamento). Mismo nav/pantallas que el líder real, pero
+       * con un banner "Modo lectura" y sin botones de escritura. La barrera
+       * de seguridad real vive en el backend (las RPC de escritura no suman
+       * fn_es_super_admin()), esto es solo para la experiencia visual. */
+      soloLectura?: true;
     })
   | (ContextoBase<'LIDER_RED', 'RED'> & {
       iglesiaId: string;

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Background,
   BackgroundVariant,
@@ -36,6 +36,7 @@ import {
 } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
 import type { DatosNodoEstructura } from '@/features/estructura-organizacional/types';
 import type { RolUI } from '@/utils/permisos';
+import { DEPARTAMENTOS_FUNCIONALES } from '@/utils/departamentos';
 
 const nodeTypes = { estructura: NodoEstructura };
 
@@ -89,6 +90,30 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     return false;
   };
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
+  const navigate = useNavigate();
+  const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
+  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
+  // KAN-339: "Visualizar" un Departamento funcional como Super Admin --
+  // mismo mecanismo que el selector de rol multi-sombrero (setIglesiaActiva
+  // primero, que resetea contextoActivo/rolActivo, y recién despues
+  // setContextoActivo con el contexto SINTETICO soloLectura). El orden
+  // importa: setIglesiaActiva por si sola ya limpia contextoActivo.
+  const visualizarDepartamentoComoSuperAdmin = useCallback(
+    (departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO') => {
+      setIglesiaActiva(iglesiaId);
+      setContextoActivo({
+        clave: `SUPER_ADMIN_LECTURA:${iglesiaId}:${departamentoCodigo}`,
+        rolUI: 'LIDER_DEPARTAMENTO',
+        alcance: 'DEPARTAMENTO',
+        iglesiaId,
+        departamentoId: null,
+        departamentoCodigo,
+        soloLectura: true,
+      });
+      navigate(departamentoCodigo === 'EVANGELISMO' ? ROUTES.EVANGELISMO : ROUTES.AFIRMACION);
+    },
+    [iglesiaId, navigate, setContextoActivo, setIglesiaActiva],
+  );
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -147,8 +172,17 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       ocultarDepartamentos: esRolRed,
       ocultarPastorSupervisor: esRolRed,
       soloRedesIds: esRolRed ? redesEditablesIds : undefined,
+      // KAN-339: el menú de 3 puntos "Visualizar" es exclusivo de Super
+      // Admin -- Pastor/Supervisor ya tienen control total real (nav propio),
+      // no necesitan el modo lectura sintético.
+      // El cast es seguro: layout.ts solo invoca este callback para
+      // departamentos en DEPARTAMENTOS_FUNCIONALES ('AFIRMACION'/'EVANGELISMO').
+      onVisualizarSoloLectura:
+        rolUI === 'SUPER_ADMIN'
+          ? (codigo: string) => visualizarDepartamentoComoSuperAdmin(codigo as 'AFIRMACION' | 'EVANGELISMO')
+          : undefined,
     });
-  }, [data, rolUI, redesEditablesIds]);
+  }, [data, rolUI, redesEditablesIds, visualizarDepartamentoComoSuperAdmin]);
 
   useEffect(() => {
     setNodes(grafoBase.nodes);
@@ -575,6 +609,14 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               iglesiaId={iglesiaId}
               departamento={departamento}
               otpRequerido={data.layout.otpRequerido}
+              // KAN-339: mismo menú de 3 puntos "Visualizar" que la tarjeta
+              // del lienzo, ahora en el panel lateral (REQ-339-5, "dos
+              // lugares equivalentes").
+              onVisualizarSoloLectura={
+                rolUI === 'SUPER_ADMIN' && DEPARTAMENTOS_FUNCIONALES.includes(departamento.codigo.toUpperCase())
+                  ? () => visualizarDepartamentoComoSuperAdmin(departamento.codigo.toUpperCase() as 'AFIRMACION' | 'EVANGELISMO')
+                  : undefined
+              }
               onClose={() => {
                 setDepartamentoSeleccionadoId(null);
                 setNodoSeleccionadoId(null);

@@ -5,7 +5,7 @@ import type {
   EstructuraOrganizacionalDatos,
   PersonaEstructura,
 } from './types';
-import { DEPARTAMENTO_META } from '@/utils/departamentos';
+import { DEPARTAMENTO_META, DEPARTAMENTOS_FUNCIONALES } from '@/utils/departamentos';
 import { colorLegibleSobreBlanco } from './contraste';
 
 const PALETA_RED_PROVISIONAL = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#EA580C', '#DB2777'];
@@ -61,6 +61,9 @@ function nodo(
     eliminada?: boolean;
     redId?: string;
     sublideres?: PersonaEstructura[];
+    departamentoCodigo?: string;
+    puedeVisualizarSoloLectura?: boolean;
+    onVisualizarSoloLectura?: () => void;
   },
 ): Node<DatosNodoEstructura> {
   const esSeccion = data.tipo === 'GRUPO_DEPARTAMENTOS' || data.tipo === 'GRUPO_REDES';
@@ -105,6 +108,10 @@ export function crearGrafoEstructura(
     ocultarPastorSupervisor?: boolean;
     /** Si se pasa, solo se arman los nodos de estas Redes (y sus CdP) -- el resto ni se calcula. */
     soloRedesIds?: Set<string>;
+    /** KAN-339: si se pasa, cada tarjeta de Departamento funcional
+     * (Afirmación/Evangelismo) recibe el flag + callback para su menú de 3
+     * puntos "Visualizar" (Super Admin, modo lectura). */
+    onVisualizarSoloLectura?: (departamentoCodigo: string) => void;
   },
 ): {
   nodes: Node<DatosNodoEstructura>[];
@@ -189,6 +196,9 @@ export function crearGrafoEstructura(
   departamentos.forEach((departamento, indice) => {
     const id = `departamento:${departamento.id}`;
     const codigo = departamento.codigo.toUpperCase();
+    // KAN-339: solo Afirmación/Evangelismo (esFuncional) tienen algo que
+    // "Visualizar" -- Discipulado/Envío siguen "Próximamente".
+    const puedeVisualizar = !!opciones?.onVisualizarSoloLectura && DEPARTAMENTOS_FUNCIONALES.includes(codigo);
     nodes.push(
       nodo(id, 610 + indice * 250, -165, {
         tipo: 'DEPARTAMENTO',
@@ -198,6 +208,9 @@ export function crearGrafoEstructura(
         color: departamento.color ?? DEPARTAMENTO_META[codigo]?.color ?? '#64748b',
         buscable: `${departamento.nombre} ${departamento.lideres.map((persona) => `${persona.etiqueta} ${persona.correo ?? ''}`).join(' ')}`,
         estadoIncompleto: departamento.lideres.length === 0,
+        departamentoCodigo: codigo,
+        puedeVisualizarSoloLectura: puedeVisualizar,
+        onVisualizarSoloLectura: puedeVisualizar ? () => opciones!.onVisualizarSoloLectura!(codigo) : undefined,
       }),
     );
   });

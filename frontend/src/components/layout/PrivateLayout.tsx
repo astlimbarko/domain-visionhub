@@ -14,6 +14,7 @@ import { ActualizacionMembresiaModal } from '@/components/shared/ActualizacionMe
 import { CambiarContrasenaObligatoriaModal } from '@/components/shared/CambiarContrasenaObligatoriaModal';
 import { AppLoadingScreen, AppErrorScreen } from '@/components/ui/logo-spinner';
 import { ModalAnuncios } from '@/components/anuncios/ModalAnuncios';
+import { BannerModoLectura } from '@/components/shared/BannerModoLectura';
 
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -138,6 +139,7 @@ export function PrivateLayout() {
 
   return (
     <AppShell>
+      <BannerModoLectura />
       <Outlet />
       {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
       {debeCambiarContrasena && (

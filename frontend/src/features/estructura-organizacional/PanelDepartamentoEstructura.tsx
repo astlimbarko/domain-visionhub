@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Mail, RefreshCw, X } from 'lucide-react';
+import { Eye, Mail, MoreVertical, RefreshCw, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
@@ -16,6 +22,9 @@ interface Props {
   iglesiaId: string;
   departamento: DepartamentoEstructura;
   otpRequerido: boolean;
+  /** KAN-339: presente solo para Super Admin + Departamento funcional --
+   * abre el modo lectura sintético (mismo menú que la tarjeta del lienzo). */
+  onVisualizarSoloLectura?: () => void;
   onClose: () => void;
 }
 
@@ -26,7 +35,7 @@ interface Props {
  * líder, pero es el lugar donde van a vivir más opciones a futuro que
  * todavía no existen (mismo patrón que Red y Casa de Paz).
  */
-export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequerido, onClose }: Props) {
+export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequerido, onVisualizarSoloLectura, onClose }: Props) {
   const queryClient = useQueryClient();
   const [asignando, setAsignando] = useState(false);
   const [confirmandoQuitar, setConfirmandoQuitar] = useState(false);
@@ -97,18 +106,40 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
             <p className="text-lg font-bold text-slate-950">{meta?.verbo ?? departamento.nombre}</p>
             <p className="text-xs text-slate-500">Departamento</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar panel"
-            // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
-            // (REQ-MOB-3) -- antes:absolute expande el area de toque real
-            // sin agrandar el icono visible, mismo patron ya usado en los
-            // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
-            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 before:absolute before:-inset-1 before:content-[''] hover:bg-slate-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* KAN-339: mismo menú "Visualizar" que la tarjeta del lienzo,
+                REQ-339-5 -- dos lugares equivalentes. */}
+            {onVisualizarSoloLectura && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Más acciones del departamento"
+                    className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 before:absolute before:-inset-1 before:content-[''] hover:bg-slate-100"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem className="gap-2" onSelect={onVisualizarSoloLectura}>
+                    <Eye className="h-4 w-4" /> Visualizar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar panel"
+              // KAN-63: h-9 w-9 (36px) queda bajo el minimo tactil de 44x44
+              // (REQ-MOB-3) -- antes:absolute expande el area de toque real
+              // sin agrandar el icono visible, mismo patron ya usado en los
+              // botones de zoom/centrar del lienzo (EstructuraOrganizacional.tsx).
+              className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 before:absolute before:-inset-1 before:content-[''] hover:bg-slate-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4 p-5">
