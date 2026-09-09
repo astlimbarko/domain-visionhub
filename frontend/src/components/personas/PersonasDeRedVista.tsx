@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, GitMerge, Home, Search, UserRound, Users } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { ChevronDown, ChevronRight, GitMerge, Home, Search, UserRound, Users, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,27 @@ function trailProcedencia(p: PersonaDeRed): TimelineItem[] {
   }));
 }
 
+/**
+ * Filtro con el que se puede abrir esta pantalla desde afuera (dashboard del
+ * Líder/Supervisor de Red, 2026-09-09, accesos rápidos con base en REPORTE
+ * 2026 VISION.xlsx) -- cada card de acceso rápido navega acá con uno de
+ * estos en `location.state.filtroInicial`. Mismo patrón que
+ * FiltroInicialPersonasCdp en PersonasDeCdpVista.tsx.
+ */
+export type FiltroInicialPersonasRed =
+  | { tipo: 'RANGO_MIEMBRO'; valor: string }
+  | { tipo: 'BAUTIZADO' }
+  | { tipo: 'EFESIO' }
+  | { tipo: 'MINISTRO' }
+  | { tipo: 'ANCIANO' }
+  | { tipo: 'DIACONO' }
+  | { tipo: 'SUB_MENTOR' }
+  | { tipo: 'MENTOR' }
+  | { tipo: 'LIDER_CDP' }
+  | { tipo: 'SUBLIDER_CDP' }
+  | { tipo: 'LIDER_MINISTERIO' }
+  | { tipo: 'MILAGRO' };
+
 type Orden = 'NOMBRE' | 'RECIENTE' | 'ANTIGUO';
 
 const OPCIONES_ORDEN: { value: Orden; label: string }[] = [
@@ -77,6 +99,42 @@ const OPCIONES_ORDEN: { value: Orden; label: string }[] = [
   { value: 'RECIENTE', label: 'Ingreso más reciente' },
   { value: 'ANTIGUO', label: 'Ingreso más antiguo' },
 ];
+
+/** Texto corto para la píldora de "filtro activo" en la barra de filtros. */
+function etiquetaFiltroRapido(f: FiltroInicialPersonasRed): string {
+  switch (f.tipo) {
+    case 'RANGO_MIEMBRO': return f.valor === 'DISCIPULO' ? 'Discípulos' : f.valor;
+    case 'BAUTIZADO': return 'Bautizados';
+    case 'EFESIO': return 'Efesios';
+    case 'MINISTRO': return 'Ministros';
+    case 'ANCIANO': return 'Ancianos';
+    case 'DIACONO': return 'Diáconos';
+    case 'SUB_MENTOR': return 'Sub mentores';
+    case 'MENTOR': return 'Mentores';
+    case 'LIDER_CDP': return 'Líderes de Casa de Paz';
+    case 'SUBLIDER_CDP': return 'Sub líderes';
+    case 'LIDER_MINISTERIO': return 'Líderes de ministerio';
+    case 'MILAGRO': return 'Con milagro registrado';
+  }
+}
+
+/** Si la persona cumple el filtro rápido con el que se abrió la pantalla (card del dashboard). */
+function cumpleFiltroRapido(p: PersonaDeRed, f: FiltroInicialPersonasRed): boolean {
+  switch (f.tipo) {
+    case 'RANGO_MIEMBRO': return p.rango_miembro === f.valor;
+    case 'BAUTIZADO': return p.bautizado;
+    case 'EFESIO': return p.tiene_efesio;
+    case 'MINISTRO': return p.cargo_ministro;
+    case 'ANCIANO': return p.cargo_anciano;
+    case 'DIACONO': return p.cargo_diacono;
+    case 'SUB_MENTOR': return p.cargo_sub_mentor;
+    case 'MENTOR': return p.cargo_mentor;
+    case 'LIDER_CDP': return p.es_lider_cdp;
+    case 'SUBLIDER_CDP': return p.es_sublider_cdp;
+    case 'LIDER_MINISTERIO': return p.ministerios.some((m) => m.es_lider);
+    case 'MILAGRO': return p.milagros.length > 0;
+  }
+}
 
 interface Props {
   redId: string;
@@ -98,6 +156,13 @@ export function PersonasDeRedVista({ redId }: Props) {
   // valor "sin elegir" (mismo criterio que layout.ts/PanelRedEstructura).
   const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
 
+  const location = useLocation();
+  // Se lee una sola vez al montar (lazy initializer) -- si la persona navega
+  // manualmente después, no se vuelve a pisar lo que ella misma eligió.
+  const [filtroInicial] = useState<FiltroInicialPersonasRed | undefined>(
+    () => (location.state as { filtroInicial?: FiltroInicialPersonasRed } | null)?.filtroInicial
+  );
+
   const [texto, setTexto] = useState('');
   const [estado, setEstado] = useState('TODOS');
   const [cdp, setCdp] = useState('TODAS');
@@ -105,6 +170,7 @@ export function PersonasDeRedVista({ redId }: Props) {
   const [visibles, setVisibles] = useState(LOTE);
   const [expandidoId, setExpandidoId] = useState<string>();
   const [seleccionadaId, setSeleccionadaId] = useState<string>();
+  const [filtroRapido, setFiltroRapido] = useState<FiltroInicialPersonasRed | undefined>(filtroInicial);
 
   function alternarEstado(sigla: string) {
     setEstado((actual) => (actual === sigla ? 'TODOS' : sigla));
@@ -150,6 +216,7 @@ export function PersonasDeRedVista({ redId }: Props) {
       if (q && !p.nombre_completo.toLowerCase().includes(q) && !p.casa_de_paz_etiqueta.toLowerCase().includes(q) && !(p.lider_nombre ?? '').toLowerCase().includes(q)) return false;
       if (estado !== 'TODOS' && p.estado_sigla !== estado) return false;
       if (cdp !== 'TODAS' && p.casa_de_paz_etiqueta !== cdp) return false;
+      if (filtroRapido && !cumpleFiltroRapido(p, filtroRapido)) return false;
       return true;
     });
     const ordenadas = [...resultado];
@@ -165,11 +232,22 @@ export function PersonasDeRedVista({ redId }: Props) {
       });
     }
     return ordenadas;
-  }, [personas, texto, estado, cdp, orden]);
+  }, [personas, texto, estado, cdp, orden, filtroRapido]);
   const visiblesLista = filtradas.slice(0, visibles);
 
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Filtro activo (llegó desde un acceso directo del dashboard) ───────── */}
+      {filtroRapido && (
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <span className="text-[13px] text-muted-foreground">Filtrando por:</span>
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[13px] font-semibold text-primary">{etiquetaFiltroRapido(filtroRapido)}</span>
+          <Button variant="ghost" size="sm" className="ml-auto h-7 gap-1 rounded-lg px-2 text-xs text-muted-foreground" onClick={() => setFiltroRapido(undefined)}>
+            <X className="h-3.5 w-3.5" /> Quitar
+          </Button>
+        </div>
+      )}
+
       {/* ── Hero: composición de la Red ────────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl px-6 py-6 sm:px-8" style={{ background: colorRed ? gradienteHeroColor(colorRed) : 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
         <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: colorRed ?? INDIGO }} />

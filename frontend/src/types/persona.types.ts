@@ -118,6 +118,12 @@ export interface ProcedenciaItem {
   motivo: string | null;
 }
 
+/** Milagro registrado a nombre de una persona (persona_milagro). */
+export interface MilagroDePersona {
+  categoria: string;
+  fecha: string;
+}
+
 /** Fila del roster de "Personas" del Líder de Red — solo lectura, scopeada a la Red. */
 export interface PersonaDeRed {
   persona_id: string;
@@ -134,6 +140,21 @@ export interface PersonaDeRed {
   /** Historial de CdP por las que pasó, de la más antigua a la actual. */
   procedencia: ProcedenciaItem[];
   proviene_de_fusion: boolean;
+  // Censo/cargos (2026-09-09, accesos rápidos del dashboard de Red) --
+  // mismos campos que ya trae PersonaDeCdp, más el cargo real (no
+  // autodeclarado) de la propia persona y milagros.
+  rango_miembro: string | null;
+  bautizado: boolean;
+  tiene_efesio: boolean;
+  cargo_ministro: boolean;
+  cargo_anciano: boolean;
+  cargo_diacono: boolean;
+  cargo_sub_mentor: boolean;
+  cargo_mentor: boolean;
+  es_lider_cdp: boolean;
+  es_sublider_cdp: boolean;
+  ministerios: MinisterioDePersonaCdp[];
+  milagros: MilagroDePersona[];
 }
 
 /** Ministerio en el que participa una persona del roster de CdP (autodeclarado en el formulario de membresía). */
