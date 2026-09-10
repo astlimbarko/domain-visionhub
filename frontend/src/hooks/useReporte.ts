@@ -8,6 +8,7 @@ import {
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerIdsLiderCdp,
   obtenerLibros,
   obtenerMegaFiestaDelDia,
   obtenerMiembrosCdp,
@@ -40,6 +41,17 @@ export function useMiembrosCdp(casaDePazId: string | undefined) {
     enabled: !!casaDePazId,
     // Cambiar de Casa de Paz en el selector no debe vaciar las listas de asistencia.
     placeholderData: keepPreviousData,
+  });
+}
+
+/** Persona(s) con cargo LIDER_CDP vigente -- para filtrar al Líder de la
+ * lista de asistencia (Reportes.tsx), sin tocar useMiembrosCdp (compartida
+ * con MultiplicarCdpDialog.tsx, donde el Líder sí debe poder elegirse). */
+export function useIdsLiderCdp(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'ids-lider-cdp', casaDePazId],
+    queryFn: () => obtenerIdsLiderCdp(casaDePazId as string),
+    enabled: !!casaDePazId,
   });
 }
 
