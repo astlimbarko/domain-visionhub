@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
-  AlertTriangle,
   ArrowUpRight,
   BadgeCheck,
   BookOpen,
@@ -269,25 +268,6 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           onClick={casas.length > 0 ? () => irASeccion(contabilidadRef) : undefined}
         />
       </div>
-
-      {/* ── Aviso: sin reporte esta semana ───────────────────────────────────────── */}
-      {sinReporte.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <TarjetaHeader
-            icon={AlertTriangle}
-            color={AMBAR}
-            titulo="Sin reporte esta semana"
-            descripcion={`${sinReporte.length} Casa${sinReporte.length === 1 ? '' : 's'} de Paz todavía no cargó su reporte.`}
-          />
-          <div className="flex flex-wrap gap-2 p-5">
-            {sinReporte.map((c) => (
-              <span key={c.id} className="max-w-full rounded-full px-3 py-1 text-[12px] font-semibold break-words text-white" style={{ backgroundColor: AMBAR }}>
-                {c.etiqueta}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* ── Casas de Paz: navegación a cada dashboard + finanzas por CdP ───────── */}
       <section ref={casasRef} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
