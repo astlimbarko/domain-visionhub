@@ -400,8 +400,10 @@ export function EvangelismoSupervisorVista() {
             {/* Atajo cruzado con "Personas evangelizadas" (pedido explícito
                 del owner, 2026-09-08) -- misma idea del lado allá con
                 "Dashboard", para moverse entre las 2 vistas sin volver al
-                menú lateral. */}
-            <Button onClick={() => irAPersonasEvangelizadas()} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+                menú lateral. Fondo mas opaco + sombra propia (2026-09-10,
+                pedido del owner): con bg-white/10 se perdia contra la foto
+                del hero, no se leia como boton. */}
+            <Button onClick={() => irAPersonasEvangelizadas()} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/30 bg-white/20 px-4 text-white shadow-lg shadow-black/20 backdrop-blur-sm hover:bg-white/30">
               <UsersRound className="h-4 w-4" />
               Lista de Evangelizados
             </Button>

@@ -2,8 +2,6 @@ import { Network } from 'lucide-react';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import {
   NAV_ITEMS_AFIRMACION,
-  NAV_ITEM_EVANGELISMO,
-  NAV_ITEM_EVANGELISMO_PERSONAS,
   NAV_ITEM_JOVENES,
   NAV_ITEM_MATRIMONIOS,
   obtenerNavItems,
@@ -58,7 +56,15 @@ function tituloContexto(contexto: ContextoActivo): string {
 
 function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
-    return contexto.departamentoCodigo === 'EVANGELISMO' ? [NAV_ITEM_EVANGELISMO, NAV_ITEM_EVANGELISMO_PERSONAS] : NAV_ITEMS_AFIRMACION;
+    // Evangelismo (Lider de Departamento) tiene solo estas 2 pantallas, y ya
+    // se cruzan entre si con un boton en el hero de cada una -- el sidebar
+    // quedaba 100% redundante (pedido explicito del owner, 2026-09-10). Sin
+    // items no rompe nada: el drawer mobile sigue teniendo Mi cuenta/Cambiar
+    // rol/Salir en su pie, y el menu de cuenta de escritorio es independiente
+    // del sidebar. Afirmacion no entra aca -- tiene 5 pantallas reales, no
+    // son 2 atajos cruzados.
+    if (contexto.departamentoCodigo === 'EVANGELISMO') return [];
+    return NAV_ITEMS_AFIRMACION;
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];

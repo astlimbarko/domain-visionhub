@@ -20,6 +20,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
+import { desglosarTelefono } from '@/utils/paises-telefono';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { cn } from '@/lib/utils';
@@ -63,6 +64,31 @@ function inicialDe(nombreCompleto: string): string {
 // wa.me exige solo dígitos (sin "+", espacios ni guiones).
 function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
+}
+
+/** Columna Teléfono de la tabla desktop (KAN-350 seguimiento, pedido
+ * explícito del owner): el "+591" completo chocaba contra el badge de Tipo
+ * de al lado -- Bolivia es el país obvio/default de este sistema, así que se
+ * oculta (el dato sigue completo en la base, solo no se muestra), pero
+ * cualquier otro país sí muestra su código (info real, no se puede asumir).
+ * Si el número no matchea ningún código conocido (paises-telefono.ts),
+ * achica la fuente en vez de romper el layout. */
+function CeldaTelefono({ telefono }: { telefono: string | null }) {
+  if (!telefono) return <span className="text-muted-foreground">—</span>;
+  const { pais, numero } = desglosarTelefono(telefono);
+  return (
+    <a
+      href={`https://wa.me/${soloDigitos(telefono)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(ev) => ev.stopPropagation()}
+      className="mx-auto flex w-fit items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 font-semibold text-[#128C4A]"
+    >
+      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+      {pais && pais.codigo !== '+591' && <span className="text-[9px] font-normal opacity-70">{pais.codigo}</span>}
+      <span className={cn('tabular-nums', pais ? 'text-xs' : 'text-[10px]')}>{numero}</span>
+    </a>
+  );
 }
 
 /** Nombre abreviado del evangelizador para la columna angosta "Evangelizado
@@ -381,8 +407,10 @@ export function EvangelismoPersonas() {
           /* Atajo cruzado con el dashboard (pedido explícito del owner,
              2026-09-08) -- mismo botón del otro lado con "Lista de
              Evangelizados", para moverse entre las 2 vistas sin volver al
-             menú lateral. */
-          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+             menú lateral. Fondo mas opaco + sombra propia (2026-09-10,
+             pedido del owner): con bg-white/10 se perdia contra la foto
+             del hero, no se leia como boton. */
+          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/30 bg-white/20 px-4 text-white shadow-lg shadow-black/20 backdrop-blur-sm hover:bg-white/30">
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Button>
@@ -735,7 +763,9 @@ export function EvangelismoPersonas() {
                             {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
                           </td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.sexo ?? '—'}</td>
-                          <td className="px-2 py-3 text-center text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">
+                            <CeldaTelefono telefono={e.telefono_principal} />
+                          </td>
                           <td className="px-2 py-3 text-center">
                             {e.tipo_evangelismo_nombre ? (
                               <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>

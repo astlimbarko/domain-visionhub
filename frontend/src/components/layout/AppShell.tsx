@@ -5,6 +5,7 @@ import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -157,7 +158,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   // lectura). Vive en el navbar, no arriba del contenido de cada pagina
   // (pedido del owner 2026-09-10, quedaba pegado justo encima del banner de
   // color de cada Departamento).
-  const volverAlConstructor = useVolverAlConstructor();
+  const volverAlConstructorBase = useVolverAlConstructor();
+  // KAN-339 seguimiento (2026-09-10, pedido del owner): el boton dispara una
+  // recarga completa (window.location.href dentro del hook), asi que sin
+  // feedback se siente "colgado" un instante. Overlay local nomas para dar
+  // esa señal -- no hace falta limpiar el estado despues, la pagina se
+  // recarga entera.
+  const [volviendoAlConstructor, setVolviendoAlConstructor] = useState(false);
+  const volverAlConstructor = volverAlConstructorBase
+    ? () => { setVolviendoAlConstructor(true); volverAlConstructorBase(); }
+    : null;
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
@@ -263,6 +273,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
+      {volviendoAlConstructor && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+          <Spinner className="h-8 w-8" />
+          <p className="text-sm font-medium text-muted-foreground">Volviendo al Constructor...</p>
+        </div>
+      )}
       {/* El Super Admin trabaja directamente en Administración y abre cada
           organigrama desde su iglesia. Su menú lateral queda oculto en todos
           los tamaños hasta que exista un menú con nuevas funciones reales. */}
