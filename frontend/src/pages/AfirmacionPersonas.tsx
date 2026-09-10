@@ -152,7 +152,11 @@ export function AfirmacionPersonas() {
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
   const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(iglesiaActivaId);
-  const { data, isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, false, false, pagina, POR_PAGINA);
+  // Afirmación es membresía real -- las "Semilla" son personas de conteo de
+  // Evangelismo sin datos reales (ver Personas.tsx, mismo criterio), nunca
+  // deben aparecer acá sin importar el rol (KAN-358 seguimiento, 2026-09-10,
+  // hallazgo del owner probando en vivo).
+  const { data, isLoading, isFetching } = useBuscarPersonas(iglesiaActivaId, texto, false, true, pagina, POR_PAGINA);
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -175,7 +179,7 @@ export function AfirmacionPersonas() {
     if (!iglesiaActivaId) return;
     setExportando(true);
     try {
-      const { resultados: todas } = await buscarPersonas(iglesiaActivaId, texto, false, false, 1, LIMITE_EXPORTACION);
+      const { resultados: todas } = await buscarPersonas(iglesiaActivaId, texto, false, true, 1, LIMITE_EXPORTACION);
       const csv = filasACsv(todas);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
