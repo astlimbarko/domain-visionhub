@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Background,
   BackgroundVariant,
@@ -36,6 +36,7 @@ import {
 } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
 import type { DatosNodoEstructura } from '@/features/estructura-organizacional/types';
 import type { RolUI } from '@/utils/permisos';
+import { DEPARTAMENTOS_FUNCIONALES } from '@/utils/departamentos';
 
 const nodeTypes = { estructura: NodoEstructura };
 
@@ -89,6 +90,43 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
     return false;
   };
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
+  const navigate = useNavigate();
+  const setIglesiaYContextoActivo = useAuthStore((s) => s.setIglesiaYContextoActivo);
+  // KAN-339 (ampliado 2026-09-09, pedido explicito del owner): el menu de 3
+  // puntos "Visualizar" es un acceso directo al panel real del Departamento
+  // para todos los roles que administran el Constructor (Pastor/Supervisor/
+  // Super Admin) -- no exclusivo de Super Admin. Pastor/Supervisor ya tienen
+  // control total ahi via su propio rolUI/contextoActivo real (el que ya
+  // trae la sesion) -- para ellos alcanza con navegar SPA, sin tocar el
+  // store (no hay contexto que cambiar, no hay carrera posible).
+  //
+  // Super Admin si necesita fijar iglesia+contexto SINTETICO soloLectura
+  // (mismo mecanismo que el selector de rol multi-sombrero) porque su rolUI
+  // real no tiene acceso de por si -- en un solo set() atomico
+  // (setIglesiaYContextoActivo), nunca 2 separados (bug real 2026-09-09: el
+  // instante intermedio con contextoActivo=null hacia parpadear la pantalla).
+  // A diferencia de "Volver al Constructor" (BannerModoLectura.tsx), ENTRAR
+  // si puede navegar SPA sin carrera: partimos de /estructura-organizacional
+  // (fuera de PrivateLayout), asi que no hay ninguna instancia de
+  // PrivateLayout montada todavia que pueda reaccionar mal al cambio de
+  // contexto antes de que la ruta nueva termine de resolver.
+  const visualizarDepartamento = useCallback(
+    (departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO') => {
+      if (rolUI === 'SUPER_ADMIN') {
+        setIglesiaYContextoActivo(iglesiaId, {
+          clave: `SUPER_ADMIN_LECTURA:${iglesiaId}:${departamentoCodigo}`,
+          rolUI: 'LIDER_DEPARTAMENTO',
+          alcance: 'DEPARTAMENTO',
+          iglesiaId,
+          departamentoId: null,
+          departamentoCodigo,
+          soloLectura: true,
+        });
+      }
+      navigate(departamentoCodigo === 'EVANGELISMO' ? ROUTES.EVANGELISMO : ROUTES.AFIRMACION);
+    },
+    [iglesiaId, navigate, rolUI, setIglesiaYContextoActivo],
+  );
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -147,8 +185,17 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       ocultarDepartamentos: esRolRed,
       ocultarPastorSupervisor: esRolRed,
       soloRedesIds: esRolRed ? redesEditablesIds : undefined,
+      // KAN-339: el menú de 3 puntos "Visualizar" es un atajo al panel real,
+      // visible para todo rol que administra el Constructor (Super Admin,
+      // Pastor, Supervisor) -- ver comentario en visualizarDepartamento.
+      // El cast es seguro: layout.ts solo invoca este callback para
+      // departamentos en DEPARTAMENTOS_FUNCIONALES ('AFIRMACION'/'EVANGELISMO').
+      onVisualizarDepartamento:
+        rolUI === 'SUPER_ADMIN' || rolUI === 'PASTOR' || rolUI === 'SUPERVISOR'
+          ? (codigo: string) => visualizarDepartamento(codigo as 'AFIRMACION' | 'EVANGELISMO')
+          : undefined,
     });
-  }, [data, rolUI, redesEditablesIds]);
+  }, [data, rolUI, redesEditablesIds, visualizarDepartamento]);
 
   useEffect(() => {
     setNodes(grafoBase.nodes);
@@ -575,6 +622,15 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
               iglesiaId={iglesiaId}
               departamento={departamento}
               otpRequerido={data.layout.otpRequerido}
+              // KAN-339: mismo menú de 3 puntos "Visualizar" que la tarjeta
+              // del lienzo, ahora en el panel lateral (REQ-339-5, "dos
+              // lugares equivalentes").
+              onVisualizarDepartamento={
+                (rolUI === 'SUPER_ADMIN' || rolUI === 'PASTOR' || rolUI === 'SUPERVISOR') &&
+                DEPARTAMENTOS_FUNCIONALES.includes(departamento.codigo.toUpperCase())
+                  ? () => visualizarDepartamento(departamento.codigo.toUpperCase() as 'AFIRMACION' | 'EVANGELISMO')
+                  : undefined
+              }
               onClose={() => {
                 setDepartamentoSeleccionadoId(null);
                 setNodoSeleccionadoId(null);

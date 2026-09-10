@@ -1,26 +1,45 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState, type RefObject } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
   ArrowUpRight,
+  BadgeCheck,
+  BookOpen,
   ClipboardCheck,
+  Crown,
+  Droplets,
+  Flame,
+  GraduationCap,
+  Handshake,
   Home,
+  LayoutGrid,
   Network,
+  Sparkles,
   UserCheck,
+  UserCog,
+  UserPlus,
   Users,
+  UsersRound,
   Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
-import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, KpiMosaico, degradadoIdentidadColor } from './DashboardUI';
+import { AZUL, VERDE, AMBAR, MORADO, MARINO, TEAL, DEGRADADO_IDENTIDAD, DashboardHero, degradadoIdentidadColor } from './DashboardUI';
+import { CardIndicadorPastel } from './CardIndicadorPastel';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { useAuthStore } from '@/store/auth.store';
 import { useDashboardLiderRed, useIngresosRedPeriodo } from '@/hooks/useDashboard';
+import { useEvangelismoRed } from '@/hooks/useEvangelismo';
+import { usePersonasDeRed } from '@/hooks/usePersonas';
+import type { FiltroInicialPersonasRed } from '@/components/personas/PersonasDeRedVista';
+import { ROUTES } from '@/utils/constants';
 import { PERIODOS_DASHBOARD, rangoPeriodoActual, type PeriodoDashboard } from '@/utils/periodo-dashboard';
 
 /**
@@ -56,6 +75,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
   const nombreLider = useAuthStore((s) => s.nombreCompleto);
   const { data, isLoading } = useDashboardLiderRed(redId);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
   const [rango, setRango] = useState<RangoFechas | null>(null);
@@ -66,6 +86,63 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
   const { desde, hasta } = rango ?? rangoPeriodoActual(periodo);
   const etiquetaPeriodo = rango ? 'el rango elegido' : (PERIODOS_DASHBOARD.find((p) => p.value === periodo)?.etiqueta ?? 'este mes');
   const { data: ingresosPeriodo } = useIngresosRedPeriodo(redId, desde, hasta);
+
+  // Accesos rápidos (2026-09-09, con base en REPORTE 2026 VISION.xlsx, hoja
+  // "DATOS FINALES 2026"): 13 conteos de censo/cargos/milagros, calculados
+  // en un solo pase sobre el roster de la Red -- mismo patrón que
+  // conteosAccesoRapido en DashboardLiderCdp.tsx, reusando fn_personas_de_red
+  // ya extendida (migración 20260909010000) en vez de una RPC por conteo.
+  const { data: personasRed = [] } = usePersonasDeRed(redId);
+  // "Evangelizados de 1+1" es del módulo Evangelismo (no del roster de
+  // personas), y sí depende del período elegido -- a diferencia del resto
+  // del censo, que es un estado actual, no algo que "pase" en un rango.
+  const { data: evangelizadosRedPeriodo = [] } = useEvangelismoRed(redId, desde, hasta);
+  const evangelizadosUnoAUno = evangelizadosRedPeriodo.filter((e) => e.tipo_evangelismo_codigo === 'UNO_A_UNO').length;
+  const conteosAccesoRapido = useMemo(() => {
+    let efesios = 0;
+    let ministros = 0;
+    let ancianos = 0;
+    let diaconos = 0;
+    let subMentores = 0;
+    let mentores = 0;
+    let lideresCdp = 0;
+    let sublideres = 0;
+    let lideresMinisterio = 0;
+    let discipulos = 0;
+    let bautizados = 0;
+    let milagros = 0;
+    for (const p of personasRed) {
+      if (p.tiene_efesio) efesios++;
+      if (p.cargo_ministro) ministros++;
+      if (p.cargo_anciano) ancianos++;
+      if (p.cargo_diacono) diaconos++;
+      if (p.cargo_sub_mentor) subMentores++;
+      if (p.cargo_mentor) mentores++;
+      if (p.es_lider_cdp) lideresCdp++;
+      if (p.es_sublider_cdp) sublideres++;
+      if (p.ministerios.some((m) => m.es_lider)) lideresMinisterio++;
+      if (p.rango_miembro === 'DISCIPULO') discipulos++;
+      if (p.bautizado) bautizados++;
+      if (p.milagros.length > 0) milagros++;
+    }
+    return { efesios, ministros, ancianos, diaconos, subMentores, mentores, lideresCdp, sublideres, lideresMinisterio, discipulos, bautizados, milagros };
+  }, [personasRed]);
+
+  function irAPersonas(filtroInicial?: FiltroInicialPersonasRed) {
+    navigate(ROUTES.PERSONAS, filtroInicial ? { state: { filtroInicial } } : undefined);
+  }
+
+  // Asistencia/Reportes/Ingresos no tienen una página propia que soporte el
+  // alcance de Red (Historial de Reportes/Asistencia y Finanzas solo
+  // manejan CdP o Supervisor -- un Líder de Red ahí vería un placeholder
+  // roto de "sin CdP asignada"). En vez de mandar a una página rota, estas
+  // 3 cards bajan a la sección de esta misma pantalla que ya tiene ese dato
+  // por CdP (2026-09-09).
+  const casasRef = useRef<HTMLDivElement>(null);
+  const contabilidadRef = useRef<HTMLDivElement>(null);
+  function irASeccion(ref: RefObject<HTMLDivElement | null>) {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   if (isLoading || !data) {
     return (
@@ -130,24 +207,67 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
         </div>
       </div>
 
-      {/* ── Indicadores: mosaicos de color pleno (una sola fila) ──────────────── */}
+      {/* ── Pestañas (2026-09-09, pedido del owner: acceso directo tipo Dashboard
+             de CdP, sin solapar la vista con demasiadas secciones apiladas) ──── */}
+      <Tabs defaultValue="indicadores">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="indicadores" className="gap-1.5">
+            <LayoutGrid /> Indicadores
+          </TabsTrigger>
+          <TabsTrigger value="liderazgo" className="gap-1.5">
+            <UsersRound /> Liderazgo
+          </TabsTrigger>
+          <TabsTrigger value="censo" className="gap-1.5">
+            <Crown /> Censo espiritual
+          </TabsTrigger>
+          <TabsTrigger value="crecimiento" className="gap-1.5">
+            <Flame /> Crecimiento
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="indicadores">
+      {/* ── Indicadores: mismo lenguaje pastel que el resto del dashboard
+             (2026-09-09, antes eran KpiMosaico de color pleno -- convivían 2
+             estilos distintos en la misma pantalla). ──────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiMosaico label="Casas de Paz activas" icon={Home} color={AZUL}>{kpi.cdp_activas}</KpiMosaico>
-        <KpiMosaico label="Miembros totales" icon={Users} color={MORADO}>{kpi.miembros_totales}</KpiMosaico>
-        <KpiMosaico label="Asistencia promedio" icon={Activity} color={VERDE}>{kpi.asistencia_promedio ?? '—'}</KpiMosaico>
-        <KpiMosaico label="Asistencia total" icon={UserCheck} color={MARINO}>{asistenciaTotal || '—'}</KpiMosaico>
-        <KpiMosaico label="Reportes al día" icon={ClipboardCheck} color={AMBAR}>{reportadas}/{kpi.cdp_activas}</KpiMosaico>
-        <KpiMosaico label={`Ingresos de ${etiquetaPeriodo}`} icon={Wallet} color={TEAL}>
-          {ingresosEntradas.length === 0 ? (
-            '—'
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {ingresosEntradas.map(([simbolo, total]) => (
-                <span key={simbolo} className="text-lg leading-tight">{simbolo} {total.toFixed(2)}</span>
-              ))}
-            </div>
-          )}
-        </KpiMosaico>
+        <CardIndicadorPastel
+          icon={Home} label="Casas de Paz activas" color={AZUL} valor={kpi.cdp_activas}
+          descripcion="Vigentes en la Red" onClick={() => navigate(ROUTES.CASAS_DE_PAZ)}
+        />
+        <CardIndicadorPastel
+          icon={Users} label="Miembros totales" color={MORADO} valor={kpi.miembros_totales}
+          descripcion="En toda la Red" onClick={() => irAPersonas()}
+        />
+        <CardIndicadorPastel
+          icon={Activity} label="Asistencia promedio" color={VERDE} valor={kpi.asistencia_promedio ?? '—'}
+          descripcion="Por reunión" onClick={() => irASeccion(casasRef)}
+        />
+        <CardIndicadorPastel
+          icon={UserCheck} label="Asistencia total" color={MARINO} valor={asistenciaTotal || '—'}
+          descripcion="Última reunión de cada CdP" onClick={() => irASeccion(casasRef)}
+        />
+        <CardIndicadorPastel
+          icon={ClipboardCheck} label="Reportes al día" color={AMBAR} valor={`${reportadas}/${kpi.cdp_activas}`}
+          descripcion="Esta semana" onClick={() => irASeccion(casasRef)}
+        />
+        <CardIndicadorPastel
+          icon={Wallet} label="Ingresos" color={TEAL}
+          valor={
+            ingresosEntradas.length === 0
+              ? '—'
+              : ingresosEntradas.length === 1
+                ? `${ingresosEntradas[0][0]} ${ingresosEntradas[0][1].toFixed(2)}`
+                : (
+                  <div className="flex flex-col gap-0.5 text-[18px]">
+                    {ingresosEntradas.map(([simbolo, total]) => (
+                      <span key={simbolo} className="leading-tight">{simbolo} {total.toFixed(2)}</span>
+                    ))}
+                  </div>
+                )
+          }
+          descripcion={`De ${etiquetaPeriodo}`}
+          onClick={casas.length > 0 ? () => irASeccion(contabilidadRef) : undefined}
+        />
       </div>
 
       {/* ── Aviso: sin reporte esta semana ───────────────────────────────────────── */}
@@ -170,7 +290,7 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
       )}
 
       {/* ── Casas de Paz: navegación a cada dashboard + finanzas por CdP ───────── */}
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <section ref={casasRef} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Home} color={AZUL} titulo="Casas de Paz" descripcion="Entrá para ver el dashboard de cada casa, o mirá sus finanzas acá mismo" />
         <div className="flex flex-col gap-4 p-5">
           {casas.length === 0 ? (
@@ -232,13 +352,85 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
 
       {/* ── Contabilidad total de la Red: [Ofrenda][Diezmo][Total] global ──────── */}
       {casas.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <section ref={contabilidadRef} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader icon={Wallet} color={VERDE} titulo="Contabilidad de la Red" descripcion={`Ofrendas y diezmos de todas las Casas de Paz, ${etiquetaPeriodo}`} />
           <div className="p-5">
             <BloqueFinanciero resumen={finanzasGlobal} />
           </div>
         </section>
       )}
+        </TabsContent>
+
+        {/* ── Liderazgo: cargos reales (no autodeclarados) ─────────────────── */}
+        <TabsContent value="liderazgo">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <CardIndicadorPastel
+          icon={Home} label="Líderes de Casa de Paz" color={AZUL} valor={conteosAccesoRapido.lideresCdp}
+          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'LIDER_CDP' })}
+        />
+        <CardIndicadorPastel
+          icon={UsersRound} label="Sub líderes" color={MARINO} valor={conteosAccesoRapido.sublideres}
+          descripcion="Cargo vigente" onClick={() => irAPersonas({ tipo: 'SUBLIDER_CDP' })}
+        />
+        <CardIndicadorPastel
+          icon={BadgeCheck} label="Líderes de ministerios" color={MORADO} valor={conteosAccesoRapido.lideresMinisterio}
+          descripcion="Ujieres, comunicación, alabanza, etc." onClick={() => irAPersonas({ tipo: 'LIDER_MINISTERIO' })}
+        />
+      </div>
+        </TabsContent>
+
+        {/* ── Censo espiritual: cargos autodeclarados en el formulario de membresía ── */}
+        <TabsContent value="censo">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <CardIndicadorPastel
+          icon={Crown} label="EFESIOS" color={MORADO} valor={conteosAccesoRapido.efesios}
+          descripcion="Con tipo Efesio declarado" onClick={() => irAPersonas({ tipo: 'EFESIO' })}
+        />
+        <CardIndicadorPastel
+          icon={UserCog} label="Ministros" color={AZUL} valor={conteosAccesoRapido.ministros}
+          descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'MINISTRO' })}
+        />
+        <CardIndicadorPastel
+          icon={GraduationCap} label="Ancianos" color={MARINO} valor={conteosAccesoRapido.ancianos}
+          descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'ANCIANO' })}
+        />
+        <CardIndicadorPastel
+          icon={Handshake} label="Diáconos" color={TEAL} valor={conteosAccesoRapido.diaconos}
+          descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'DIACONO' })}
+        />
+        <CardIndicadorPastel
+          icon={Sparkles} label="Sub mentores" color={AMBAR} valor={conteosAccesoRapido.subMentores}
+          descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'SUB_MENTOR' })}
+        />
+        <CardIndicadorPastel
+          icon={Sparkles} label="Mentores" color={VERDE} valor={conteosAccesoRapido.mentores}
+          descripcion="Cargo autodeclarado" onClick={() => irAPersonas({ tipo: 'MENTOR' })}
+        />
+      </div>
+        </TabsContent>
+
+        {/* ── Crecimiento: rango de membresía, bautismo, milagros, evangelismo ── */}
+        <TabsContent value="crecimiento">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <CardIndicadorPastel
+          icon={BookOpen} label="Discípulos" color={VERDE} valor={conteosAccesoRapido.discipulos}
+          descripcion="Rango de membresía" onClick={() => irAPersonas({ tipo: 'RANGO_MIEMBRO', valor: 'DISCIPULO' })}
+        />
+        <CardIndicadorPastel
+          icon={Droplets} label="Bautizados" color={TEAL} valor={conteosAccesoRapido.bautizados}
+          descripcion="Bautizados en agua" onClick={() => irAPersonas({ tipo: 'BAUTIZADO' })}
+        />
+        <CardIndicadorPastel
+          icon={Flame} label="Milagros registrados" color={AMBAR} valor={conteosAccesoRapido.milagros}
+          descripcion="Personas con al menos 1 milagro" onClick={() => irAPersonas({ tipo: 'MILAGRO' })}
+        />
+        <CardIndicadorPastel
+          icon={UserPlus} label="Evangelizados de 1+1" color={MORADO} valor={evangelizadosUnoAUno}
+          descripcion={`En ${etiquetaPeriodo}`} onClick={() => navigate(ROUTES.EVANGELISMO)}
+        />
+      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

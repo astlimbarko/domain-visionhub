@@ -20,6 +20,7 @@ import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { ROUTES } from '@/utils/constants';
 import { asignarMetaRedEvangelismo, obtenerEvangelismoRed, obtenerMetaRedAsignada, obtenerTasaEvangelismoRed } from '@/services/evangelismo.service';
 import { useAuthStore } from '@/store/auth.store';
+import { useSoloLectura } from '@/hooks/useSoloLectura';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useMetaRedAsignada } from '@/hooks/useEvangelismo';
 import { aISO, fechaLegible, fechaLegibleCorta, finSemanaISO, inicioSemanaISO, nombreMes, numeroSemanaISO, primerDiaMesRelativo } from '@/utils/calendario-fechas';
@@ -93,6 +94,12 @@ export function EvangelismoSupervisorVista() {
   const personaId = useAuthStore((s) => s.personaId);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  // KAN-339: Super Admin en modo lectura -- oculta la única entrada de
+  // escritura de este panel (el modal "Metas por Red" completo, con el
+  // "Cambiar/Asignar" de cada Red y "Asignar a todas" adentro). El backend
+  // ya la rechaza igual (fn_asignar_meta_red no suma fn_es_super_admin()),
+  // esto es solo para no mostrar un botón que va a fallar.
+  const soloLectura = useSoloLectura();
 
   const { data: redesTodas = [], isLoading: cargandoRedes } = useRedes(iglesiaActivaId);
   const redes = useMemo(() => redesTodas.filter((r) => r.activo), [redesTodas]);
@@ -398,10 +405,12 @@ export function EvangelismoSupervisorVista() {
               <UsersRound className="h-4 w-4" />
               Lista de Evangelizados
             </Button>
-            <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
-              <Flag className="h-4 w-4" />
-              Asignar metas
-            </Button>
+            {!soloLectura && (
+              <Button onClick={() => setModalMetasAbierto(true)} className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+                <Flag className="h-4 w-4" />
+                Asignar metas
+              </Button>
+            )}
           </div>
         }
       />

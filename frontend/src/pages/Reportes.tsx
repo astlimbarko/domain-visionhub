@@ -156,6 +156,7 @@ export function Reportes() {
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
   const [diezmos, setDiezmos] = useState<DiezmoLinea[]>([]);
+  const [textoBuscadorDiezmante, setTextoBuscadorDiezmante] = useState('');
   const [mostrarFormDiezmante, setMostrarFormDiezmante] = useState(false);
   const [nombreDiezmante, setNombreDiezmante] = useState('');
   const [apellidoDiezmante, setApellidoDiezmante] = useState('');
@@ -457,6 +458,7 @@ export function Reportes() {
       if (prev.some((d) => d.personaId === persona.id)) return prev; // ya está en la lista
       return [...prev, { clave: crypto.randomUUID(), personaId: persona.id, nombre_completo: persona.nombre_completo, monto: 0 }];
     });
+    setTextoBuscadorDiezmante('');
   }
 
   function agregarDiezmanteManual() {
@@ -710,6 +712,7 @@ export function Reportes() {
       setAsistentesNuevosExistentes([]);
       setTextoAsistenteNuevo('');
       setDiezmos([]);
+      setTextoBuscadorDiezmante('');
       setEvangelizadosPendientes([]);
       setEsMegaFiesta(false);
       setDisertadorNombre('');
@@ -1128,7 +1131,11 @@ export function Reportes() {
                 </div>
 
             {/* Diezmos por persona: cada diezmante con su monto (+ celular
-                opcional). Se busca en la iglesia o se agrega a mano. Total = suma. */}
+                opcional). Prioriza miembros de esta Casa de Paz (Q-MR-12) y
+                cae a toda la iglesia solo si no aparece nadie ahí -- para
+                poder anotar a un visitante de otra CdP que diezmó en la
+                reunión (2026-09-09, pedido de Matías: antes buscaba en toda
+                la iglesia sin ninguna prioridad). O se agrega a mano. Total = suma. */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label>Diezmos por persona</Label>
@@ -1142,12 +1149,14 @@ export function Reportes() {
 
               <BuscadorPersonaCampo
                 iglesiaId={iglesiaActivaId}
-                valor=""
+                cdpId={cdpActiva}
+                valor={textoBuscadorDiezmante}
                 seleccionado={false}
-                onCambiarTexto={() => {}}
+                onCambiarTexto={setTextoBuscadorDiezmante}
                 onSeleccionar={agregarDiezmanteExistente}
                 placeholder="Buscar diezmante por nombre..."
               />
+              <p className="text-[11px] text-muted-foreground">Prioriza a los miembros de tu Casa de Paz; si no aparece, busca en toda la iglesia.</p>
 
               {diezmos.map((d) => (
                 <div key={d.clave} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2 text-sm">

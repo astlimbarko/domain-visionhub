@@ -40,9 +40,25 @@ export function useContextoActivo(): EstadoContextoActivo {
     return construirContextosDisponibles({ esSuperAdmin, iglesia, roles });
   }, [esSuperAdmin, iglesia, iglesiaActivaId, roles]);
 
-  const contextoValido = contextosDisponibles
-    ? encontrarContextoValido(contextoPersistido, contextosDisponibles)
-    : null;
+  // KAN-339: el contexto SINTÉTICO de "Visualizar" (Super Admin en modo
+  // lectura de un Departamento) nunca va a aparecer en contextosDisponibles
+  // -- ese array sale de los roles REALES de la persona
+  // (construirContextosDisponibles), y el Super Admin no es de verdad Líder
+  // de Departamento. Sin este bypass, el efecto de abajo lo invalida y lo
+  // borra apenas se setea (contextoPersistido sin match => setContextoActivo(null)).
+  // Gate en esSuperAdmin (viene de la sesión autenticada, no se puede
+  // falsear desde el cliente) -- la barrera de seguridad real de todas
+  // formas vive en el backend (RPC de escritura sin fn_es_super_admin()).
+  const esVisualizacionSuperAdmin =
+    esSuperAdmin &&
+    contextoPersistido?.rolUI === 'LIDER_DEPARTAMENTO' &&
+    contextoPersistido.soloLectura === true;
+
+  const contextoValido = esVisualizacionSuperAdmin
+    ? contextoPersistido
+    : contextosDisponibles
+      ? encontrarContextoValido(contextoPersistido, contextosDisponibles)
+      : null;
 
   useEffect(() => {
     if (!contextosDisponibles) return;

@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
-import { HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AMBAR } from '@/components/dashboard/DashboardUI';
+import { AZUL } from '@/components/dashboard/DashboardUI';
 import { aISO, esHoy, grillaMesRecortada, nombresDias } from '@/utils/calendario-fechas';
+
+// Verde suave para "hubo actividad" -- distinto del azul de "día
+// seleccionado" (rediseño 2026-09-09, ver frontend-style: azul es para
+// calendario/estados seleccionados, verde para progreso/actividad positiva).
+const VERDE_ACTIVIDAD = 'var(--chart-2)';
 
 interface Props {
   anio: number;
@@ -63,36 +67,41 @@ export function CalendarioEvangelismo({ anio, mes, evangelizados, diaSeleccionad
               type="button"
               onClick={() => onSeleccionarDia(fechaISO)}
               className={cn(
-                'group relative flex min-h-16 flex-col items-center justify-start gap-1.5 border-b border-r border-border/70 p-1.5 text-left transition-colors last:border-r-0 sm:min-h-24 sm:p-2.5',
+                'group relative flex min-h-16 flex-col items-center justify-start gap-1.5 border-b border-r border-border/70 p-1.5 text-left transition-colors duration-150 last:border-r-0 sm:min-h-24 sm:p-2.5',
                 esFinDeSemana(columna) && 'bg-muted/20',
-                !seleccionado && 'hover:bg-accent/60',
-                seleccionado && 'bg-accent ring-1 ring-inset ring-primary/50'
+                !seleccionado && 'hover:bg-accent/60'
               )}
-              style={hayActividad && !seleccionado ? { backgroundColor: `color-mix(in oklab, ${AMBAR} ${14 + intensidad * 22}%, transparent)` } : undefined}
+              style={
+                seleccionado
+                  ? { backgroundColor: `color-mix(in oklab, ${AZUL} 10%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${AZUL} 35%, transparent)` }
+                  : hayActividad
+                    ? { backgroundColor: `color-mix(in oklab, ${VERDE_ACTIVIDAD} ${8 + intensidad * 10}%, transparent)` }
+                    : undefined
+              }
             >
               {hoy && <span className="absolute inset-x-0 top-0 h-[3px] rounded-full bg-primary" />}
               <span
                 className={cn(
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] transition-transform',
-                  hoy
-                    ? 'bg-primary font-bold text-primary-foreground shadow-sm shadow-primary/30'
-                    : hayActividad
-                      ? 'font-bold text-white shadow-sm shadow-[var(--chart-3)]/40 group-hover:scale-105'
-                      : 'font-medium group-hover:scale-105'
+                  hoy ? 'bg-primary font-bold text-primary-foreground shadow-sm shadow-primary/30' : 'font-medium text-foreground group-hover:scale-105'
                 )}
-                style={hayActividad && !hoy ? { backgroundColor: AMBAR } : undefined}
               >
                 {fecha.getDate()}
               </span>
-              {hayActividad && (
-                <span
-                  className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white shadow-sm"
-                  style={{ backgroundColor: AMBAR }}
-                >
-                  <HeartHandshake className="h-3 w-3" />
-                  {cantidad}
-                </span>
-              )}
+              {/* Indicador sutil de actividad -- un puntito para 1, una píldora
+                  chica con el número recién a partir de 2 (evita un badge
+                  pesado en la mayoría de los días con actividad). */}
+              {hayActividad &&
+                (cantidad === 1 ? (
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: VERDE_ACTIVIDAD }} />
+                ) : (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    style={{ backgroundColor: VERDE_ACTIVIDAD }}
+                  >
+                    {cantidad}
+                  </span>
+                ))}
             </button>
           );
         })}

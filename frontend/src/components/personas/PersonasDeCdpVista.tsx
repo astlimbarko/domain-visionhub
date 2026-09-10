@@ -33,7 +33,8 @@ export type FiltroInicialPersonasCdp =
   | { tipo: 'BAUTIZADO' }
   | { tipo: 'RANGO_MIEMBRO'; valor: RangoMiembro }
   | { tipo: 'SUBLIDER' }
-  | { tipo: 'MENOR' };
+  | { tipo: 'MENOR' }
+  | { tipo: 'MINISTERIO' };
 
 const GRIS = '#8e8e93';
 const INDIGO = '#5856d6';
@@ -101,6 +102,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
   );
   const [soloSublideres, setSoloSublideres] = useState(() => filtroInicial?.tipo === 'SUBLIDER');
   const [soloMenores, setSoloMenores] = useState(() => filtroInicial?.tipo === 'MENOR');
+  const [soloConMinisterio, setSoloConMinisterio] = useState(() => filtroInicial?.tipo === 'MINISTERIO');
   const [orden, setOrden] = useState<Orden>('NOMBRE');
   const [visibles, setVisibles] = useState(LOTE);
   const [seleccionadaId, setSeleccionadaId] = useState<string>();
@@ -116,10 +118,12 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
     setRangoFiltro('TODOS');
     setSoloSublideres(false);
     setSoloMenores(false);
+    setSoloConMinisterio(false);
     setVisibles(LOTE);
   }
 
-  const hayFiltroRapidoActivo = estados.length > 0 || soloBautizados || rangoFiltro !== 'TODOS' || soloSublideres || soloMenores;
+  const hayFiltroRapidoActivo =
+    estados.length > 0 || soloBautizados || rangoFiltro !== 'TODOS' || soloSublideres || soloMenores || soloConMinisterio;
 
   const estadosDisponibles = useMemo(() => {
     const m = new Map<string, string>();
@@ -155,6 +159,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
       if (rangoFiltro !== 'TODOS' && p.rango_miembro !== rangoFiltro) return false;
       if (soloSublideres && !p.es_sublider) return false;
       if (soloMenores && (p.edad === null || edadMinimaCreyente === undefined || p.edad >= edadMinimaCreyente)) return false;
+      if (soloConMinisterio && p.ministerios.length === 0) return false;
       return true;
     });
     const ordenadas = [...resultado];
@@ -170,7 +175,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
       });
     }
     return ordenadas;
-  }, [personas, texto, estados, soloBautizados, rangoFiltro, soloSublideres, soloMenores, edadMinimaCreyente, orden]);
+  }, [personas, texto, estados, soloBautizados, rangoFiltro, soloSublideres, soloMenores, soloConMinisterio, edadMinimaCreyente, orden]);
   const visiblesLista = filtradas.slice(0, visibles);
 
   return (
@@ -254,6 +259,9 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
         </label>
         <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <Switch checked={soloMenores} onCheckedChange={(v) => { setSoloMenores(v); setVisibles(LOTE); }} /> Menores
+        </label>
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+          <Switch checked={soloConMinisterio} onCheckedChange={(v) => { setSoloConMinisterio(v); setVisibles(LOTE); }} /> Con ministerio
         </label>
       </div>
 
