@@ -9,4 +9,7 @@
 - [x] Bonus encontrado en vivo: columna "Evangelizado por" desbordaba el nombre -- mismo patrón de 2 líneas que la columna Nombre
 - [x] KAN-359 creado: nombres de Red/Líder/Evangelista clickeables -- sin implementar, falta definir con el owner qué muestra la vista nueva
 - [ ] Anotado sin tocar (pedido explícito del owner): bug de scroll-shift al hacer click en cualquier parte de la planilla, probable falta de `modal={false}` en algún Dialog/Sheet -- no arreglar todavía
-- [ ] Pendiente Fase 2/3 (anotado en tareas): vista tablet de Evangelismo, "Semillas" apareciendo en Afirmación, tabla reusable Evangelismo/Afirmación + PDF horizontal
+- [x] Verificado en vivo (cuenta de prueba con rol real Dpto. de Evangelismo): sidebar oculto de verdad, botones del hero con buen contraste, teléfono como texto plano -- KAN-358 pasa a Finalizada
+- [x] KAN-360: encontré la causa raíz de "Semillas" en Afirmación -- son personas de conteo de Evangelismo sin datos reales (mismo concepto que ya excluía Personas.tsx para Supervisor), Afirmación nunca las filtraba. Corregido en el listado, CSV y KPIs (migración a producción). Esto también contaminaba el censo que entregué antes -- **censo corregido y reenviado**: 4 Anillo 331 (no 344), Montero 197 (no 202)
+- [ ] Bloqueado sin resolver: vista tablet de Evangelismo -- `resize_window` de la extensión de Chrome no afecta el viewport real, Playwright/chrome-devtools siguen desconectados
+- [ ] Pendiente: componente de tabla reusable Evangelismo/Afirmación + PDF horizontal para Afirmación (mostrar todos los datos que recoge)
