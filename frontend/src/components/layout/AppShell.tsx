@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { cerrarSesion } from '@/services/auth.service';
 import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
+import { useVolverAlConstructor } from '@/hooks/useVolverAlConstructor';
 import type { NavItem } from '@/utils/permisos';
 import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
@@ -152,6 +153,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
 
   const { contextoActivo, contextosDisponibles } = useContextoActivo();
+  // KAN-339: "Volver al Constructor" -- null si no aplica (no se esta en modo
+  // lectura). Vive en el navbar, no arriba del contenido de cada pagina
+  // (pedido del owner 2026-09-10, quedaba pegado justo encima del banner de
+  // color de cada Departamento).
+  const volverAlConstructor = useVolverAlConstructor();
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
@@ -330,6 +336,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className={cn('min-w-0 truncate text-[15px] font-bold', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{colorNavbarRol ? cargoLabel : nombreMarca}</span>
         </div>
         <div className={cn('flex shrink-0 items-center gap-1', navbarClaro && 'text-white/70')}>
+          {volverAlConstructor && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Volver al Constructor"
+              className={cn('rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-black/5')}
+              onClick={volverAlConstructor}
+            >
+              <ArrowLeft className="h-4.5 w-4.5" />
+            </Button>
+          )}
           {colorNavbarRol && (
             busquedaAbierta ? (
               // Buscador todavía no funcional (KAN-74) -- Enter no hace nada
@@ -447,6 +464,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex-1" />
           <div className={cn('ml-auto flex items-center gap-1', navbarClaro && 'text-white/70')}>
+          {volverAlConstructor && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('gap-1.5 rounded-xl text-[13px]', navbarClaro ? 'text-white hover:bg-white/10' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}
+              onClick={volverAlConstructor}
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Volver al Constructor
+            </Button>
+          )}
           {colorNavbarRol && (
             // Buscador todavía no funcional (KAN-74) -- mismo patrón
             // colapsable que en móvil, para "no contaminar la pantalla"

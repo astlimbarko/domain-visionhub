@@ -1,6 +1,12 @@
 import { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import { Building2, Home, LayoutGrid, Mail, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
+import { Building2, Eye, Home, LayoutGrid, Mail, MoreVertical, Network, Plus, ShieldCheck, UserRound } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { colorLegibleSobreBlanco, textoLegibleSobre } from './contraste';
 import type { DatosNodoEstructura, PersonaEstructura } from './types';
 
@@ -109,8 +115,37 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
       style={{ background: color }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-white/65" />
-      <span className="block truncate text-sm font-bold" style={{ color: texto }}>
-        {data.titulo}
+      <span className="flex items-center justify-between gap-1">
+        <span className="block truncate text-sm font-bold" style={{ color: texto }}>
+          {data.titulo}
+        </span>
+        {/* KAN-339: menu de 3 puntos "Visualizar" -- atajo al panel real
+            (Pastor/Supervisor) o modo lectura sintetico (Super Admin)
+            -- stopPropagation para que el click en el trigger no dispare
+            tambien el onNodeClick del lienzo (abriria el panel normal). El
+            item del menu vive en un Portal (fuera del nodo), asi que no
+            necesita el mismo tratamiento. */}
+        {data.puedeVisualizarDepartamento && data.onVisualizarDepartamento && (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Más acciones del departamento"
+                onClick={(evento) => evento.stopPropagation()}
+                onPointerDown={(evento) => evento.stopPropagation()}
+                className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg before:absolute before:-inset-1 before:content-[''] hover:bg-black/10"
+                style={{ color: texto }}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem className="gap-2" onSelect={() => data.onVisualizarDepartamento?.()}>
+                <Eye className="h-4 w-4" /> Visualizar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </span>
       <span className="mt-2 flex items-center gap-2 border-t pt-2" style={{ borderColor: bordeSuave }}>
         <span
