@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Eye, ArrowLeft } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/auth.store';
 import { useSoloLectura } from '@/hooks/useSoloLectura';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { rutaEstructuraOrganizacional } from '@/utils/constants';
+
+/** Debe coincidir exacto con `persist({ name: ... })` en auth.store.ts. */
+const CLAVE_STORAGE_AUTH = 'visionhub-auth';
 
 /**
  * KAN-339: aviso de "Modo lectura" mientras el Super Admin esté navegando un
@@ -23,29 +25,48 @@ import { rutaEstructuraOrganizacional } from '@/utils/constants';
 export function BannerModoLectura() {
   const soloLectura = useSoloLectura();
   const { contextoActivo } = useContextoActivo();
-  const setIglesiaYContextoActivo = useAuthStore((s) => s.setIglesiaYContextoActivo);
   const clave = soloLectura && contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' ? contextoActivo.clave : null;
   const [claveConfirmada, setClaveConfirmada] = useState<string | null>(null);
 
   if (!soloLectura || !contextoActivo || contextoActivo.rolUI !== 'LIDER_DEPARTAMENTO') return null;
 
-  // Restaura el contexto SUPER_ADMIN real en el mismo set() que limpia el
-  // sintetico -- nunca pasar por contextoActivo=null (bug real encontrado en
-  // vivo 2026-09-09: ese instante intermedio hacia parpadear la pantalla y a
-  // veces rebotaba a /seleccionar-rol).
+  // Restaura el contexto SUPER_ADMIN real ANTES de recargar -- nunca pasar
+  // por contextoActivo=null (bug real encontrado en vivo 2026-09-09: ese
+  // instante intermedio hacia parpadear la pantalla y a veces rebotaba a
+  // /seleccionar-rol).
   //
-  // navigate() de react-router (SPA) NO alcanza aca, aunque el contexto ya
-  // este bien seteado: PrivateLayout sigue montado para /afirmacion (la ruta
-  // vieja) por al menos un render mas mientras React reconcilia la ruta
-  // nueva, y su guard de acceso (linea 136, obtenerPanelContexto().
-  // puedeAccederRuta) evalua el contexto SUPER_ADMIN ya actualizado contra
-  // /afirmacion (que no le pertenece) y gana la carrera, rebotando a
-  // rutaInicialParaContexto (/administracion) en vez de a donde pedimos ir.
-  // Una recarga de pagina completa no tiene ese problema -- PrivateLayout
-  // nunca llega a montarse con el contexto nuevo sobre la ruta vieja.
+  // NO se usa el store reactivo (setContextoActivo/setIglesiaYContextoActivo)
+  // para esto -- se escribe el storage de zustand directo. Motivo (bug real
+  // encontrado en vivo 2026-09-10, invisible en los logs de red porque es
+  // 100% client-side): `window.location.href = ...` no corta la ejecucion
+  // del script en curso, asi que un `set()` del store ANTES de esa linea
+  // alcanza a disparar un re-render de PrivateLayout -- que sigue montado
+  // para /afirmacion (la ruta vieja) hasta que la recarga real ocurre -- y
+  // su guard de acceso (linea 136, obtenerPanelContexto().puedeAccederRuta)
+  // evalua el contexto SUPER_ADMIN ya actualizado contra /afirmacion (que no
+  // le pertenece), redirigiendo un instante a /administracion (client-side,
+  // sin pedido de red) antes de que la recarga real lo tape. Escribir el
+  // storage a mano deja el valor correcto para la proxima carga sin
+  // disparar ningun render de la pagina actual.
   function volver() {
     const iglesiaId = contextoActivo && 'iglesiaId' in contextoActivo ? contextoActivo.iglesiaId : null;
-    setIglesiaYContextoActivo(null, { clave: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', alcance: 'GLOBAL' });
+    try {
+      const crudo = window.localStorage.getItem(CLAVE_STORAGE_AUTH);
+      if (crudo) {
+        const datos = JSON.parse(crudo);
+        datos.state = {
+          ...datos.state,
+          iglesiaActivaId: null,
+          rolActivo: 'SUPER_ADMIN',
+          contextoActivo: { clave: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', alcance: 'GLOBAL' },
+        };
+        window.localStorage.setItem(CLAVE_STORAGE_AUTH, JSON.stringify(datos));
+      }
+    } catch {
+      // localStorage puede fallar (modo privado, cuota llena) -- la recarga
+      // igual entra a Estructura, el contexto se resuelve de nuevo desde
+      // cero (Super Admin siempre tiene acceso al Constructor).
+    }
     window.location.href = iglesiaId ? rutaEstructuraOrganizacional(iglesiaId) : '/administracion';
   }
 
