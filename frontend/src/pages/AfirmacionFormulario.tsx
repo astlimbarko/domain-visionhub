@@ -1,16 +1,16 @@
 import { useAuthStore } from '@/store/auth.store';
 import { useSoloLectura } from '@/hooks/useSoloLectura';
 import { RegistrarPersonaAfirmacion } from '@/components/afirmacion/RegistrarPersonaAfirmacion';
-import { cn } from '@/lib/utils';
 
 export function AfirmacionFormulario() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   // KAN-339 (2026-09-10, pedido explicito del owner tras probarlo en vivo):
-  // antes esto tapaba el formulario con un cartel -- pero el owner necesita
-  // VER el formulario real para revisar el diseño, aunque sea inutilizable.
-  // pointer-events-none bloquea toda interaccion de mouse (no hace falta
-  // enhebrar un prop "disabled" por cada campo de este formulario tan
-  // grande) -- la barrera real de todas formas es el backend
+  // el owner necesita navegar el formulario real completo (dropdowns,
+  // Siguiente/Atras, elegir Red y Lider) para revisar el diseño -- no solo
+  // verlo estatico. RegistrarPersonaAfirmacion recibe soloLectura y bloquea
+  // unicamente el guardado final (unico punto real de escritura), asi que
+  // acá no hace falta ningun bloqueo de interaccion (ni pointer-events-none
+  // ni disabled) -- la barrera real de todas formas es el backend
   // (fn_registrar_persona_afirmacion nunca sumo fn_es_super_admin()).
   const soloLectura = useSoloLectura();
 
@@ -27,11 +27,11 @@ export function AfirmacionFormulario() {
 
       {soloLectura && (
         <p className="text-xs font-semibold text-muted-foreground">
-          Vista de solo lectura -- este formulario no se puede enviar.
+          Vista de solo lectura -- podés navegar el formulario, pero no se puede guardar.
         </p>
       )}
-      <div className={cn('glass-card-elevated rounded-2xl p-5 sm:p-6', soloLectura && 'pointer-events-none select-none')}>
-        <RegistrarPersonaAfirmacion iglesiaId={iglesiaActivaId} />
+      <div className="glass-card-elevated rounded-2xl p-5 sm:p-6">
+        <RegistrarPersonaAfirmacion iglesiaId={iglesiaActivaId} soloLectura={soloLectura} />
       </div>
     </div>
   );

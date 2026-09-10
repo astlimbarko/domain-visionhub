@@ -72,9 +72,17 @@ function construirEsquema(obligatorios: CamposObligatorios) {
 
 interface Props {
   iglesiaId: string;
+  /** KAN-339 (2026-09-10, pedido explicito del owner): Super Admin en modo
+   * lectura necesita ver/navegar el formulario real completo (dropdowns,
+   * Siguiente/Atras, elegir Red y Lider) para revisar el diseño -- pero
+   * nunca puede guardar. Todos los pasos son estado local puro hasta el
+   * envio final (ver onSubmit); interceptar solo ahi alcanza, no hace falta
+   * deshabilitar nada mas. Default false/undefined -- el formulario real
+   * que usan los Lideres de Afirmacion queda exactamente igual que antes. */
+  soloLectura?: boolean;
 }
 
-export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
+export function RegistrarPersonaAfirmacion({ iglesiaId, soloLectura = false }: Props) {
   const [casaDePazCargoId, setCasaDePazCargoId] = useState<string>();
   const [intentoSinLider, setIntentoSinLider] = useState(false);
 
@@ -104,6 +112,10 @@ export function RegistrarPersonaAfirmacion({ iglesiaId }: Props) {
   const mutacion = useRegistrarPersonaAfirmacion();
 
   async function onSubmit(valores: FormValues) {
+    if (soloLectura) {
+      toast.info('Modo lectura -- este formulario no se puede guardar.');
+      return;
+    }
     if (!casaDePazCargoId) {
       setIntentoSinLider(true);
       return;
