@@ -2,6 +2,8 @@ import { Network } from 'lucide-react';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import {
   NAV_ITEMS_AFIRMACION,
+  NAV_ITEM_EVANGELISMO,
+  NAV_ITEM_EVANGELISMO_PERSONAS,
   NAV_ITEM_JOVENES,
   NAV_ITEM_MATRIMONIOS,
   obtenerNavItems,
@@ -57,13 +59,12 @@ function tituloContexto(contexto: ContextoActivo): string {
 function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
     // Evangelismo (Lider de Departamento) tiene solo estas 2 pantallas, y ya
-    // se cruzan entre si con un boton en el hero de cada una -- el sidebar
-    // quedaba 100% redundante (pedido explicito del owner, 2026-09-10). Sin
-    // items no rompe nada: el drawer mobile sigue teniendo Mi cuenta/Cambiar
-    // rol/Salir en su pie, y el menu de cuenta de escritorio es independiente
-    // del sidebar. Afirmacion no entra aca -- tiene 5 pantallas reales, no
-    // son 2 atajos cruzados.
-    if (contexto.departamentoCodigo === 'EVANGELISMO') return [];
+    // se cruzan entre si con un boton en el hero de cada una. El sidebar
+    // igual se oculta para ese contexto (ver AppShell.tsx, mismo patron que
+    // "esOscuro") por pedido del owner (2026-09-10) -- pero los items se
+    // mantienen ACA por si se vuelven a necesitar (el owner aclaro que no
+    // quiere borrarlos, solo esconder la barra).
+    if (contexto.departamentoCodigo === 'EVANGELISMO') return [NAV_ITEM_EVANGELISMO, NAV_ITEM_EVANGELISMO_PERSONAS];
     return NAV_ITEMS_AFIRMACION;
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];

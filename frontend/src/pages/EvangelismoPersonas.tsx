@@ -20,9 +20,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
-import { desglosarTelefono } from '@/utils/paises-telefono';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { ROUTES } from '@/utils/constants';
@@ -64,49 +64,6 @@ function inicialDe(nombreCompleto: string): string {
 // wa.me exige solo dígitos (sin "+", espacios ni guiones).
 function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
-}
-
-/** Columna Teléfono de la tabla desktop (KAN-350 seguimiento, pedido
- * explícito del owner): el "+591" completo chocaba contra el badge de Tipo
- * de al lado -- Bolivia es el país obvio/default de este sistema, así que se
- * oculta (el dato sigue completo en la base, solo no se muestra), pero
- * cualquier otro país sí muestra su código (info real, no se puede asumir).
- * Si el número no matchea ningún código conocido (paises-telefono.ts),
- * achica la fuente en vez de romper el layout. */
-function CeldaTelefono({ telefono }: { telefono: string | null }) {
-  if (!telefono) return <span className="text-muted-foreground">—</span>;
-  const { pais, numero } = desglosarTelefono(telefono);
-  return (
-    <a
-      href={`https://wa.me/${soloDigitos(telefono)}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(ev) => ev.stopPropagation()}
-      className="mx-auto flex w-fit items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 font-semibold text-[#128C4A]"
-    >
-      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
-      {pais && pais.codigo !== '+591' && <span className="text-[9px] font-normal opacity-70">{pais.codigo}</span>}
-      <span className={cn('tabular-nums', pais ? 'text-xs' : 'text-[10px]')}>{numero}</span>
-    </a>
-  );
-}
-
-/** Nombre abreviado del evangelizador para la columna angosta "Evangelizado
- * por" de la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08):
- * nombres cortos se muestran completos (ej. "Ana Maria"), nombres largos
- * abrevian el segundo a su inicial (ej. "Juan C.") -- en los dos casos, solo
- * el primer apellido, nunca el segundo, para que la columna no se dispare de
- * ancho. */
-function nombreEvangelizadorAbreviado(
-  primerNombre: string | null,
-  segundoNombre: string | null,
-  primerApellido: string | null
-): string | null {
-  if (!primerNombre) return null;
-  if (!segundoNombre) return [primerNombre, primerApellido].filter(Boolean).join(' ');
-  const nombresCortos = primerNombre.length + segundoNombre.length <= 12;
-  const nombre = nombresCortos ? `${primerNombre} ${segundoNombre}` : `${primerNombre} ${segundoNombre.charAt(0)}.`;
-  return [nombre, primerApellido].filter(Boolean).join(' ');
 }
 
 /** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
@@ -738,11 +695,14 @@ export function EvangelismoPersonas() {
                     resultados.map((e, i) => {
                       const nombreLinea1 = [e.primer_nombre, e.segundo_nombre].filter(Boolean).join(' ');
                       const nombreLinea2 = [e.primer_apellido, e.segundo_apellido].filter(Boolean).join(' ');
-                      const evangelizadorAbreviado = nombreEvangelizadorAbreviado(
-                        e.evangelizado_por_primer_nombre,
-                        e.evangelizado_por_segundo_nombre,
-                        e.evangelizado_por_primer_apellido
-                      );
+                      // Mismo patrón 2 líneas que el nombre de arriba (KAN-358
+                      // seguimiento, 2026-09-10, pedido del owner: se
+                      // desbordaba en una sola línea) -- nombre(s) arriba,
+                      // apellido abajo, en vez de abreviar y truncar.
+                      const evangelizadorLinea1 = e.evangelizado_por_primer_nombre
+                        ? [e.evangelizado_por_primer_nombre, e.evangelizado_por_segundo_nombre].filter(Boolean).join(' ')
+                        : null;
+                      const evangelizadorLinea2 = e.evangelizado_por_primer_apellido;
                       return (
                         <tr
                           key={e.id}
@@ -781,12 +741,15 @@ export function EvangelismoPersonas() {
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
                             {e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : '—'}
                           </td>
-                          <td className="px-2 py-3 text-center text-muted-foreground">
-                            {/* Mismo formato que el nombre de arriba (misma
-                                celda centrada, sin recorte agresivo) pero sin
-                                negrita -- "menos protagonista" (pedido
-                                explícito del owner), es un dato secundario. */}
-                            <span className="truncate">{evangelizadorAbreviado ?? '—'}</span>
+                          <td className="px-2 py-3 text-center leading-tight text-muted-foreground">
+                            {evangelizadorLinea1 ? (
+                              <>
+                                <p className="truncate">{evangelizadorLinea1}</p>
+                                {evangelizadorLinea2 && <p className="truncate">{evangelizadorLinea2}</p>}
+                              </>
+                            ) : (
+                              '—'
+                            )}
                           </td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.red_nombre ?? '—'}</td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.casa_de_paz_etiqueta}</td>

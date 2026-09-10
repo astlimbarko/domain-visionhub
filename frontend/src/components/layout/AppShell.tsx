@@ -171,6 +171,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
+  // KAN-358 seguimiento (2026-09-10, pedido del owner tras probarlo en vivo):
+  // Evangelismo (Lider de Departamento) tiene solo 2 pantallas que ya se
+  // cruzan entre si con un boton en el hero -- el sidebar de escritorio
+  // quedaba ocupando espacio sin aportar nada. Se oculta el <aside> (no se
+  // borran los items del catalogo, "por si se usan en el futuro" -- ver
+  // paneles-contexto.ts). Solo escritorio: en mobile no hay un sidebar fijo
+  // que robe espacio, sigue mostrando el drawer normal.
+  const ocultarSidebarDesktop = contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO';
   const colorNavbarRol = panelContexto?.colorNavbar;
   const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
@@ -285,7 +293,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside
         className={cn(
           'w-[250px] shrink-0 flex-col border-r',
-          esOscuro ? 'hidden' : 'hidden sm:flex',
+          esOscuro || ocultarSidebarDesktop ? 'hidden' : 'hidden sm:flex',
           colorNavbarRol ? 'p-0' : 'p-4',
           esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/5' : 'border-sidebar-border bg-sidebar'
         )}

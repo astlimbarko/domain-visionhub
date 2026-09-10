@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AZUL, KpiChip, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
@@ -317,7 +318,9 @@ export function AfirmacionPersonas() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{p.telefono_principal ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">
+                        <CeldaTelefono telefono={p.telefono_principal} />
+                      </td>
                       <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro] : '—'}</td>
                       <td className="px-3 py-2.5">
                         {p.membresia_completada ? (
