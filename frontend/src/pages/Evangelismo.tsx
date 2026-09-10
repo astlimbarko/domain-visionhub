@@ -319,9 +319,10 @@ export function Evangelismo() {
       {/* Barra combinada: intro chica del módulo + navegador de mes + PDF, en
           una sola fila (2026-09-09, pedido explícito de Matías: eran 2
           bloques separados y sumaban scroll sin aportar información nueva --
-          se fusionan para bajar la altura total de la pantalla). Se sacó la
-          cita bíblica decorativa (Marcos 16:15) para priorizar menos scroll;
-          si se quiere de vuelta, era un <p> chico a la derecha del título. */}
+          se fusionan para bajar la altura total de la pantalla). La cita
+          bíblica (Marcos 16:15) vuelve solo en pantallas grandes (2026-09-10,
+          al owner le había gustado) -- oculta en celular para no reabrir el
+          problema de scroll que motivó sacarla. */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
@@ -335,6 +336,10 @@ export function Evangelismo() {
             <p className="truncate text-[11px] text-muted-foreground">Llevando el mensaje de esperanza a más personas</p>
           </div>
         </div>
+        <p className="hidden max-w-xs shrink-0 text-[11px] leading-snug text-muted-foreground italic lg:block">
+          "Id por todo el mundo y predicad el evangelio a toda criatura."
+          <span className="mt-0.5 block not-italic text-muted-foreground/70">Marcos 16:15</span>
+        </p>
         <div className="flex items-center gap-2 sm:ml-auto">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
