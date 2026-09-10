@@ -20,11 +20,18 @@
 // -- ahora se muestra siempre al ingresar, "son anuncios de inicio de
 // sesion", por delante del formulario de membresia si tambien aplica. Zoom
 // (rueda del mouse, pellizco tactil, doble clic/toque) via ImagenAnuncioZoom.
+import { lazy, Suspense } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { ImageOff, XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ImagenAnuncioZoom } from '@/components/anuncios/ImagenAnuncioZoom';
+// react-zoom-pan-pinch (vendor-zoom) se cargaba en el arranque porque este
+// modal está montado siempre en PrivateLayout (eager) -- pero el zoom solo
+// hace falta cuando hay un anuncio con imagen que mostrar. Lazy para sacarlo
+// del camino crítico (autopsia 2026-09-10).
+const ImagenAnuncioZoom = lazy(() =>
+  import('@/components/anuncios/ImagenAnuncioZoom').then((m) => ({ default: m.ImagenAnuncioZoom }))
+);
 import { useAnunciosPendientes } from '@/hooks/useAnunciosPendientes';
 import { useUrlAnuncio } from '@/hooks/useAnuncios';
 
@@ -74,14 +81,16 @@ export function ModalAnuncios() {
               <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
             </div>
           ) : (
-            <ImagenAnuncioZoom
-              src={imagenUrl}
-              alt={anuncioActual.titulo}
-              maxWidthCss={esVertical ? 460 : 580}
-              maxHeightRatio={MAX_ALTO_RATIO}
-              maxHeightCapPx={MAX_ALTO_CAP_PX}
-              className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
-            />
+            <Suspense fallback={<div className="h-48 w-64 max-w-full animate-pulse bg-muted" />}>
+              <ImagenAnuncioZoom
+                src={imagenUrl}
+                alt={anuncioActual.titulo}
+                maxWidthCss={esVertical ? 460 : 580}
+                maxHeightRatio={MAX_ALTO_RATIO}
+                maxHeightCapPx={MAX_ALTO_CAP_PX}
+                className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+              />
+            </Suspense>
           )}
 
           {/* X fuera de la imagen, no encima (pedido explicito 2026-08-16). */}

@@ -5,7 +5,6 @@ import { Button, type buttonVariants } from '@/components/ui/button';
 import type { VariantProps } from 'class-variance-authority';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import { descargarElementoComoPdf } from '@/utils/exportarPdf';
 
 interface Props {
   /** Ref al contenedor que se quiere descargar -- ya renderizado con sus filtros aplicados. */
@@ -34,6 +33,11 @@ export function DescargarPdfButton({ contenedorRef, nombreArchivo, className, va
     if (!el || descargando) return;
     setDescargando(true);
     try {
+      // jspdf + html-to-image (~134 kB gzip) se cargan recién acá, al hacer
+      // clic -- antes el import estático los metía en el bundle de arranque
+      // vía las páginas de dashboard (que usan este botón y son eager),
+      // aunque el usuario nunca descargara nada (autopsia 2026-09-10).
+      const { descargarElementoComoPdf } = await import('@/utils/exportarPdf');
       await descargarElementoComoPdf(el, nombreArchivo);
     } catch {
       toast.error('No se pudo generar el PDF');
