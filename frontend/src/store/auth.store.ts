@@ -38,6 +38,15 @@ interface AuthState {
   setIglesiaActiva: (iglesiaId: string) => void;
   setRolActivo: (rol: RolUI | null) => void;
   setContextoActivo: (contexto: ContextoActivo | null) => void;
+  /** KAN-339: variante atómica de setIglesiaActiva+setContextoActivo -- las
+   * 2 acciones por separado dejan un instante con contextoActivo/rolActivo
+   * en null (setIglesiaActiva ya los resetea sola), y cualquier componente
+   * que lea el store en ese instante (el guard de PrivateLayout, useRolUI)
+   * puede reaccionar a ese null antes de que llegue el segundo set -- bug
+   * real encontrado en vivo: "Visualizar"/"Volver al Constructor" a veces
+   * rebotaba a /seleccionar-rol o dejaba una pantalla de carga colgada. Un
+   * solo `set()` no deja ningún instante intermedio inconsistente. */
+  setIglesiaYContextoActivo: (iglesiaId: string | null, contexto: ContextoActivo | null) => void;
   renombrarIglesiaLocal: (iglesiaId: string, nombre: string) => void;
   completarMembresiaLocal: (personaId: string, nombreCompleto: string) => void;
   /** KAN-126: "Saltar por ahora" (solo caso general, id===null) -- limpia el
@@ -126,6 +135,12 @@ export const useAuthStore = create<AuthState>()(
       setRolActivo: (rol) => set({ rolActivo: rol, contextoActivo: null }),
 
       setContextoActivo: (contexto) => set({
+        contextoActivo: contexto,
+        rolActivo: contexto?.rolUI ?? null,
+      }),
+
+      setIglesiaYContextoActivo: (iglesiaId, contexto) => set({
+        iglesiaActivaId: iglesiaId,
         contextoActivo: contexto,
         rolActivo: contexto?.rolUI ?? null,
       }),

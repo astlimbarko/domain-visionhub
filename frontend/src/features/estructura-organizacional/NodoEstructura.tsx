@@ -133,10 +133,10 @@ function NodoDepartamento({ data, selected }: { data: DatosNodoEstructura; selec
                 aria-label="Más acciones del departamento"
                 onClick={(evento) => evento.stopPropagation()}
                 onPointerDown={(evento) => evento.stopPropagation()}
-                className="relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg before:absolute before:-inset-1 before:content-[''] hover:bg-black/10"
+                className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg before:absolute before:-inset-1 before:content-[''] hover:bg-black/10"
                 style={{ color: texto }}
               >
-                <MoreVertical className="h-3.5 w-3.5" />
+                <MoreVertical className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">

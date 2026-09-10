@@ -91,24 +91,29 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
   };
   const configurarOtp = useConfigurarOtpEstructura(iglesiaId);
   const navigate = useNavigate();
-  const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
-  const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
+  const setIglesiaYContextoActivo = useAuthStore((s) => s.setIglesiaYContextoActivo);
   // KAN-339 (ampliado 2026-09-09, pedido explicito del owner): el menu de 3
   // puntos "Visualizar" es un acceso directo al panel real del Departamento
   // para todos los roles que administran el Constructor (Pastor/Supervisor/
   // Super Admin) -- no exclusivo de Super Admin. Pastor/Supervisor ya tienen
   // control total ahi via su propio rolUI/contextoActivo real (el que ya
-  // trae la sesion) -- para ellos alcanza con navegar, TOCAR setIglesiaActiva
-  // les resetearia rolActivo/contextoActivo a null (ver auth.store.ts) y los
-  // manda de vuelta a /seleccionar-rol, mas roto que el bug que se queria
-  // arreglar. Super Admin si necesita setIglesiaActiva + el contexto
-  // SINTETICO soloLectura (mismo mecanismo que el selector de rol
-  // multi-sombrero) porque su rolUI real no tiene acceso de por si.
+  // trae la sesion) -- para ellos alcanza con navegar SPA, sin tocar el
+  // store (no hay contexto que cambiar, no hay carrera posible).
+  //
+  // Super Admin si necesita fijar iglesia+contexto SINTETICO soloLectura
+  // (mismo mecanismo que el selector de rol multi-sombrero) porque su rolUI
+  // real no tiene acceso de por si -- en un solo set() atomico
+  // (setIglesiaYContextoActivo), nunca 2 separados (bug real 2026-09-09: el
+  // instante intermedio con contextoActivo=null hacia parpadear la pantalla).
+  // A diferencia de "Volver al Constructor" (BannerModoLectura.tsx), ENTRAR
+  // si puede navegar SPA sin carrera: partimos de /estructura-organizacional
+  // (fuera de PrivateLayout), asi que no hay ninguna instancia de
+  // PrivateLayout montada todavia que pueda reaccionar mal al cambio de
+  // contexto antes de que la ruta nueva termine de resolver.
   const visualizarDepartamento = useCallback(
     (departamentoCodigo: 'AFIRMACION' | 'EVANGELISMO') => {
       if (rolUI === 'SUPER_ADMIN') {
-        setIglesiaActiva(iglesiaId);
-        setContextoActivo({
+        setIglesiaYContextoActivo(iglesiaId, {
           clave: `SUPER_ADMIN_LECTURA:${iglesiaId}:${departamentoCodigo}`,
           rolUI: 'LIDER_DEPARTAMENTO',
           alcance: 'DEPARTAMENTO',
@@ -120,7 +125,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
       }
       navigate(departamentoCodigo === 'EVANGELISMO' ? ROUTES.EVANGELISMO : ROUTES.AFIRMACION);
     },
-    [iglesiaId, navigate, rolUI, setContextoActivo, setIglesiaActiva],
+    [iglesiaId, navigate, rolUI, setIglesiaYContextoActivo],
   );
   const { fitView, zoomIn, zoomOut, setCenter, setViewport } = useReactFlow<Node<DatosNodoEstructura>>();
   const [busqueda, setBusqueda] = useState('');
