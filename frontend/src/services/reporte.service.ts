@@ -95,6 +95,10 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
   if (error) throw error;
   if (errorVisitas) throw errorVisitas;
 
+  // OJO: esta lista se usa tanto para "a quién marcarle asistencia" (Reportes.tsx,
+  // donde el Líder se filtra puntualmente al llamarla) como para "a quién puedo
+  // mover a la CdP nueva" al multiplicar una CdP (MultiplicarCdpDialog.tsx, donde
+  // el Líder SÍ debe poder elegirse) -- no filtrar al Líder acá, es compartida.
   const miembros = (data ?? []).map((r) => {
     const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
@@ -107,6 +111,26 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
   });
 
   return [...miembros, ...((visitas ?? []) as MiembroCdp[])];
+}
+
+/** Persona(s) con cargo LIDER_CDP vigente en esta Casa de Paz -- el Líder no
+ * es "alguien a quien seguirle la asistencia" (pedido del owner, 2026-09-10):
+ * desde el fix de membresía del 2026-09-09 (fn_asegurar_membresia_cdp_por_cargo)
+ * el Líder SÍ tiene fila en casa_de_paz_membresia (a propósito, para que
+ * cuente en Personas/censo/ministerios de los Dashboards), pero no debe
+ * figurar en la lista de asistencia semanal (Reportes.tsx) ni en el
+ * Historial de Asistencia. Sublíder NO se excluye (sí es alguien a quien
+ * tiene sentido marcarle presente/ausente). Normalmente hay una sola
+ * persona, se resuelve como Set por si hay más de una fila real. */
+export async function obtenerIdsLiderCdp(casaDePazId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_cargo')
+    .select('persona_id, cargo:cargo_id!inner(codigo)')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('cargo.codigo', 'LIDER_CDP')
+    .is('fecha_fin', null);
+  if (error) throw error;
+  return new Set((data ?? []).map((r) => r.persona_id));
 }
 
 /**
@@ -292,8 +316,9 @@ export async function obtenerHistorialAsistencia(
   // paralelo en vez de uno tras otro.
   const [
     { data: reportes, error: errorReportes },
-    { data: miembros, error: errorMiembros },
+    { data: miembrosCrudo, error: errorMiembros },
     { data: visitas, error: errorVisitas },
+    idsLider,
   ] = await Promise.all([
     supabase
       .from('casa_de_paz_reporte')
@@ -311,17 +336,22 @@ export async function obtenerHistorialAsistencia(
     // asistencia (fn_recalcular_estados_cdp_reporte, 2026-09-06): cuentan
     // para el Historial igual que "Asistencia Regular", sin membresía formal.
     supabase.rpc('fn_visitas_regulares_cdp', { p_casa_de_paz_id: casaDePazId }),
+    obtenerIdsLiderCdp(casaDePazId),
   ]);
   if (errorReportes) throw errorReportes;
   if (errorMiembros) throw errorMiembros;
   if (errorVisitas) throw errorVisitas;
+
+  // El Líder de la CdP no es "alguien a quien seguirle la asistencia" -- ver
+  // nota en obtenerMiembrosCdp (mismo pedido del owner, 2026-09-10).
+  const miembros = (miembrosCrudo ?? []).filter((m) => !idsLider.has(m.persona_id));
 
   const reporteIdPorFecha = new Map<string, string>();
   for (const r of reportes ?? []) reporteIdPorFecha.set(r.fecha_reunion, r.id);
   const reuniones = fechasEsperadas.map((fecha) => ({ fecha_reunion: fecha, reporte_id: reporteIdPorFecha.get(fecha) ?? null }));
   const reporteIds = (reportes ?? []).map((r) => r.id);
   const personaIds = [
-    ...(miembros ?? []).map((m) => m.persona_id),
+    ...miembros.map((m) => m.persona_id),
     ...((visitas ?? []) as { persona_id: string }[]).map((v) => v.persona_id),
   ];
 
@@ -362,7 +392,7 @@ export async function obtenerHistorialAsistencia(
     });
   }
 
-  const miembrosFormales = (miembros ?? []).map((m) => {
+  const miembrosFormales = miembros.map((m) => {
     const p = Array.isArray(m.persona) ? m.persona[0] : m.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
     return {

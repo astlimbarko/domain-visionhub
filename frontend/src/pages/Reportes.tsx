@@ -47,6 +47,7 @@ import {
   useCamposObligatoriosReporte,
   useCrearReporte,
   useEdadMinimaCreyente,
+  useIdsLiderCdp,
   useLibros,
   useMegaFiestaDelDia,
   useMiembrosCdp,
@@ -116,7 +117,16 @@ export function Reportes() {
   const hoy = aISO(new Date());
 
   const { data: libros = [] } = useLibros();
-  const { data: miembros = [], isLoading: cargandoMiembros } = useMiembrosCdp(cdpActiva);
+  const { data: miembrosCrudo = [], isLoading: cargandoMiembros } = useMiembrosCdp(cdpActiva);
+  // El Líder de la CdP no es "alguien a quien marcarle asistencia" -- pedido
+  // del owner (2026-09-10). Se filtra acá, no en useMiembrosCdp (compartida
+  // con MultiplicarCdpDialog.tsx, donde el Líder sí debe poder elegirse al
+  // dividir una CdP).
+  const { data: idsLider } = useIdsLiderCdp(cdpActiva);
+  const miembros = useMemo(
+    () => (idsLider ? miembrosCrudo.filter((m) => !idsLider.has(m.persona_id)) : miembrosCrudo),
+    [miembrosCrudo, idsLider]
+  );
   const { data: campos } = useCamposObligatoriosReporte(iglesiaActivaId);
   // Umbral configurable por iglesia (default 12): mismo criterio que ya usa el backend
   // para Estados SSVA y el Dashboard, en vez de un "12" fijo que podía no coincidir.
