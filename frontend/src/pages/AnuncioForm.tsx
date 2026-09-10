@@ -46,7 +46,7 @@ import {
   usePublicarAnuncio,
   useRolesDisponiblesAnuncio,
   useSubirImagenAnuncio,
-  useUrlFirmadaAnuncio,
+  useUrlAnuncio,
 } from '@/hooks/useAnuncios';
 import type { AlcanceTipoAnuncio, OrientacionImagenAnuncio, RolDestinatarioAnuncio } from '@/types/anuncio.types';
 
@@ -137,7 +137,7 @@ export function AnuncioForm() {
   }, [inicializado, cargando, esEdicion, anuncio, capacidad]);
 
   const { data: rolesDisponibles = [] } = useRolesDisponiblesAnuncio(iglesiaActivaId ?? undefined, alcanceTipo, redIds, cdpIds);
-  const { data: imagenActualUrl } = useUrlFirmadaAnuncio(esEdicion && !archivo ? anuncio?.imagen_path : undefined);
+  const { data: imagenActualUrl } = useUrlAnuncio(esEdicion && !archivo ? anuncio?.imagen_path : undefined);
 
   // Si la zona se achica (ej. de "Toda la iglesia" a una Red puntual) y
   // algún rol ya marcado deja de estar disponible ahí, se saca solo -- sin
@@ -238,18 +238,21 @@ export function AnuncioForm() {
 
   async function subirImagenSiHaceFalta() {
     let imagenPath = anuncio?.imagen_path ?? '';
+    let imagenThumbPath: string | null = anuncio?.imagen_thumb_path ?? null;
     let orientacion: OrientacionImagenAnuncio = anuncio?.imagen_orientacion ?? 'CUADRADA';
     if (archivo && orientacionDetectada && iglesiaActivaId) {
-      imagenPath = await subirImagen.mutateAsync({ iglesiaId: iglesiaActivaId, archivo });
+      const subida = await subirImagen.mutateAsync({ iglesiaId: iglesiaActivaId, archivo });
+      imagenPath = subida.path;
+      imagenThumbPath = subida.thumbPath;
       orientacion = orientacionDetectada;
     }
-    return { imagenPath, orientacion };
+    return { imagenPath, imagenThumbPath, orientacion };
   }
 
   async function handleGuardar(esBorrador: boolean) {
     if (!puedeGuardar || !iglesiaActivaId) return;
     try {
-      const { imagenPath, orientacion } = await subirImagenSiHaceFalta();
+      const { imagenPath, imagenThumbPath, orientacion } = await subirImagenSiHaceFalta();
       const fechaInicioISO = fechaInicio ? new Date(fechaInicio).toISOString() : null;
       const fechaFinISO = fechaFin ? new Date(fechaFin).toISOString() : null;
 
@@ -262,6 +265,7 @@ export function AnuncioForm() {
           titulo: titulo.trim(),
           mensaje: null,
           imagenPath,
+          imagenThumbPath,
           imagenOrientacion: orientacion,
           rolesDestinatarios: rolesSeleccionados,
           fechaPublicacion: fechaInicioISO,
@@ -281,6 +285,7 @@ export function AnuncioForm() {
           titulo: titulo.trim(),
           mensaje: null,
           imagenPath,
+          imagenThumbPath,
           imagenOrientacion: orientacion,
           rolesDestinatarios: rolesSeleccionados,
           fechaPublicacion: fechaInicioISO,

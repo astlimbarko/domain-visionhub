@@ -152,6 +152,15 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.EVANGELISMO_PERSONAS,
   // Detalle del anillo "Evangelizados por Red" (página, no modal).
   ROUTES.EVANGELISMO_REDES,
+  // KAN-339 (2026-09-09): control total sobre Afirmación, mismo nivel que ya
+  // tenían sobre Evangelismo -- antes RUTAS_SUPERVISOR no incluía ninguna
+  // ruta AFIRMACION_*, así que aunque el backend ya lo permitiera (ver
+  // migración kan339), el guard de PrivateLayout rechazaba la ruta.
+  ROUTES.AFIRMACION,
+  ROUTES.AFIRMACION_FORMULARIO,
+  ROUTES.AFIRMACION_URLS,
+  ROUTES.AFIRMACION_CASAS_DE_PAZ,
+  ROUTES.AFIRMACION_PERSONAS,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
@@ -246,6 +255,15 @@ const CATALOGO_NAV: NavItem[] = [
   // mismo nivel que "Evangelismo" -- pedido explícito del owner, mismo patrón
   // que "Personas" de Afirmación.
   { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color },
+  // KAN-339 (2026-09-09): mismo patrón que los 2 ítems de Evangelismo de
+  // arriba -- Pastor/Supervisor ahora tienen control total en Afirmación,
+  // así que necesitan su propia entrada de nav (antes solo la veía el Líder
+  // de Departamento vía NAV_ITEMS_AFIRMACION, ortogonal a este catálogo).
+  { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color },
+  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
+  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
+  { icon: Users, label: 'Personas (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },

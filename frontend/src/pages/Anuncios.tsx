@@ -41,7 +41,7 @@ import {
   useMoverPrioridadAnuncio,
   useQuitarEncargadoAnuncio,
   useToggleActivoAnuncio,
-  useUrlFirmadaAnuncio,
+  useUrlAnuncio,
 } from '@/hooks/useAnuncios';
 import { ROUTES } from '@/utils/constants';
 import type { AnuncioGestion, RolDestinatarioAnuncio } from '@/types/anuncio.types';
@@ -54,8 +54,18 @@ const ETIQUETA_ROL_CORTA: Record<RolDestinatarioAnuncio, string> = {
   MIEMBRO: 'Miembro',
 };
 
-function MiniaturaAnuncio({ imagenPath, titulo, onAmpliar }: { imagenPath: string; titulo: string; onAmpliar: () => void }) {
-  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
+function MiniaturaAnuncio({
+  imagenPath,
+  imagenThumbPath,
+  titulo,
+  onAmpliar,
+}: {
+  imagenPath: string;
+  imagenThumbPath: string | null;
+  titulo: string;
+  onAmpliar: () => void;
+}) {
+  const { data: url, isLoading, isError } = useUrlAnuncio(imagenThumbPath ?? imagenPath);
   return (
     <button
       type="button"
@@ -93,7 +103,7 @@ function ImagenAnuncioAmpliada({
 }) {
   // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
   // servidor falla) -- misma logica que ModalAnuncios, ver su comentario.
-  const { data: url, isLoading, isError } = useUrlFirmadaAnuncio(imagenPath);
+  const { data: url, isLoading, isError } = useUrlAnuncio(imagenPath);
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -193,7 +203,12 @@ function FilaAnuncio({
           <ArrowDown className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <MiniaturaAnuncio imagenPath={anuncio.imagen_path} titulo={anuncio.titulo} onAmpliar={onAmpliarImagen} />
+      <MiniaturaAnuncio
+        imagenPath={anuncio.imagen_path}
+        imagenThumbPath={anuncio.imagen_thumb_path}
+        titulo={anuncio.titulo}
+        onAmpliar={onAmpliarImagen}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-foreground">{anuncio.titulo}</p>
@@ -331,7 +346,11 @@ export function Anuncios() {
               onClick={async () => {
                 if (!anuncioEliminar) return;
                 try {
-                  await eliminar.mutateAsync({ anuncioId: anuncioEliminar.id, imagenPath: anuncioEliminar.imagen_path });
+                  await eliminar.mutateAsync({
+                    anuncioId: anuncioEliminar.id,
+                    imagenPath: anuncioEliminar.imagen_path,
+                    imagenThumbPath: anuncioEliminar.imagen_thumb_path,
+                  });
                   toast.success('Anuncio eliminado');
                   setAnuncioEliminar(null);
                 } catch (e) {

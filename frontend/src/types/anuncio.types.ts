@@ -41,6 +41,9 @@ export interface AnuncioGestion {
   titulo: string;
   mensaje: string | null;
   imagen_path: string;
+  /** Miniatura 140px de alto (KAN-354) -- null en anuncios creados antes de
+   * este cambio, el front cae a imagen_path como fallback. */
+  imagen_thumb_path: string | null;
   imagen_orientacion: OrientacionImagenAnuncio;
   roles_destinatarios: RolDestinatarioAnuncio[];
   activo: boolean;
@@ -80,6 +83,7 @@ export interface DatosNuevoAnuncio {
   titulo: string;
   mensaje: string | null;
   imagenPath: string;
+  imagenThumbPath: string | null;
   imagenOrientacion: OrientacionImagenAnuncio;
   rolesDestinatarios: RolDestinatarioAnuncio[];
   fechaPublicacion?: string | null;

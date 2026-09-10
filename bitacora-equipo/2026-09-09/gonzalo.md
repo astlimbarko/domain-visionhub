@@ -1,5 +1,15 @@
 # Gonzalo — 2026-09-09
 
+- [x] Diagnostiqué la demora reportada en fotos (perfil + anuncios): no era el peso del archivo (93KB/6.7KB, comprensión OK), era 2 viajes de red en cadena por signed URL + CDN siempre en MISS por el token único (KAN-354)
+- [x] Cambié `persona-foto.service.ts` y `anuncio.service.ts` a `.download()`, corta a la mitad los pedidos de red y deja la URL cacheable
+- [x] Verificado en vivo con Playwright contra Supabase real: recarga de la misma imagen bajó a 16ms
+- [x] Modal de anuncios: precarga silenciosa (no muestra spinner, aparece ya cargado) -- verificado en vivo
+- [x] Panel de gestión de anuncios: miniatura real 140px (antes cargaba la imagen completa para el thumbnail) -- migración aplicada a producción, verificado en vivo con anuncio de prueba (subida, listado, borrado de ambos archivos)
+- [x] KAN-339 (delegado a Magnus): Super Admin solo lectura + Pastor/Supervisor control total en Afirmación/Evangelismo -- backend aplicado a producción (12 RPC lectura + 2 escritura + 1 policy), menú de 3 puntos "Visualizar" en el Constructor (tarjeta + panel lateral), banner "Modo lectura", nav de Pastor/Supervisor con Afirmación agregada. Verificado en vivo como Pastor (Playwright).
+- [x] KAN-339: probado en vivo como Super Admin real (rol temporal en `test@somoscdv.com`, trigger deshabilitado/rehabilitado, limpiado después). Encontré y corregí 3 bugs reales: parpadeo infinito solo en Afirmación (`useEsLiderAfirmacion` no reconocía el contexto sintético de solo lectura), "Volver al Constructor" caía primero en la pantalla de Super Admin en blanco antes de cargar el Constructor (condición de carrera entre `window.location.href` y el store reactivo de zustand)
+- [x] KAN-339: banner de solo lectura pasó de texto fijo en cada pantalla a un modal "Modo lectura" que aparece una sola vez al entrar al departamento; botón "Volver al Constructor" se movió del banner al navbar (alineado a la derecha, mobile y desktop)
+- [x] KAN-339: por pedido del owner, se amplió el alcance de "Visualizar" a Pastor/Supervisor además de Super Admin (llevan al mismo panel real que ya tienen, sin restricción); ajuste de diseño confirmado contra harness
+- [x] KAN-339: formulario de membresía en modo lectura pasó de bloqueado (`pointer-events-none`) a totalmente interactivo (dropdowns, Siguiente/Atrás, elegir Red/Líder) -- se bloquea únicamente el guardado final, sin tocar la validación original del formulario real
+- [x] KAN-356 creado: saltar la validación obligatoria de campos en modo lectura para revisar los 8 pasos del formulario sin llenar nada -- decisión explícita del owner de no implementarlo hoy, queda en "Tareas por hacer"
+- [x] Encontré y corregí un hueco real: los commits de KAN-354/355 se habían quedado sueltos sin pushear tras el merge de la PR #45 -- pusheados y con PR #47 abierta
 - [x] KAN-357: ícono propio para Dpto. de Afirmación en el selector multirol (mismo patrón y tamaño que el de Evangelismo, 32x32px) -- verificado en vivo comparando lado a lado con una cuenta con ambos roles
-- [x] Encontré y corregí un hueco real: los commits de KAN-354/355 (precarga silenciosa del modal + miniatura de anuncios) se habían quedado sueltos en la máquina, nunca pusheados ni con PR -- se hicieron después de que la PR #45 ya estaba mergeada. Pusheados y con PR #47 abierta.
-- [x] Ordené 3 ramas para PR en conjunto: #46 (KAN-339), #47 (KAN-354/355 sueltos), y la de este ícono
