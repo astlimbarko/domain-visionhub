@@ -11,3 +11,4 @@
 - [x] KAN-339: por pedido del owner, se amplió el alcance de "Visualizar" a Pastor/Supervisor además de Super Admin (llevan al mismo panel real que ya tienen, sin restricción); ajuste de diseño confirmado contra harness
 - [x] KAN-339: formulario de membresía en modo lectura pasó de bloqueado (`pointer-events-none`) a totalmente interactivo (dropdowns, Siguiente/Atrás, elegir Red/Líder) -- se bloquea únicamente el guardado final, sin tocar la validación original del formulario real
 - [x] KAN-356 creado: saltar la validación obligatoria de campos en modo lectura para revisar los 8 pasos del formulario sin llenar nada -- decisión explícita del owner de no implementarlo hoy, queda en "Tareas por hacer"
+- [x] Encontré y corregí un hueco real: los commits de KAN-354/355 se habían quedado sueltos sin pushear tras el merge de la PR #45 -- pusheados y con PR #47 abierta

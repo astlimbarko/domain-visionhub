@@ -13,7 +13,7 @@ import { EditorFotoPerfilDialog } from '@/components/shared/EditorFotoPerfilDial
 import { AZUL } from '@/components/dashboard/DashboardUI';
 import { establecerContrasena, mensajeErrorContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
-import { useEliminarFotoPerfil, useFotoPerfilPath, useUrlFirmadaFotoPerfil } from '@/hooks/usePersonaFoto';
+import { useEliminarFotoPerfil, useFotoPerfilPath, useUrlFotoPerfil } from '@/hooks/usePersonaFoto';
 
 const REQUISITOS_CONTRASENA = [
   { clave: 'longitud', texto: 'Mínimo 8 caracteres', test: (v: string) => v.length >= 8 },
@@ -47,7 +47,7 @@ export function Cuenta() {
   const nuevaContrasena = formContrasena.watch('contrasena') ?? '';
 
   const { data: fotoPath, isLoading: cargandoFotoPath } = useFotoPerfilPath(personaId ?? undefined);
-  const { data: fotoUrl } = useUrlFirmadaFotoPerfil(fotoPath);
+  const { data: fotoUrl } = useUrlFotoPerfil(fotoPath);
   const eliminarFoto = useEliminarFotoPerfil();
   const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
   const inputArchivoRef = useRef<HTMLInputElement>(null);

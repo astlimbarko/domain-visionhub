@@ -28,10 +28,18 @@ export async function subirFotoPerfil(iglesiaId: string, personaId: string, arch
   return path;
 }
 
-export async function obtenerUrlFirmadaFotoPerfil(path: string, expiraSegundos = 3600): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(BUCKET_FOTOS_PERFIL).createSignedUrl(path, expiraSegundos);
+/**
+ * `.download()` en vez de `.createSignedUrl()` -- ambas respetan el mismo RLS
+ * de storage.objects, pero createSignedUrl exige 2 viajes de red en cadena
+ * (firmar, después bajar); download() lo resuelve en 1 solo, autenticado con
+ * la sesión del usuario. Medido en vivo (2026-09-09): cortó ~700ms de demora
+ * por foto. El object URL vive mientras dure la pestaña -- no se revoca (el
+ * volumen de fotos por sesión es bajo, no vale la complejidad del cleanup).
+ */
+export async function obtenerUrlFotoPerfil(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(BUCKET_FOTOS_PERFIL).download(path);
   if (error) throw error;
-  return data?.signedUrl ?? null;
+  return data ? URL.createObjectURL(data) : null;
 }
 
 export async function eliminarFotoPerfil(personaId: string, path: string): Promise<void> {
