@@ -149,6 +149,9 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
     const v = FILA_ROL_VISUAL.LIDER_DEPARTAMENTO;
     opciones.push({
       key: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
+      // Ícono propio (mismo patrón del de Evangelismo) en vez del genérico --
+      // pedido explícito del owner, 2026-09-09.
+      iconoSvg: '/icono-afirmacion.svg',
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaActivaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId: iglesiaActivaId as string, departamentoId: null, departamentoCodigo: 'AFIRMACION' },
       lineas: [],
     });

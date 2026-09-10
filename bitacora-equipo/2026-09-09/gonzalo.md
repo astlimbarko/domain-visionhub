@@ -12,3 +12,4 @@
 - [x] KAN-339: formulario de membresía en modo lectura pasó de bloqueado (`pointer-events-none`) a totalmente interactivo (dropdowns, Siguiente/Atrás, elegir Red/Líder) -- se bloquea únicamente el guardado final, sin tocar la validación original del formulario real
 - [x] KAN-356 creado: saltar la validación obligatoria de campos en modo lectura para revisar los 8 pasos del formulario sin llenar nada -- decisión explícita del owner de no implementarlo hoy, queda en "Tareas por hacer"
 - [x] Encontré y corregí un hueco real: los commits de KAN-354/355 se habían quedado sueltos sin pushear tras el merge de la PR #45 -- pusheados y con PR #47 abierta
+- [x] KAN-357: ícono propio para Dpto. de Afirmación en el selector multirol (mismo patrón y tamaño que el de Evangelismo, 32x32px) -- verificado en vivo comparando lado a lado con una cuenta con ambos roles
