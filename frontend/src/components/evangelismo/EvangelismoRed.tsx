@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, Pencil, Plus, Target, Users, UsersRound } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, LayoutGrid, Pencil, Plus, Target, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { KpiMosaico } from '@/components/dashboard/DashboardUI';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { CardIndicadorPastel } from '@/components/dashboard/CardIndicadorPastel';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
@@ -26,6 +26,13 @@ import { NuevoEvangelizadoDialog, type ValoresEvangelizado } from '@/components/
 import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
 import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
+// Nota: TendenciaEvangelismo NO se pudo lazy-loadear acá (a diferencia de
+// EvangelismoTrendChart en Evangelismo.tsx de CdP) porque
+// EvangelismoSupervisorVista.tsx todavía lo importa estático -- Vite avisa
+// "INEFFECTIVE_DYNAMIC_IMPORT" y no separa el chunk igual. Se deja import
+// estático simple en vez de un lazy() que no cumple nada. Si algún día se
+// aplica el mismo rediseño/optimización a EvangelismoSupervisorVista.tsx,
+// ahí sí conviene lazy-loadearlo en los 2 lugares juntos.
 
 /** Sentinel para distinguir "asignar a todas" de una CdP real en el mismo diálogo. */
 const ID_TODAS = '__TODAS__';
@@ -138,8 +145,6 @@ export function EvangelismoRed({ redId }: Props) {
     return mapa;
   }, [evangelizados]);
 
-  const porcentaje = tasa?.meta_total ? Math.min(tasa.tasa ?? 0, 100) : 0;
-
   // El toast y el "¿se cierra el diálogo?" se deciden acá, no en
   // AsignarMetaRedDialog -- así "asignar a todas" puede avisar cuántas
   // fallaron sin un segundo toast genérico contradictorio encima. Tirar el
@@ -202,12 +207,27 @@ export function EvangelismoRed({ redId }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
-        <div className="flex items-center gap-2">
+      {/* Barra combinada: intro chica + navegador de mes (2026-09-10, mismo
+          patrón que Evangelismo.tsx de CdP -- esta pantalla no tenía hero
+          propio, se agrega la intro acá para no sumar un bloque aparte). */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex"
+            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
+          >
+            <UsersRound className="h-4 w-4" style={{ color: MORADO }} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold tracking-tight text-foreground">Evangelismo de Red</p>
+            <p className="truncate text-[11px] text-muted-foreground">Todas las Casas de Paz de tu Red, juntas</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:ml-auto">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={irMesAnterior} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="flex w-48 items-center justify-center gap-1.5 text-center text-xl font-bold tracking-tight capitalize">
+          <span className="flex w-40 items-center justify-center gap-1.5 text-center text-sm font-semibold tracking-tight capitalize">
             {nombreMes(anio, mes)}
             {actualizandoLista && !cargandoLista && <Spinner className="h-3 w-3 text-muted-foreground" />}
           </span>
@@ -217,33 +237,44 @@ export function EvangelismoRed({ redId }: Props) {
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Target} color={AMARILLO} titulo="Tasa de evangelismo de la Red" descripcion={`Todas las Casas de Paz, ${nombreMes(anio, mes)}`} />
-        <div className="p-6">
-          {cargandoTasa ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <KpiCard
-                titulo="Evangelizados de la Red"
-                valor={tasa?.evangelizados ?? 0}
-                subtitulo={tasa?.meta_total ? `${tasa.tasa}% de la meta (${tasa.meta_total})` : 'Sin meta definida'}
-                porcentaje={tasa?.meta_total ? porcentaje : null}
-                icon={Target}
-                color={AMARILLO}
-              />
-              <KpiMosaico label="Meta Global de la Red" icon={Flag} color={AZUL} sub="Suma de las metas vigentes por CdP">
-                {tasa?.meta_total ?? 0}
-              </KpiMosaico>
-              <KpiMosaico label="Casas de Paz con meta" icon={Users} color={VERDE} sub={`de ${tasa?.cdp_total ?? 0} en total`}>
-                {tasa?.cdp_con_meta ?? 0}
-              </KpiMosaico>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Pestañas (2026-09-10, mismo patrón que la vista de CdP/Dashboard de
+          Red): "Resumen" agrupa métricas, evangelismo propio, metas por CdP
+          y tendencia; "Calendario" queda solo, es el bloque más alto. */}
+      <Tabs defaultValue="resumen">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="resumen" className="gap-1.5">
+            <LayoutGrid /> Resumen
+          </TabsTrigger>
+          <TabsTrigger value="calendario" className="gap-1.5">
+            <CalendarRange /> Calendario
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resumen">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cargandoTasa ? (
+          <>
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+            <Skeleton className="h-[164px] w-full rounded-2xl" />
+          </>
+        ) : (
+          <>
+            <CardIndicadorPastel
+              icon={Target} label="Evangelizados de la Red" color={AMARILLO} valor={tasa?.evangelizados ?? 0}
+              descripcion={tasa?.meta_total ? `${tasa.tasa}% de la meta (${tasa.meta_total})` : 'Sin meta definida'}
+            />
+            <CardIndicadorPastel
+              icon={Flag} label="Meta Global de la Red" color={AZUL} valor={tasa?.meta_total ?? 0}
+              descripcion="Suma de las metas vigentes por CdP"
+            />
+            <CardIndicadorPastel
+              icon={Users} label="Casas de Paz con meta" color={VERDE} valor={tasa?.cdp_con_meta ?? 0}
+              descripcion={`De ${tasa?.cdp_total ?? 0} en total`}
+            />
+          </>
+        )}
+      </div>
 
       {!tieneCdpPropiaEnEstaRed && (
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -355,7 +386,9 @@ export function EvangelismoRed({ redId }: Props) {
           <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
       </section>
+        </TabsContent>
 
+        <TabsContent value="calendario">
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card lg:col-span-2">
           <TarjetaHeader
@@ -418,6 +451,8 @@ export function EvangelismoRed({ redId }: Props) {
           </div>
         </section>
       </div>
+        </TabsContent>
+      </Tabs>
 
       <AsignarMetaRedDialog
         open={!!cdpParaMeta}
