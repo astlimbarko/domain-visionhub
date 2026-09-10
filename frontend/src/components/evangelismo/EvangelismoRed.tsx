@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CardIndicadorPastel } from '@/components/dashboard/CardIndicadorPastel';
+import { degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
@@ -91,6 +92,10 @@ export function EvangelismoRed({ redId }: Props) {
   // por ese otro rol (Evangelismo.tsx) -- no se le duplica el flujo acá.
   const { data: misRoles } = useMisRoles(iglesiaActivaId);
   const tieneCdpPropiaEnEstaRed = (misRoles?.cdp_lider ?? []).some((c) => c.red_id === redId);
+  // Color elegido para esta Red en el Constructor -- blanco es el valor "sin
+  // elegir" (mismo criterio que DashboardLiderRed.tsx/GestionRedVista.tsx).
+  const redActual = misRoles?.redes_lider?.find((r) => r.id === redId);
+  const colorRed = redActual?.color && redActual.color.toUpperCase() !== '#FFFFFF' ? redActual.color : null;
   const { data: evangelizadosDirecto = [], isLoading: cargandoDirecto } = useEvangelismoRedDirecto(redId, desde, hasta);
   const crearDirecto = useCrearEvangelizadoRed(redId);
 
@@ -349,8 +354,14 @@ export function EvangelismoRed({ redId }: Props) {
                 return (
                   <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${NARANJA} 14%, transparent)` }}>
-                        <Home className="h-4 w-4" style={{ color: NARANJA }} />
+                      {/* Antes naranja fijo para todas las filas (pedido del
+                          owner 2026-09-10: "muy soso, se repite") -- ahora el
+                          degradado de identidad con el color propio de la Red. */}
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
+                        style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : degradadoIdentidadColor(NARANJA) }}
+                      >
+                        <Home className="h-4 w-4" />
                       </span>
                       <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
                     </div>
