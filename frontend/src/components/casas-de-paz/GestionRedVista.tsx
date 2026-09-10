@@ -361,7 +361,11 @@ export function GestionRedVista() {
               {/* Filas compactas: acciones en el menú (…) para que escale a muchas CdP */}
               {cdpsVisibles.map((cdp) => (
                 <div key={cdp.id} className={`flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-2.5 transition-colors hover:border-primary/30 ${cdp.activo ? 'bg-card/70' : 'bg-muted/40'}`}>
-                  <IconoBadge color={cdp.activo ? TEAL : '#8e8e93'} icon={Home} />
+                  {/* Antes siempre TEAL fijo -- se veía igual en toda Red (pedido
+                      del owner 2026-09-10: "muy soso, se repite"). Ahora usa el
+                      color que esa Red tiene elegido en el Constructor, igual
+                      criterio que el hero de esta misma pantalla más arriba. */}
+                  <IconoBadge color={cdp.activo ? (colorRed ?? TEAL) : '#8e8e93'} icon={Home} />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate font-semibold text-foreground">
                       <span className="truncate">{cdp.etiqueta}</span>

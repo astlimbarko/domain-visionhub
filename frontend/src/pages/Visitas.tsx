@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AMBAR, MARINO } from '@/components/dashboard/DashboardUI';
+import { AMBAR, MARINO, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -32,6 +32,9 @@ export function Visitas() {
 
   const redId = contextoActivo?.alcance === 'RED' ? contextoActivo.redId : undefined;
   const red = roles?.redes_lider?.find((item) => item.id === redId);
+  // Color elegido para la Red en el Constructor -- blanco es el valor "sin
+  // elegir" (mismo criterio que DashboardLiderRed.tsx/GestionRedVista.tsx).
+  const colorRed = red?.color && red.color.toUpperCase() !== '#FFFFFF' ? red.color : null;
   const { data: cdps = [] } = useCdps(iglesiaActivaId, red?.id);
   const { data: visitas = [], isLoading: cargandoVisitas } = useVisitasRed(red?.id);
   const visitasVisibles = visitas.slice(0, visibles);
@@ -83,8 +86,14 @@ export function Visitas() {
                 <div key={v.id} className="flex flex-col gap-2.5 rounded-xl border border-border/60 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${MARINO} 14%, transparent)` }}>
-                        <Home className="h-4 w-4" style={{ color: MARINO }} />
+                      {/* Antes marino fijo en toda Red (pedido del owner
+                          2026-09-10: "muy soso, se repite") -- ahora el
+                          degradado de identidad con el color propio de la Red. */}
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
+                        style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : degradadoIdentidadColor(MARINO) }}
+                      >
+                        <Home className="h-4 w-4" />
                       </span>
                       <div>
                         <p className="text-sm font-bold text-foreground">{v.casa_de_paz_etiqueta}</p>
