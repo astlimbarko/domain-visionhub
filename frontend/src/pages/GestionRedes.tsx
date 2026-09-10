@@ -93,7 +93,9 @@ export function GestionRedes() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <SeccionIconHeader icon={Network} color="#5856d6" titulo="Gestión de Redes" descripcion="Crear Redes y designar su Líder -- pide código de confirmación." />
+        {/* #af52de -- mismo morado que el ítem "Gestión de Redes" del sidebar
+            (2026-09-10). Antes compartía #5856d6 con "Personas". */}
+        <SeccionIconHeader icon={Network} color="#af52de" titulo="Gestión de Redes" descripcion="Crear Redes y designar su Líder -- pide código de confirmación." />
         <Button type="button" className="shrink-0 gap-1.5" onClick={() => setMostrarCrear(true)}>
           <Plus className="h-4 w-4" />
           Red

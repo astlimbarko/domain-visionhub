@@ -237,7 +237,10 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
   { icon: PhoneCall, label: 'Historial de Asistencia', path: ROUTES.HISTORIAL_ASISTENCIA, color: '#30b0c7' },
-  { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#af52de' },
+  // #ffd60a (systemYellow): antes compartía #af52de con "Departamentos" --
+  // regla nueva (2026-09-10, pedido del owner): un color por sección del
+  // sidebar, sin repetir morado entre secciones sin relación entre sí.
+  { icon: Calendar, label: 'Calendario', path: ROUTES.CALENDARIO, color: '#ffd60a' },
   // KAN-101 (2026-08-15): visible para Pastor/Supervisor/Líder de Red y
   // Supervisor de Red -- pedido explícito del owner, todos los roles menos
   // Casa de Paz "por ahora" (se suma más adelante cuando el resto del
@@ -261,14 +264,23 @@ const CATALOGO_NAV: NavItem[] = [
   // de Departamento vía NAV_ITEMS_AFIRMACION, ortogonal a este catálogo).
   { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color },
   { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
+  // #32ade6 (systemCyan): antes compartía #5e5ce6 con "Gestión de Redes"
+  // (regla de un color por sección, 2026-09-10).
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
   { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
   { icon: Users, label: 'Personas (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
-  { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#af52de' },
-  { icon: Network, label: 'Gestión de Redes', path: ROUTES.GESTION_REDES, color: '#5e5ce6' },
+  // #ff3b30 (systemRed): mismo rojo institucional de Discipulado
+  // (DEPARTAMENTO_META) -- esta pantalla lista justamente los 4
+  // departamentos, así que no es un color arbitrario. Antes compartía
+  // #af52de con "Calendario" (regla de un color por sección, 2026-09-10).
+  { icon: LayoutGrid, label: 'Departamentos', path: ROUTES.DEPARTAMENTOS, color: '#ff3b30' },
+  // #af52de (systemPurple): el morado que quedó libre al mover Calendario/
+  // Departamentos -- ahora es el único ítem del sidebar con este tono
+  // exacto (distinto del índigo #5856d6 de "Personas").
+  { icon: Network, label: 'Gestión de Redes', path: ROUTES.GESTION_REDES, color: '#af52de' },
   { icon: ShieldCheck, label: 'Administración', path: ROUTES.ADMINISTRACION, color: '#0a4174' },
 ];
 
@@ -282,7 +294,7 @@ const CATALOGO_NAV: NavItem[] = [
 export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
   { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#5e5ce6' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
   // KAN-127: todas las Casas de Paz de la iglesia, organizadas por Red.
   { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
   // Plan panel Afirmación 2026-08-20, punto 3/4.

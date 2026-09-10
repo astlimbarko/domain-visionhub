@@ -40,7 +40,7 @@ const ID_TODAS = '__TODAS__';
 // Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
 // módulo -- ver `evangelismo-colores.ts`. Un color por sección para que se
 // distingan a simple vista, no un solo tono repetido en toda la pantalla.
-const { AZUL, VERDE, MORADO, CELESTE } = EVANGELISMO_COLOR;
+const { AZUL, VERDE, NARANJA, CELESTE } = EVANGELISMO_COLOR;
 const AMARILLO = EVANGELISMO_COLOR.AMARILLO;
 
 interface Props {
@@ -212,11 +212,14 @@ export function EvangelismoRed({ redId }: Props) {
           propio, se agrega la intro acá para no sumar un bloque aparte). */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4">
         <div className="flex min-w-0 items-center gap-2.5">
+          {/* NARANJA en toda la pantalla, sin MORADO (2026-09-10, regla del
+              owner: un color por sección -- esta pantalla se había pasado de
+              morado en 5 lugares distintos sin relación entre sí). */}
           <span
             className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex"
-            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
+            style={{ background: `color-mix(in oklab, ${NARANJA} 12%, white)` }}
           >
-            <UsersRound className="h-4 w-4" style={{ color: MORADO }} />
+            <UsersRound className="h-4 w-4" style={{ color: NARANJA }} />
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold tracking-tight text-foreground">Evangelismo de Red</p>
@@ -313,7 +316,7 @@ export function EvangelismoRed({ redId }: Props) {
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Flag}
-          color={MORADO}
+          color={NARANJA}
           titulo="Metas por Casa de Paz"
           descripcion="Cada meta que asignás acá se suma a la Meta Global de arriba"
           accion={
@@ -322,7 +325,7 @@ export function EvangelismoRed({ redId }: Props) {
                 variant="outline"
                 size="sm"
                 className="shrink-0 gap-1.5"
-                style={{ borderColor: `color-mix(in oklab, ${MORADO} 40%, transparent)`, color: MORADO }}
+                style={{ borderColor: `color-mix(in oklab, ${NARANJA} 40%, transparent)`, color: NARANJA }}
                 onClick={() => setCdpParaMeta({ casa_de_paz_id: ID_TODAS, etiqueta: `Todas las Casas de Paz (${metasCdp.length})`, meta: null, origen: null })}
               >
                 <UsersRound className="h-3.5 w-3.5" />
@@ -346,8 +349,8 @@ export function EvangelismoRed({ redId }: Props) {
                 return (
                   <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 14%, transparent)` }}>
-                        <Home className="h-4 w-4" style={{ color: MORADO }} />
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in oklab, ${NARANJA} 14%, transparent)` }}>
+                        <Home className="h-4 w-4" style={{ color: NARANJA }} />
                       </span>
                       <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
                     </div>
@@ -381,7 +384,7 @@ export function EvangelismoRed({ redId }: Props) {
 
       {/* ── Tendencia: día/semana/mes, últimos 12 meses (KAN-285) ─────────────── */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <TarjetaHeader icon={Flag} color={MORADO} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
+        <TarjetaHeader icon={Flag} color={NARANJA} titulo="Tendencia" descripcion="Semana es lo típico -- Día sirve para eventos puntuales, no es la vista de rutina" />
         <div className="p-5">
           <TendenciaEvangelismo evangelizados={evangelizadosTendencia} cargando={cargandoTendencia} />
         </div>
