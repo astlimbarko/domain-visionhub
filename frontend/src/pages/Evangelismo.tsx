@@ -327,11 +327,14 @@ export function Evangelismo() {
           agrega una sola línea de alto en vez del bloque completo. */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4">
         <div className="flex min-w-0 items-center gap-2.5">
+          {/* NARANJA acá, no MORADO -- el morado del módulo se reserva para
+              la card "Meta vigente" únicamente (2026-09-10, regla del owner:
+              un color por sección, esta pantalla se había pasado de morado). */}
           <span
             className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex"
-            style={{ background: `color-mix(in oklab, ${MORADO} 12%, white)` }}
+            style={{ background: `color-mix(in oklab, ${NARANJA} 12%, white)` }}
           >
-            <Users className="h-4 w-4" style={{ color: MORADO }} />
+            <Users className="h-4 w-4" style={{ color: NARANJA }} />
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold tracking-tight text-foreground">Evangelismo</p>

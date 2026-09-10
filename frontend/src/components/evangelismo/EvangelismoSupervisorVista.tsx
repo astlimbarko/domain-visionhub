@@ -629,7 +629,7 @@ export function EvangelismoSupervisorVista() {
               variant="outline"
               size="sm"
               className="gap-1.5"
-              style={{ borderColor: `color-mix(in oklab, ${MORADO} 40%, transparent)`, color: MORADO }}
+              style={{ borderColor: `color-mix(in oklab, ${NARANJA} 40%, transparent)`, color: NARANJA }}
               onClick={() => setRedParaMeta({ casa_de_paz_id: ID_TODAS_LAS_REDES, etiqueta: `Todas las Redes (${redes.length})`, meta: null, origen: null })}
             >
               <UsersRound className="h-3.5 w-3.5" />

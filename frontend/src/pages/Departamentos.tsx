@@ -321,7 +321,10 @@ export function Departamentos() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SeccionIconHeader icon={LayoutGrid} color="#af52de" titulo="Departamentos" descripcion="Un líder por departamento en esta iglesia." />
+      {/* #ff3b30 -- mismo rojo institucional de Discipulado, ahora también el
+          color del ítem "Departamentos" en el sidebar (2026-09-10, antes
+          compartía morado #af52de con "Calendario"). */}
+      <SeccionIconHeader icon={LayoutGrid} color="#ff3b30" titulo="Departamentos" descripcion="Un líder por departamento en esta iglesia." />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {panel.departamentos.map((d) => {
           const funcional = DEPARTAMENTOS_FUNCIONALES.includes(d.codigo);
