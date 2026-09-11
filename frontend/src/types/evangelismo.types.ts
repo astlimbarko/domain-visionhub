@@ -161,6 +161,11 @@ export interface NuevoEvangelizado {
   tipo_evangelismo_id?: string;
   /** KAN-338: quién evangelizó (opcional, persona ya existente en el sistema). */
   evangelizado_por_id?: string;
+  /** Milagro/testimonio opcional -- solo se guarda si tipo_evangelismo_id es
+   * Elite (fn_registrar_evangelizado lo valida igual, ver
+   * evangelismo_testimonio.sql). El campo en el formulario solo aparece con
+   * ese tipo elegido (NuevoEvangelizadoDialog.tsx). */
+  testimonio?: string;
 }
 
 /** Evangelizado registrado directo por un Líder de Red sin Casa de Paz propia
@@ -197,20 +202,12 @@ export interface EvangelizadoRedDirecto {
   tipo_evangelismo_codigo: string | null;
 }
 
-/** Evangelizado de tipo Elite de esta CdP -- para elegir a quién se le carga
- * un milagro/testimonio (evangelismo_testimonio, 2026-09-10). Sin recorte por
- * mes: a diferencia de `Evangelizado`, acá puede elegirse cualquiera del
- * historial, no solo los del mes que se está mirando. */
-export interface EvangelizadoElite {
-  id: string;
-  persona_id: string;
-  nombre_completo: string;
-  fecha: string;
-}
-
-/** Fila de `evangelismo_testimonio` -- milagro o testimonio cargado para un
- * evangelizado de tipo Elite. Sin distinción milagro/testimonio (una sola
- * entrada de texto libre) ni edición/borrado desde el frontend. */
+/** Fila de `evangelismo_testimonio` -- milagro o testimonio cargado al
+ * registrar un evangelizado de tipo Elite (campo opcional en
+ * NuevoEvangelizadoDialog.tsx, ver `fn_registrar_evangelizado`). Sin
+ * distinción milagro/testimonio (una sola entrada de texto libre) ni
+ * edición/borrado desde el frontend -- la pestaña "Testimonios Elite" es
+ * solo un listado de lectura. */
 export interface TestimonioEvangelismo {
   id: string;
   evangelismo_id: string;
@@ -218,11 +215,4 @@ export interface TestimonioEvangelismo {
   nombre_completo: string;
   texto: string;
   fecha_creacion: string;
-}
-
-export interface NuevoTestimonioEvangelismo {
-  casa_de_paz_id: string;
-  iglesia_id: string;
-  evangelismo_id: string;
-  texto: string;
 }
