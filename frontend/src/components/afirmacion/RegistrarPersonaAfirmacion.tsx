@@ -54,7 +54,7 @@ function construirEsquema(obligatorios: CamposObligatorios) {
       correo: z.union([z.string().email(), z.literal('')]).optional(),
       telefono_pais: z.string().optional(),
       telefono_numero: z.string().optional(),
-      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+      estado_civil: z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO', 'CONCUBINATO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
       grado_instruccion: z.string().optional(),

@@ -18,8 +18,9 @@ export type ResolverUrlRegistroResponse =
       campos_obligatorios: CamposObligatorios;
     };
 
-// Espejo de estado_civil_enum (harness/11-esquema-bd/sql/01_enums.sql)
-export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO';
+// Espejo de estado_civil_enum (harness/11-esquema-bd/sql/01_enums.sql +
+// 20260911010000_estado_civil_concubinato.sql)
+export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO' | 'CONCUBINATO';
 
 // Espejo de grado_instruccion_enum
 export type GradoInstruccion =
