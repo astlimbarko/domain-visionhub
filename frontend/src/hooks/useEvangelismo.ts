@@ -15,6 +15,7 @@ import {
   obtenerTasaEvangelismo,
   obtenerTasaEvangelismoRed,
   obtenerTestimoniosEvangelismo,
+  obtenerTestimoniosEvangelismoRed,
   obtenerTiposEvangelismo,
   soyRolSuperiorDeCdp,
 } from '@/services/evangelismo.service';
@@ -113,6 +114,16 @@ export function useTestimoniosEvangelismo(casaDePazId: string | undefined) {
     queryKey: ['evangelismo', 'testimonios', casaDePazId],
     queryFn: () => obtenerTestimoniosEvangelismo(casaDePazId as string),
     enabled: !!casaDePazId,
+  });
+}
+
+/** Testimonios Elite de toda la Red, agrupados por Casa de Paz en el
+ * componente (EvangelismoRed.tsx) -- 2026-09-11. */
+export function useTestimoniosEvangelismoRed(redId: string | undefined) {
+  return useQuery({
+    queryKey: ['evangelismo', 'testimonios-red', redId],
+    queryFn: () => obtenerTestimoniosEvangelismoRed(redId as string),
+    enabled: !!redId,
   });
 }
 

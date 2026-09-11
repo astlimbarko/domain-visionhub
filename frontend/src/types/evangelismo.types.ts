@@ -216,3 +216,17 @@ export interface TestimonioEvangelismo {
   texto: string;
   fecha_creacion: string;
 }
+
+/** Fila de fn_evangelismo_testimonios_red -- mismos Testimonios Elite de
+ * arriba pero agregados de toda la Red (Líder de Red / Supervisor de Red,
+ * EvangelismoRed.tsx, 2026-09-11), con el dato de a qué Casa de Paz
+ * pertenece cada uno para poder agruparlos. */
+export interface TestimonioEvangelismoRed {
+  id: string;
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  persona_id: string;
+  nombre_completo: string;
+  texto: string;
+  fecha_creacion: string;
+}

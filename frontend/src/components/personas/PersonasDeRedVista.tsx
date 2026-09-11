@@ -89,8 +89,7 @@ export type FiltroInicialPersonasRed =
   | { tipo: 'MENTOR' }
   | { tipo: 'LIDER_CDP' }
   | { tipo: 'SUBLIDER_CDP' }
-  | { tipo: 'LIDER_MINISTERIO' }
-  | { tipo: 'MILAGRO' };
+  | { tipo: 'LIDER_MINISTERIO' };
 
 type Orden = 'NOMBRE' | 'RECIENTE' | 'ANTIGUO';
 
@@ -114,7 +113,6 @@ function etiquetaFiltroRapido(f: FiltroInicialPersonasRed): string {
     case 'LIDER_CDP': return 'Líderes de Casa de Paz';
     case 'SUBLIDER_CDP': return 'Sub líderes';
     case 'LIDER_MINISTERIO': return 'Líderes de ministerio';
-    case 'MILAGRO': return 'Con milagro registrado';
   }
 }
 
@@ -132,7 +130,6 @@ function cumpleFiltroRapido(p: PersonaDeRed, f: FiltroInicialPersonasRed): boole
     case 'LIDER_CDP': return p.es_lider_cdp;
     case 'SUBLIDER_CDP': return p.es_sublider_cdp;
     case 'LIDER_MINISTERIO': return p.ministerios.some((m) => m.es_lider);
-    case 'MILAGRO': return p.milagros.length > 0;
   }
 }
 
