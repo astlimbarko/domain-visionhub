@@ -104,26 +104,42 @@ export async function listarEstados(): Promise<EstadoCatalogo[]> {
   return data ?? [];
 }
 
-/** KAN-358 seguimiento (2026-09-10): tabla de Membresía con campos reales
- * del censo (estado civil, rango, bautizado, cargos reales de CdP/Red) --
- * no solo identidad básica. Ver fn_afirmacion_buscar_membresia. */
+/** KAN-358 seguimiento (2026-09-10/11): tabla de Membresía con campos
+ * reales del censo (estado civil, rango, bautizado, cargos reales de
+ * CdP/Red) -- no solo identidad básica. Ver fn_afirmacion_buscar_membresia.
+ * Filtros como objeto (no posicionales) -- ya son 8, en línea se vuelve
+ * ilegible y fácil de desordenar por accidente. */
+export interface FiltrosMembresiaAfirmacion {
+  redId?: string;
+  casaDePazId?: string;
+  estadoId?: string;
+  sexo?: 'M' | 'F';
+  viaRegistro?: 'URL' | 'FORMULARIO';
+  conProfesion?: boolean;
+  estadoCivil?: string;
+  bautizado?: boolean;
+}
+
 export async function buscarMembresiaAfirmacion(
   iglesiaId: string,
   texto: string,
   pagina = 1,
   porPagina = MEMBRESIA_POR_PAGINA,
-  redId?: string,
-  casaDePazId?: string,
-  estadoId?: string,
+  filtros: FiltrosMembresiaAfirmacion = {},
 ): Promise<ResultadoBusquedaMembresia> {
   const { data, error } = await supabase.rpc('fn_afirmacion_buscar_membresia', {
     p_iglesia_id: iglesiaId,
     p_texto: texto.trim() === '' ? null : texto.trim(),
     p_pagina: pagina,
     p_por_pagina: porPagina,
-    p_red_id: redId ?? null,
-    p_casa_de_paz_id: casaDePazId ?? null,
-    p_estado_id: estadoId ?? null,
+    p_red_id: filtros.redId ?? null,
+    p_casa_de_paz_id: filtros.casaDePazId ?? null,
+    p_estado_id: filtros.estadoId ?? null,
+    p_sexo: filtros.sexo ?? null,
+    p_via_registro: filtros.viaRegistro ?? null,
+    p_con_profesion: filtros.conProfesion ?? null,
+    p_estado_civil: filtros.estadoCivil ?? null,
+    p_bautizado: filtros.bautizado ?? null,
   });
   if (error) throw error;
   const resultados = data ?? [];

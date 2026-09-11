@@ -98,4 +98,5 @@ export interface EstadisticasPersonasAfirmacion {
   por_estado: Record<string, number>;
   con_profesion: number;
   por_estado_civil: Record<string, number>;
+  bautizados: number;
 }

@@ -11,6 +11,7 @@ import {
   obtenerEstadisticasRegistroAfirmacion,
   registrarPersonaAfirmacion,
   setEstadoUrlsAfirmacion,
+  type FiltrosMembresiaAfirmacion,
 } from '@/services/afirmacion.service';
 import type { DatosPersonaAfirmacion, EstadoUrl } from '@/types/afirmacion.types';
 
@@ -30,13 +31,11 @@ export function useBuscarMembresiaAfirmacion(
   texto: string,
   pagina: number,
   porPagina: number,
-  redId?: string,
-  casaDePazId?: string,
-  estadoId?: string,
+  filtros: FiltrosMembresiaAfirmacion = {},
 ) {
   return useQuery({
-    queryKey: ['afirmacion', 'membresia', iglesiaId, texto, pagina, porPagina, redId, casaDePazId, estadoId],
-    queryFn: () => buscarMembresiaAfirmacion(iglesiaId as string, texto, pagina, porPagina, redId, casaDePazId, estadoId),
+    queryKey: ['afirmacion', 'membresia', iglesiaId, texto, pagina, porPagina, filtros],
+    queryFn: () => buscarMembresiaAfirmacion(iglesiaId as string, texto, pagina, porPagina, filtros),
     enabled: !!iglesiaId,
   });
 }

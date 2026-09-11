@@ -14,7 +14,7 @@
 // cónyuge, familia, ministerios) quedan para la ficha de detalle
 // (FichaPersonaSheet, al hacer click en una fila) y el futuro PDF completo,
 // no para esta tabla -- 25+ columnas de golpe la harían inusable.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -27,6 +27,7 @@ import {
   Download,
   FileText,
   Heart,
+  type LucideIcon,
   QrCode,
   Search,
   User,
@@ -38,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AZUL, KpiChip, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
@@ -46,7 +47,7 @@ import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
-import { buscarMembresiaAfirmacion } from '@/services/afirmacion.service';
+import { buscarMembresiaAfirmacion, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import { OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
@@ -91,6 +92,50 @@ const ESTADO_LABEL: Record<string, string> = {
   CRE: 'Creyentes',
   RE: 'Reconciliados',
 };
+
+// Variante local de KpiChip (DashboardUI.tsx) -- clickeable, con estado
+// activo (pedido explícito del owner 2026-09-11: "todos los botones de
+// arriba de membresia sean botones de filtro"). No se modifica el
+// KpiChip compartido para no arriesgar el resto de la app -- esta
+// variante solo vive en esta página.
+function KpiChipFiltro({
+  icon: Icon,
+  label,
+  color,
+  activo,
+  onClick,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  activo: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={activo ? { boxShadow: `0 0 0 2px ${color}` } : undefined}
+      className={cn(
+        'flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left shadow-sm transition-colors',
+        activo ? 'border-transparent' : 'border-border/60 hover:border-border'
+      )}
+    >
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+        style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
+      >
+        <Icon className="h-4 w-4" strokeWidth={2.2} />
+      </span>
+      <div className="min-w-0">
+        <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
+        <p className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">{label}</p>
+      </div>
+    </button>
+  );
+}
 
 function comparar(a: MembresiaResultadoBusqueda, b: MembresiaResultadoBusqueda, columna: ColumnaOrden) {
   const va = a[columna];
@@ -212,6 +257,14 @@ export function AfirmacionPersonas() {
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
   const [casaDePazId, setCasaDePazId] = useState<string>(TODAS_LAS_CDP);
   const [estadoId, setEstadoId] = useState<string>(TODOS_LOS_ESTADOS);
+  // KAN seguimiento (2026-09-11): tarjetas de KPI convertidas en botones de
+  // filtro -- cada una alterna su propio estado (toggle: click de nuevo lo
+  // apaga), combinable con Red/Casa de Paz/Estado del encabezado.
+  const [sexoFiltro, setSexoFiltro] = useState<'M' | 'F'>();
+  const [viaFiltro, setViaFiltro] = useState<'URL' | 'FORMULARIO'>();
+  const [conProfesionFiltro, setConProfesionFiltro] = useState<boolean>();
+  const [estadoCivilFiltro, setEstadoCivilFiltro] = useState<EstadoCivil>();
+  const [bautizadoFiltro, setBautizadoFiltro] = useState<boolean>();
   const [pagina, setPagina] = useState(1);
   const [orden, setOrden] = useState<{ columna: ColumnaOrden; direccion: DireccionOrden } | null>(null);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
@@ -228,11 +281,55 @@ export function AfirmacionPersonas() {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId, estadoId]);
+  useEffect(
+    () => setPagina(1),
+    [texto, redId, casaDePazId, estadoId, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro]
+  );
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
   const estadoIdFiltro = estadoId === TODOS_LOS_ESTADOS ? undefined : estadoId;
+
+  const filtros: FiltrosMembresiaAfirmacion = useMemo(
+    () => ({
+      redId: redIdFiltro,
+      casaDePazId: casaDePazIdFiltro,
+      estadoId: estadoIdFiltro,
+      sexo: sexoFiltro,
+      viaRegistro: viaFiltro,
+      conProfesion: conProfesionFiltro,
+      estadoCivil: estadoCivilFiltro,
+      bautizado: bautizadoFiltro,
+    }),
+    [redIdFiltro, casaDePazIdFiltro, estadoIdFiltro, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro]
+  );
+
+  const sinFiltros =
+    !redIdFiltro &&
+    !casaDePazIdFiltro &&
+    !estadoIdFiltro &&
+    !sexoFiltro &&
+    !viaFiltro &&
+    !conProfesionFiltro &&
+    !estadoCivilFiltro &&
+    !bautizadoFiltro;
+
+  function limpiarFiltros() {
+    setRedId(TODAS_LAS_REDES);
+    setCasaDePazId(TODAS_LAS_CDP);
+    setEstadoId(TODOS_LOS_ESTADOS);
+    setSexoFiltro(undefined);
+    setViaFiltro(undefined);
+    setConProfesionFiltro(undefined);
+    setEstadoCivilFiltro(undefined);
+    setBautizadoFiltro(undefined);
+  }
+
+  function alternarEstadoPorSigla(sigla: string) {
+    const estado = estados.find((e) => e.sigla === sigla);
+    if (!estado) return;
+    setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
+  }
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
   const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(iglesiaActivaId);
@@ -241,15 +338,7 @@ export function AfirmacionPersonas() {
   // deben aparecer acá sin importar el rol (KAN-358 seguimiento, 2026-09-10,
   // hallazgo del owner probando en vivo). fn_afirmacion_buscar_membresia ya
   // excluye Semillas siempre (no hace falta pasar el flag).
-  const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(
-    iglesiaActivaId,
-    texto,
-    pagina,
-    POR_PAGINA,
-    redIdFiltro,
-    casaDePazIdFiltro,
-    estadoIdFiltro
-  );
+  const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaActivaId, texto, pagina, POR_PAGINA, filtros);
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -272,7 +361,7 @@ export function AfirmacionPersonas() {
     if (!iglesiaActivaId) return;
     setExportando(true);
     try {
-      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, redIdFiltro, casaDePazIdFiltro, estadoIdFiltro);
+      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, filtros);
       const csv = filasACsv(todas);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -295,6 +384,11 @@ export function AfirmacionPersonas() {
     redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
     casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
     estadoIdFiltro && estados.find((e) => e.id === estadoIdFiltro)?.nombre,
+    sexoFiltro && (sexoFiltro === 'M' ? 'Hombres' : 'Mujeres'),
+    viaFiltro && VIA_REGISTRO_LABEL[viaFiltro],
+    conProfesionFiltro && 'Con profesión',
+    estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
+    bautizadoFiltro && 'Bautizados',
   ]
     .filter(Boolean)
     .join(' · ');
@@ -303,7 +397,7 @@ export function AfirmacionPersonas() {
     if (!iglesiaActivaId) return;
     setExportandoPdf(true);
     try {
-      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, redIdFiltro, casaDePazIdFiltro, estadoIdFiltro);
+      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, filtros);
       await exportarMembresiaAfirmacionPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion });
     } catch {
       toast.error('No se pudo exportar el PDF');
@@ -319,40 +413,100 @@ export function AfirmacionPersonas() {
     <div className="flex flex-col gap-6">
       {cargandoEstadisticas || cargandoRegistro ? (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {Array.from({ length: 14 }).map((_, i) => (
+          {Array.from({ length: 15 }).map((_, i) => (
             <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <KpiChip icon={Users} label="Total" color={AZUL}>
+          <KpiChipFiltro icon={Users} label="Total" color={AZUL} activo={sinFiltros} onClick={limpiarFiltros}>
             {estadisticas?.total ?? 0}
-          </KpiChip>
-          <KpiChip icon={User} label="Hombres" color={AZUL}>
+          </KpiChipFiltro>
+          <KpiChipFiltro
+            icon={User}
+            label="Hombres"
+            color={AZUL}
+            activo={sexoFiltro === 'M'}
+            onClick={() => setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'))}
+          >
             {estadisticas?.hombres ?? 0}
-          </KpiChip>
-          <KpiChip icon={User} label="Mujeres" color={TEAL}>
+          </KpiChipFiltro>
+          <KpiChipFiltro
+            icon={User}
+            label="Mujeres"
+            color={TEAL}
+            activo={sexoFiltro === 'F'}
+            onClick={() => setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'))}
+          >
             {estadisticas?.mujeres ?? 0}
-          </KpiChip>
-          <KpiChip icon={QrCode} label="Por URL" color={AZUL}>
+          </KpiChipFiltro>
+          <KpiChipFiltro
+            icon={QrCode}
+            label="Por URL"
+            color={AZUL}
+            activo={viaFiltro === 'URL'}
+            onClick={() => setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'))}
+          >
             {estadisticasRegistro?.por_url ?? 0}
-          </KpiChip>
-          <KpiChip icon={FileText} label="Por formulario" color={TEAL}>
+          </KpiChipFiltro>
+          <KpiChipFiltro
+            icon={FileText}
+            label="Por formulario"
+            color={TEAL}
+            activo={viaFiltro === 'FORMULARIO'}
+            onClick={() => setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'))}
+          >
             {estadisticasRegistro?.por_formulario ?? 0}
-          </KpiChip>
+          </KpiChipFiltro>
           {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
-            <KpiChip key={sigla} icon={Users} label={ESTADO_LABEL[sigla]} color={AZUL}>
+            <KpiChipFiltro
+              key={sigla}
+              icon={Users}
+              label={ESTADO_LABEL[sigla]}
+              color={AZUL}
+              activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
+              onClick={() => alternarEstadoPorSigla(sigla)}
+            >
               {porEstado[sigla] ?? 0}
-            </KpiChip>
+            </KpiChipFiltro>
           ))}
-          <KpiChip icon={Briefcase} label="Con profesión" color={TEAL}>
+          <KpiChipFiltro
+            icon={Briefcase}
+            label="Con profesión"
+            color={TEAL}
+            activo={conProfesionFiltro === true}
+            onClick={() => setConProfesionFiltro((actual) => (actual ? undefined : true))}
+          >
             {estadisticas?.con_profesion ?? 0}
-          </KpiChip>
+          </KpiChipFiltro>
           {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
-            <KpiChip key={codigo} icon={Heart} label={ESTADO_CIVIL_LABELS[codigo]} color={AZUL}>
+            <KpiChipFiltro
+              key={codigo}
+              icon={Heart}
+              label={ESTADO_CIVIL_LABELS[codigo]}
+              color={AZUL}
+              activo={estadoCivilFiltro === codigo}
+              onClick={() => setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo))}
+            >
               {porEstadoCivil[codigo] ?? 0}
-            </KpiChip>
+            </KpiChipFiltro>
           ))}
+          {/* Auditoría de categorías faltantes (pedido 2026-09-11): de los
+              campos del censo, "bautizado" es la única que suma como
+              tarjeta nueva sin ambigüedad -- rango_miembro tiene un valor
+              "Creyente" que colisiona con el Estado "Creyente" (CRE) de
+              arriba (dos conceptos distintos, mismo nombre en pantalla) y
+              los cargos de CdP/Red ya se ven como columna en la tabla, no
+              hace falta duplicarlos acá. */}
+          <KpiChipFiltro
+            icon={CircleCheck}
+            label="Bautizados"
+            color={VERDE}
+            activo={bautizadoFiltro === true}
+            onClick={() => setBautizadoFiltro((actual) => (actual ? undefined : true))}
+          >
+            {estadisticas?.bautizados ?? 0}
+          </KpiChipFiltro>
         </div>
       )}
 
