@@ -35,7 +35,7 @@ import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
 import { BloqueFinanciero, agruparFinanzasPorCdp } from '@/components/finanzas/BloqueFinanciero';
 import { useAuthStore } from '@/store/auth.store';
 import { useDashboardLiderRed, useIngresosRedPeriodo } from '@/hooks/useDashboard';
-import { useEvangelismoRed } from '@/hooks/useEvangelismo';
+import { useEvangelismoRed, useTestimoniosEvangelismoRed } from '@/hooks/useEvangelismo';
 import { usePersonasDeRed } from '@/hooks/usePersonas';
 import type { FiltroInicialPersonasRed } from '@/components/personas/PersonasDeRedVista';
 import { ROUTES } from '@/utils/constants';
@@ -97,6 +97,9 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
   // del censo, que es un estado actual, no algo que "pase" en un rango.
   const { data: evangelizadosRedPeriodo = [] } = useEvangelismoRed(redId, desde, hasta);
   const evangelizadosUnoAUno = evangelizadosRedPeriodo.filter((e) => e.tipo_evangelismo_codigo === 'UNO_A_UNO').length;
+  // "Testimonios Elite" (2026-09-11): repurpose de la card "Milagros
+  // registrados" -- ídem, no depende del período elegido, es un total.
+  const { data: testimoniosElite = [] } = useTestimoniosEvangelismoRed(redId);
   const conteosAccesoRapido = useMemo(() => {
     let efesios = 0;
     let ministros = 0;
@@ -109,7 +112,6 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
     let lideresMinisterio = 0;
     let discipulos = 0;
     let bautizados = 0;
-    let milagros = 0;
     for (const p of personasRed) {
       if (p.tiene_efesio) efesios++;
       if (p.cargo_ministro) ministros++;
@@ -122,9 +124,8 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
       if (p.ministerios.some((m) => m.es_lider)) lideresMinisterio++;
       if (p.rango_miembro === 'DISCIPULO') discipulos++;
       if (p.bautizado) bautizados++;
-      if (p.milagros.length > 0) milagros++;
     }
-    return { efesios, ministros, ancianos, diaconos, subMentores, mentores, lideresCdp, sublideres, lideresMinisterio, discipulos, bautizados, milagros };
+    return { efesios, ministros, ancianos, diaconos, subMentores, mentores, lideresCdp, sublideres, lideresMinisterio, discipulos, bautizados };
   }, [personasRed]);
 
   function irAPersonas(filtroInicial?: FiltroInicialPersonasRed) {
@@ -400,9 +401,15 @@ export function DashboardLiderRed({ redId, esSublider = false, onSeleccionarCdp 
           icon={Droplets} label="Bautizados" color={TEAL} valor={conteosAccesoRapido.bautizados}
           descripcion="Bautizados en agua" onClick={() => irAPersonas({ tipo: 'BAUTIZADO' })}
         />
+        {/* Antes "Milagros registrados" (censo espiritual, persona_milagro) --
+            repurpose a pedido del owner (2026-09-11): ahora es el acceso
+            directo a Testimonios Elite de Evangelismo (evangelismo_testimonio,
+            dato distinto). El filtro "Con milagro registrado" de Personas de
+            Red se queda sin acceso directo -- el owner lo aceptó explícitamente,
+            el dato en sí no se borra, solo pierde este atajo. */}
         <CardIndicadorPastel
-          icon={Flame} label="Milagros registrados" color={AMBAR} valor={conteosAccesoRapido.milagros}
-          descripcion="Personas con al menos 1 milagro" onClick={() => irAPersonas({ tipo: 'MILAGRO' })}
+          icon={Sparkles} label="Testimonios Elite" color={AMBAR} valor={testimoniosElite.length}
+          descripcion="Milagros y testimonios cargados" onClick={() => navigate(ROUTES.EVANGELISMO, { state: { tabInicial: 'elite' } })}
         />
         <CardIndicadorPastel
           icon={UserPlus} label="Evangelizados de 1+1" color={MORADO} valor={evangelizadosUnoAUno}

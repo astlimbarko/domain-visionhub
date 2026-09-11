@@ -15,6 +15,7 @@ import type {
   TasaEvangelismo,
   TasaEvangelismoRed,
   TestimonioEvangelismo,
+  TestimonioEvangelismoRed,
   TipoEvangelismo,
 } from '@/types/evangelismo.types';
 
@@ -312,4 +313,13 @@ export async function obtenerTestimoniosEvangelismo(casaDePazId: string): Promis
       fecha_creacion: r.fecha_creacion,
     };
   });
+}
+
+/** Mismos Testimonios Elite pero de toda la Red (Líder de Red / Supervisor de
+ * Red, EvangelismoRed.tsx) -- evangelismo_testimonio no tiene red_id directo,
+ * así que es una RPC (mismo criterio de join que fn_evangelismo_red). */
+export async function obtenerTestimoniosEvangelismoRed(redId: string): Promise<TestimonioEvangelismoRed[]> {
+  const { data, error } = await supabase.rpc('fn_evangelismo_testimonios_red', { p_red_id: redId });
+  if (error) throw error;
+  return data ?? [];
 }

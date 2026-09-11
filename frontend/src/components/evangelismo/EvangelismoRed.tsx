@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, LayoutGrid, Pencil, Plus, Target, Users, UsersRound } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Flag, HeartHandshake, Home, LayoutGrid, Pencil, Plus, Sparkles, Target, Users, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -18,11 +19,13 @@ import {
   useCrearEvangelizadoRed,
   useMetasCdpRed,
   useAsignarMetaEvangelismo,
+  useTestimoniosEvangelismoRed,
 } from '@/hooks/useEvangelismo';
 import { AsignarMetaRedDialog } from '@/components/evangelismo/AsignarMetaRedDialog';
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
 import { ListaPersonasDia } from '@/components/evangelismo/ListaPersonasDia';
 import { NuevoEvangelizadoDialog, type ValoresEvangelizado } from '@/components/evangelismo/NuevoEvangelizadoDialog';
+import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
 import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
@@ -69,6 +72,11 @@ interface Props {
 export function EvangelismoRed({ redId }: Props) {
   const personaId = useAuthStore((s) => s.personaId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  // Acceso directo desde el Dashboard de Red (card "Testimonios Elite",
+  // 2026-09-11) -- mismo patrón que `filtroInicial` en PersonasDeRedVista.tsx,
+  // solo que acá es qué pestaña abrir en vez de un filtro.
+  const location = useLocation();
+  const tabInicial = (location.state as { tabInicial?: 'resumen' | 'calendario' | 'elite' } | null)?.tabInicial ?? 'resumen';
 
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
@@ -97,6 +105,20 @@ export function EvangelismoRed({ redId }: Props) {
   const colorRed = redActual?.color && redActual.color.toUpperCase() !== '#FFFFFF' ? redActual.color : null;
   const { data: evangelizadosDirecto = [], isLoading: cargandoDirecto } = useEvangelismoRedDirecto(redId, desde, hasta);
   const crearDirecto = useCrearEvangelizadoRed(redId);
+
+  // Pestaña "Testimonios Elite" de toda la Red (2026-09-11), agrupados por
+  // Casa de Paz -- mismo patrón de agrupado que ya usa "Metas por Casa de
+  // Paz" más abajo. Solo se listan CdP con al menos un testimonio (pedido
+  // del owner), no todas las CdP de la Red.
+  const { data: testimoniosElite = [], isLoading: cargandoTestimonios } = useTestimoniosEvangelismoRed(redId);
+  const testimoniosPorCdp = useMemo(() => {
+    const mapa = new Map<string, { etiqueta: string; items: typeof testimoniosElite }>();
+    for (const t of testimoniosElite) {
+      if (!mapa.has(t.casa_de_paz_id)) mapa.set(t.casa_de_paz_id, { etiqueta: t.casa_de_paz_etiqueta, items: [] });
+      mapa.get(t.casa_de_paz_id)!.items.push(t);
+    }
+    return [...mapa.values()].sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
+  }, [testimoniosElite]);
 
   // Registrado sin Casa de Paz -- queda fuera del ciclo SIM/NC/CRE (decisión
   // aceptada por el owner, no es un olvido).
@@ -246,14 +268,21 @@ export function EvangelismoRed({ redId }: Props) {
 
       {/* Pestañas (2026-09-10, mismo patrón que la vista de CdP/Dashboard de
           Red): "Resumen" agrupa métricas, evangelismo propio, metas por CdP
-          y tendencia; "Calendario" queda solo, es el bloque más alto. */}
-      <Tabs defaultValue="resumen">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="resumen" className="gap-1.5">
-            <LayoutGrid /> Resumen
+          y tendencia; "Calendario" queda solo, es el bloque más alto.
+          "Testimonios Elite" (2026-09-11) sumó una 3ra pestaña -- min-w-0 +
+          truncate en los 3 triggers de entrada (mismo bug/fix ya visto ayer
+          en Evangelismo.tsx de CdP: sin min-w-0 un grid-item no se achica
+          más allá del ancho de su contenido y se solapa en mobile). */}
+      <Tabs defaultValue={tabInicial}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="resumen" className="min-w-0 gap-1.5">
+            <LayoutGrid /> <span className="truncate">Resumen</span>
           </TabsTrigger>
-          <TabsTrigger value="calendario" className="gap-1.5">
-            <CalendarRange /> Calendario
+          <TabsTrigger value="calendario" className="min-w-0 gap-1.5">
+            <CalendarRange /> <span className="truncate">Calendario</span>
+          </TabsTrigger>
+          <TabsTrigger value="elite" className="min-w-0 gap-1.5">
+            <Sparkles /> <span className="truncate">Testimonios Elite</span>
           </TabsTrigger>
         </TabsList>
 
@@ -465,6 +494,52 @@ export function EvangelismoRed({ redId }: Props) {
           </div>
         </section>
       </div>
+        </TabsContent>
+
+        <TabsContent value="elite">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader
+          icon={Sparkles}
+          color={AMARILLO}
+          titulo="Testimonios Elite"
+          descripcion={`${testimoniosElite.length} en toda la Red, por Casa de Paz`}
+        />
+        <div className="flex flex-col gap-5 p-5">
+          {cargandoTestimonios ? (
+            <Skeleton className="h-40 w-full rounded-xl" />
+          ) : testimoniosPorCdp.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todavía no se cargó ningún testimonio en ninguna Casa de Paz de la Red.</p>
+          ) : (
+            testimoniosPorCdp.map((grupo) => (
+              <div key={grupo.etiqueta} className="flex flex-col gap-2.5">
+                <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `color-mix(in oklab, ${colorRed ?? AMARILLO} 12%, transparent)` }}
+                  >
+                    <Home className="h-3.5 w-3.5" style={{ color: colorRed ?? AMARILLO }} />
+                  </span>
+                  {grupo.etiqueta}
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{grupo.items.length}</span>
+                </p>
+                <div className="flex flex-col gap-2 pl-9">
+                  {grupo.items.map((t) => (
+                    <div key={t.id} className="flex flex-col gap-1 rounded-xl border border-border/60 px-3.5 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <PersonaNombreLink personaId={t.persona_id} className="min-w-0 truncate text-sm font-semibold">
+                          {t.nombre_completo}
+                        </PersonaNombreLink>
+                        <span className="shrink-0 text-xs text-muted-foreground">{fechaLegible(t.fecha_creacion.slice(0, 10))}</span>
+                      </div>
+                      <p className="text-sm text-foreground/90">{t.texto}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
         </TabsContent>
       </Tabs>
 
