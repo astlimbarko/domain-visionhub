@@ -144,8 +144,13 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // casaDePazId siempre va en el state (2026-09-11, no solo filtroInicial):
+  // este dashboard se reusa para "inspeccionar" una CdP ajena desde el
+  // Dashboard de Red/Supervisor (pages/Dashboard.tsx) -- sin esto, Personas.tsx
+  // no tiene forma de saber qué CdP se estaba mirando y cae en el contexto
+  // real del usuario (toda su Red), no en la CdP puntual del botón.
   function irAPersonas(filtroInicial?: FiltroInicialPersonasCdp) {
-    navigate(ROUTES.PERSONAS, filtroInicial ? { state: { filtroInicial } } : undefined);
+    navigate(ROUTES.PERSONAS, { state: { filtroInicial, casaDePazId } });
   }
 
   const [periodo, setPeriodo] = useState<PeriodoDashboard>('MES');
@@ -475,7 +480,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               valor={tasaEvangelismo?.evangelizados ?? 0}
               descripcion={`En ${etiquetaPeriodo}`}
               variacion={tasaEvangelismo?.meta != null ? { texto: `Meta: ${tasaEvangelismo.meta}`, tendencia: 'neutral' } : null}
-              onClick={() => navigate(ROUTES.EVANGELISMO)}
+              onClick={() => navigate(ROUTES.EVANGELISMO, { state: { casaDePazId, casaDePazEtiqueta: casa_de_paz.nombre } })}
             />
             <CardIndicadorPastel
               label="Última reunión"
@@ -484,7 +489,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               valor={kpi.asistencia_ultima.valor ?? '—'}
               descripcion={kpi.asistencia_ultima.fecha ? `Asistencia del ${fmt(kpi.asistencia_ultima.fecha)}` : 'Última reunión'}
               variacion={variacionIndicador(kpi.asistencia_ultima.variacion_pct)}
-              onClick={() => navigate(ROUTES.HISTORIAL_REPORTES)}
+              onClick={() => navigate(ROUTES.HISTORIAL_REPORTES, { state: { casaDePazId, casaDePazEtiqueta: casa_de_paz.nombre } })}
             />
           </div>
 
@@ -659,7 +664,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               color={ROSA}
               valor={testimonios.length}
               descripcion={`En ${etiquetaPeriodo}`}
-              onClick={() => navigate(ROUTES.TESTIMONIOS_CDP)}
+              onClick={() => navigate(ROUTES.TESTIMONIOS_CDP, { state: { casaDePazId, casaDePazEtiqueta: casa_de_paz.nombre } })}
             />
             <CardIndicadorPastel label="Boletas Entregadas" icon={Ticket} color={GRIS} valor="—" descripcion="Próximamente" />
           </div>

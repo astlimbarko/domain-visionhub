@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   CalendarRange,
@@ -75,7 +76,20 @@ export function Evangelismo() {
 
   const { data: misCasasCrudo, isLoading: cargandoCasas } = useMisCasasDePaz(personaId);
   const misCasas = misCasasCrudo;
-  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const location = useLocation();
+  // Acceso directo desde el Dashboard de un Líder/Supervisor de Red (o
+  // Pastor/Supervisor) inspeccionando una Casa de Paz ajena (2026-09-11,
+  // DashboardLiderCdp.tsx dentro de pages/Dashboard.tsx) -- tiene que ganarle
+  // a las ramas de Red/iglesia-completa de más abajo, que si no siempre
+  // muestran el panel agregado en vez de la CdP puntual que se inspecciona.
+  const estadoNav = location.state as { casaDePazId?: string; casaDePazEtiqueta?: string } | null;
+  const cdpInspeccionada = estadoNav?.casaDePazId;
+  // "Nuevo evangelizado" (INSERT en evangelismo) exige fn_puede_reportar_cdp,
+  // que NO incluye Líder/Sublíder de Red -- solo Pastor/Supervisor (operativo
+  // de la iglesia) o el propio Líder/Sublíder de esa CdP. Se oculta el botón
+  // para no mostrar una acción que el backend va a rechazar.
+  const puedeRegistrarInspeccionando = rolUI === 'SUPERVISOR' || rolUI === 'PASTOR';
+  const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const redIdActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.redId : undefined;
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const colorRedInfo = redes.find((r) => r.id === redIdActiva)?.color;
@@ -206,7 +220,7 @@ export function Evangelismo() {
   // Mismo motivo que en Calendario.tsx: un Líder de Red puro no tiene CdP
   // propia (misCasas vacío), así que sin esta rama caía siempre en el
   // placeholder de abajo pese a tener "Evangelismo" en su menú.
-  if (rolUI === 'LIDER_RED') {
+  if (rolUI === 'LIDER_RED' && !cdpInspeccionada) {
     if (contextoActivo?.alcance !== 'RED') {
       return (
         <ProximamentePlaceholder
@@ -228,18 +242,18 @@ export function Evangelismo() {
   // chequean ambos roles juntos) -- acá faltaba, así que un Pastor caía en el
   // placeholder de "no tenés Casa de Paz asignada" en vez de ver el panel
   // iglesia-completa, porque el Pastor tampoco lidera/sublidera ninguna CdP propia.
-  if (rolUI === 'SUPERVISOR' || rolUI === 'PASTOR') return <EvangelismoSupervisorVista />;
+  if ((rolUI === 'SUPERVISOR' || rolUI === 'PASTOR') && !cdpInspeccionada) return <EvangelismoSupervisorVista />;
 
   // Departamento de Evangelismo (KAN-281): mismo panel iglesia-completa que
   // el Supervisor -- rol independiente, no depende de rol_sistema_enum
   // (contextoActivo.alcance === 'DEPARTAMENTO', igual que Afirmación).
-  if (contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO') {
+  if (contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO' && !cdpInspeccionada) {
     return <EvangelismoSupervisorVista />;
   }
 
-  if (cargandoCasas) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (cargandoCasas && !cdpInspeccionada) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
-  if (!cdpActiva || !misCasas?.some((c) => c.casa_de_paz_id === cdpActiva)) {
+  if (!cdpInspeccionada && (!cdpActiva || !misCasas?.some((c) => c.casa_de_paz_id === cdpActiva))) {
     return (
       <ProximamentePlaceholder
         titulo="Evangelismo"
@@ -248,7 +262,7 @@ export function Evangelismo() {
     );
   }
 
-  const cdpNombreActiva = misCasas.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
+  const cdpNombreActiva = cdpInspeccionada ? estadoNav?.casaDePazEtiqueta : misCasas?.find((c) => c.casa_de_paz_id === cdpActiva)?.nombre;
   // Variación de la card "Evangelizados este mes" -- mismo criterio que
   // variacionPct de arriba (null si el mes pasado tuvo 0, para no mostrar un
   // % engañoso), solo que acá se traduce a la forma que espera CardIndicadorPastel.
@@ -279,13 +293,17 @@ export function Evangelismo() {
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{cdpNombreActiva ?? 'Casa de Paz'}</h1>
               </div>
             </div>
-            <Button
-              onClick={() => setDialogoAbierto(true)}
-              className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo evangelizado
-            </Button>
+            {/* Oculto para Líder/Sublíder de Red inspeccionando una CdP ajena --
+                fn_puede_reportar_cdp no los incluye, el INSERT rebotaría por RLS. */}
+            {(!cdpInspeccionada || puedeRegistrarInspeccionando) && (
+              <Button
+                onClick={() => setDialogoAbierto(true)}
+                className="h-10 shrink-0 gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20"
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo evangelizado
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/10 pt-5 sm:grid-cols-3">
@@ -738,7 +756,7 @@ export function Evangelismo() {
         </TabsContent>
 
         <TabsContent value="elite">
-          <TestimoniosElite casaDePazId={cdpActiva} />
+          <TestimoniosElite casaDePazId={cdpActiva as string} />
         </TabsContent>
       </Tabs>
 

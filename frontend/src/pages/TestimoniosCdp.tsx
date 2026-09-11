@@ -1,4 +1,5 @@
 import { MessageCircleHeart } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { MORADO } from '@/components/dashboard/DashboardUI';
@@ -16,7 +17,13 @@ import { fechaLegible } from '@/utils/calendario-fechas';
  */
 export function TestimoniosCdp() {
   const { contextoActivo } = useContextoActivo();
-  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const location = useLocation();
+  // Acceso directo desde el Dashboard de un Líder/Supervisor de Red (o
+  // Pastor/Supervisor) inspeccionando una Casa de Paz ajena (2026-09-11,
+  // mismo mecanismo que Personas.tsx) -- página 100% de lectura, sin ninguna
+  // restricción de backend adicional para esto.
+  const cdpInspeccionada = (location.state as { casaDePazId?: string } | null)?.casaDePazId;
+  const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const { data: testimonios = [], isLoading } = useTestimoniosCdp(cdpActiva);
 
   if (!cdpActiva) {
