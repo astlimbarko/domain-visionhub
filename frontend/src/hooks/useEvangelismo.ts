@@ -6,11 +6,9 @@ import {
   buscarEvangelizados,
   crearEvangelizado,
   crearEvangelizadoRed,
-  crearTestimonioEvangelismo,
   obtenerEvangelismoRed,
   obtenerEvangelismoRedDirecto,
   obtenerEvangelizados,
-  obtenerEvangelizadosElite,
   obtenerMetaPropia,
   obtenerMetaRedAsignada,
   obtenerMetasCdpRed,
@@ -20,13 +18,7 @@ import {
   obtenerTiposEvangelismo,
   soyRolSuperiorDeCdp,
 } from '@/services/evangelismo.service';
-import type {
-  NuevaMetaAsignada,
-  NuevaMetaAsignadaRed,
-  NuevoEvangelizado,
-  NuevoEvangelizadoRed,
-  NuevoTestimonioEvangelismo,
-} from '@/types/evangelismo.types';
+import type { NuevaMetaAsignada, NuevaMetaAsignadaRed, NuevoEvangelizado, NuevoEvangelizadoRed } from '@/types/evangelismo.types';
 
 export function useTiposEvangelismo(iglesiaId: string | undefined) {
   return useQuery({
@@ -106,35 +98,21 @@ export function useCrearEvangelizado(casaDePazId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'lista', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['evangelismo', 'tasa', casaDePazId] });
+      // Si se cargó con tipo Elite, puede haber traído un testimonio (ver
+      // fn_registrar_evangelizado) -- sin esto la pestaña Testimonios Elite
+      // queda con la lista vieja hasta un refetch natural.
+      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'testimonios', casaDePazId] });
     },
   });
 }
 
-// Pestaña "Testimonios Elite" (2026-09-10).
-
-export function useEvangelizadosElite(casaDePazId: string | undefined) {
-  return useQuery({
-    queryKey: ['evangelismo', 'elite', casaDePazId],
-    queryFn: () => obtenerEvangelizadosElite(casaDePazId as string),
-    enabled: !!casaDePazId,
-  });
-}
-
+/** Pestaña "Testimonios Elite" (2026-09-10) -- listado de solo lectura, la
+ * carga sucede al registrar el evangelizado (ver useCrearEvangelizado). */
 export function useTestimoniosEvangelismo(casaDePazId: string | undefined) {
   return useQuery({
     queryKey: ['evangelismo', 'testimonios', casaDePazId],
     queryFn: () => obtenerTestimoniosEvangelismo(casaDePazId as string),
     enabled: !!casaDePazId,
-  });
-}
-
-export function useCrearTestimonioEvangelismo(casaDePazId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (datos: NuevoTestimonioEvangelismo) => crearTestimonioEvangelismo(datos),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['evangelismo', 'testimonios', casaDePazId] });
-    },
   });
 }
 

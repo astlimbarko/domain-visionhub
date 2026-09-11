@@ -730,7 +730,7 @@ export function Evangelismo() {
         </TabsContent>
 
         <TabsContent value="elite">
-          <TestimoniosElite casaDePazId={cdpActiva} iglesiaId={iglesiaActivaId as string} />
+          <TestimoniosElite casaDePazId={cdpActiva} />
         </TabsContent>
       </Tabs>
 
@@ -766,6 +766,7 @@ export function Evangelismo() {
               telefono: valores.telefono || undefined,
               tipo_evangelismo_id: valores.tipo_evangelismo_id,
               evangelizado_por_id: valores.evangelizado_por_id,
+              testimonio: valores.testimonio || undefined,
             })
           }
         />

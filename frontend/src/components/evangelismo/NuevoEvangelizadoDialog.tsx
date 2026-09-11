@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 /** Codigo estable de 44_tipo_evangelismo.sql / seed_01_catalogos_globales.sql -- no depender del nombre, que puede editarse. */
 const CODIGO_SEMILLA = 'SEMILLA';
+const CODIGO_ELITE = 'ELITE';
 
 const esquema = z.object({
   tipo_evangelismo_id: z.string().min(1, 'Elegí con qué tipo de evangelismo se lo ganó'),
@@ -44,6 +46,9 @@ const esquema = z.object({
   domicilio: z.string().trim().optional(),
   telefono_pais: z.string().optional(),
   telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
+  /** Solo tiene sentido con tipo Elite (2026-09-10, pedido del owner) -- el
+   * campo aparece únicamente cuando se elige ese tipo, ver `esElite` abajo. */
+  testimonio: z.string().trim().optional(),
 });
 
 type FormValues = z.infer<typeof esquema>;
@@ -58,6 +63,7 @@ const FORM_VACIO = {
   telefono_pais: '+591',
   telefono_numero: '',
   tipo_evangelismo_id: '',
+  testimonio: '',
 };
 
 /** Lo que sale del diálogo hacia afuera: país+número ya combinados en un solo
@@ -109,6 +115,7 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
   const fechaActual = watch('fecha');
   const telefonoPaisActual = watch('telefono_pais');
   const esSemilla = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_SEMILLA;
+  const esElite = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_ELITE;
 
   async function onSubmit(valores: FormValues) {
     const { telefono_pais, telefono_numero, ...resto } = valores;
@@ -269,6 +276,16 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
                 <Label htmlFor="domicilio">Domicilio</Label>
                 <Input id="domicilio" {...register('domicilio')} />
               </div>
+
+              {/* Solo con tipo Elite (2026-09-10, pedido del owner): milagro o
+                  testimonio de esta persona, opcional -- queda listado en la
+                  pestaña "Testimonios Elite" de Evangelismo. */}
+              {esElite && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="testimonio">Testimonio o milagro para esta persona</Label>
+                  <Textarea id="testimonio" rows={3} placeholder="Opcional" {...register('testimonio')} />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <Label>Evangelizado por</Label>
