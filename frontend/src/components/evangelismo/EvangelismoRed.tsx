@@ -7,7 +7,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CardIndicadorPastel } from '@/components/dashboard/CardIndicadorPastel';
-import { degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { esMetaAsignada, quienAsignoMeta } from '@/utils/evangelismo-meta';
 import { useAuthStore } from '@/store/auth.store';
@@ -355,13 +354,14 @@ export function EvangelismoRed({ redId }: Props) {
                   <div key={c.casa_de_paz_id} className="flex flex-col gap-3 rounded-xl border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       {/* Antes naranja fijo para todas las filas (pedido del
-                          owner 2026-09-10: "muy soso, se repite") -- ahora el
-                          degradado de identidad con el color propio de la Red. */}
+                          owner 2026-09-10: "muy soso, se repite") -- ahora
+                          tinte suave con el color propio de la Red, mismo
+                          patrón que el resto de la app (no relleno sólido). */}
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
-                        style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : degradadoIdentidadColor(NARANJA) }}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `color-mix(in oklab, ${colorRed ?? NARANJA} 12%, transparent)` }}
                       >
-                        <Home className="h-4 w-4" />
+                        <Home className="h-4 w-4" style={{ color: colorRed ?? NARANJA }} />
                       </span>
                       <p className="truncate text-sm font-bold text-foreground">{c.etiqueta}</p>
                     </div>

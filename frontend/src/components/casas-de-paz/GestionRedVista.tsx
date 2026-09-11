@@ -72,22 +72,6 @@ interface CargoDialogoRed { codigo: CargoRedCodigo; titulo: string; exclusivo: b
 interface CargoDialogoCdp { cdpId: string; codigo: CargoCdpCodigo; titulo: string; exclusivo: boolean; }
 type FiltroEstado = 'TODAS' | 'ACTIVAS' | 'INACTIVAS';
 
-function IconoBadge({ color, icon: Icon, size = 'md' }: { color: string; icon: typeof Home; size?: 'md' | 'lg' }) {
-  const dim = size === 'lg' ? 'h-12 w-12 rounded-2xl' : 'h-10 w-10 rounded-xl';
-  const ic = size === 'lg' ? 'h-6 w-6' : 'h-5 w-5';
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center ${dim}`}
-      style={{
-        background: `linear-gradient(135deg, ${color} 0%, color-mix(in oklab, ${color} 72%, #000) 100%)`,
-        boxShadow: `0 8px 16px -6px color-mix(in oklab, ${color} 65%, transparent), inset 0 1px 0 0 rgba(255,255,255,0.35)`,
-      }}
-    >
-      <Icon className={`${ic} text-white`} strokeWidth={2.2} />
-    </span>
-  );
-}
-
 /**
  * Gestión de Casas de Paz del Líder de Red — acotada a SU red y pensada para
  * escalar: buscador, filtro por estado y "Mostrar más" para que una red con
@@ -362,10 +346,16 @@ export function GestionRedVista() {
               {cdpsVisibles.map((cdp) => (
                 <div key={cdp.id} className={`flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-2.5 transition-colors hover:border-primary/30 ${cdp.activo ? 'bg-card/70' : 'bg-muted/40'}`}>
                   {/* Antes siempre TEAL fijo -- se veía igual en toda Red (pedido
-                      del owner 2026-09-10: "muy soso, se repite"). Ahora usa el
-                      color que esa Red tiene elegido en el Constructor, igual
-                      criterio que el hero de esta misma pantalla más arriba. */}
-                  <IconoBadge color={cdp.activo ? (colorRed ?? TEAL) : '#8e8e93'} icon={Home} />
+                      del owner 2026-09-10: "muy soso, se repite"). Ahora tinte
+                      suave con el color que esa Red tiene elegido en el
+                      Constructor -- sin relleno sólido, el degradado de
+                      identidad se reserva para el hero de arriba. */}
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `color-mix(in oklab, ${cdp.activo ? (colorRed ?? TEAL) : '#8e8e93'} 12%, transparent)` }}
+                  >
+                    <Home className="h-5 w-5" style={{ color: cdp.activo ? (colorRed ?? TEAL) : '#8e8e93' }} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate font-semibold text-foreground">
                       <span className="truncate">{cdp.etiqueta}</span>

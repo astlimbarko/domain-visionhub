@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AMBAR, MARINO, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
+import { AMBAR, MARINO } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
@@ -87,13 +87,14 @@ export function Visitas() {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       {/* Antes marino fijo en toda Red (pedido del owner
-                          2026-09-10: "muy soso, se repite") -- ahora el
-                          degradado de identidad con el color propio de la Red. */}
+                          2026-09-10: "muy soso, se repite") -- ahora tinte
+                          suave con el color propio de la Red, mismo patrón
+                          que ya usa el resto de la app (no relleno sólido). */}
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
-                        style={{ background: colorRed ? degradadoIdentidadColor(colorRed) : degradadoIdentidadColor(MARINO) }}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `color-mix(in oklab, ${colorRed ?? MARINO} 12%, transparent)` }}
                       >
-                        <Home className="h-4 w-4" />
+                        <Home className="h-4 w-4" style={{ color: colorRed ?? MARINO }} />
                       </span>
                       <div>
                         <p className="text-sm font-bold text-foreground">{v.casa_de_paz_etiqueta}</p>
