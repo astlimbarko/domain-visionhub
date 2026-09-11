@@ -243,7 +243,7 @@ export function AfirmacionPersonas() {
         <TarjetaHeader
           icon={Users}
           color={AZUL}
-          titulo="Personas"
+          titulo="Membresía"
           descripcion="Datos principales -- click en una fila para ver la ficha completa."
           accion={
             <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
