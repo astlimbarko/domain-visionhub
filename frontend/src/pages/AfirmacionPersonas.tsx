@@ -45,12 +45,13 @@ import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useAuthStore } from '@/store/auth.store';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
-import { useBuscarMembresiaAfirmacion, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
+import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
 import { buscarMembresiaAfirmacion } from '@/services/afirmacion.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import { OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
 import type { MembresiaResultadoBusqueda } from '@/types/persona.types';
+import { exportarMembresiaAfirmacionPdf, type FilaMembresiaPdf } from '@/utils/exportarMembresiaAfirmacionPdf';
 
 const POR_PAGINA = 50;
 // Tope razonable para una exportación completa -- una iglesia real no tiene
@@ -58,6 +59,7 @@ const POR_PAGINA = 50;
 const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
+const TODOS_LOS_ESTADOS = '__todos__';
 
 // Mismo patrón "filtro en el propio encabezado" que ya usa Evangelismo
 // (KAN-358 seguimiento, 2026-09-10) -- Red/Casa de Paz pasan de columna
@@ -71,7 +73,6 @@ type ColumnaOrden =
   | 'nombre_completo'
   | 'sexo'
   | 'edad'
-  | 'estado_sigla'
   | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
 
@@ -123,6 +124,30 @@ function EncabezadoOrdenable({
       </button>
     </th>
   );
+}
+
+// Mismo mapper que Evangelismo (aFilaExportacion) -- valores ya formateados
+// para el PDF, índice real (respeta la posición dentro del total exportado,
+// no solo de la página actual).
+function aFilaExportacion(p: MembresiaResultadoBusqueda, i: number): FilaMembresiaPdf {
+  return {
+    numero: i + 1,
+    nombre_completo: p.nombre_completo,
+    sexo: p.sexo === 'M' ? 'M' : 'F',
+    edad: p.edad != null ? String(p.edad) : '—',
+    ci: p.ci ?? '—',
+    red_nombre: p.red_nombre ?? '—',
+    casa_de_paz_etiqueta: p.casa_de_paz_etiqueta ?? '—',
+    estado_sigla: p.estado_sigla ?? '—',
+    telefono_principal: p.telefono_principal ?? '—',
+    via_registro: p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro] : '—',
+    membresia: p.membresia_completada ? 'Completa' : 'Incompleta',
+    estado_civil: p.estado_civil ? ESTADO_CIVIL_LABELS[p.estado_civil] : '—',
+    rango_miembro: p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—',
+    bautizado: p.bautizado ? 'Sí' : 'No',
+    cargo_cdp: p.es_lider_cdp ? 'Líder' : p.es_sublider_cdp ? 'Sublíder' : '—',
+    cargo_red: p.es_lider_red ? 'Líder' : p.es_sublider_red ? 'Sublíder' : '—',
+  };
 }
 
 // CSV con BOM (Excel en Windows no detecta UTF-8 sin esto -- tildes/ñ salían
@@ -186,22 +211,28 @@ export function AfirmacionPersonas() {
   const [texto, setTexto] = useState('');
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
   const [casaDePazId, setCasaDePazId] = useState<string>(TODAS_LAS_CDP);
+  const [estadoId, setEstadoId] = useState<string>(TODOS_LOS_ESTADOS);
   const [pagina, setPagina] = useState(1);
   const [orden, setOrden] = useState<{ columna: ColumnaOrden; direccion: DireccionOrden } | null>(null);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
   const [exportando, setExportando] = useState(false);
+  const [exportandoPdf, setExportandoPdf] = useState(false);
+
+  const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const { data: cdps = [] } = useCdpsIglesia(iglesiaActivaId);
+  const { data: estados = [] } = useEstados();
 
   useEffect(() => {
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazId]);
+  useEffect(() => setPagina(1), [texto, redId, casaDePazId, estadoId]);
 
   const redIdFiltro = redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = casaDePazId === TODAS_LAS_CDP ? undefined : casaDePazId;
+  const estadoIdFiltro = estadoId === TODOS_LOS_ESTADOS ? undefined : estadoId;
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
   const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(iglesiaActivaId);
@@ -216,7 +247,8 @@ export function AfirmacionPersonas() {
     pagina,
     POR_PAGINA,
     redIdFiltro,
-    casaDePazIdFiltro
+    casaDePazIdFiltro,
+    estadoIdFiltro
   );
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
@@ -240,7 +272,7 @@ export function AfirmacionPersonas() {
     if (!iglesiaActivaId) return;
     setExportando(true);
     try {
-      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, redIdFiltro, casaDePazIdFiltro);
+      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, redIdFiltro, casaDePazIdFiltro, estadoIdFiltro);
       const csv = filasACsv(todas);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -253,6 +285,30 @@ export function AfirmacionPersonas() {
       toast.error('No se pudo exportar el CSV');
     } finally {
       setExportando(false);
+    }
+  }
+
+  // Mismo criterio que Evangelismo: descripción corta de los filtros activos
+  // para el encabezado del PDF.
+  const filtroDescripcion = [
+    texto.trim() && `"${texto.trim()}"`,
+    redIdFiltro && redes.find((r) => r.id === redIdFiltro)?.nombre,
+    casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
+    estadoIdFiltro && estados.find((e) => e.id === estadoIdFiltro)?.nombre,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  async function exportarPdf() {
+    if (!iglesiaActivaId) return;
+    setExportandoPdf(true);
+    try {
+      const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, redIdFiltro, casaDePazIdFiltro, estadoIdFiltro);
+      await exportarMembresiaAfirmacionPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion });
+    } catch {
+      toast.error('No se pudo exportar el PDF');
+    } finally {
+      setExportandoPdf(false);
     }
   }
 
@@ -307,10 +363,16 @@ export function AfirmacionPersonas() {
           titulo="Membresía"
           descripcion="Datos principales -- click en una fila para ver la ficha completa."
           accion={
-            <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
-              <Download className="h-3.5 w-3.5" />
-              {exportando ? 'Exportando...' : 'Exportar CSV'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={exportandoPdf || total === 0} onClick={exportarPdf}>
+                <FileText className="h-3.5 w-3.5" />
+                {exportandoPdf ? 'Generando...' : 'Exportar PDF'}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={exportando || total === 0} onClick={exportarCsv}>
+                <Download className="h-3.5 w-3.5" />
+                {exportando ? 'Exportando...' : 'Exportar CSV'}
+              </Button>
+            </div>
           }
         />
         <div className="flex flex-col gap-4 p-5">
@@ -379,9 +441,21 @@ export function AfirmacionPersonas() {
                         </SelectContent>
                       </Select>
                     </th>
-                    <EncabezadoOrdenable columna="estado_sigla" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Estado
-                    </EncabezadoOrdenable>
+                    <th className="px-2 py-2">
+                      <Select value={estadoId} onValueChange={setEstadoId}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
+                          <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TODOS_LOS_ESTADOS}>Estado</SelectItem>
+                          {estados.map((e) => (
+                            <SelectItem key={e.id} value={e.id}>
+                              {e.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
                     <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   buscarMembresiaAfirmacion,
   listarCasasDePazAfirmacion,
+  listarEstados,
   listarLideresCdpAfirmacion,
   listarRedesAfirmacion,
   listarUrlsAfirmacion,
@@ -12,6 +13,16 @@ import {
   setEstadoUrlsAfirmacion,
 } from '@/services/afirmacion.service';
 import type { DatosPersonaAfirmacion, EstadoUrl } from '@/types/afirmacion.types';
+
+/** Catálogo global -- queryKey sin iglesiaId a propósito, es el mismo para
+ * toda la app. */
+export function useEstados() {
+  return useQuery({
+    queryKey: ['catalogo', 'estados'],
+    queryFn: listarEstados,
+    staleTime: 1000 * 60 * 30,
+  });
+}
 
 /** KAN-358 seguimiento: tabla de Membresía con campos reales del censo. */
 export function useBuscarMembresiaAfirmacion(

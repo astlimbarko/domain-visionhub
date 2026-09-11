@@ -90,6 +90,20 @@ export async function obtenerEstadisticasRegistroAfirmacion(iglesiaId: string): 
 
 const MEMBRESIA_POR_PAGINA = 50;
 
+/** Catálogo global de Estado (SIM/NC/CRE/RE, etc) -- sin iglesia_id, no hace
+ * falta scope por iglesia. Filtro de Estado en la tabla de Membresía. */
+export interface EstadoCatalogo {
+  id: string;
+  sigla: string;
+  nombre: string;
+}
+
+export async function listarEstados(): Promise<EstadoCatalogo[]> {
+  const { data, error } = await supabase.rpc('fn_listar_estados');
+  if (error) throw error;
+  return data ?? [];
+}
+
 /** KAN-358 seguimiento (2026-09-10): tabla de Membresía con campos reales
  * del censo (estado civil, rango, bautizado, cargos reales de CdP/Red) --
  * no solo identidad básica. Ver fn_afirmacion_buscar_membresia. */
