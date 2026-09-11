@@ -5,6 +5,7 @@ import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -157,10 +158,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   // lectura). Vive en el navbar, no arriba del contenido de cada pagina
   // (pedido del owner 2026-09-10, quedaba pegado justo encima del banner de
   // color de cada Departamento).
-  const volverAlConstructor = useVolverAlConstructor();
+  const volverAlConstructorBase = useVolverAlConstructor();
+  // KAN-339 seguimiento (2026-09-10, pedido del owner): el boton dispara una
+  // recarga completa (window.location.href dentro del hook), asi que sin
+  // feedback se siente "colgado" un instante. Overlay local nomas para dar
+  // esa señal -- no hace falta limpiar el estado despues, la pagina se
+  // recarga entera.
+  const [volviendoAlConstructor, setVolviendoAlConstructor] = useState(false);
+  const volverAlConstructor = volverAlConstructorBase
+    ? () => { setVolviendoAlConstructor(true); volverAlConstructorBase(); }
+    : null;
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
+  // KAN-358 seguimiento (2026-09-10, pedido del owner tras probarlo en vivo):
+  // Evangelismo (Lider de Departamento) tiene solo 2 pantallas que ya se
+  // cruzan entre si con un boton en el hero -- el sidebar de escritorio
+  // quedaba ocupando espacio sin aportar nada. Se oculta el <aside> (no se
+  // borran los items del catalogo, "por si se usan en el futuro" -- ver
+  // paneles-contexto.ts). Solo escritorio: en mobile no hay un sidebar fijo
+  // que robe espacio, sigue mostrando el drawer normal.
+  const ocultarSidebarDesktop = contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO';
   const colorNavbarRol = panelContexto?.colorNavbar;
   const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
@@ -263,13 +281,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-svh flex-col bg-background sm:flex-row">
+      {volviendoAlConstructor && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+          <Spinner className="h-8 w-8" />
+          <p className="text-sm font-medium text-muted-foreground">Volviendo al Constructor...</p>
+        </div>
+      )}
       {/* El Super Admin trabaja directamente en Administración y abre cada
           organigrama desde su iglesia. Su menú lateral queda oculto en todos
           los tamaños hasta que exista un menú con nuevas funciones reales. */}
       <aside
         className={cn(
           'w-[250px] shrink-0 flex-col border-r',
-          esOscuro ? 'hidden' : 'hidden sm:flex',
+          esOscuro || ocultarSidebarDesktop ? 'hidden' : 'hidden sm:flex',
           colorNavbarRol ? 'p-0' : 'p-4',
           esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/5' : 'border-sidebar-border bg-sidebar'
         )}

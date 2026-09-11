@@ -22,6 +22,7 @@ import { KpiChip } from '@/components/dashboard/DashboardUI';
 import { EVANGELISMO_COLOR } from '@/utils/evangelismo-colores';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { ROUTES } from '@/utils/constants';
@@ -63,24 +64,6 @@ function inicialDe(nombreCompleto: string): string {
 // wa.me exige solo dígitos (sin "+", espacios ni guiones).
 function soloDigitos(telefono: string): string {
   return telefono.replace(/\D/g, '');
-}
-
-/** Nombre abreviado del evangelizador para la columna angosta "Evangelizado
- * por" de la tabla desktop (KAN-350, pedido explícito del owner, 2026-09-08):
- * nombres cortos se muestran completos (ej. "Ana Maria"), nombres largos
- * abrevian el segundo a su inicial (ej. "Juan C.") -- en los dos casos, solo
- * el primer apellido, nunca el segundo, para que la columna no se dispare de
- * ancho. */
-function nombreEvangelizadorAbreviado(
-  primerNombre: string | null,
-  segundoNombre: string | null,
-  primerApellido: string | null
-): string | null {
-  if (!primerNombre) return null;
-  if (!segundoNombre) return [primerNombre, primerApellido].filter(Boolean).join(' ');
-  const nombresCortos = primerNombre.length + segundoNombre.length <= 12;
-  const nombre = nombresCortos ? `${primerNombre} ${segundoNombre}` : `${primerNombre} ${segundoNombre.charAt(0)}.`;
-  return [nombre, primerApellido].filter(Boolean).join(' ');
 }
 
 /** Fila de dato de la tarjeta mobile expandida: 2 columnas reales (grid, no
@@ -381,8 +364,10 @@ export function EvangelismoPersonas() {
           /* Atajo cruzado con el dashboard (pedido explícito del owner,
              2026-09-08) -- mismo botón del otro lado con "Lista de
              Evangelizados", para moverse entre las 2 vistas sin volver al
-             menú lateral. */
-          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/25 bg-white/10 px-4 text-white backdrop-blur-sm hover:bg-white/20">
+             menú lateral. Fondo mas opaco + sombra propia (2026-09-10,
+             pedido del owner): con bg-white/10 se perdia contra la foto
+             del hero, no se leia como boton. */
+          <Button onClick={() => navigate(ROUTES.EVANGELISMO)} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl border-white/30 bg-white/20 px-4 text-white shadow-lg shadow-black/20 backdrop-blur-sm hover:bg-white/30">
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Button>
@@ -596,8 +581,15 @@ export function EvangelismoPersonas() {
                   9 columnas, todas centradas, `table-fixed` con anchos fijos por
                   columna -- el Nombre tiene prioridad de ancho para que no se
                   comprima. La vista mobile (tarjetas, más abajo) no se toca, ya
-                  quedó cerrada en una vuelta anterior. */}
-              <table className="w-full table-fixed text-sm">
+                  quedó cerrada en una vuelta anterior.
+                  min-w-[900px] (KAN-358 seguimiento, 2026-09-11, hallazgo
+                  probando tablet angosto ~768px): con anchos en % y sin piso,
+                  `table-fixed` comprime todas las columnas para siempre caber
+                  en el contenedor en vez de activar el scroll horizontal que
+                  el wrapper de arriba ya tiene (`overflow-x-auto`) -- los
+                  encabezados llegaban a pisarse entre sí. Con el piso, debajo
+                  de 900px scrollea en vez de aplastarse. */}
+              <table className="w-full min-w-[900px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[4%]" />
                   <col className="w-[9%]" />
@@ -710,11 +702,14 @@ export function EvangelismoPersonas() {
                     resultados.map((e, i) => {
                       const nombreLinea1 = [e.primer_nombre, e.segundo_nombre].filter(Boolean).join(' ');
                       const nombreLinea2 = [e.primer_apellido, e.segundo_apellido].filter(Boolean).join(' ');
-                      const evangelizadorAbreviado = nombreEvangelizadorAbreviado(
-                        e.evangelizado_por_primer_nombre,
-                        e.evangelizado_por_segundo_nombre,
-                        e.evangelizado_por_primer_apellido
-                      );
+                      // Mismo patrón 2 líneas que el nombre de arriba (KAN-358
+                      // seguimiento, 2026-09-10, pedido del owner: se
+                      // desbordaba en una sola línea) -- nombre(s) arriba,
+                      // apellido abajo, en vez de abreviar y truncar.
+                      const evangelizadorLinea1 = e.evangelizado_por_primer_nombre
+                        ? [e.evangelizado_por_primer_nombre, e.evangelizado_por_segundo_nombre].filter(Boolean).join(' ')
+                        : null;
+                      const evangelizadorLinea2 = e.evangelizado_por_primer_apellido;
                       return (
                         <tr
                           key={e.id}
@@ -735,7 +730,9 @@ export function EvangelismoPersonas() {
                             {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
                           </td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.sexo ?? '—'}</td>
-                          <td className="px-2 py-3 text-center text-muted-foreground">{e.telefono_principal ?? '—'}</td>
+                          <td className="px-2 py-3 text-center text-muted-foreground">
+                            <CeldaTelefono telefono={e.telefono_principal} />
+                          </td>
                           <td className="px-2 py-3 text-center">
                             {e.tipo_evangelismo_nombre ? (
                               <Badge variant="secondary" className="rounded-full text-[10px]" style={{ backgroundColor: e.tipo_evangelismo_color ? `color-mix(in oklab, ${e.tipo_evangelismo_color} 16%, transparent)` : undefined, color: e.tipo_evangelismo_color ?? undefined }}>
@@ -751,12 +748,15 @@ export function EvangelismoPersonas() {
                           <td className="px-2 py-3 text-center text-muted-foreground tabular-nums">
                             {e.fecha_nacimiento ? calcularEdad(e.fecha_nacimiento) : '—'}
                           </td>
-                          <td className="px-2 py-3 text-center text-muted-foreground">
-                            {/* Mismo formato que el nombre de arriba (misma
-                                celda centrada, sin recorte agresivo) pero sin
-                                negrita -- "menos protagonista" (pedido
-                                explícito del owner), es un dato secundario. */}
-                            <span className="truncate">{evangelizadorAbreviado ?? '—'}</span>
+                          <td className="px-2 py-3 text-center leading-tight text-muted-foreground">
+                            {evangelizadorLinea1 ? (
+                              <>
+                                <p className="truncate">{evangelizadorLinea1}</p>
+                                {evangelizadorLinea2 && <p className="truncate">{evangelizadorLinea2}</p>}
+                              </>
+                            ) : (
+                              '—'
+                            )}
                           </td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.red_nombre ?? '—'}</td>
                           <td className="px-2 py-3 text-center text-muted-foreground">{e.casa_de_paz_etiqueta}</td>

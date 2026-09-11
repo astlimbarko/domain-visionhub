@@ -268,7 +268,7 @@ const CATALOGO_NAV: NavItem[] = [
   // (regla de un color por sección, 2026-09-10).
   { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
   { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
-  { icon: Users, label: 'Personas (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
+  { icon: Users, label: 'Membresía (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -298,7 +298,7 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   // KAN-127: todas las Casas de Paz de la iglesia, organizadas por Red.
   { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
   // Plan panel Afirmación 2026-08-20, punto 3/4.
-  { icon: Users, label: 'Personas', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
+  { icon: Users, label: 'Membresía', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,

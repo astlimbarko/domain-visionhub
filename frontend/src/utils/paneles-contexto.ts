@@ -58,7 +58,14 @@ function tituloContexto(contexto: ContextoActivo): string {
 
 function navContexto(contexto: ContextoActivo): NavItem[] {
   if (contexto.rolUI === 'LIDER_DEPARTAMENTO') {
-    return contexto.departamentoCodigo === 'EVANGELISMO' ? [NAV_ITEM_EVANGELISMO, NAV_ITEM_EVANGELISMO_PERSONAS] : NAV_ITEMS_AFIRMACION;
+    // Evangelismo (Lider de Departamento) tiene solo estas 2 pantallas, y ya
+    // se cruzan entre si con un boton en el hero de cada una. El sidebar
+    // igual se oculta para ese contexto (ver AppShell.tsx, mismo patron que
+    // "esOscuro") por pedido del owner (2026-09-10) -- pero los items se
+    // mantienen ACA por si se vuelven a necesitar (el owner aclaro que no
+    // quiere borrarlos, solo esconder la barra).
+    if (contexto.departamentoCodigo === 'EVANGELISMO') return [NAV_ITEM_EVANGELISMO, NAV_ITEM_EVANGELISMO_PERSONAS];
+    return NAV_ITEMS_AFIRMACION;
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];
