@@ -17,6 +17,7 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO, gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { Timeline, type TimelineItem } from '@/components/shared/Timeline';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { usePersonasDeRed } from '@/hooks/usePersonas';
 import { useRedes } from '@/hooks/useCasasDePaz';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
@@ -234,6 +235,7 @@ export function PersonasDeRedVista({ redId }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
+      <VolverAlDashboard />
       {/* ── Filtro activo (llegó desde un acceso directo del dashboard) ───────── */}
       {filtroRapido && (
         <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">

@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { TEAL, AZUL, MORADO, AMBAR, gradienteHeroColor, degradadoIdentidadColor } from '@/components/dashboard/DashboardUI';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
 import { obtenerUrlBase } from '@/utils/app-url';
@@ -253,6 +254,7 @@ export function GestionRedVista() {
 
   return (
     <div className="flex flex-col gap-6">
+      <VolverAlDashboard />
       {/* ── Encabezado de la Red activa ───────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

@@ -26,6 +26,7 @@ import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvange
 import { ListaPersonasDia } from '@/components/evangelismo/ListaPersonasDia';
 import { NuevoEvangelizadoDialog, type ValoresEvangelizado } from '@/components/evangelismo/NuevoEvangelizadoDialog';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { aISO, fechaLegible, nombreMes, primerDiaMesRelativo } from '@/utils/calendario-fechas';
 import { TendenciaEvangelismo } from '@/components/evangelismo/TendenciaEvangelismo';
 import type { MetaCdpRed } from '@/types/evangelismo.types';
@@ -233,6 +234,7 @@ export function EvangelismoRed({ redId }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
+      <VolverAlDashboard />
       {/* Barra combinada: intro chica + navegador de mes (2026-09-10, mismo
           patrón que Evangelismo.tsx de CdP -- esta pantalla no tenía hero
           propio, se agrega la intro acá para no sumar un bloque aparte). */}

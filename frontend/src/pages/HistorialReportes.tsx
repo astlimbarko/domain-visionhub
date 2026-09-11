@@ -9,6 +9,7 @@ import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/Dashboard
 import { HistorialReportesCalendario } from '@/components/reporte/HistorialReportesCalendario';
 import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
@@ -86,6 +87,7 @@ export function HistorialReportes() {
 
   return (
     <div ref={contenedorRef} className="flex flex-col gap-6">
+      <VolverAlDashboard />
       <div className="flex justify-end">
         <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="historial-reportes" />
       </div>
