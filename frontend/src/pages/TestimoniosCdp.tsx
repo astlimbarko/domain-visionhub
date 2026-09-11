@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { MORADO } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useTestimoniosCdp } from '@/hooks/useReporte';
 import { fechaLegible } from '@/utils/calendario-fechas';
@@ -37,6 +38,7 @@ export function TestimoniosCdp() {
 
   return (
     <div className="flex flex-col gap-6">
+      <VolverAlDashboard />
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={MessageCircleHeart}

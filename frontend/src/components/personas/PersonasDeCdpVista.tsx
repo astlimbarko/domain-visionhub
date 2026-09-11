@@ -16,6 +16,7 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { usePersonasDeCdp } from '@/hooks/usePersonas';
 import { useEdadMinimaCreyente } from '@/hooks/useReporte';
@@ -180,6 +181,7 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
+      <VolverAlDashboard />
       {/* ── Hero: composición de la Casa de Paz ───────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl px-6 py-6 sm:px-8" style={{ background: 'linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-soft) 100%)' }}>
         <div className="pointer-events-none absolute -top-16 -right-12 h-52 w-52 rounded-full opacity-30 blur-3xl" style={{ background: INDIGO }} />

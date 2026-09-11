@@ -57,6 +57,7 @@ import { TestimoniosElite } from '@/components/evangelismo/TestimoniosElite';
 import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
 import { EvangelismoSupervisorVista } from '@/components/evangelismo/EvangelismoSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
+import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { aISO, fechaLegible, nombreMes } from '@/utils/calendario-fechas';
 
 // Paleta exacta pedida por el owner (2026-08-02), con hex propios para el
@@ -274,6 +275,7 @@ export function Evangelismo() {
 
   return (
     <div ref={contenedorRef} className="flex flex-col gap-6">
+      <VolverAlDashboard />
       {/* Mismo encabezado "Hero" que Perfil de Casa de Paz (GestionSubliderVista.tsx)
           -- pedido del owner, 2026-08-02: las páginas de la vista de Sublíder/Líder
           de CdP deben verse como parte de la misma sección, no como pantallas sueltas. */}
