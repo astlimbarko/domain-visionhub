@@ -107,6 +107,48 @@ export interface ResultadoBusquedaPersonas {
   total: number;
 }
 
+/** Fila de la tabla de Membresía de Afirmación (fn_afirmacion_buscar_membresia,
+ * KAN-358 seguimiento, 2026-09-10): mismo set de PersonaResultadoBusqueda +
+ * campos reales del censo de membresía. es_lider_cdp/es_lider_red/etc son
+ * INFERIDOS de los cargos reales (casa_de_paz_cargo/red_cargo), no
+ * autodeclarados -- mismo criterio que ya usa fn_personas_de_red. */
+export interface MembresiaResultadoBusqueda {
+  id: string;
+  primer_nombre: string;
+  segundo_nombre: string | null;
+  primer_apellido: string;
+  segundo_apellido: string | null;
+  nombre_completo: string;
+  sexo: Sexo;
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  ci: string | null;
+  correo: string | null;
+  estado_sigla: string | null;
+  estado_nombre: string | null;
+  casa_de_paz_id: string | null;
+  casa_de_paz_etiqueta: string | null;
+  red_nombre: string | null;
+  telefono_principal: string | null;
+  via_registro: 'URL' | 'FORMULARIO' | null;
+  membresia_completada: boolean;
+  estado_civil: EstadoCivil | null;
+  ocupacion: string | null;
+  grado_instruccion: GradoInstruccion | null;
+  rango_miembro: RangoMiembro | null;
+  bautizado: boolean;
+  es_lider_cdp: boolean;
+  es_sublider_cdp: boolean;
+  es_lider_red: boolean;
+  es_sublider_red: boolean;
+  total: number;
+}
+
+export interface ResultadoBusquedaMembresia {
+  resultados: MembresiaResultadoBusqueda[];
+  total: number;
+}
+
 export interface ProcedenciaItem {
   casa_de_paz_id: string;
   etiqueta: string;

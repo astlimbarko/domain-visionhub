@@ -12,6 +12,7 @@ import type {
   SetEstadoUrlResponse,
 } from '@/types/afirmacion.types';
 import type { CamposObligatorios } from '@/types/registro-publico.types';
+import type { ResultadoBusquedaMembresia } from '@/types/persona.types';
 
 // fn_config_formulario ya existe (06_configuracion.sql) y ya se usa para
 // FORMULARIO_REPORTE (reporte.service.ts) -- se reutiliza aca con
@@ -85,6 +86,34 @@ export async function obtenerEstadisticasRegistroAfirmacion(iglesiaId: string): 
   const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_registro', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data as EstadisticasRegistroAfirmacion;
+}
+
+const MEMBRESIA_POR_PAGINA = 50;
+
+/** KAN-358 seguimiento (2026-09-10): tabla de Membresía con campos reales
+ * del censo (estado civil, rango, bautizado, cargos reales de CdP/Red) --
+ * no solo identidad básica. Ver fn_afirmacion_buscar_membresia. */
+export async function buscarMembresiaAfirmacion(
+  iglesiaId: string,
+  texto: string,
+  pagina = 1,
+  porPagina = MEMBRESIA_POR_PAGINA,
+  redId?: string,
+  casaDePazId?: string,
+  estadoId?: string,
+): Promise<ResultadoBusquedaMembresia> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_buscar_membresia', {
+    p_iglesia_id: iglesiaId,
+    p_texto: texto.trim() === '' ? null : texto.trim(),
+    p_pagina: pagina,
+    p_por_pagina: porPagina,
+    p_red_id: redId ?? null,
+    p_casa_de_paz_id: casaDePazId ?? null,
+    p_estado_id: estadoId ?? null,
+  });
+  if (error) throw error;
+  const resultados = data ?? [];
+  return { resultados, total: resultados[0]?.total ?? 0 };
 }
 
 // Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.

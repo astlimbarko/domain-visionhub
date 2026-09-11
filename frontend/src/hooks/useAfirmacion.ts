@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  buscarMembresiaAfirmacion,
   listarCasasDePazAfirmacion,
   listarLideresCdpAfirmacion,
   listarRedesAfirmacion,
@@ -11,6 +12,23 @@ import {
   setEstadoUrlsAfirmacion,
 } from '@/services/afirmacion.service';
 import type { DatosPersonaAfirmacion, EstadoUrl } from '@/types/afirmacion.types';
+
+/** KAN-358 seguimiento: tabla de Membresía con campos reales del censo. */
+export function useBuscarMembresiaAfirmacion(
+  iglesiaId: string | undefined,
+  texto: string,
+  pagina: number,
+  porPagina: number,
+  redId?: string,
+  casaDePazId?: string,
+  estadoId?: string,
+) {
+  return useQuery({
+    queryKey: ['afirmacion', 'membresia', iglesiaId, texto, pagina, porPagina, redId, casaDePazId, estadoId],
+    queryFn: () => buscarMembresiaAfirmacion(iglesiaId as string, texto, pagina, porPagina, redId, casaDePazId, estadoId),
+    enabled: !!iglesiaId,
+  });
+}
 
 export function useLideresCdpAfirmacion(iglesiaId: string | undefined) {
   return useQuery({
