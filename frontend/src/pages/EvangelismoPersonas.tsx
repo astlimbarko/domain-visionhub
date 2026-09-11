@@ -581,8 +581,15 @@ export function EvangelismoPersonas() {
                   9 columnas, todas centradas, `table-fixed` con anchos fijos por
                   columna -- el Nombre tiene prioridad de ancho para que no se
                   comprima. La vista mobile (tarjetas, más abajo) no se toca, ya
-                  quedó cerrada en una vuelta anterior. */}
-              <table className="w-full table-fixed text-sm">
+                  quedó cerrada en una vuelta anterior.
+                  min-w-[900px] (KAN-358 seguimiento, 2026-09-11, hallazgo
+                  probando tablet angosto ~768px): con anchos en % y sin piso,
+                  `table-fixed` comprime todas las columnas para siempre caber
+                  en el contenedor en vez de activar el scroll horizontal que
+                  el wrapper de arriba ya tiene (`overflow-x-auto`) -- los
+                  encabezados llegaban a pisarse entre sí. Con el piso, debajo
+                  de 900px scrollea en vez de aplastarse. */}
+              <table className="w-full min-w-[900px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[4%]" />
                   <col className="w-[9%]" />
