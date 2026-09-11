@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, EyeOff, Plus, Search, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -163,7 +164,17 @@ function BusquedaPersonas({ rolUI }: { rolUI: RolUI | null }) {
  */
 export function Personas() {
   const { contextoActivo, cargando } = useContextoActivo();
+  const location = useLocation();
+  // Acceso directo desde el Dashboard de un Líder/Supervisor de Red (o
+  // Pastor/Supervisor) que está "inspeccionando" una Casa de Paz ajena
+  // (2026-09-11, DashboardLiderCdp.tsx dentro de pages/Dashboard.tsx) --
+  // sin esto, esta página mira contextoActivo (toda la Red del usuario
+  // real) en vez de la CdP puntual que se estaba mirando en el dashboard.
+  // El backend (fn_es_rol_superior_de_cdp) ya permite ver el roster de
+  // cualquier CdP de la propia Red/iglesia, no hacía falta tocar nada ahí.
+  const cdpInspeccionada = (location.state as { casaDePazId?: string } | null)?.casaDePazId;
   if (cargando || !contextoActivo) return <CargandoPersonas />;
+  if (cdpInspeccionada) return <PersonasDeCdp casaDePazId={cdpInspeccionada} />;
   if (contextoActivo.alcance === 'RED') return <PersonasDeRed redId={contextoActivo.redId} />;
   if (contextoActivo.alcance === 'CDP') {
     return <PersonasDeCdp casaDePazId={contextoActivo.cdpId} />;

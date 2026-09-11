@@ -1,6 +1,6 @@
 import { CalendarCheck2, Flame, History, Pencil, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
@@ -34,7 +34,14 @@ export function HistorialReportes() {
   const navigate = useNavigate();
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI;
-  const cdpActiva = contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined;
+  const location = useLocation();
+  // Acceso directo desde el Dashboard de un Líder/Supervisor de Red (o
+  // Pastor/Supervisor) inspeccionando una Casa de Paz ajena (2026-09-11,
+  // mismo mecanismo que Personas.tsx/TestimoniosCdp.tsx) -- tiene que ganarle
+  // a la rama de Supervisor de abajo, que si no siempre mostraría el panel
+  // agrupado por Red en vez de la CdP puntual que se estaba inspeccionando.
+  const cdpInspeccionada = (location.state as { casaDePazId?: string } | null)?.casaDePazId;
+  const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const hoy = new Date();
@@ -64,8 +71,9 @@ export function HistorialReportes() {
   // El Supervisor no lidera/sublidera ninguna Casa de Paz propia (misCasas
   // vacío no significa "sin nada que ver" para él como para el resto de los
   // roles) -- ve el Control de Reportes agrupado por Red de toda la iglesia,
-  // no el historial de una sola CdP.
-  if (rolUI === 'SUPERVISOR') return <HistorialReportesSupervisorVista />;
+  // no el historial de una sola CdP. Salvo que esté inspeccionando una CdP
+  // puntual (cdpInspeccionada) -- ahí sí corresponde el historial de esa CdP.
+  if (rolUI === 'SUPERVISOR' && !cdpInspeccionada) return <HistorialReportesSupervisorVista />;
 
   if (!cdpActiva) {
     return (
