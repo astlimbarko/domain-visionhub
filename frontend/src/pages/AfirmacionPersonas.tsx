@@ -124,6 +124,19 @@ function formatMentor(p: MembresiaResultadoBusqueda): string | null {
   return p.mentor_es_miembro ? `${p.mentor_nombre} (miembro)` : p.mentor_nombre;
 }
 
+// Pedido explícito del owner (2026-09-11): fecha de nacimiento visible en
+// vista ampliada (formato corto DD/MM/AA, ej. 23/08/93) -- vista reducida
+// sigue mostrando solo la Edad ya calculada, sin cambios.
+function formatFechaNacimiento(fecha: string | null): string {
+  if (!fecha) return '—';
+  const d = new Date(`${fecha}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const aa = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${aa}`;
+}
+
 // Variante local de KpiChip (DashboardUI.tsx) -- clickeable, con estado
 // activo (pedido explícito del owner 2026-09-11: "todos los botones de
 // arriba de membresia sean botones de filtro"). No se modifica el
@@ -223,6 +236,7 @@ function aFilaExportacion(p: MembresiaResultadoBusqueda, i: number): FilaMembres
     bautizado: p.bautizado ? 'Sí' : 'No',
     cargo_cdp: p.es_lider_cdp ? 'Líder' : p.es_sublider_cdp ? 'Sublíder' : '—',
     cargo_red: p.es_lider_red ? 'Líder' : p.es_sublider_red ? 'Sublíder' : '—',
+    fecha_nacimiento: formatFechaNacimiento(p.fecha_nacimiento),
     discipulados: p.discipulados ?? '—',
     seminario: p.seminario ? 'Sí' : 'No',
     universidad_rey_jesus: p.universidad_rey_jesus ? 'Sí' : 'No',
@@ -266,6 +280,7 @@ function filasACsv(filas: MembresiaResultadoBusqueda[], vistaAmpliada: boolean):
     'Sublíder de Red',
     ...(vistaAmpliada
       ? [
+          'Nacimiento',
           'Discipulados',
           'Seminario',
           'Universidad Rey Jesús',
@@ -302,6 +317,7 @@ function filasACsv(filas: MembresiaResultadoBusqueda[], vistaAmpliada: boolean):
       celdaCsv(p.es_sublider_red ? 'Sí' : 'No'),
       ...(vistaAmpliada
         ? [
+            celdaCsv(formatFechaNacimiento(p.fecha_nacimiento)),
             celdaCsv(p.discipulados),
             celdaCsv(p.seminario ? 'Sí' : 'No'),
             celdaCsv(p.universidad_rey_jesus ? 'Sí' : 'No'),
@@ -712,6 +728,7 @@ export function AfirmacionPersonas() {
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
                     {vistaAmpliada && (
                       <>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulados</th>
                         <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Seminario</th>
                         <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Univ. Rey Jesús</th>
@@ -783,6 +800,7 @@ export function AfirmacionPersonas() {
                         <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>
                         {vistaAmpliada && (
                           <>
+                            <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
                             <td className="px-3 py-2.5 text-muted-foreground">{p.discipulados ?? '—'}</td>
                             <td className="px-3 py-2.5 text-center">
                               {p.seminario ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}

@@ -26,6 +26,7 @@ export interface FilaMembresiaPdf {
   cargo_red: string;
   // Vista ampliada (2026-09-11) -- resto del censo, solo se usan si
   // opciones.vistaAmpliada es true.
+  fecha_nacimiento: string;
   discipulados: string;
   seminario: string;
   universidad_rey_jesus: string;
@@ -110,7 +111,7 @@ export async function exportarMembresiaAfirmacionPdf(
   encabezadoYPie();
 
   const encabezadosAmpliada = [
-    'Discipulados', 'Seminario', 'Universidad Rey Jesús', 'Bautismo (detalle)', 'Mentor',
+    'Nacimiento', 'Discipulados', 'Seminario', 'Universidad Rey Jesús', 'Bautismo (detalle)', 'Mentor',
     'Cónyuge', 'Familiares', 'Ministerios', 'Efesio', 'Cargos (censo)',
   ];
 
@@ -139,7 +140,7 @@ export async function exportarMembresiaAfirmacionPdf(
       f.cargo_cdp,
       f.cargo_red,
       ...(ampliada
-        ? [f.discipulados, f.seminario, f.universidad_rey_jesus, f.bautismo_detalle, f.mentor, f.conyuge, f.familiares, f.ministerios, f.efesio, f.cargos_censo]
+        ? [f.fecha_nacimiento, f.discipulados, f.seminario, f.universidad_rey_jesus, f.bautismo_detalle, f.mentor, f.conyuge, f.familiares, f.ministerios, f.efesio, f.cargos_censo]
         : []),
     ]),
     theme: 'plain',
