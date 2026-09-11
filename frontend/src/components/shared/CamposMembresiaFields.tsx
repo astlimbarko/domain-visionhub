@@ -197,6 +197,7 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
             <SelectItem value="CASADO">Casado/a</SelectItem>
             <SelectItem value="VIUDO">Viudo/a</SelectItem>
             <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
+            <SelectItem value="CONCUBINATO">Concubinato</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -1,7 +1,7 @@
 import type { RangoMiembro } from './membresia-extendida.types';
 
 export type Sexo = 'M' | 'F';
-export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO';
+export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO' | 'CONCUBINATO';
 export type GradoInstruccion =
   | 'SIN_INSTRUCCION'
   | 'PRIMARIA_INCOMPLETA'
@@ -20,6 +20,7 @@ export const ESTADO_CIVIL_LABELS: Record<EstadoCivil, string> = {
   CASADO: 'Casado/a',
   VIUDO: 'Viudo/a',
   DIVORCIADO: 'Divorciado/a',
+  CONCUBINATO: 'Concubinato',
 };
 
 export const GRADO_INSTRUCCION_LABELS: Record<GradoInstruccion, string> = {

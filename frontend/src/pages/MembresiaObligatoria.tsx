@@ -66,8 +66,8 @@ function construirEsquema(obligatorios: MembresiaIncompleta['campos_obligatorios
       telefono_numero: z.string().trim().regex(/^\d*$/, 'Solo números').optional(),
       telefono_no_aplica: z.boolean().optional(),
       estado_civil: obligatorios.estado_civil
-        ? z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO'])
-        : z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO']).optional(),
+        ? z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO', 'CONCUBINATO'])
+        : z.enum(['SOLTERO', 'CASADO', 'VIUDO', 'DIVORCIADO', 'CONCUBINATO']).optional(),
       ocupacion: z.string().trim().optional(),
       ocupacion_no_aplica: z.boolean().optional(),
       grado_instruccion: z.string().optional(),
@@ -578,6 +578,7 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                           <SelectItem value="CASADO">Casado/a</SelectItem>
                           <SelectItem value="VIUDO">Viudo/a</SelectItem>
                           <SelectItem value="DIVORCIADO">Divorciado/a</SelectItem>
+                          <SelectItem value="CONCUBINATO">Concubinato</SelectItem>
                         </SelectContent>
                       </Select>
                       {errors.estado_civil && <p className="text-sm text-destructive">Requerido</p>}
