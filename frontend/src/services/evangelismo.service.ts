@@ -3,6 +3,7 @@ import { aISO } from '@/utils/calendario-fechas';
 import type {
   Evangelizado,
   EvangelizadoBusqueda,
+  EvangelizadoElite,
   EvangelizadoRed,
   EvangelizadoRedDirecto,
   MetaCdpRed,
@@ -12,10 +13,16 @@ import type {
   NuevaMetaAsignadaRed,
   NuevoEvangelizado,
   NuevoEvangelizadoRed,
+  NuevoTestimonioEvangelismo,
   TasaEvangelismo,
   TasaEvangelismoRed,
+  TestimonioEvangelismo,
   TipoEvangelismo,
 } from '@/types/evangelismo.types';
+
+/** Código estable del catálogo global (44_tipo_evangelismo.sql) -- no
+ * depender del nombre "Elite", que puede editarse. */
+const CODIGO_ELITE = 'ELITE';
 
 export async function obtenerTiposEvangelismo(iglesiaId: string): Promise<TipoEvangelismo[]> {
   const { data, error } = await supabase
@@ -280,5 +287,57 @@ export async function asignarMetaRedEvangelismo(datos: NuevaMetaAsignadaRed) {
     p_fecha_fin: datos.fechaFin,
     p_observaciones: datos.observaciones || null,
   });
+  if (error) throw error;
+}
+
+// Pestaña "Testimonios Elite" (2026-09-10): milagros/testimonios solo para
+// evangelizados de tipo Elite de esta CdP -- evangelismo_testimonio.sql.
+
+/** Evangelizados de tipo Elite de esta CdP, para el selector del formulario
+ * -- sin recorte por mes, a diferencia de `obtenerEvangelizados`. */
+export async function obtenerEvangelizadosElite(casaDePazId: string): Promise<EvangelizadoElite[]> {
+  const { data, error } = await supabase
+    .from('evangelismo')
+    .select('id, persona_id, fecha, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido), tipo_evangelismo:tipo_evangelismo_id!inner(codigo)')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('tipo_evangelismo.codigo', CODIGO_ELITE)
+    .order('fecha', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => {
+    const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
+    const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
+    return { id: r.id, persona_id: r.persona_id, nombre_completo: nombre, fecha: r.fecha };
+  });
+}
+
+export async function obtenerTestimoniosEvangelismo(casaDePazId: string): Promise<TestimonioEvangelismo[]> {
+  const { data, error } = await supabase
+    .from('evangelismo_testimonio')
+    .select(
+      'id, evangelismo_id, texto, fecha_creacion, evangelismo:evangelismo_id(persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido))'
+    )
+    .eq('casa_de_paz_id', casaDePazId)
+    .order('fecha_creacion', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => {
+    const ev = Array.isArray(r.evangelismo) ? r.evangelismo[0] : r.evangelismo;
+    const p = ev?.persona ? (Array.isArray(ev.persona) ? ev.persona[0] : ev.persona) : null;
+    const nombre = p ? [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' ') : 'Evangelizado';
+    return {
+      id: r.id,
+      evangelismo_id: r.evangelismo_id,
+      persona_id: ev?.persona_id ?? null,
+      nombre_completo: nombre,
+      texto: r.texto,
+      fecha_creacion: r.fecha_creacion,
+    };
+  });
+}
+
+// fn_validar_evangelismo_testimonio_elite (trigger) rechaza si el evangelizado
+// no es de tipo Elite o no pertenece a esta CdP -- no hace falta duplicar esa
+// validación acá, el insert simplemente falla con un error claro.
+export async function crearTestimonioEvangelismo(datos: NuevoTestimonioEvangelismo): Promise<void> {
+  const { error } = await supabase.from('evangelismo_testimonio').insert(datos);
   if (error) throw error;
 }
