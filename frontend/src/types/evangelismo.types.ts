@@ -196,3 +196,33 @@ export interface EvangelizadoRedDirecto {
   tipo_evangelismo_color: string | null;
   tipo_evangelismo_codigo: string | null;
 }
+
+/** Evangelizado de tipo Elite de esta CdP -- para elegir a quién se le carga
+ * un milagro/testimonio (evangelismo_testimonio, 2026-09-10). Sin recorte por
+ * mes: a diferencia de `Evangelizado`, acá puede elegirse cualquiera del
+ * historial, no solo los del mes que se está mirando. */
+export interface EvangelizadoElite {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+}
+
+/** Fila de `evangelismo_testimonio` -- milagro o testimonio cargado para un
+ * evangelizado de tipo Elite. Sin distinción milagro/testimonio (una sola
+ * entrada de texto libre) ni edición/borrado desde el frontend. */
+export interface TestimonioEvangelismo {
+  id: string;
+  evangelismo_id: string;
+  persona_id: string | null;
+  nombre_completo: string;
+  texto: string;
+  fecha_creacion: string;
+}
+
+export interface NuevoTestimonioEvangelismo {
+  casa_de_paz_id: string;
+  iglesia_id: string;
+  evangelismo_id: string;
+  texto: string;
+}

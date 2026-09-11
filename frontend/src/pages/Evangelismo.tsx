@@ -11,6 +11,7 @@ import {
   MapPin,
   Network,
   Plus,
+  Sparkles,
   Target,
   Trophy,
   UserPlus,
@@ -51,6 +52,7 @@ const EvangelismoTrendChart = lazy(() =>
   import('@/components/evangelismo/EvangelismoTrendChart').then((m) => ({ default: m.EvangelismoTrendChart }))
 );
 import { CalendarioEvangelismo } from '@/components/evangelismo/CalendarioEvangelismo';
+import { TestimoniosElite } from '@/components/evangelismo/TestimoniosElite';
 import { EvangelismoRed } from '@/components/evangelismo/EvangelismoRed';
 import { EvangelismoSupervisorVista } from '@/components/evangelismo/EvangelismoSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
@@ -365,12 +367,15 @@ export function Evangelismo() {
           métricas/meta/tipo/gráfico; "Calendario" queda solo, es el bloque
           más alto de la pantalla y ahora no compite con el resto. */}
       <Tabs defaultValue="resumen">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="resumen" className="gap-1.5">
             <LayoutGrid /> Resumen
           </TabsTrigger>
           <TabsTrigger value="calendario" className="gap-1.5">
             <CalendarRange /> Calendario
+          </TabsTrigger>
+          <TabsTrigger value="elite" className="gap-1.5">
+            <Sparkles /> Testimonios Elite
           </TabsTrigger>
         </TabsList>
 
@@ -722,6 +727,10 @@ export function Evangelismo() {
           </div>
         </section>
       </div>
+        </TabsContent>
+
+        <TabsContent value="elite">
+          <TestimoniosElite casaDePazId={cdpActiva} iglesiaId={iglesiaActivaId as string} />
         </TabsContent>
       </Tabs>
 
