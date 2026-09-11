@@ -367,15 +367,23 @@ export function Evangelismo() {
           métricas/meta/tipo/gráfico; "Calendario" queda solo, es el bloque
           más alto de la pantalla y ahora no compite con el resto. */}
       <Tabs defaultValue="resumen">
+        {/* min-w-0 + truncate en cada trigger (2026-09-10, mismo fix ya usado
+            en DashboardLiderCdp.tsx para este mismo problema): un grid-item
+            sin min-w-0 no se achica más allá del ancho de su contenido
+            (whitespace-nowrap de TabsTrigger), así que en mobile "Testimonios
+            Elite" se salía de su columna y se solapaba con las otras 2
+            pestañas ("atropellada"). Con min-w-0 el trigger se achica al
+            ancho real de la columna y el texto se corta con "…" en vez de
+            desbordar. */}
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="resumen" className="gap-1.5">
-            <LayoutGrid /> Resumen
+          <TabsTrigger value="resumen" className="min-w-0 gap-1.5">
+            <LayoutGrid /> <span className="truncate">Resumen</span>
           </TabsTrigger>
-          <TabsTrigger value="calendario" className="gap-1.5">
-            <CalendarRange /> Calendario
+          <TabsTrigger value="calendario" className="min-w-0 gap-1.5">
+            <CalendarRange /> <span className="truncate">Calendario</span>
           </TabsTrigger>
-          <TabsTrigger value="elite" className="gap-1.5">
-            <Sparkles /> Testimonios Elite
+          <TabsTrigger value="elite" className="min-w-0 gap-1.5">
+            <Sparkles /> <span className="truncate">Testimonios Elite</span>
           </TabsTrigger>
         </TabsList>
 
