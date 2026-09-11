@@ -10,10 +10,14 @@
 // identidad básica -- se sumaron campos reales del censo (estado civil,
 // rango de miembro, bautizado, y Líder/Sublíder de CdP y Red INFERIDOS de
 // los cargos reales, no autodeclarados) vía fn_afirmacion_buscar_membresia.
-// Los campos de lista larga (discipulados, seminario/universidad, mentor,
-// cónyuge, familia, ministerios) quedan para la ficha de detalle
-// (FichaPersonaSheet, al hacer click en una fila) y el futuro PDF completo,
-// no para esta tabla -- 25+ columnas de golpe la harían inusable.
+//
+// Vista ampliada (2026-09-11, pedido explícito del owner): la vista
+// reducida de arriba se mantiene como default -- botón "Vista ampliada"
+// suma el resto del censo (discipulados, seminario/universidad, mentor,
+// bautismo detallado, cónyuge, familia, ministerios, Efesio, cargos
+// autodeclarados). Solo la tabla se desborda de ancho (scroll horizontal
+// propio) -- KPIs/filtros/buscador quedan fuera del contenedor con
+// overflow. CSV y PDF respetan la vista activa.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
@@ -28,6 +32,8 @@ import {
   FileText,
   Heart,
   type LucideIcon,
+  Maximize2,
+  Minimize2,
   QrCode,
   Search,
   User,
@@ -50,7 +56,7 @@ import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirma
 import { buscarMembresiaAfirmacion, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
-import { OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
+import { OPCIONES_EFESIO, OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
 import type { MembresiaResultadoBusqueda } from '@/types/persona.types';
 import { exportarMembresiaAfirmacionPdf, type FilaMembresiaPdf } from '@/utils/exportarMembresiaAfirmacionPdf';
 
@@ -92,6 +98,31 @@ const ESTADO_LABEL: Record<string, string> = {
   CRE: 'Creyentes',
   RE: 'Reconciliados',
 };
+
+const EFESIO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_EFESIO.map((o) => [o.value, o.label]));
+
+// Vista ampliada (2026-09-11): helpers para combinar los campos del censo
+// que llegan sueltos de la RPC en un solo texto legible por celda -- evita
+// sumar el doble de columnas (ej. fecha + "en nuestra iglesia" en una sola
+// celda "Bautismo").
+function formatFechaParcial(anio: number | null, mes: number | null, dia: number | null): string | null {
+  if (!anio) return null;
+  if (dia && mes) return `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}`;
+  if (mes) return `${String(mes).padStart(2, '0')}/${anio}`;
+  return String(anio);
+}
+
+function formatBautismo(p: MembresiaResultadoBusqueda): string {
+  if (!p.bautizado) return 'No';
+  const fecha = formatFechaParcial(p.bautismo_anio, p.bautismo_mes, p.bautismo_dia);
+  const partes = [fecha, p.bautizado_en_nuestra_iglesia ? 'en esta iglesia' : null].filter(Boolean);
+  return partes.length > 0 ? partes.join(' · ') : 'Sí';
+}
+
+function formatMentor(p: MembresiaResultadoBusqueda): string | null {
+  if (!p.mentor_nombre) return null;
+  return p.mentor_es_miembro ? `${p.mentor_nombre} (miembro)` : p.mentor_nombre;
+}
 
 // Variante local de KpiChip (DashboardUI.tsx) -- clickeable, con estado
 // activo (pedido explícito del owner 2026-09-11: "todos los botones de
@@ -192,6 +223,16 @@ function aFilaExportacion(p: MembresiaResultadoBusqueda, i: number): FilaMembres
     bautizado: p.bautizado ? 'Sí' : 'No',
     cargo_cdp: p.es_lider_cdp ? 'Líder' : p.es_sublider_cdp ? 'Sublíder' : '—',
     cargo_red: p.es_lider_red ? 'Líder' : p.es_sublider_red ? 'Sublíder' : '—',
+    discipulados: p.discipulados ?? '—',
+    seminario: p.seminario ? 'Sí' : 'No',
+    universidad_rey_jesus: p.universidad_rey_jesus ? 'Sí' : 'No',
+    bautismo_detalle: formatBautismo(p),
+    mentor: formatMentor(p) ?? '—',
+    conyuge: p.conyuge_nombre ?? '—',
+    familiares: p.familiares ?? '—',
+    ministerios: p.ministerios ?? '—',
+    efesio: p.efesio_tipo ? (EFESIO_LABEL[p.efesio_tipo] ?? p.efesio_tipo) : '—',
+    cargos_censo: p.cargos_censo ?? '—',
   };
 }
 
@@ -202,7 +243,7 @@ function celdaCsv(valor: string | number | null): string {
   return `"${String(valor).replaceAll('"', '""')}"`;
 }
 
-function filasACsv(filas: MembresiaResultadoBusqueda[]): string {
+function filasACsv(filas: MembresiaResultadoBusqueda[], vistaAmpliada: boolean): string {
   const encabezados = [
     '#',
     'Nombre',
@@ -223,6 +264,20 @@ function filasACsv(filas: MembresiaResultadoBusqueda[]): string {
     'Sublíder de CdP',
     'Líder de Red',
     'Sublíder de Red',
+    ...(vistaAmpliada
+      ? [
+          'Discipulados',
+          'Seminario',
+          'Universidad Rey Jesús',
+          'Bautismo (detalle)',
+          'Mentor',
+          'Cónyuge',
+          'Familiares',
+          'Ministerios',
+          'Efesio',
+          'Cargos (censo)',
+        ]
+      : []),
   ];
   const lineas = filas.map((p, i) =>
     [
@@ -245,6 +300,20 @@ function filasACsv(filas: MembresiaResultadoBusqueda[]): string {
       celdaCsv(p.es_sublider_cdp ? 'Sí' : 'No'),
       celdaCsv(p.es_lider_red ? 'Sí' : 'No'),
       celdaCsv(p.es_sublider_red ? 'Sí' : 'No'),
+      ...(vistaAmpliada
+        ? [
+            celdaCsv(p.discipulados),
+            celdaCsv(p.seminario ? 'Sí' : 'No'),
+            celdaCsv(p.universidad_rey_jesus ? 'Sí' : 'No'),
+            celdaCsv(formatBautismo(p)),
+            celdaCsv(formatMentor(p)),
+            celdaCsv(p.conyuge_nombre),
+            celdaCsv(p.familiares),
+            celdaCsv(p.ministerios),
+            celdaCsv(p.efesio_tipo ? (EFESIO_LABEL[p.efesio_tipo] ?? p.efesio_tipo) : null),
+            celdaCsv(p.cargos_censo),
+          ]
+        : []),
     ].join(',')
   );
   return ['﻿' + encabezados.join(','), ...lineas].join('\r\n');
@@ -270,6 +339,12 @@ export function AfirmacionPersonas() {
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
+  // Vista ampliada (2026-09-11, pedido explícito del owner): vista reducida
+  // (default) muestra los datos principales; ampliada suma TODO el censo --
+  // se espera que la tabla se desborde de ancho (scroll horizontal propio,
+  // no afecta a los KPIs/filtros/buscador de arriba). CSV/PDF respetan la
+  // vista activa.
+  const [vistaAmpliada, setVistaAmpliada] = useState(false);
 
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
@@ -362,7 +437,7 @@ export function AfirmacionPersonas() {
     setExportando(true);
     try {
       const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, filtros);
-      const csv = filasACsv(todas);
+      const csv = filasACsv(todas, vistaAmpliada);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
@@ -398,7 +473,7 @@ export function AfirmacionPersonas() {
     setExportandoPdf(true);
     try {
       const { resultados: todas } = await buscarMembresiaAfirmacion(iglesiaActivaId, texto, 1, LIMITE_EXPORTACION, filtros);
-      await exportarMembresiaAfirmacionPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion });
+      await exportarMembresiaAfirmacionPdf(todas.map(aFilaExportacion), { iglesiaNombre, filtroDescripcion, vistaAmpliada });
     } catch {
       toast.error('No se pudo exportar el PDF');
     } finally {
@@ -518,6 +593,15 @@ export function AfirmacionPersonas() {
           descripcion="Datos principales -- click en una fila para ver la ficha completa."
           accion={
             <div className="flex gap-2">
+              <Button
+                variant={vistaAmpliada ? 'default' : 'outline'}
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setVistaAmpliada((v) => !v)}
+              >
+                {vistaAmpliada ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                {vistaAmpliada ? 'Vista reducida' : 'Vista ampliada'}
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5" disabled={exportandoPdf || total === 0} onClick={exportarPdf}>
                 <FileText className="h-3.5 w-3.5" />
                 {exportandoPdf ? 'Generando...' : 'Exportar PDF'}
@@ -548,7 +632,7 @@ export function AfirmacionPersonas() {
             </p>
           ) : (
             <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
-              <table className="w-full min-w-[1400px] border-collapse text-sm">
+              <table className={cn('w-full border-collapse text-sm', vistaAmpliada ? 'min-w-[2800px]' : 'min-w-[1400px]')}>
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
@@ -626,6 +710,20 @@ export function AfirmacionPersonas() {
                     <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautizado</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo CdP</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
+                    {vistaAmpliada && (
+                      <>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulados</th>
+                        <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Seminario</th>
+                        <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Univ. Rey Jesús</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautismo</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Mentor</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cónyuge</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Familiares</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Ministerios</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Efesio</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos (censo)</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -683,6 +781,24 @@ export function AfirmacionPersonas() {
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{cargoCdp ?? '—'}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>
+                        {vistaAmpliada && (
+                          <>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.discipulados ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              {p.seminario ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              {p.universidad_rey_jesus ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{formatBautismo(p)}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{formatMentor(p) ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.conyuge_nombre ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.familiares ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.ministerios ?? '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.efesio_tipo ? (EFESIO_LABEL[p.efesio_tipo] ?? p.efesio_tipo) : '—'}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.cargos_censo ?? '—'}</td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}

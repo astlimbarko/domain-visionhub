@@ -24,6 +24,18 @@ export interface FilaMembresiaPdf {
   bautizado: string;
   cargo_cdp: string;
   cargo_red: string;
+  // Vista ampliada (2026-09-11) -- resto del censo, solo se usan si
+  // opciones.vistaAmpliada es true.
+  discipulados: string;
+  seminario: string;
+  universidad_rey_jesus: string;
+  bautismo_detalle: string;
+  mentor: string;
+  conyuge: string;
+  familiares: string;
+  ministerios: string;
+  efesio: string;
+  cargos_censo: string;
 }
 
 function nombreArchivoConFecha(): string {
@@ -64,8 +76,9 @@ async function cargarIconoComoPng(): Promise<string | null> {
  * -- 16 columnas no entran paradas sin quedar ilegibles. */
 export async function exportarMembresiaAfirmacionPdf(
   filas: FilaMembresiaPdf[],
-  opciones: { iglesiaNombre: string; filtroDescripcion?: string }
+  opciones: { iglesiaNombre: string; filtroDescripcion?: string; vistaAmpliada?: boolean }
 ): Promise<void> {
+  const ampliada = opciones.vistaAmpliada ?? false;
   const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
   const anchoPagina = doc.internal.pageSize.getWidth();
   const color = DEPARTAMENTO_META.AFIRMACION.color;
@@ -96,11 +109,17 @@ export async function exportarMembresiaAfirmacionPdf(
 
   encabezadoYPie();
 
+  const encabezadosAmpliada = [
+    'Discipulados', 'Seminario', 'Universidad Rey Jesús', 'Bautismo (detalle)', 'Mentor',
+    'Cónyuge', 'Familiares', 'Ministerios', 'Efesio', 'Cargos (censo)',
+  ];
+
   autoTable(doc, {
     startY: 78,
     head: [[
       '#', 'Nombre', 'Sexo', 'Edad', 'CI', 'Red', 'Casa de Paz', 'Estado', 'Teléfono', 'Vía', 'Membresía',
       'Estado civil', 'Rango', 'Bautizado', 'Cargo CdP', 'Cargo Red',
+      ...(ampliada ? encabezadosAmpliada : []),
     ]],
     body: filas.map((f) => [
       String(f.numero),
@@ -119,9 +138,12 @@ export async function exportarMembresiaAfirmacionPdf(
       f.bautizado,
       f.cargo_cdp,
       f.cargo_red,
+      ...(ampliada
+        ? [f.discipulados, f.seminario, f.universidad_rey_jesus, f.bautismo_detalle, f.mentor, f.conyuge, f.familiares, f.ministerios, f.efesio, f.cargos_censo]
+        : []),
     ]),
     theme: 'plain',
-    styles: { fontSize: 7, textColor: 30, cellPadding: 3, lineColor: [225, 225, 225], lineWidth: 0.5 },
+    styles: { fontSize: ampliada ? 6 : 7, textColor: 30, cellPadding: ampliada ? 2 : 3, lineColor: [225, 225, 225], lineWidth: 0.5 },
     headStyles: { fillColor: [244, 244, 245], textColor: 40, fontStyle: 'bold', lineWidth: 0.5, halign: 'center', valign: 'middle' },
     columnStyles: {
       0: { cellWidth: 20 },

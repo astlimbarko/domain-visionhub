@@ -141,6 +141,21 @@ export interface MembresiaResultadoBusqueda {
   es_sublider_cdp: boolean;
   es_lider_red: boolean;
   es_sublider_red: boolean;
+  /** Vista ampliada (2026-09-11) -- resto del censo, ver fn_afirmacion_buscar_membresia. */
+  discipulados: string | null;
+  seminario: boolean;
+  universidad_rey_jesus: boolean;
+  bautismo_anio: number | null;
+  bautismo_mes: number | null;
+  bautismo_dia: number | null;
+  bautizado_en_nuestra_iglesia: boolean | null;
+  mentor_nombre: string | null;
+  mentor_es_miembro: boolean | null;
+  conyuge_nombre: string | null;
+  familiares: string | null;
+  ministerios: string | null;
+  efesio_tipo: string | null;
+  cargos_censo: string | null;
   total: number;
 }
 
