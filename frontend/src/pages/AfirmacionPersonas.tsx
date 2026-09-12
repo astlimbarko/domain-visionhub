@@ -530,7 +530,7 @@ export function AfirmacionPersonas() {
             label="Total"
             color={AZUL}
             activo={sinFiltros}
-            cargando={filtroEnCurso === 'total'}
+            cargando={filtroEnCurso === 'total' && isFetching}
             onClick={() => {
               setFiltroEnCurso('total');
               limpiarFiltros();
@@ -543,7 +543,7 @@ export function AfirmacionPersonas() {
             label="Hombres"
             color={AZUL}
             activo={sexoFiltro === 'M'}
-            cargando={filtroEnCurso === 'hombres'}
+            cargando={filtroEnCurso === 'hombres' && isFetching}
             onClick={() => {
               setFiltroEnCurso('hombres');
               setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
@@ -556,7 +556,7 @@ export function AfirmacionPersonas() {
             label="Mujeres"
             color={TEAL}
             activo={sexoFiltro === 'F'}
-            cargando={filtroEnCurso === 'mujeres'}
+            cargando={filtroEnCurso === 'mujeres' && isFetching}
             onClick={() => {
               setFiltroEnCurso('mujeres');
               setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
@@ -569,7 +569,7 @@ export function AfirmacionPersonas() {
             label="Por URL"
             color={AZUL}
             activo={viaFiltro === 'URL'}
-            cargando={filtroEnCurso === 'via-url'}
+            cargando={filtroEnCurso === 'via-url' && isFetching}
             onClick={() => {
               setFiltroEnCurso('via-url');
               setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
@@ -582,7 +582,7 @@ export function AfirmacionPersonas() {
             label="Por formulario"
             color={TEAL}
             activo={viaFiltro === 'FORMULARIO'}
-            cargando={filtroEnCurso === 'via-formulario'}
+            cargando={filtroEnCurso === 'via-formulario' && isFetching}
             onClick={() => {
               setFiltroEnCurso('via-formulario');
               setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
@@ -597,7 +597,7 @@ export function AfirmacionPersonas() {
               label={ESTADO_LABEL[sigla]}
               color={AZUL}
               activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
-              cargando={filtroEnCurso === `estado-${sigla}`}
+              cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
               onClick={() => {
                 setFiltroEnCurso(`estado-${sigla}`);
                 alternarEstadoPorSigla(sigla);
@@ -611,7 +611,7 @@ export function AfirmacionPersonas() {
             label="Con profesión"
             color={TEAL}
             activo={conProfesionFiltro === true}
-            cargando={filtroEnCurso === 'con-profesion'}
+            cargando={filtroEnCurso === 'con-profesion' && isFetching}
             onClick={() => {
               setFiltroEnCurso('con-profesion');
               setConProfesionFiltro((actual) => (actual ? undefined : true));
@@ -626,7 +626,7 @@ export function AfirmacionPersonas() {
               label={ESTADO_CIVIL_LABELS[codigo]}
               color={AZUL}
               activo={estadoCivilFiltro === codigo}
-              cargando={filtroEnCurso === `estado-civil-${codigo}`}
+              cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
               onClick={() => {
                 setFiltroEnCurso(`estado-civil-${codigo}`);
                 setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
@@ -647,7 +647,7 @@ export function AfirmacionPersonas() {
             label="Bautizados"
             color={VERDE}
             activo={bautizadoFiltro === true}
-            cargando={filtroEnCurso === 'bautizados'}
+            cargando={filtroEnCurso === 'bautizados' && isFetching}
             onClick={() => {
               setFiltroEnCurso('bautizados');
               setBautizadoFiltro((actual) => (actual ? undefined : true));
