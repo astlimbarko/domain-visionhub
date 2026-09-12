@@ -31,6 +31,7 @@ import {
   Download,
   FileText,
   Heart,
+  LayoutGrid,
   type LucideIcon,
   Maximize2,
   Minimize2,
@@ -45,6 +46,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
@@ -137,12 +139,16 @@ function formatFechaNacimiento(fecha: string | null): string {
   return `${dd}/${mm}/${aa}`;
 }
 
-// Variante local de KpiChip (DashboardUI.tsx) -- clickeable, con estado
-// activo (pedido explícito del owner 2026-09-11: "todos los botones de
-// arriba de membresia sean botones de filtro"). No se modifica el
-// KpiChip compartido para no arriesgar el resto de la app -- esta
-// variante solo vive en esta página.
-function KpiChipFiltro({
+// Variante local de CardIndicadorPastel (dashboard/CardIndicadorPastel.tsx)
+// -- clickeable, con estado activo (pedido explícito del owner 2026-09-12:
+// "que los botones sean iguales a los accesos directos del Dashboard").
+// Mismo lenguaje visual (caja de ícono en degradado, número grande, blob
+// decorativo), pero con anillo de color cuando `activo` -- el original no
+// tiene ese estado porque solo navega, nunca queda "seleccionado". No se
+// modifica CardIndicadorPastel compartido para no arriesgar el resto de la
+// app -- esta variante solo vive en esta página, mismo criterio que ya
+// usaba el chip anterior que reemplaza.
+function CardIndicadorPastelFiltro({
   icon: Icon,
   label,
   color,
@@ -157,25 +163,34 @@ function KpiChipFiltro({
   onClick: () => void;
   children: ReactNode;
 }) {
+  const fondo = `color-mix(in oklab, ${color} 8%, white)`;
+  const borde = `color-mix(in oklab, ${color} 14%, white)`;
   return (
     <button
       type="button"
       onClick={onClick}
-      style={activo ? { boxShadow: `0 0 0 2px ${color}` } : undefined}
-      className={cn(
-        'flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left shadow-sm transition-colors',
-        activo ? 'border-transparent' : 'border-border/60 hover:border-border'
-      )}
+      style={{ background: fondo, borderColor: activo ? color : borde, boxShadow: activo ? `0 0 0 2px ${color}` : undefined }}
+      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)]"
     >
+      <div className="pointer-events-none absolute right-0 bottom-0 h-[52%] w-[40%]" aria-hidden="true">
+        <div
+          className="absolute -right-[12%] -bottom-[18%] h-[95%] w-[95%] rounded-full"
+          style={{ background: `radial-gradient(circle at 68% 68%, color-mix(in oklab, ${color} 16%, transparent) 0%, transparent 72%)` }}
+        />
+        <div
+          className="absolute -right-[2%] -bottom-[6%] h-[62%] w-[62%] rounded-full"
+          style={{ background: `radial-gradient(circle at 72% 72%, color-mix(in oklab, ${color} 32%, transparent) 0%, transparent 74%)` }}
+        />
+      </div>
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-        style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_10px_-4px_rgba(0,0,0,0.35)]"
+        style={{ background: `linear-gradient(135deg, ${color} 0%, color-mix(in oklab, ${color} 80%, #000) 100%)` }}
       >
-        <Icon className="h-4 w-4" strokeWidth={2.2} />
+        <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
-      <div className="min-w-0">
-        <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
-        <p className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">{label}</p>
+      <div className="relative flex flex-col gap-0.5">
+        <div className="text-[22px] leading-none font-extrabold tracking-tight tabular-nums text-[#152238]">{children}</div>
+        <p className="truncate text-[10.5px] font-bold tracking-[0.04em] text-[#5b6472] uppercase">{label}</p>
       </div>
     </button>
   );
@@ -502,18 +517,32 @@ export function AfirmacionPersonas() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Pestañas (2026-09-12, pedido del owner: separar los botones/KPIs de
+          la vista previa de personas) -- mismo patrón ya usado en
+          Evangelismo.tsx (min-w-0 + truncate en los triggers). */}
+      <Tabs defaultValue="indicadores">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="indicadores" className="min-w-0 gap-1.5">
+            <LayoutGrid /> <span className="truncate">Indicadores</span>
+          </TabsTrigger>
+          <TabsTrigger value="membresia" className="min-w-0 gap-1.5">
+            <Users /> <span className="truncate">Membresía</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="indicadores">
       {cargandoEstadisticas || cargandoRegistro ? (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 15 }).map((_, i) => (
-            <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
+            <Skeleton key={i} className="h-[112px] w-full rounded-2xl" />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <KpiChipFiltro icon={Users} label="Total" color={AZUL} activo={sinFiltros} onClick={limpiarFiltros}>
+          <CardIndicadorPastelFiltro icon={Users} label="Total" color={AZUL} activo={sinFiltros} onClick={limpiarFiltros}>
             {estadisticas?.total ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
+          </CardIndicadorPastelFiltro>
+          <CardIndicadorPastelFiltro
             icon={User}
             label="Hombres"
             color={AZUL}
@@ -521,8 +550,8 @@ export function AfirmacionPersonas() {
             onClick={() => setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'))}
           >
             {estadisticas?.hombres ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
+          </CardIndicadorPastelFiltro>
+          <CardIndicadorPastelFiltro
             icon={User}
             label="Mujeres"
             color={TEAL}
@@ -530,8 +559,8 @@ export function AfirmacionPersonas() {
             onClick={() => setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'))}
           >
             {estadisticas?.mujeres ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
+          </CardIndicadorPastelFiltro>
+          <CardIndicadorPastelFiltro
             icon={QrCode}
             label="Por URL"
             color={AZUL}
@@ -539,8 +568,8 @@ export function AfirmacionPersonas() {
             onClick={() => setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'))}
           >
             {estadisticasRegistro?.por_url ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
+          </CardIndicadorPastelFiltro>
+          <CardIndicadorPastelFiltro
             icon={FileText}
             label="Por formulario"
             color={TEAL}
@@ -548,9 +577,9 @@ export function AfirmacionPersonas() {
             onClick={() => setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'))}
           >
             {estadisticasRegistro?.por_formulario ?? 0}
-          </KpiChipFiltro>
+          </CardIndicadorPastelFiltro>
           {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
-            <KpiChipFiltro
+            <CardIndicadorPastelFiltro
               key={sigla}
               icon={Users}
               label={ESTADO_LABEL[sigla]}
@@ -559,9 +588,9 @@ export function AfirmacionPersonas() {
               onClick={() => alternarEstadoPorSigla(sigla)}
             >
               {porEstado[sigla] ?? 0}
-            </KpiChipFiltro>
+            </CardIndicadorPastelFiltro>
           ))}
-          <KpiChipFiltro
+          <CardIndicadorPastelFiltro
             icon={Briefcase}
             label="Con profesión"
             color={TEAL}
@@ -569,9 +598,9 @@ export function AfirmacionPersonas() {
             onClick={() => setConProfesionFiltro((actual) => (actual ? undefined : true))}
           >
             {estadisticas?.con_profesion ?? 0}
-          </KpiChipFiltro>
+          </CardIndicadorPastelFiltro>
           {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
-            <KpiChipFiltro
+            <CardIndicadorPastelFiltro
               key={codigo}
               icon={Heart}
               label={ESTADO_CIVIL_LABELS[codigo]}
@@ -580,7 +609,7 @@ export function AfirmacionPersonas() {
               onClick={() => setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo))}
             >
               {porEstadoCivil[codigo] ?? 0}
-            </KpiChipFiltro>
+            </CardIndicadorPastelFiltro>
           ))}
           {/* Auditoría de categorías faltantes (pedido 2026-09-11): de los
               campos del censo, "bautizado" es la única que suma como
@@ -589,7 +618,7 @@ export function AfirmacionPersonas() {
               arriba (dos conceptos distintos, mismo nombre en pantalla) y
               los cargos de CdP/Red ya se ven como columna en la tabla, no
               hace falta duplicarlos acá. */}
-          <KpiChipFiltro
+          <CardIndicadorPastelFiltro
             icon={CircleCheck}
             label="Bautizados"
             color={VERDE}
@@ -597,10 +626,12 @@ export function AfirmacionPersonas() {
             onClick={() => setBautizadoFiltro((actual) => (actual ? undefined : true))}
           >
             {estadisticas?.bautizados ?? 0}
-          </KpiChipFiltro>
+          </CardIndicadorPastelFiltro>
         </div>
       )}
+        </TabsContent>
 
+        <TabsContent value="membresia">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Users}
@@ -854,6 +885,8 @@ export function AfirmacionPersonas() {
           )}
         </div>
       </section>
+        </TabsContent>
+      </Tabs>
 
       <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
     </div>
