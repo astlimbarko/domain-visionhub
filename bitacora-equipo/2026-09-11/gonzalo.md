@@ -10,3 +10,5 @@
 - [x] Análisis rápido de lentitud en botones de filtro: NO es la base de datos (RPC ~330ms) -- hay ~1seg de demora entre que llegan los datos y que la tabla deja de verse "apagada", origen exacto sin confirmar (se cortó la conexión del navegador a mitad de la segunda prueba)
 - [x] Fecha de nacimiento (DD/MM/AA) sumada a vista ampliada (tabla, CSV, PDF) -- vista reducida sigue solo con Edad
 - [x] KAN-364 creado (sin implementar): ícono de torta de cumpleaños en semana de cumpleaños, tooltip con fecha en vista compacta -- documentado para retomar después
+- [x] PR #49 mergeada y desplegada por Matías (SSH, `index-wrOWiH6Y.js` confirmado en producción)
+- [x] KAN-365 y KAN-366 creados (sin implementar): demora de ~1seg en botones de filtro, y rediseño de vista ampliada como categorías en vez de columnas angostas
