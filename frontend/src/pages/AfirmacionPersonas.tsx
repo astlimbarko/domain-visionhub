@@ -44,6 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
@@ -147,6 +148,7 @@ function KpiChipFiltro({
   label,
   color,
   activo,
+  cargando,
   onClick,
   children,
 }: {
@@ -154,6 +156,7 @@ function KpiChipFiltro({
   label: string;
   color: string;
   activo: boolean;
+  cargando?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -171,7 +174,11 @@ function KpiChipFiltro({
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
         style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
       >
-        <Icon className="h-4 w-4" strokeWidth={2.2} />
+        {/* Truco de percepción (2026-09-11/12): en vez de "apagar" toda la
+            tabla como única señal, el propio botón que se tocó reemplaza su
+            ícono por un spinner mientras esa consulta puntual está en
+            vuelo -- feedback justo donde el usuario puso el dedo. */}
+        {cargando ? <Spinner className="h-4 w-4" style={{ color }} /> : <Icon className="h-4 w-4" strokeWidth={2.2} />}
       </span>
       <div className="min-w-0">
         <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
@@ -361,6 +368,10 @@ export function AfirmacionPersonas() {
   // no afecta a los KPIs/filtros/buscador de arriba). CSV/PDF respetan la
   // vista activa.
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
+  // Truco de percepción: guarda qué botón de KPI se tocó por última vez,
+  // para que SOLO ese muestre el spinner mientras carga (no todos los que
+  // ya estén activos) -- se limpia solo apenas la consulta termina.
+  const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
 
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
@@ -430,6 +441,10 @@ export function AfirmacionPersonas() {
   // hallazgo del owner probando en vivo). fn_afirmacion_buscar_membresia ya
   // excluye Semillas siempre (no hace falta pasar el flag).
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaActivaId, texto, pagina, POR_PAGINA, filtros);
+
+  useEffect(() => {
+    if (!isFetching) setFiltroEnCurso(null);
+  }, [isFetching]);
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -510,7 +525,17 @@ export function AfirmacionPersonas() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <KpiChipFiltro icon={Users} label="Total" color={AZUL} activo={sinFiltros} onClick={limpiarFiltros}>
+          <KpiChipFiltro
+            icon={Users}
+            label="Total"
+            color={AZUL}
+            activo={sinFiltros}
+            cargando={filtroEnCurso === 'total' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('total');
+              limpiarFiltros();
+            }}
+          >
             {estadisticas?.total ?? 0}
           </KpiChipFiltro>
           <KpiChipFiltro
@@ -518,7 +543,11 @@ export function AfirmacionPersonas() {
             label="Hombres"
             color={AZUL}
             activo={sexoFiltro === 'M'}
-            onClick={() => setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'))}
+            cargando={filtroEnCurso === 'hombres' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('hombres');
+              setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
+            }}
           >
             {estadisticas?.hombres ?? 0}
           </KpiChipFiltro>
@@ -527,7 +556,11 @@ export function AfirmacionPersonas() {
             label="Mujeres"
             color={TEAL}
             activo={sexoFiltro === 'F'}
-            onClick={() => setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'))}
+            cargando={filtroEnCurso === 'mujeres' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('mujeres');
+              setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
+            }}
           >
             {estadisticas?.mujeres ?? 0}
           </KpiChipFiltro>
@@ -536,7 +569,11 @@ export function AfirmacionPersonas() {
             label="Por URL"
             color={AZUL}
             activo={viaFiltro === 'URL'}
-            onClick={() => setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'))}
+            cargando={filtroEnCurso === 'via-url' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('via-url');
+              setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
+            }}
           >
             {estadisticasRegistro?.por_url ?? 0}
           </KpiChipFiltro>
@@ -545,7 +582,11 @@ export function AfirmacionPersonas() {
             label="Por formulario"
             color={TEAL}
             activo={viaFiltro === 'FORMULARIO'}
-            onClick={() => setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'))}
+            cargando={filtroEnCurso === 'via-formulario' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('via-formulario');
+              setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
+            }}
           >
             {estadisticasRegistro?.por_formulario ?? 0}
           </KpiChipFiltro>
@@ -556,7 +597,11 @@ export function AfirmacionPersonas() {
               label={ESTADO_LABEL[sigla]}
               color={AZUL}
               activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
-              onClick={() => alternarEstadoPorSigla(sigla)}
+              cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
+              onClick={() => {
+                setFiltroEnCurso(`estado-${sigla}`);
+                alternarEstadoPorSigla(sigla);
+              }}
             >
               {porEstado[sigla] ?? 0}
             </KpiChipFiltro>
@@ -566,7 +611,11 @@ export function AfirmacionPersonas() {
             label="Con profesión"
             color={TEAL}
             activo={conProfesionFiltro === true}
-            onClick={() => setConProfesionFiltro((actual) => (actual ? undefined : true))}
+            cargando={filtroEnCurso === 'con-profesion' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('con-profesion');
+              setConProfesionFiltro((actual) => (actual ? undefined : true));
+            }}
           >
             {estadisticas?.con_profesion ?? 0}
           </KpiChipFiltro>
@@ -577,7 +626,11 @@ export function AfirmacionPersonas() {
               label={ESTADO_CIVIL_LABELS[codigo]}
               color={AZUL}
               activo={estadoCivilFiltro === codigo}
-              onClick={() => setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo))}
+              cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
+              onClick={() => {
+                setFiltroEnCurso(`estado-civil-${codigo}`);
+                setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
+              }}
             >
               {porEstadoCivil[codigo] ?? 0}
             </KpiChipFiltro>
@@ -594,7 +647,11 @@ export function AfirmacionPersonas() {
             label="Bautizados"
             color={VERDE}
             activo={bautizadoFiltro === true}
-            onClick={() => setBautizadoFiltro((actual) => (actual ? undefined : true))}
+            cargando={filtroEnCurso === 'bautizados' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('bautizados');
+              setBautizadoFiltro((actual) => (actual ? undefined : true));
+            }}
           >
             {estadisticas?.bautizados ?? 0}
           </KpiChipFiltro>
