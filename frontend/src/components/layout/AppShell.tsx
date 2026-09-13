@@ -150,7 +150,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const nombreMarca = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida';
   const { data: titulo } = useMiTitulo(iglesiaActivaId ?? undefined);
 
   const { contextoActivo, contextosDisponibles } = useContextoActivo();
@@ -171,6 +170,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
+  // Super Admin es un rol de plataforma, no pertenece a ninguna iglesia --
+  // mostrar el nombre de la iglesia que este viendo (iglesiaActivaId, que
+  // igual puede estar seteada) confundia (hallazgo en vivo verificando
+  // KAN-377, 2026-09-13).
+  const nombreMarca = rolUI === 'SUPER_ADMIN' ? 'VisionHub' : (iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'Centro de Vida');
   // KAN-358 seguimiento (2026-09-10, pedido del owner tras probarlo en vivo):
   // Evangelismo (Lider de Departamento) tiene solo 2 pantallas que ya se
   // cruzan entre si con un boton en el hero -- el sidebar de escritorio
@@ -338,17 +342,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={estiloNavbarColor}
       >
         <div className="flex min-w-0 items-center gap-3">
-          {!esOscuro && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Abrir menú"
-              className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
-              onClick={() => setMenuAbierto(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
+          {/* KAN-377: Super Admin (esOscuro) quedaba sin forma de abrir el
+              drawer mobile -- este boton estaba excluido junto con el Sheet
+              de abajo, y "Salir" solo vive dentro de ese Sheet. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Abrir menú"
+            className={cn('shrink-0 rounded-xl', navbarClaro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+            onClick={() => setMenuAbierto(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
             <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
@@ -406,11 +411,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Drawer mobile */}
-      <Sheet open={!esOscuro && menuAbierto} onOpenChange={setMenuAbierto}>
+      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
         <SheetContent
           side="left"
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
-          style={estiloSidebarColor}
+          // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
+          // asi que estiloSidebarColor (10% mezclado con blanco -- pensado para
+          // navbars de color claro) pisaba el bg-[#0a0e1a] del tema oscuro via
+          // style inline. Nunca se habia notado porque el Sheet estaba
+          // inalcanzable para Super Admin hasta este fix.
+          style={esOscuro ? undefined : estiloSidebarColor}
         >
           <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
