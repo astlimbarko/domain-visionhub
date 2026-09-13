@@ -3,46 +3,21 @@
  * estadisticas derivadas de datos que ya se piden en otras vistas de
  * Afirmacion (useLideresCdpAfirmacion / useUrlsAfirmacion) -- sin RPC nueva.
  *
- * Tarjetas de color solido + texto blanco a proposito (pedido explicito:
- * "colores fuertes y texto blanco para poder notarse"), distinto del
- * <KpiCard> generico (fondo glass + anillo de color) que ya usan los demas
- * dashboards del sistema -- no se toca ese componente compartido, esto es
- * un estilo propio y acotado a Afirmacion.
+ * Estilo alineado al estandar actual del proyecto (pedido explicito del
+ * owner, 2026-09-13): antes tenian color solido + texto blanco a proposito
+ * ("colores fuertes para notarse"), distinto de todos los demas dashboards
+ * -- ahora usan `CardIndicadorPastel`, el mismo componente que ya usan
+ * DashboardLiderCdp.tsx/DashboardLiderRed.tsx y (como variante local
+ * clickeable) AfirmacionPersonas.tsx. Puramente informativas, sin onClick
+ * -- no se pidio que filtren ni naveguen a ningun lado.
  */
-import type { LucideIcon } from 'lucide-react';
 import { FileText, Link2, Link2Off, Network, QrCode, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CardIndicadorPastel } from '@/components/dashboard/CardIndicadorPastel';
 import { useEstadisticasRegistroAfirmacion, useLideresCdpAfirmacion, useUrlsAfirmacion } from '@/hooks/useAfirmacion';
 
 interface Props {
   iglesiaId: string;
-}
-
-function Estadistica({
-  titulo,
-  valor,
-  subtitulo,
-  icon: Icon,
-  color,
-}: {
-  titulo: string;
-  valor: number;
-  subtitulo: string;
-  icon: LucideIcon;
-  color: string;
-}) {
-  return (
-    <div className="flex flex-col gap-3 rounded-3xl p-5 text-white shadow-lg" style={{ backgroundColor: color }}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="text-3xl font-bold tracking-tight">{valor}</p>
-        <p className="text-[13px] font-semibold">{titulo}</p>
-        <p className="text-[11px] text-white/80">{subtitulo}</p>
-      </div>
-    </div>
-  );
 }
 
 export function DashboardAfirmacion({ iglesiaId }: Props) {
@@ -52,16 +27,10 @@ export function DashboardAfirmacion({ iglesiaId }: Props) {
 
   if (cargandoLideres || cargandoUrls || cargandoRegistro) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-3xl" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Skeleton className="h-32 w-full rounded-3xl" />
-          <Skeleton className="h-32 w-full rounded-3xl" />
-        </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-[164px] w-full rounded-2xl" />
+        ))}
       </div>
     );
   }
@@ -75,27 +44,24 @@ export function DashboardAfirmacion({ iglesiaId }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Estadistica titulo="Líderes de CdP" valor={lideres.length} subtitulo="con cargo vigente" icon={Users} color="var(--chart-1)" />
-        <Estadistica titulo="URLs activas" valor={activas} subtitulo={`de ${urls.length} en total`} icon={Link2} color="var(--chart-2)" />
-        <Estadistica titulo="URLs inactivas" valor={inactivas} subtitulo="pendientes de activar" icon={Link2Off} color="var(--chart-3)" />
-        <Estadistica titulo="Redes cubiertas" valor={redesCubiertas} subtitulo="con al menos 1 URL" icon={Network} color="var(--chart-4)" />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Estadistica
-          titulo="Registrados por URL"
-          valor={porUrl}
-          subtitulo={totalRegistros > 0 ? `${Math.round((porUrl / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <CardIndicadorPastel icon={Users} label="Líderes de CdP" color="var(--chart-1)" valor={lideres.length} descripcion="Con cargo vigente" />
+        <CardIndicadorPastel icon={Link2} label="URLs activas" color="var(--chart-2)" valor={activas} descripcion={`De ${urls.length} en total`} />
+        <CardIndicadorPastel icon={Link2Off} label="URLs inactivas" color="var(--chart-3)" valor={inactivas} descripcion="Pendientes de activar" />
+        <CardIndicadorPastel icon={Network} label="Redes cubiertas" color="var(--chart-4)" valor={redesCubiertas} descripcion="Con al menos 1 URL" />
+        <CardIndicadorPastel
           icon={QrCode}
+          label="Registrados por URL"
           color="var(--brand-navy-soft)"
+          valor={porUrl}
+          descripcion={totalRegistros > 0 ? `${Math.round((porUrl / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
         />
-        <Estadistica
-          titulo="Registrados por formulario"
-          valor={porFormulario}
-          subtitulo={totalRegistros > 0 ? `${Math.round((porFormulario / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
+        <CardIndicadorPastel
           icon={FileText}
+          label="Registrados por formulario"
           color="var(--chart-1)"
+          valor={porFormulario}
+          descripcion={totalRegistros > 0 ? `${Math.round((porFormulario / totalRegistros) * 100)}% del total` : 'Sin registros todavía'}
         />
       </div>
 

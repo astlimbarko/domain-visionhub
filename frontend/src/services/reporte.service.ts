@@ -577,16 +577,23 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
 }
 
 /**
- * KAN-271: mismo límite que fn_puede_editar_reporte_cdp (7 días desde la
+ * KAN-271/375: mismo límite que fn_puede_editar_reporte_cdp (días desde la
  * fecha de reunión, inclusive) -- solo para decidir si se muestra el botón
  * "Editar" en la UI (evita un click que sabemos que va a rebotar). El
  * permiso real siempre lo valida el backend vía RLS, esto no lo reemplaza.
+ * KAN-375 (2026-09-13): antes era una constante fija (7) -- ahora es
+ * configurable por iglesia (`DIAS_LIMITE_EDICION_REPORTE`, Panel Supervisor
+ * → Control de Reportes, mismo patrón que `obtenerDiasPlazoReporte`).
  */
-export const DIAS_LIMITE_EDICION_REPORTE = 7;
+export async function obtenerDiasLimiteEdicionReporte(iglesiaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: 'DIAS_LIMITE_EDICION_REPORTE' });
+  if (error) throw error;
+  return data ?? 7;
+}
 
-export function dentroDeVentanaEdicionReporte(fechaReunionISO: string, hoyISO: string = aISO(new Date())): boolean {
+export function dentroDeVentanaEdicionReporte(fechaReunionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
   const limite = new Date(`${fechaReunionISO}T00:00:00`);
-  limite.setDate(limite.getDate() + DIAS_LIMITE_EDICION_REPORTE);
+  limite.setDate(limite.getDate() + diasLimite);
   return hoyISO <= aISO(limite);
 }
 

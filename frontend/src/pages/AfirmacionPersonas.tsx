@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
+  ArrowLeft,
   ArrowUp,
   ArrowUpDown,
   Briefcase,
@@ -173,7 +174,12 @@ function CardIndicadorPastelFiltro({
       type="button"
       onClick={onClick}
       style={{ background: fondo, borderColor: activo ? color : borde, boxShadow: activo ? `0 0 0 2px ${color}` : undefined }}
-      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)]"
+      // Bug real reportado (2026-09-13): tocar la card en celular dejaba un
+      // anillo de foco pegado hasta el próximo toque en otro lado -- se
+      // mezclaba con el anillo de `activo` (arriba) y daba la impresión de
+      // que el filtro activo era otro. Es un <button> nativo sin resetear
+      // el outline, a diferencia del <Button> compartido (ui/button.tsx).
+      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] outline-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <div className="pointer-events-none absolute right-0 bottom-0 h-[52%] w-[40%]" aria-hidden="true">
         <div
@@ -387,6 +393,12 @@ export function AfirmacionPersonas() {
   // para que SOLO ese muestre el spinner mientras carga (no todos los que
   // ya estén activos) -- se limpia solo apenas la consulta termina.
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
+  // Pestañas como accesos directos (2026-09-13, pedido del owner: pensado
+  // para mobile -- clickear una card de Indicadores debe llevar derecho a
+  // ver esos datos, no quedarse en la misma pestaña esperando que alguien
+  // cambie de pestaña a mano). Cualquier click en una card (aplicar O quitar
+  // un filtro) salta a "Membresía" -- comportamiento uniforme en los 15 botones.
+  const [tab, setTab] = useState<'indicadores' | 'membresia'>('indicadores');
 
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
@@ -440,12 +452,14 @@ export function AfirmacionPersonas() {
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
+    setTab('membresia');
   }
 
   function alternarEstadoPorSigla(sigla: string) {
     const estado = estados.find((e) => e.sigla === sigla);
     if (!estado) return;
     setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
+    setTab('membresia');
   }
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
@@ -534,8 +548,11 @@ export function AfirmacionPersonas() {
     <div className="flex flex-col gap-6">
       {/* Pestañas (2026-09-12, pedido del owner: separar los botones/KPIs de
           la vista previa de personas) -- mismo patrón ya usado en
-          Evangelismo.tsx (min-w-0 + truncate en los triggers). */}
-      <Tabs defaultValue="indicadores">
+          Evangelismo.tsx (min-w-0 + truncate en los triggers). Controlado
+          (no defaultValue) desde 2026-09-13: cada card de Indicadores salta
+          acá a "membresia" además de aplicar su filtro (acceso directo, ver
+          el estado `tab` de arriba). */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'indicadores' | 'membresia')}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="indicadores" className="min-w-0 gap-1.5">
             <LayoutGrid /> <span className="truncate">Indicadores</span>
@@ -576,6 +593,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('hombres');
               setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
+              setTab('membresia');
             }}
           >
             {estadisticas?.hombres ?? 0}
@@ -589,6 +607,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('mujeres');
               setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
+              setTab('membresia');
             }}
           >
             {estadisticas?.mujeres ?? 0}
@@ -602,6 +621,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('via-url');
               setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
+              setTab('membresia');
             }}
           >
             {estadisticasRegistro?.por_url ?? 0}
@@ -615,6 +635,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('via-formulario');
               setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
+              setTab('membresia');
             }}
           >
             {estadisticasRegistro?.por_formulario ?? 0}
@@ -644,6 +665,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('con-profesion');
               setConProfesionFiltro((actual) => (actual ? undefined : true));
+              setTab('membresia');
             }}
           >
             {estadisticas?.con_profesion ?? 0}
@@ -659,6 +681,7 @@ export function AfirmacionPersonas() {
               onClick={() => {
                 setFiltroEnCurso(`estado-civil-${codigo}`);
                 setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
+                setTab('membresia');
               }}
             >
               {porEstadoCivil[codigo] ?? 0}
@@ -680,6 +703,7 @@ export function AfirmacionPersonas() {
             onClick={() => {
               setFiltroEnCurso('bautizados');
               setBautizadoFiltro((actual) => (actual ? undefined : true));
+              setTab('membresia');
             }}
           >
             {estadisticas?.bautizados ?? 0}
@@ -689,6 +713,20 @@ export function AfirmacionPersonas() {
         </TabsContent>
 
         <TabsContent value="membresia">
+      {/* Volver a Indicadores (2026-09-13, pensado para mobile): mismo
+          estilo que VolverAlDashboard.tsx -- después de saltar acá desde
+          una card, poder volver a probar otro indicador sin tener que
+          buscar la pestaña de arriba (que puede quedar fuera de la
+          pantalla si ya se hizo scroll dentro de la tabla). */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-fit gap-1.5 rounded-xl text-muted-foreground hover:text-foreground"
+        onClick={() => setTab('indicadores')}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Volver a Indicadores
+      </Button>
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Users}

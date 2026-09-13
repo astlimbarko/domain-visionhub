@@ -88,6 +88,19 @@ export function useCrearPersona() {
   });
 }
 
+/** KAN-371: alta rápida de persona + membresía en una sola CdP puntual (Líder de CdP). */
+export function useCrearPersonaCdp(casaDePazId: string | undefined) {
+  const qc = useQueryClient();
+  const invalidarBusqueda = useInvalidarBusqueda();
+  return useMutation({
+    mutationFn: (datos: Omit<NuevaPersona, 'iglesia_id'>) => personaService.crearPersonaCdp(datos, casaDePazId as string),
+    onSuccess: () => {
+      invalidarBusqueda();
+      qc.invalidateQueries({ queryKey: ['personas', 'de-cdp', casaDePazId] });
+    },
+  });
+}
+
 export function useActualizarIdentidad(personaId: string) {
   const invalidarFicha = useInvalidarFicha(personaId);
   const invalidarBusqueda = useInvalidarBusqueda();
