@@ -171,7 +171,12 @@ function CardIndicadorPastelFiltro({
       type="button"
       onClick={onClick}
       style={{ background: fondo, borderColor: activo ? color : borde, boxShadow: activo ? `0 0 0 2px ${color}` : undefined }}
-      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)]"
+      // Bug real reportado (2026-09-13): tocar la card en celular dejaba un
+      // anillo de foco pegado hasta el próximo toque en otro lado -- se
+      // mezclaba con el anillo de `activo` (arriba) y daba la impresión de
+      // que el filtro activo era otro. Es un <button> nativo sin resetear
+      // el outline, a diferencia del <Button> compartido (ui/button.tsx).
+      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] outline-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <div className="pointer-events-none absolute right-0 bottom-0 h-[52%] w-[40%]" aria-hidden="true">
         <div
