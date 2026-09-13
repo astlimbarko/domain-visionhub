@@ -97,7 +97,12 @@ export function CardIndicadorPastel({ icon: Icon, label, color, valor, descripci
     </>
   );
 
-  const clases = `group relative flex min-h-[164px] flex-col justify-between overflow-hidden rounded-2xl border p-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all duration-200${
+  // Bug real reportado (2026-09-13): tocar la card en celular dejaba un
+  // anillo de foco pegado hasta el próximo toque en otro lado -- es un
+  // <button> nativo sin resetear el outline del navegador, a diferencia del
+  // <Button> compartido (ui/button.tsx) que ya usa outline-none +
+  // focus-visible (solo se marca con teclado, no al tocar/clickear).
+  const clases = `group relative flex min-h-[164px] flex-col justify-between overflow-hidden rounded-2xl border p-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] outline-none transition-all duration-200 focus-visible:ring-3 focus-visible:ring-ring/50${
     onClick ? ' cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)]' : ''
   }`;
 
