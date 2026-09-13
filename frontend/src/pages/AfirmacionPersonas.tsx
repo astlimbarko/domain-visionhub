@@ -181,7 +181,7 @@ function KpiChipFiltro({
             tabla como única señal, el propio botón que se tocó reemplaza su
             ícono por un spinner mientras esa consulta puntual está en
             vuelo -- feedback justo donde el usuario puso el dedo. */}
-        {cargando ? <Spinner className="h-4 w-4" style={{ color }} /> : <Icon className="h-4 w-4" strokeWidth={2.2} />}
+        {cargando ? <Spinner className="h-4 w-4" /> : <Icon className="h-4 w-4" strokeWidth={2.2} />}
       </span>
       <div className="min-w-0">
         <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
