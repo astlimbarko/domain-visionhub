@@ -21,7 +21,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   ArrowUpDown,
   Briefcase,
@@ -32,7 +31,6 @@ import {
   Download,
   FileText,
   Heart,
-  LayoutGrid,
   type LucideIcon,
   Maximize2,
   Minimize2,
@@ -46,8 +44,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
@@ -140,20 +138,17 @@ function formatFechaNacimiento(fecha: string | null): string {
   return `${dd}/${mm}/${aa}`;
 }
 
-// Variante local de CardIndicadorPastel (dashboard/CardIndicadorPastel.tsx)
-// -- clickeable, con estado activo (pedido explícito del owner 2026-09-12:
-// "que los botones sean iguales a los accesos directos del Dashboard").
-// Mismo lenguaje visual (caja de ícono en degradado, número grande, blob
-// decorativo), pero con anillo de color cuando `activo` -- el original no
-// tiene ese estado porque solo navega, nunca queda "seleccionado". No se
-// modifica CardIndicadorPastel compartido para no arriesgar el resto de la
-// app -- esta variante solo vive en esta página, mismo criterio que ya
-// usaba el chip anterior que reemplaza.
-function CardIndicadorPastelFiltro({
+// Variante local de KpiChip (DashboardUI.tsx) -- clickeable, con estado
+// activo (pedido explícito del owner 2026-09-11: "todos los botones de
+// arriba de membresia sean botones de filtro"). No se modifica el
+// KpiChip compartido para no arriesgar el resto de la app -- esta
+// variante solo vive en esta página.
+function KpiChipFiltro({
   icon: Icon,
   label,
   color,
   activo,
+  cargando,
   onClick,
   children,
 }: {
@@ -161,42 +156,36 @@ function CardIndicadorPastelFiltro({
   label: string;
   color: string;
   activo: boolean;
+  cargando?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
-  const fondo = `color-mix(in oklab, ${color} 8%, white)`;
-  const borde = `color-mix(in oklab, ${color} 14%, white)`;
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ background: fondo, borderColor: activo ? color : borde, boxShadow: activo ? `0 0 0 2px ${color}` : undefined }}
-      // Bug real reportado (2026-09-13): tocar la card en celular dejaba un
-      // anillo de foco pegado hasta el próximo toque en otro lado -- se
-      // mezclaba con el anillo de `activo` (arriba) y daba la impresión de
-      // que el filtro activo era otro. Es un <button> nativo sin resetear
-      // el outline, a diferencia del <Button> compartido (ui/button.tsx).
-      className="group relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left shadow-[0_6px_18px_rgba(15,23,42,0.06)] outline-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.1)] focus-visible:ring-3 focus-visible:ring-ring/50"
+      style={activo ? { boxShadow: `0 0 0 2px ${color}` } : undefined}
+      // Reset de outline nativo (bug real de mobile, Matías 2026-09-13): sin
+      // esto, tocar la card en celular deja un anillo de foco pegado que se
+      // confunde con el anillo de `activo` de arriba.
+      className={cn(
+        'flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+        activo ? 'border-transparent' : 'border-border/60 hover:border-border'
+      )}
     >
-      <div className="pointer-events-none absolute right-0 bottom-0 h-[52%] w-[40%]" aria-hidden="true">
-        <div
-          className="absolute -right-[12%] -bottom-[18%] h-[95%] w-[95%] rounded-full"
-          style={{ background: `radial-gradient(circle at 68% 68%, color-mix(in oklab, ${color} 16%, transparent) 0%, transparent 72%)` }}
-        />
-        <div
-          className="absolute -right-[2%] -bottom-[6%] h-[62%] w-[62%] rounded-full"
-          style={{ background: `radial-gradient(circle at 72% 72%, color-mix(in oklab, ${color} 32%, transparent) 0%, transparent 74%)` }}
-        />
-      </div>
       <span
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_10px_-4px_rgba(0,0,0,0.35)]"
-        style={{ background: `linear-gradient(135deg, ${color} 0%, color-mix(in oklab, ${color} 80%, #000) 100%)` }}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+        style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
       >
-        <Icon className="h-4 w-4" strokeWidth={2} />
+        {/* Truco de percepción (2026-09-11/12): en vez de "apagar" toda la
+            tabla como única señal, el propio botón que se tocó reemplaza su
+            ícono por un spinner mientras esa consulta puntual está en
+            vuelo -- feedback justo donde el usuario puso el dedo. */}
+        {cargando ? <Spinner className="h-4 w-4" style={{ color }} /> : <Icon className="h-4 w-4" strokeWidth={2.2} />}
       </span>
-      <div className="relative flex flex-col gap-0.5">
-        <div className="text-[22px] leading-none font-extrabold tracking-tight tabular-nums text-[#152238]">{children}</div>
-        <p className="truncate text-[10.5px] font-bold tracking-[0.04em] text-[#5b6472] uppercase">{label}</p>
+      <div className="min-w-0">
+        <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
+        <p className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">{label}</p>
       </div>
     </button>
   );
@@ -382,12 +371,10 @@ export function AfirmacionPersonas() {
   // no afecta a los KPIs/filtros/buscador de arriba). CSV/PDF respetan la
   // vista activa.
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
-  // Pestañas como accesos directos (2026-09-13, pedido del owner: pensado
-  // para mobile -- clickear una card de Indicadores debe llevar derecho a
-  // ver esos datos, no quedarse en la misma pestaña esperando que alguien
-  // cambie de pestaña a mano). Cualquier click en una card (aplicar O quitar
-  // un filtro) salta a "Membresía" -- comportamiento uniforme en los 15 botones.
-  const [tab, setTab] = useState<'indicadores' | 'membresia'>('indicadores');
+  // Truco de percepción: guarda qué botón de KPI se tocó por última vez,
+  // para que SOLO ese muestre el spinner mientras carga (no todos los que
+  // ya estén activos) -- se limpia solo apenas la consulta termina.
+  const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
 
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
@@ -441,14 +428,12 @@ export function AfirmacionPersonas() {
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
-    setTab('membresia');
   }
 
   function alternarEstadoPorSigla(sigla: string) {
     const estado = estados.find((e) => e.sigla === sigla);
     if (!estado) return;
     setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
-    setTab('membresia');
   }
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaActivaId);
@@ -459,6 +444,10 @@ export function AfirmacionPersonas() {
   // hallazgo del owner probando en vivo). fn_afirmacion_buscar_membresia ya
   // excluye Semillas siempre (no hace falta pasar el flag).
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaActivaId, texto, pagina, POR_PAGINA, filtros);
+
+  useEffect(() => {
+    if (!isFetching) setFiltroEnCurso(null);
+  }, [isFetching]);
 
   const resultados = useMemo(() => data?.resultados ?? [], [data]);
   const total = data?.total ?? 0;
@@ -531,120 +520,123 @@ export function AfirmacionPersonas() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Pestañas (2026-09-12, pedido del owner: separar los botones/KPIs de
-          la vista previa de personas) -- mismo patrón ya usado en
-          Evangelismo.tsx (min-w-0 + truncate en los triggers). Controlado
-          (no defaultValue) desde 2026-09-13: cada card de Indicadores salta
-          acá a "membresia" además de aplicar su filtro (acceso directo, ver
-          el estado `tab` de arriba). */}
-      <Tabs value={tab} onValueChange={(v) => setTab(v as 'indicadores' | 'membresia')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="indicadores" className="min-w-0 gap-1.5">
-            <LayoutGrid /> <span className="truncate">Indicadores</span>
-          </TabsTrigger>
-          <TabsTrigger value="membresia" className="min-w-0 gap-1.5">
-            <Users /> <span className="truncate">Membresía</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="indicadores">
       {cargandoEstadisticas || cargandoRegistro ? (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 15 }).map((_, i) => (
-            <Skeleton key={i} className="h-[112px] w-full rounded-2xl" />
+            <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <CardIndicadorPastelFiltro icon={Users} label="Total" color={AZUL} activo={sinFiltros} onClick={limpiarFiltros}>
+          <KpiChipFiltro
+            icon={Users}
+            label="Total"
+            color={AZUL}
+            activo={sinFiltros}
+            cargando={filtroEnCurso === 'total' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('total');
+              limpiarFiltros();
+            }}
+          >
             {estadisticas?.total ?? 0}
-          </CardIndicadorPastelFiltro>
-          <CardIndicadorPastelFiltro
+          </KpiChipFiltro>
+          <KpiChipFiltro
             icon={User}
             label="Hombres"
             color={AZUL}
             activo={sexoFiltro === 'M'}
+            cargando={filtroEnCurso === 'hombres' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('hombres');
               setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
-              setTab('membresia');
             }}
           >
             {estadisticas?.hombres ?? 0}
-          </CardIndicadorPastelFiltro>
-          <CardIndicadorPastelFiltro
+          </KpiChipFiltro>
+          <KpiChipFiltro
             icon={User}
             label="Mujeres"
             color={TEAL}
             activo={sexoFiltro === 'F'}
+            cargando={filtroEnCurso === 'mujeres' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('mujeres');
               setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
-              setTab('membresia');
             }}
           >
             {estadisticas?.mujeres ?? 0}
-          </CardIndicadorPastelFiltro>
-          <CardIndicadorPastelFiltro
+          </KpiChipFiltro>
+          <KpiChipFiltro
             icon={QrCode}
             label="Por URL"
             color={AZUL}
             activo={viaFiltro === 'URL'}
+            cargando={filtroEnCurso === 'via-url' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('via-url');
               setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
-              setTab('membresia');
             }}
           >
             {estadisticasRegistro?.por_url ?? 0}
-          </CardIndicadorPastelFiltro>
-          <CardIndicadorPastelFiltro
+          </KpiChipFiltro>
+          <KpiChipFiltro
             icon={FileText}
             label="Por formulario"
             color={TEAL}
             activo={viaFiltro === 'FORMULARIO'}
+            cargando={filtroEnCurso === 'via-formulario' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('via-formulario');
               setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
-              setTab('membresia');
             }}
           >
             {estadisticasRegistro?.por_formulario ?? 0}
-          </CardIndicadorPastelFiltro>
+          </KpiChipFiltro>
           {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
-            <CardIndicadorPastelFiltro
+            <KpiChipFiltro
               key={sigla}
               icon={Users}
               label={ESTADO_LABEL[sigla]}
               color={AZUL}
               activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
-              onClick={() => alternarEstadoPorSigla(sigla)}
+              cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
+              onClick={() => {
+                setFiltroEnCurso(`estado-${sigla}`);
+                alternarEstadoPorSigla(sigla);
+              }}
             >
               {porEstado[sigla] ?? 0}
-            </CardIndicadorPastelFiltro>
+            </KpiChipFiltro>
           ))}
-          <CardIndicadorPastelFiltro
+          <KpiChipFiltro
             icon={Briefcase}
             label="Con profesión"
             color={TEAL}
             activo={conProfesionFiltro === true}
+            cargando={filtroEnCurso === 'con-profesion' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('con-profesion');
               setConProfesionFiltro((actual) => (actual ? undefined : true));
-              setTab('membresia');
             }}
           >
             {estadisticas?.con_profesion ?? 0}
-          </CardIndicadorPastelFiltro>
+          </KpiChipFiltro>
           {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
-            <CardIndicadorPastelFiltro
+            <KpiChipFiltro
               key={codigo}
               icon={Heart}
               label={ESTADO_CIVIL_LABELS[codigo]}
               color={AZUL}
               activo={estadoCivilFiltro === codigo}
+              cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
               onClick={() => {
+                setFiltroEnCurso(`estado-civil-${codigo}`);
                 setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
-                setTab('membresia');
               }}
             >
               {porEstadoCivil[codigo] ?? 0}
-            </CardIndicadorPastelFiltro>
+            </KpiChipFiltro>
           ))}
           {/* Auditoría de categorías faltantes (pedido 2026-09-11): de los
               campos del censo, "bautizado" es la única que suma como
@@ -653,37 +645,22 @@ export function AfirmacionPersonas() {
               arriba (dos conceptos distintos, mismo nombre en pantalla) y
               los cargos de CdP/Red ya se ven como columna en la tabla, no
               hace falta duplicarlos acá. */}
-          <CardIndicadorPastelFiltro
+          <KpiChipFiltro
             icon={CircleCheck}
             label="Bautizados"
             color={VERDE}
             activo={bautizadoFiltro === true}
+            cargando={filtroEnCurso === 'bautizados' && isFetching}
             onClick={() => {
+              setFiltroEnCurso('bautizados');
               setBautizadoFiltro((actual) => (actual ? undefined : true));
-              setTab('membresia');
             }}
           >
             {estadisticas?.bautizados ?? 0}
-          </CardIndicadorPastelFiltro>
+          </KpiChipFiltro>
         </div>
       )}
-        </TabsContent>
 
-        <TabsContent value="membresia">
-      {/* Volver a Indicadores (2026-09-13, pensado para mobile): mismo
-          estilo que VolverAlDashboard.tsx -- después de saltar acá desde
-          una card, poder volver a probar otro indicador sin tener que
-          buscar la pestaña de arriba (que puede quedar fuera de la
-          pantalla si ya se hizo scroll dentro de la tabla). */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-fit gap-1.5 rounded-xl text-muted-foreground hover:text-foreground"
-        onClick={() => setTab('indicadores')}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver a Indicadores
-      </Button>
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader
           icon={Users}
@@ -937,8 +914,6 @@ export function AfirmacionPersonas() {
           )}
         </div>
       </section>
-        </TabsContent>
-      </Tabs>
 
       <FichaPersonaSheet personaId={personaSeleccionadaId} onOpenChange={(open) => !open && setPersonaSeleccionadaId(undefined)} />
     </div>
