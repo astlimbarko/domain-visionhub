@@ -1,0 +1,7 @@
+# Gonzalo — 2026-09-13
+
+- [x] PR #50 (spinner KAN-365) volvió a quedar `CONFLICTING`: Matías mergeó directo a `master` sin PR otras 3 veces más hoy (tabs controlado + auto-salto a Membresía al filtrar, fix de anillo de foco mobile, KAN-369/373/371/374/375 "emergencia roja"), 2 de esas tocando el mismo archivo del spinner
+- [x] Confirmado que el spinner de KAN-365 NO estaba duplicado -- nunca se había mergeado a `master`, seguía solo en la rama
+- [x] Resuelto el conflicto de nuevo (7 bloques, cada card combina `setFiltroEnCurso` + el `setTab('membresia')` nuevo de Matías), verificado en vivo que ambos comportamientos conviven bien, PR #50 otra vez MERGEABLE
+- [x] Decisión del owner: revertir el rediseño de pestañas/tarjetas de Matías de esta pantalla (sin esperar a hablar con él primero) -- rama nueva `fix/kan365-spinner-vista-original` desde antes del rediseño (commit 854e1b6), archivo restaurado a chips simples con filtro inline + spinner reaplicado encima. Verificado en vivo: clic filtra la tabla sin cambiar de pantalla, varios filtros se combinan (Hombres + Bautizados), spinner aparece y se apaga solo sin quedar pegado. PR #51 abierta, PR #50 vieja cerrada con comentario explicando el porqué. Jira KAN-365 comentado, sigue Finalizada
+- [ ] Sigue pendiente: el owner va a hablar directo con Matías sobre el rediseño (no descartado para siempre, solo revertido de esta pantalla por ahora)
