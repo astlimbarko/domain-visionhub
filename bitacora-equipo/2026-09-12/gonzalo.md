@@ -4,3 +4,4 @@
 - [x] Spinner de percepción: el botón de KPI que se toca reemplaza su ícono por un `Spinner` (componente ya existente) mientras esa consulta puntual está en vuelo, en vez de solo atenuar toda la tabla -- rama `feature/spinner-boton-filtro-membresia`, pusheada
 - [x] Bug real encontrado en vivo por el owner y corregido el mismo día: el spinner se quedaba pegado girando cuando la respuesta llegaba instantánea de caché (React Query nunca ponía `isFetching` en `true`) -- fix: exigir `isFetching` real en el momento del render, no solo el último filtro tocado
 - [x] Verificado en vivo por el owner ("quedó genial, super elegante")
+- [x] PR #50 quedó con conflicto real contra `master` porque Matías mergeó directo (sin PR) su rediseño de pestañas Indicadores/Membresía tocando el mismo archivo -- resuelto el merge (mantiene ambos cambios), verificado en vivo que el spinner sigue funcionando dentro del layout nuevo, PR #50 ahora MERGEABLE
