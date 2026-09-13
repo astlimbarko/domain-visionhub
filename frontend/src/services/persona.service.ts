@@ -107,6 +107,24 @@ export async function crearPersona(datos: NuevaPersona): Promise<{ id: string }>
   return data;
 }
 
+/** KAN-371: alta rápida de persona para el Líder de una Casa de Paz puntual
+ * -- a diferencia de `crearPersona` (Directorio, sin membresía), esta crea
+ * la persona Y su membresía en esa CdP en una sola transacción (RPC, mismo
+ * criterio que KAN-277: si el insert de membresía falla, no queda una
+ * persona huérfana). `iglesia_id` no hace falta -- la RPC lo resuelve
+ * desde `p_casa_de_paz_id`. */
+export async function crearPersonaCdp(
+  datos: Omit<NuevaPersona, 'iglesia_id'>,
+  casaDePazId: string
+): Promise<{ id: string }> {
+  const { data, error } = await supabase.rpc('fn_crear_persona_cdp', {
+    p_datos: datos,
+    p_casa_de_paz_id: casaDePazId,
+  });
+  if (error) throw error;
+  return { id: data as string };
+}
+
 export async function actualizarIdentidad(personaId: string, datos: Partial<DatosIdentidad>) {
   const { error } = await supabase.from('persona').update(datos).eq('id', personaId);
   if (error) throw error;

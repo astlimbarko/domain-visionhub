@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCrearPersona } from '@/hooks/usePersonas';
+import { useCrearPersona, useCrearPersonaCdp } from '@/hooks/usePersonas';
 import { useAgregarParticipante, useMinisterios } from '@/hooks/useMinisterios';
 import type { Sexo } from '@/types/persona.types';
 
@@ -14,6 +14,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   iglesiaId: string | undefined;
   onCreada: (personaId: string) => void;
+  /** KAN-371: cuando se pasa, la persona queda como miembro de ESTA CdP
+   * puntual (RPC `fn_crear_persona_cdp`, transaccional) en vez del alta
+   * genérica del Directorio (Supervisor/Pastor, sin membresía). */
+  casaDePazId?: string;
 }
 
 const VACIO = {
@@ -28,12 +32,14 @@ const VACIO = {
   ministerioId: '',
 };
 
-export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: Props) {
+export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada, casaDePazId }: Props) {
   const [form, setForm] = useState(VACIO);
   const crear = useCrearPersona();
+  const crearCdp = useCrearPersonaCdp(casaDePazId);
   const { data: ministerios } = useMinisterios(iglesiaId);
   const agregarMinisterio = useAgregarParticipante(iglesiaId);
   const ministeriosActivos = (ministerios ?? []).filter((m) => m.activo);
+  const creando = casaDePazId ? crearCdp.isPending : crear.isPending;
 
   const valido = form.primerNombre.trim() !== '' && form.primerApellido.trim() !== '' && form.sexo !== '';
 
@@ -44,33 +50,35 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: 
 
   function handleCrear() {
     if (!iglesiaId || !valido) return;
-    crear.mutate(
-      {
-        iglesia_id: iglesiaId,
-        primer_nombre: form.primerNombre.trim(),
-        segundo_nombre: form.segundoNombre.trim() || null,
-        primer_apellido: form.primerApellido.trim(),
-        segundo_apellido: form.segundoApellido.trim() || null,
-        sexo: form.sexo as Sexo,
-        fecha_nacimiento: form.fechaNacimiento || null,
-        ci: form.ci.trim() || null,
-        correo: form.correo.trim() || null,
+    const datosComunes = {
+      primer_nombre: form.primerNombre.trim(),
+      segundo_nombre: form.segundoNombre.trim() || null,
+      primer_apellido: form.primerApellido.trim(),
+      segundo_apellido: form.segundoApellido.trim() || null,
+      sexo: form.sexo as Sexo,
+      fecha_nacimiento: form.fechaNacimiento || null,
+      ci: form.ci.trim() || null,
+      correo: form.correo.trim() || null,
+    };
+    const callbacks = {
+      onSuccess: (persona: { id: string }) => {
+        toast.success('Persona creada.');
+        if (form.ministerioId) {
+          agregarMinisterio.mutate(
+            { ministerioId: form.ministerioId, personaId: persona.id },
+            { onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'No se pudo asignar el ministerio') },
+          );
+        }
+        cerrar(false);
+        onCreada(persona.id);
       },
-      {
-        onSuccess: (persona) => {
-          toast.success('Persona creada.');
-          if (form.ministerioId) {
-            agregarMinisterio.mutate(
-              { ministerioId: form.ministerioId, personaId: persona.id },
-              { onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo asignar el ministerio') },
-            );
-          }
-          cerrar(false);
-          onCreada(persona.id);
-        },
-        onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo crear la persona'),
-      },
-    );
+      onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'No se pudo crear la persona'),
+    };
+    if (casaDePazId) {
+      crearCdp.mutate(datosComunes, callbacks);
+    } else {
+      crear.mutate({ iglesia_id: iglesiaId, ...datosComunes }, callbacks);
+    }
   }
 
   return (
@@ -167,8 +175,8 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada }: 
           Dirección, teléfono, censo y familia se agregan después, desde la ficha de la persona.
         </p>
         <DialogFooter>
-          <Button type="button" onClick={handleCrear} disabled={!valido || crear.isPending}>
-            {crear.isPending ? 'Creando...' : 'Crear'}
+          <Button type="button" onClick={handleCrear} disabled={!valido || creando}>
+            {creando ? 'Creando...' : 'Crear'}
           </Button>
         </DialogFooter>
       </DialogContent>

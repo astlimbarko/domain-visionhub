@@ -10,8 +10,9 @@ import { HistorialReportesCalendario } from '@/components/reporte/HistorialRepor
 import { HistorialReportesSupervisorVista } from '@/components/reporte/HistorialReportesSupervisorVista';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
+import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
+import { useDiasLimiteEdicionReporte, useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
@@ -44,6 +45,11 @@ export function HistorialReportes() {
   const cdpInspeccionada = (location.state as { casaDePazId?: string } | null)?.casaDePazId;
   const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  // KAN-375: ventana configurable por iglesia (antes 7 fijo) -- si todavía no
+  // cargó, se asume 7 (mismo default que ya tenía el backend) para no
+  // ocultar "Editar" de golpe mientras resuelve la query.
+  const { data: diasLimiteEdicion = 7 } = useDiasLimiteEdicionReporte(iglesiaActivaId);
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -156,10 +162,10 @@ export function HistorialReportes() {
                     {r.total_asistentes} asistentes · {r.total_menores} niños / {r.total_mayores} adultos
                   </p>
                 </div>
-                {/* KAN-271: solo se muestra dentro de la ventana de 7 días -- el
-                    permiso real siempre lo valida el backend, esto evita un
-                    click que ya sabemos que va a rebotar. */}
-                {dentroDeVentanaEdicionReporte(r.fecha_reunion) && (
+                {/* KAN-271/375: solo se muestra dentro de la ventana configurable
+                    por iglesia -- el permiso real siempre lo valida el
+                    backend, esto evita un click que ya sabemos que va a rebotar. */}
+                {dentroDeVentanaEdicionReporte(r.fecha_reunion, diasLimiteEdicion) && (
                   <Button
                     type="button"
                     variant="ghost"

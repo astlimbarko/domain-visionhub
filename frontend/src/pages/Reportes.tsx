@@ -91,6 +91,12 @@ const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-car
 // móvil.
 const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-card';
 
+/** KAN-373 (2026-09-13): opción de "tema especial" siempre disponible en el
+ * Select de Tema, sin importar el libro -- antes solo aparecía si el
+ * catálogo `cdp_tema` tenía una fila `es_especial=true` para ESE libro
+ * puntual (solo 2 de 13 libros la tienen). No es un `tema_id` real. */
+const TEMA_ESPECIAL_SENTINEL = '__tema_especial__';
+
 export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
   const modoEdicion = !!reporteId;
@@ -208,6 +214,9 @@ export function Reportes() {
   const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
   const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
+  // KAN-373: "especial" ahora puede venir del catálogo (temaActual.es_especial,
+  // libros 3/10) O de haber elegido el sentinel (cualquier libro).
+  const esTemaEspecial = temaActual?.es_especial || temaId === TEMA_ESPECIAL_SENTINEL;
 
   // Las monedas activas se cargan de forma asincronica: si el default de
   // useForm se evaluara solo al montar, moneda_id quedaria vacio para siempre.
@@ -228,7 +237,11 @@ export function Reportes() {
     reset({
       fecha_reunion: reporteExistente.fecha_reunion,
       libro_id: reporteExistente.libro_id ?? undefined,
-      tema_id: reporteExistente.tema_id ?? undefined,
+      // KAN-373: si se guardó con tema_id null + tema_especial_txt (tema
+      // especial de un libro sin ese catálogo), hidratar el sentinel para
+      // que el Select lo muestre seleccionado y aparezca el texto libre.
+      tema_id:
+        reporteExistente.tema_id ?? (reporteExistente.tema_especial_txt ? TEMA_ESPECIAL_SENTINEL : undefined),
       tema_especial_txt: reporteExistente.tema_especial_txt ?? undefined,
       disertador_id: reporteExistente.disertador_id ?? undefined,
       salio_evangelizar: reporteExistente.salio_evangelizar,
@@ -615,6 +628,13 @@ export function Reportes() {
     // (trigger fn_validar_campos_reporte) pero el formulario no lo mostraba
     // antes de intentar enviar -- se valida acá con el mismo criterio para
     // avisar de una sin necesidad de un viaje al servidor.
+    // KAN-373: elegir "Tema especial" sin describirlo no es un tema real --
+    // se bloquea siempre, sin importar si el tema es obligatorio en esta
+    // iglesia (mismo criterio que ya exige el backend, fn_validar_campos_reporte).
+    if (valores.tema_id === TEMA_ESPECIAL_SENTINEL && !valores.tema_especial_txt?.trim()) {
+      toast.error('Describí el tema especial');
+      return;
+    }
     if (campos?.REPORTE_TEMA_OBLIGATORIO && !valores.tema_id) {
       toast.error('El tema es obligatorio en esta iglesia');
       return;
@@ -638,8 +658,10 @@ export function Reportes() {
         iglesia_id: iglesiaActivaId,
         fecha_reunion: valores.fecha_reunion,
         libro_id: valores.libro_id,
-        tema_id: valores.tema_id,
-        tema_especial_txt: temaActual?.es_especial ? valores.tema_especial_txt : undefined,
+        // KAN-373: el sentinel no es un tema_id real -- se manda null y el
+        // texto libre queda como el único registro del tema.
+        tema_id: valores.tema_id === TEMA_ESPECIAL_SENTINEL ? undefined : valores.tema_id,
+        tema_especial_txt: esTemaEspecial ? valores.tema_especial_txt : undefined,
         disertador_id: valores.disertador_id,
         evento_megafiesta_id: esMegaFiesta && megaFiesta ? megaFiesta.evento_id : undefined,
         salio_evangelizar: valores.salio_evangelizar,
@@ -848,11 +870,15 @@ export function Reportes() {
                             {t.nombre}
                           </SelectItem>
                         ))}
+                        {/* KAN-373: disponible en cualquier libro, no depende
+                            de que el catálogo tenga una fila es_especial
+                            para el libro elegido (hoy solo 2 de 13 la tienen). */}
+                        <SelectItem value={TEMA_ESPECIAL_SENTINEL}>Especial: tema fuera del libro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {temaActual?.es_especial && (
+                  {esTemaEspecial && (
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label htmlFor="tema_especial_txt">Descripción del tema especial</Label>
                       <Input id="tema_especial_txt" {...register('tema_especial_txt')} />

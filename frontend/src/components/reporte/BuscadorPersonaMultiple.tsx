@@ -200,18 +200,19 @@ export function BuscadorPersonaMultiple({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative" ref={contenedorRef}>
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-        <Input
-          className="h-10 rounded-xl pl-9 text-sm"
-          placeholder={placeholder}
-          value={texto}
-          onChange={(e) => {
-            setTexto(e.target.value);
-            onTextoCambia?.(e.target.value);
-          }}
-          onFocus={() => setAbierto(true)}
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1" ref={contenedorRef}>
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+          <Input
+            className="h-10 rounded-xl pl-9 text-sm"
+            placeholder={placeholder}
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              onTextoCambia?.(e.target.value);
+            }}
+            onFocus={() => setAbierto(true)}
+          />
 
         {abierto && (
           <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
@@ -292,6 +293,24 @@ export function BuscadorPersonaMultiple({
               )}
             </div>
           </div>
+        )}
+        </div>
+
+        {/* KAN-369 (2026-09-13, pedido del owner): antes esta opción solo
+            aparecía después de escribir texto Y de que la búsqueda global no
+            encontrara a nadie -- "botón directo" siempre visible, sin tener
+            que escribir primero. Abre el mismo mini-formulario de siempre. */}
+        {permitirAgregarNueva && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-xl"
+            title="Agregar persona nueva"
+            onClick={abrirFormNueva}
+          >
+            <UserPlus className="h-4 w-4" />
+          </Button>
         )}
       </div>
 
