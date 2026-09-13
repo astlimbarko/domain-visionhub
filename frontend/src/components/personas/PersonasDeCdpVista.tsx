@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Phone, Search, UserRound, Users, X } from 'lucide-react';
+import { Phone, Plus, Search, UserRound, Users, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,10 @@ import {
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { CrearPersonaDialog } from '@/components/personas/CrearPersonaDialog';
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
+import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { usePersonasDeCdp } from '@/hooks/usePersonas';
 import { useEdadMinimaCreyente } from '@/hooks/useReporte';
 import type { PersonaDeCdp } from '@/types/persona.types';
@@ -88,6 +90,9 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
   const { data: personas = [], isLoading } = usePersonasDeCdp(casaDePazId);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: edadMinimaCreyente } = useEdadMinimaCreyente(iglesiaActivaId);
+  const { contextoActivo } = useContextoActivo();
+  const esLiderCdp = contextoActivo?.rolUI === 'LIDER_CDP';
+  const [mostrarCrear, setMostrarCrear] = useState(false);
   const location = useLocation();
   // Se lee una sola vez al montar (lazy initializer) -- si la persona navega
   // manualmente después, no se vuelve a pisar lo que ella misma eligió.
@@ -220,6 +225,18 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
           )}
         </div>
       </div>
+
+      {/* KAN-371 (2026-09-13): alta rápida acotada a Líder (no Sublíder) --
+          el insert de membresía usa RLS (fn_es_lider_cdp) que hoy no incluye
+          a Sublíder, y la RPC transaccional (fn_crear_persona_cdp) no
+          duplica ese chequeo a propósito, reusa la RLS existente. */}
+      {esLiderCdp && (
+        <div className="flex justify-end">
+          <Button onClick={() => setMostrarCrear(true)} className="gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90">
+            <Plus className="h-4 w-4" /> Nueva persona
+          </Button>
+        </div>
+      )}
 
       {/* ── Filtros ────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -363,6 +380,15 @@ export function PersonasDeCdpVista({ casaDePazId }: Props) {
       </section>
 
       <FichaPersonaSheet personaId={seleccionadaId} onOpenChange={(open) => !open && setSeleccionadaId(undefined)} />
+      {esLiderCdp && (
+        <CrearPersonaDialog
+          open={mostrarCrear}
+          onOpenChange={setMostrarCrear}
+          iglesiaId={iglesiaActivaId}
+          casaDePazId={casaDePazId}
+          onCreada={(id) => setSeleccionadaId(id)}
+        />
+      )}
     </div>
   );
 }

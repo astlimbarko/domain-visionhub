@@ -4,6 +4,7 @@ import {
   anularReporte,
   crearReporte,
   obtenerCamposObligatorios,
+  obtenerDiasLimiteEdicionReporte,
   obtenerDiasPlazoReporte,
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
@@ -80,6 +81,16 @@ export function useDiasPlazoReporte(iglesiaId: string | undefined) {
   return useQuery({
     queryKey: ['reporte', 'dias-plazo-reporte', iglesiaId],
     queryFn: () => obtenerDiasPlazoReporte(iglesiaId as string),
+    enabled: !!iglesiaId,
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
+/** KAN-375: ventana de edición de reportes configurable (mismo patrón que useDiasPlazoReporte). */
+export function useDiasLimiteEdicionReporte(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'dias-limite-edicion', iglesiaId],
+    queryFn: () => obtenerDiasLimiteEdicionReporte(iglesiaId as string),
     enabled: !!iglesiaId,
     staleTime: 1000 * 60 * 60,
   });

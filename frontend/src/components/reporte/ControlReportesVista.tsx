@@ -19,7 +19,7 @@ import { VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { PersonaNombreLink } from '@/components/personas/PersonaNombreLink';
 import { useAuthStore } from '@/store/auth.store';
 import { useCdps } from '@/hooks/useCasasDePaz';
-import { useDiasPlazoReporte, useReportesRedRango, useUltimaFechaReporteRed } from '@/hooks/useReporte';
+import { useDiasLimiteEdicionReporte, useDiasPlazoReporte, useReportesRedRango, useUltimaFechaReporteRed } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechasReunionDelMes as fechasSegunDiaReunion, finSemanaISO, inicioSemanaISO, nombreMes } from '@/utils/calendario-fechas';
@@ -119,6 +119,8 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   // ROJO/PENDIENTE (semanas sin reporte todavía). El VERDE/NARANJA de un
   // reporte ya cargado viene calculado desde el servidor (estado_carga).
   const { data: diasPlazoReporte = 2 } = useDiasPlazoReporte(iglesiaActivaId);
+  // KAN-375: ventana de edición configurable (antes 7 fijo).
+  const { data: diasLimiteEdicion = 7 } = useDiasLimiteEdicionReporte(iglesiaActivaId);
 
   const contenedorRef = useRef<HTMLDivElement>(null);
 
@@ -264,12 +266,12 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
   const cargando = cargandoCdps || cargandoReportes;
   const grid = { gridTemplateColumns: `minmax(150px, 1.4fr) repeat(${maxColumnas}, minmax(52px, 1fr))` };
 
-  // KAN-271: hay al menos un reporte del mes que todavía está dentro de la
-  // ventana de 7 días -- se usa para mostrar la ayuda de "se puede editar"
-  // solo cuando de verdad hay algo editable a la vista.
+  // KAN-271/375: hay al menos un reporte del mes que todavía está dentro de
+  // la ventana de edición configurable -- se usa para mostrar la ayuda de
+  // "se puede editar" solo cuando de verdad hay algo editable a la vista.
   const hayReporteEditable = useMemo(
-    () => reportes.some((r) => dentroDeVentanaEdicionReporte(r.fecha_reunion)),
-    [reportes]
+    () => reportes.some((r) => dentroDeVentanaEdicionReporte(r.fecha_reunion, diasLimiteEdicion)),
+    [reportes, diasLimiteEdicion]
   );
 
   const tituloEstado =
@@ -414,11 +416,11 @@ export function ControlReportesVista({ redId, accionExtra }: Props) {
                           const celda = porCdpSemana.get(`${c.id}:${inicioSemanaISO(fechaEsperada)}`);
                           const est = estadoCeldaFecha(c.id, fechaEsperada);
                           const { bg, fg } = coloresPorEstado(est);
-                          // KAN-271: se puede editar directo desde acá -- solo
-                          // dentro de la ventana de 7 días (el permiso real lo
-                          // valida el backend igual, esto solo decide si la
-                          // celda se muestra como clickeable).
-                          const editable = !!celda && dentroDeVentanaEdicionReporte(celda.fecha);
+                          // KAN-271/375: se puede editar directo desde acá --
+                          // solo dentro de la ventana configurable (el permiso
+                          // real lo valida el backend igual, esto solo decide
+                          // si la celda se muestra como clickeable).
+                          const editable = !!celda && dentroDeVentanaEdicionReporte(celda.fecha, diasLimiteEdicion);
                           const tituloCelda =
                             est === 'PENDIENTE'
                               ? `Todavía no vence (reunión del ${fechaCorta(fechaEsperada)})`
