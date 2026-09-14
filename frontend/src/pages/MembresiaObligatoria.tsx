@@ -3,7 +3,6 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -377,9 +376,17 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   Saltar
                 </Button>
               ) : (
-                <Button type="button" variant="outline" className="w-full gap-1.5 sm:w-auto" onClick={salir}>
-                  <LogOut className="h-4 w-4" />
-                  Salir sin completar
+                // KAN-376 seguimiento (2026-09-13, hallazgo del owner probando en
+                // vivo): antes de completar la página 1 todavía no existe la
+                // Persona (el trigger de persona exige nombre/apellido/sexo
+                // reales) -- no hay ningún panel al que "volver", por eso la
+                // única forma técnica de salir de acá es cerrar sesión. Pero en
+                // los hechos YA se comporta como un salto real: no se guardó
+                // nada, y al volver a entrar pide lo mismo de nuevo -- "Salir
+                // sin completar" sonaba a que se perdía algo, cuando no es así.
+                // Mismo texto y comportamiento que el "Saltar" de más adelante.
+                <Button type="button" variant="outline" className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto" onClick={salir}>
+                  Saltar
                 </Button>
               )
             }
