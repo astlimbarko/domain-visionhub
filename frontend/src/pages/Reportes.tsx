@@ -47,6 +47,7 @@ import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import {
   useActualizarReporte,
   useAnularReporte,
+  useAutorizarEdicionReporteFueraVentana,
   useCamposObligatoriosReporte,
   useCdpContextoReporte,
   useCrearReporte,
@@ -56,11 +57,13 @@ import {
   useMegaFiestaDelDia,
   useMiembrosCdp,
   usePuedeEditarReporte,
+  usePuedeSolicitarEdicionFueraVentana,
   useReportePorId,
   useTemas,
 } from '@/hooks/useReporte';
 import { crearEvangelizado } from '@/services/evangelismo.service';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
+import { CampoOtp } from '@/components/shared/CampoOtp';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
@@ -135,6 +138,30 @@ export function Reportes() {
   // seguro de cuál está editando.
   const esCdpAjena = modoEdicion && (!contextoCdp || contextoCdp.cdpId !== cdpActiva);
   const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, esCdpAjena);
+
+  // KAN-367: Pastor / Supervisor de la Visión en Acción, fuera de la ventana
+  // normal, pueden pedir autorización puntual (justificación + OTP) en vez
+  // de quedar bloqueados como el resto de los roles.
+  const { data: puedeSolicitarFueraVentana, isLoading: cargandoPuedeSolicitar } = usePuedeSolicitarEdicionFueraVentana(
+    reporteId,
+    modoEdicion && puedeEditar === false
+  );
+  const autorizarFueraVentana = useAutorizarEdicionReporteFueraVentana(reporteId);
+  const [justificacionFueraVentana, setJustificacionFueraVentana] = useState('');
+  const [pinFueraVentana, setPinFueraVentana] = useState('');
+
+  async function solicitarAutorizacionFueraVentana() {
+    try {
+      await autorizarFueraVentana.mutateAsync({ justificacion: justificacionFueraVentana, pin: pinFueraVentana });
+      toast.success('Autorizado -- ya podés modificar este reporte');
+      setPinFueraVentana('');
+    } catch (e) {
+      const mensaje = typeof (e as { message?: string })?.message === 'string' ? (e as { message: string }).message : '';
+      if (mensaje.includes('PIN_INCORRECTO')) toast.error('El código es incorrecto, expiró, o no fue solicitado');
+      else if (mensaje.includes('REPORTE_JUSTIFICACION_OBLIGATORIA')) toast.error('Escribí un motivo para editar fuera de la ventana normal');
+      else toast.error('No se pudo autorizar la edición');
+    }
+  }
   const queryClient = useQueryClient();
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
@@ -811,11 +838,64 @@ export function Reportes() {
       return <ProximamentePlaceholder titulo="Editar reporte" descripcion="No se pudo cargar este reporte." />;
     }
     if (!puedeEditar) {
+      if (cargandoPuedeSolicitar) {
+        return (
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+            <Skeleton className="h-20 w-full rounded-3xl" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          </div>
+        );
+      }
+      if (!puedeSolicitarFueraVentana) {
+        return (
+          <ProximamentePlaceholder
+            titulo="Ya no se puede editar"
+            descripcion="Este reporte ya pasó la ventana de edición, o no tenés permiso sobre esta Casa de Paz."
+          />
+        );
+      }
+      // KAN-367: Pastor / Supervisor de la Visión en Acción -- pueden pedir
+      // autorización puntual (justificación + OTP) para editar igual.
       return (
-        <ProximamentePlaceholder
-          titulo="Ya no se puede editar"
-          descripcion="Este reporte ya pasó la ventana de edición, o no tenés permiso sobre esta Casa de Paz."
-        />
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <DashboardHero
+            icon={ClipboardList}
+            eyebrow="Editar reporte"
+            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
+            color={colorRed ?? undefined}
+          />
+          <section className={CARD_SECCION}>
+            <div className="flex flex-col gap-4 p-5">
+              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="flex flex-col gap-1 text-sm">
+                  <p className="font-medium">Este reporte ya pasó la ventana normal de edición</p>
+                  <p className="text-muted-foreground">
+                    Podés editarlo igual, pero necesitamos un motivo y confirmación por código -- queda registrado quién lo autorizó y por qué.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="justificacion_fuera_ventana">Motivo *</Label>
+                <Textarea
+                  id="justificacion_fuera_ventana"
+                  value={justificacionFueraVentana}
+                  onChange={(e) => setJustificacionFueraVentana(e.target.value)}
+                  placeholder="Por qué hace falta editar este reporte fuera de la ventana normal"
+                />
+              </div>
+              <CampoOtp value={pinFueraVentana} onChange={setPinFueraVentana} />
+              <Button
+                type="button"
+                className="gap-2 self-start"
+                disabled={autorizarFueraVentana.isPending || !justificacionFueraVentana.trim() || pinFueraVentana.length !== 6}
+                onClick={solicitarAutorizacionFueraVentana}
+              >
+                <Pencil className="h-4 w-4" /> Autorizar y modificar
+              </Button>
+            </div>
+          </section>
+        </div>
       );
     }
     if (!activado) {

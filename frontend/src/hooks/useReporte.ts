@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   actualizarReporte,
   anularReporte,
+  autorizarEdicionReporteFueraVentana,
   crearReporte,
   obtenerCamposObligatorios,
   obtenerCdpContextoReporte,
@@ -21,6 +22,7 @@ import {
   obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
   puedeEditarReporte,
+  puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
 import type { NuevoReporte } from '@/types/reporte.types';
 
@@ -220,6 +222,27 @@ export function useCdpContextoReporte(casaDePazId: string | undefined, habilitad
     queryFn: () => obtenerCdpContextoReporte(casaDePazId as string),
     enabled: habilitado && !!casaDePazId,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+/** KAN-367: si a este usuario (Pastor/Supervisor) se le puede ofrecer pedir autorización fuera de ventana -- solo cuando ya se sabe que puedeEditar dio false. */
+export function usePuedeSolicitarEdicionFueraVentana(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'puede-solicitar-fuera-ventana', reporteId],
+    queryFn: () => puedeSolicitarEdicionFueraVentana(reporteId as string),
+    enabled: habilitado && !!reporteId,
+  });
+}
+
+/** KAN-367: autorizar (justificación + OTP) editar un reporte fuera de la ventana normal. */
+export function useAutorizarEdicionReporteFueraVentana(reporteId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: { justificacion: string; pin: string }) =>
+      autorizarEdicionReporteFueraVentana(reporteId as string, datos.justificacion, datos.pin),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'puede-editar', reporteId] });
+    },
   });
 }
 

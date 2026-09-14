@@ -627,6 +627,34 @@ export async function obtenerCdpContextoReporte(casaDePazId: string): Promise<{ 
 }
 
 /**
+ * KAN-367: si este usuario (Pastor o Supervisor de la Visión en Acción)
+ * puede pedir autorización para editar este reporte aunque esté fuera de la
+ * ventana normal -- se usa solo para decidir si se le ofrece esa opción en
+ * vez de simplemente "ya no se puede editar" (Líder/Sublíder de CdP y
+ * Líder/Supervisor de Red no tienen este escape).
+ */
+export async function puedeSolicitarEdicionFueraVentana(reporteId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_puede_solicitar_edicion_fuera_ventana', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return !!data;
+}
+
+/**
+ * KAN-367: autoriza (justificación + OTP) editar un reporte fuera de la
+ * ventana normal. No modifica el reporte -- deja una autorización vigente
+ * por 15 minutos que fn_puede_editar_reporte_cdp reconoce, así el resto del
+ * flujo de edición (reporte + asistencia + ingresos) funciona sin cambios.
+ */
+export async function autorizarEdicionReporteFueraVentana(reporteId: string, justificacion: string, pin: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_autorizar_edicion_reporte_fuera_ventana', {
+    p_reporte_id: reporteId,
+    p_justificacion: justificacion,
+    p_pin: pin,
+  });
+  if (error) throw error;
+}
+
+/**
  * KAN-271: trae un reporte ya enviado para precargar el formulario en modo
  * edición (Líder/Supervisor de Red, Líder/Sublíder de CdP, dentro de la
  * ventana configurable -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
