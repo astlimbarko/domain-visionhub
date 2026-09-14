@@ -2,13 +2,17 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   actualizarReporte,
   anularReporte,
+  autorizarEdicionReporteFueraVentana,
   crearReporte,
   obtenerCamposObligatorios,
+  obtenerCdpContextoReporte,
   obtenerDiasLimiteEdicionReporte,
   obtenerDiasPlazoReporte,
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerPrimeraFechaReunion,
+  obtenerReportesParaCalendario,
   obtenerIdsLiderCdp,
   obtenerLibros,
   obtenerMegaFiestaDelDia,
@@ -20,6 +24,7 @@ import {
   obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
   puedeEditarReporte,
+  puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
 import type { NuevoReporte } from '@/types/reporte.types';
 
@@ -86,11 +91,19 @@ export function useDiasPlazoReporte(iglesiaId: string | undefined) {
   });
 }
 
-/** KAN-375: ventana de edición de reportes configurable (mismo patrón que useDiasPlazoReporte). */
-export function useDiasLimiteEdicionReporte(iglesiaId: string | undefined) {
+/**
+ * KAN-375/367: ventana de edición de reportes configurable (mismo patrón
+ * que useDiasPlazoReporte). Desde KAN-367 hay 2 ventanas separadas -- pasar
+ * 'DIAS_LIMITE_EDICION_REPORTE_CDP' en la vista de Líder/Sublíder de CdP y
+ * 'DIAS_LIMITE_EDICION_REPORTE_RED' en la de Red/Supervisor/Pastor.
+ */
+export function useDiasLimiteEdicionReporte(
+  iglesiaId: string | undefined,
+  codigo: 'DIAS_LIMITE_EDICION_REPORTE_CDP' | 'DIAS_LIMITE_EDICION_REPORTE_RED'
+) {
   return useQuery({
-    queryKey: ['reporte', 'dias-limite-edicion', iglesiaId],
-    queryFn: () => obtenerDiasLimiteEdicionReporte(iglesiaId as string),
+    queryKey: ['reporte', 'dias-limite-edicion', codigo, iglesiaId],
+    queryFn: () => obtenerDiasLimiteEdicionReporte(iglesiaId as string, codigo),
     enabled: !!iglesiaId,
     staleTime: 1000 * 60 * 60,
   });
@@ -149,6 +162,26 @@ export function useHistorialReportes(casaDePazId: string | undefined, desde: str
   });
 }
 
+/** KAN-367: igual que useHistorialReportes, pero con reporte_id/fecha_creacion/total_mayores/total_ofrendas -- para el calendario clickeable con resumen. */
+export function useReportesParaCalendario(casaDePazId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['reporte', 'historial-calendario', casaDePazId, desde, hasta],
+    queryFn: () => obtenerReportesParaCalendario(casaDePazId as string, desde, hasta),
+    enabled: !!casaDePazId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** KAN-367: primera fecha de reunión histórica de la CdP -- antes de eso, el calendario no puede marcar "no entregado" (todavía no existía). */
+export function usePrimeraFechaReunion(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'primera-fecha-reunion', casaDePazId],
+    queryFn: () => obtenerPrimeraFechaReunion(casaDePazId as string),
+    enabled: !!casaDePazId,
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
 export function useHistorialAsistencia(
   casaDePazId: string | undefined,
   anio: number,
@@ -201,6 +234,37 @@ export function usePuedeEditarReporte(reporteId: string | undefined) {
     queryKey: ['reporte', 'puede-editar', reporteId],
     queryFn: () => puedeEditarReporte(reporteId as string),
     enabled: !!reporteId,
+  });
+}
+
+/** KAN-367: Líder/Anfitrión/Dirección/Ciudad de la CdP -- panel de modificación cuando se edita un reporte ajeno. */
+export function useCdpContextoReporte(casaDePazId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'cdp-contexto', casaDePazId],
+    queryFn: () => obtenerCdpContextoReporte(casaDePazId as string),
+    enabled: habilitado && !!casaDePazId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/** KAN-367: si a este usuario (Pastor/Supervisor) se le puede ofrecer pedir autorización fuera de ventana -- solo cuando ya se sabe que puedeEditar dio false. */
+export function usePuedeSolicitarEdicionFueraVentana(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'puede-solicitar-fuera-ventana', reporteId],
+    queryFn: () => puedeSolicitarEdicionFueraVentana(reporteId as string),
+    enabled: habilitado && !!reporteId,
+  });
+}
+
+/** KAN-367: autorizar (justificación + OTP) editar un reporte fuera de la ventana normal. */
+export function useAutorizarEdicionReporteFueraVentana(reporteId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: { justificacion: string; pin: string }) =>
+      autorizarEdicionReporteFueraVentana(reporteId as string, datos.justificacion, datos.pin),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'puede-editar', reporteId] });
+    },
   });
 }
 

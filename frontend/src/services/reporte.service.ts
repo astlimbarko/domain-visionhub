@@ -186,19 +186,28 @@ export async function obtenerMegaFiestaDelDia(casaDePazId: string, fecha: string
   return { evento_id: data.id, titulo: data.titulo };
 }
 
+/**
+ * KAN-367: ordenado por fecha_creacion (últimos ENVÍOS, como ya dice el
+ * título de la sección), no por fecha_reunion -- un reporte atrasado
+ * (backfill, fecha_reunion vieja) recién creado tiene que aparecer acá
+ * arriba de todo para poder corregirlo mientras está en ventana, si no,
+ * quedaba invisible detrás de reportes con fecha_reunion más reciente pero
+ * cargados hace más tiempo (justo el caso que este ticket resuelve).
+ */
 export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<ReporteReciente[]> {
   if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
-    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, total_menores, total_mayores')
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, fecha_creacion, total_asistentes, total_menores, total_mayores')
     .in('casa_de_paz_id', casaDePazIds)
-    .order('fecha_reunion', { ascending: false })
+    .order('fecha_creacion', { ascending: false })
     .limit(10);
   if (error) throw error;
   return (data ?? []).map((r) => ({
     id: r.reporte_id,
     casa_de_paz_id: r.casa_de_paz_id,
     fecha_reunion: r.fecha_reunion,
+    fecha_creacion: r.fecha_creacion,
     total_asistentes: r.total_asistentes,
     total_menores: r.total_menores,
     total_mayores: r.total_mayores,
@@ -247,6 +256,93 @@ export async function obtenerFechasReportadas(casaDePazId: string, desde: string
     .lte('fecha_reunion', hasta);
   if (error) throw error;
   return (data ?? []).map((r) => r.fecha_reunion);
+}
+
+export interface ReporteCalendarioFila {
+  reporte_id: string;
+  fecha_reunion: string;
+  fecha_creacion: string;
+  /** Asistentes mayores de la edad mínima de creyente (ver EDAD_MINIMA_CREYENTE) -- "adultos" para el resumen del calendario. */
+  total_mayores: number;
+  total_menores: number;
+  total_ofrendas: number;
+  total_diezmos: number;
+}
+
+/**
+ * KAN-367: mismo rango que obtenerFechasReportadas, pero con lo que hace
+ * falta para que el calendario (círculos verdes) sea clickeable directo a
+ * editar y muestre un resumen al pasar el mouse -- reporte_id, fecha_creacion,
+ * adultos/niños y ofrendas/diezmos. Se mantiene obtenerFechasReportadas sin
+ * tocar (otros 2 consumidores -- DashboardLiderCdp, el propio
+ * HistorialReportes -- solo necesitan las fechas).
+ *
+ * 2 consultas en paralelo (no N+1 por círculo, todo el año de una vez):
+ * v_reporte_totales ya trae total_mayores/total_menores por reporte_id sin
+ * join extra; finanzas_ingreso ya tiene índice por reporte_id
+ * (idx_ingreso_reporte, 14_finanzas.sql) así que el filtro `IN (...)` no
+ * hace table scan.
+ */
+export async function obtenerReportesParaCalendario(
+  casaDePazId: string,
+  desde: string,
+  hasta: string
+): Promise<ReporteCalendarioFila[]> {
+  const { data: totales, error: errorTotales } = await supabase
+    .from('v_reporte_totales')
+    .select('reporte_id, fecha_reunion, fecha_creacion, total_mayores, total_menores')
+    .eq('casa_de_paz_id', casaDePazId)
+    .gte('fecha_reunion', desde)
+    .lte('fecha_reunion', hasta);
+  if (errorTotales) throw errorTotales;
+  if (!totales || totales.length === 0) return [];
+
+  const reporteIds = totales.map((r) => r.reporte_id);
+  const { data: ingresos, error: errorIngresos } = await supabase
+    .from('finanzas_ingreso')
+    .select('reporte_id, monto, tipo_ingreso:tipo_ingreso_id(codigo)')
+    .in('reporte_id', reporteIds)
+    .is('fecha_eliminacion', null);
+  if (errorIngresos) throw errorIngresos;
+
+  const ofrendaPorReporte = new Map<string, number>();
+  const diezmoPorReporte = new Map<string, number>();
+  for (const ing of ingresos ?? []) {
+    if (!ing.reporte_id) continue;
+    const tipo = Array.isArray(ing.tipo_ingreso) ? ing.tipo_ingreso[0] : ing.tipo_ingreso;
+    const mapa = tipo?.codigo === 'OFRENDA' ? ofrendaPorReporte : tipo?.codigo === 'DIEZMO' ? diezmoPorReporte : null;
+    if (mapa) mapa.set(ing.reporte_id, (mapa.get(ing.reporte_id) ?? 0) + Number(ing.monto));
+  }
+
+  return totales.map((r) => ({
+    reporte_id: r.reporte_id,
+    fecha_reunion: r.fecha_reunion,
+    fecha_creacion: r.fecha_creacion,
+    total_mayores: r.total_mayores,
+    total_menores: r.total_menores,
+    total_ofrendas: ofrendaPorReporte.get(r.reporte_id) ?? 0,
+    total_diezmos: diezmoPorReporte.get(r.reporte_id) ?? 0,
+  }));
+}
+
+/**
+ * KAN-367: primera fecha de reunión con reporte, en toda la historia de la
+ * CdP (no solo el año en pantalla) -- usa idx_reporte_cdp_fecha, consulta
+ * liviana (MIN con índice). Antes de esa fecha ninguna semana "faltó" un
+ * reporte: la CdP todavía no existía/no se reunía, así que el calendario la
+ * pinta gris en vez de roja.
+ */
+export async function obtenerPrimeraFechaReunion(casaDePazId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .is('fecha_eliminacion', null)
+    .order('fecha_reunion', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.fecha_reunion ?? null;
 }
 
 /**
@@ -577,27 +673,35 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
 }
 
 /**
- * KAN-271/375: mismo límite que fn_puede_editar_reporte_cdp (días desde la
- * fecha de reunión, inclusive) -- solo para decidir si se muestra el botón
- * "Editar" en la UI (evita un click que sabemos que va a rebotar). El
- * permiso real siempre lo valida el backend vía RLS, esto no lo reemplaza.
- * KAN-375 (2026-09-13): antes era una constante fija (7) -- ahora es
- * configurable por iglesia (`DIAS_LIMITE_EDICION_REPORTE`, Panel Supervisor
- * → Control de Reportes, mismo patrón que `obtenerDiasPlazoReporte`).
+ * KAN-271/375/367: mismo límite que fn_puede_editar_reporte_cdp -- solo para
+ * decidir si se muestra el botón "Editar" en la UI (evita un click que
+ * sabemos que va a rebotar). El permiso real siempre lo valida el backend
+ * vía RLS, esto no lo reemplaza.
+ * KAN-367 (2026-09-14): la ventana ya no se cuenta desde la fecha de
+ * reunión -- se cuenta desde `fecha_creacion` (cuándo se cargó el
+ * reporte), para que un reporte atrasado nazca con margen real para
+ * corregirse. Además se separó en 2 códigos de configuración: uno para
+ * Líder/Sublíder de CdP (`DIAS_LIMITE_EDICION_REPORTE_CDP`, default 3) y
+ * otro para Líder/Supervisor de Red, Pastor y Supervisor de la Visión en
+ * Acción (`DIAS_LIMITE_EDICION_REPORTE_RED`, default 30).
  */
-export async function obtenerDiasLimiteEdicionReporte(iglesiaId: string): Promise<number> {
-  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: 'DIAS_LIMITE_EDICION_REPORTE' });
+export async function obtenerDiasLimiteEdicionReporte(
+  iglesiaId: string,
+  codigo: 'DIAS_LIMITE_EDICION_REPORTE_CDP' | 'DIAS_LIMITE_EDICION_REPORTE_RED'
+): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: codigo });
   if (error) throw error;
-  return data ?? 7;
+  return data ?? (codigo === 'DIAS_LIMITE_EDICION_REPORTE_CDP' ? 3 : 30);
 }
 
-export function dentroDeVentanaEdicionReporte(fechaReunionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
-  const limite = new Date(`${fechaReunionISO}T00:00:00`);
+/** `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día calendario local. */
+export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
+  const limite = new Date(fechaCreacionISO);
   limite.setDate(limite.getDate() + diasLimite);
   return hoyISO <= aISO(limite);
 }
 
-/** KAN-271: si el reporte todavía se puede editar (rol + ventana de 7 días) -- ver fn_puede_editar_reporte_cdp. */
+/** KAN-271/367: si el reporte todavía se puede editar (rol + ventana configurable, ver fn_puede_editar_reporte_cdp). */
 export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('fn_puede_editar_reporte_cdp', { p_reporte_id: reporteId });
   if (error) throw error;
@@ -605,9 +709,50 @@ export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
 }
 
 /**
+ * KAN-367: contexto de la CdP (Líder, Anfitrión, Dirección, Ciudad) del
+ * reporte que se está editando -- se muestra en el panel de modificación
+ * cuando quien edita no es el propio Líder/Sublíder de esa CdP (Líder/
+ * Supervisor de Red, Pastor, Supervisor, que pueden estar editando reportes
+ * de varias CdP distintas desde Control de Reportes).
+ */
+export async function obtenerCdpContextoReporte(casaDePazId: string): Promise<{ etiqueta: string; anfitrion_nombre: string; direccion: string; ciudad: string }> {
+  const { data, error } = await supabase.rpc('fn_cdp_contexto_reporte', { p_casa_de_paz_id: casaDePazId });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * KAN-367: si este usuario (Pastor o Supervisor de la Visión en Acción)
+ * puede pedir autorización para editar este reporte aunque esté fuera de la
+ * ventana normal -- se usa solo para decidir si se le ofrece esa opción en
+ * vez de simplemente "ya no se puede editar" (Líder/Sublíder de CdP y
+ * Líder/Supervisor de Red no tienen este escape).
+ */
+export async function puedeSolicitarEdicionFueraVentana(reporteId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_puede_solicitar_edicion_fuera_ventana', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return !!data;
+}
+
+/**
+ * KAN-367: autoriza (justificación + OTP) editar un reporte fuera de la
+ * ventana normal. No modifica el reporte -- deja una autorización vigente
+ * por 15 minutos que fn_puede_editar_reporte_cdp reconoce, así el resto del
+ * flujo de edición (reporte + asistencia + ingresos) funciona sin cambios.
+ */
+export async function autorizarEdicionReporteFueraVentana(reporteId: string, justificacion: string, pin: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_autorizar_edicion_reporte_fuera_ventana', {
+    p_reporte_id: reporteId,
+    p_justificacion: justificacion,
+    p_pin: pin,
+  });
+  if (error) throw error;
+}
+
+/**
  * KAN-271: trae un reporte ya enviado para precargar el formulario en modo
  * edición (Líder/Supervisor de Red, Líder/Sublíder de CdP, dentro de la
- * ventana de 7 días -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
+ * ventana configurable -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
  * acá solo se lee).
  */
 export async function obtenerReportePorId(reporteId: string): Promise<ReporteExistente> {
@@ -672,16 +817,22 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
 }
 
 /**
- * KAN-271: edita un reporte ya enviado -- mismo flujo de datos que
+ * KAN-271/367: edita un reporte ya enviado -- mismo flujo de datos que
  * crearReporte (asistencia + ingresos), pero contra un reporte existente en
- * vez de crear uno nuevo. El permiso (rol + ventana de 7 días desde
- * fecha_reunion) lo valida RLS (fn_puede_editar_reporte_cdp); acá solo se
+ * vez de crear uno nuevo. El permiso (rol + ventana configurable desde
+ * fecha_creacion) lo valida RLS (fn_puede_editar_reporte_cdp); acá solo se
  * calcula el diff de asistencia contra lo que ya estaba guardado.
+ * KAN-367: fecha_reunion ya es parte de lo editable (antes quedaba fija) --
+ * el índice único uq_reporte_cdp_fecha sigue protegiendo contra choques al
+ * cambiarla, y fecha_creacion (el ancla real de la ventana) nunca se toca
+ * acá, así que cambiar fecha_reunion no altera el resultado de
+ * fn_puede_editar_reporte_cdp para esta misma fila.
  */
 export async function actualizarReporte(reporteId: string, datos: NuevoReporte): Promise<ResultadoReporte> {
   const { error: errorReporte } = await supabase
     .from('casa_de_paz_reporte')
     .update({
+      fecha_reunion: datos.fecha_reunion,
       libro_id: datos.libro_id || null,
       tema_id: datos.tema_id || null,
       tema_especial_txt: datos.tema_especial_txt || null,
