@@ -16,4 +16,5 @@
 - [x] KAN-380 (nuevo): agregado Anfitrión y Dirección (opcionales) al link público de registro que comparten Líder/Sublíder de CdP, migración aplicada a producción, PR #59 mergeada
 - [x] Magnus (subagente) investigó el wizard de membresía de 10 pasos por sospecha del owner -- guardado progresivo y botón "Saltar" confirmados sanos en los 10 pasos, sin bugs reales encontrados
 - [x] Probando el registro público en vivo aparecieron 2 bugs reales más, corregidos (PR #60 mergeada): (1) `FormularioPaginado` generaba un scroll interno superpuesto al scroll normal de la página en los flujos de página completa -- nuevo prop `alturaAcotada`. (2) borde del checkbox global casi invisible sin marcar, corregido con más contraste
+- [x] KAN-380 seguimiento: agregada Ciudad (vía `direccion.ciudad_id -> ciudad.nombre`) + Anfitrión/Dirección/Ciudad ahora SIEMPRE se muestran (vacíos si faltan) en vez de omitirse -- pedido explícito para que el Líder note que le falta cargar el dato. Verificado en vivo con 2 casos reales, PR #61 mergeada
 - [ ] Pendiente: destrabar la facturación de GitHub para que el deploy automático (KAN-379) corra de verdad por primera vez
