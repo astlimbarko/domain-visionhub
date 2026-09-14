@@ -75,6 +75,25 @@ export default {
       invitacionId?: string;
       redirectTo?: string;
       pin?: string;
+      // KAN-376 seguimiento (2026-09-13, pedido explicito del owner): en vez
+      // de mandar el correo de invitacion (persona sin tecnologia a mano, o
+      // no confia en el correo), permite crear la cuenta ya con esta
+      // contrasena y el correo confirmado -- se la dice el admin de palabra,
+      // igual que ya hace establecer-contrasena-temporal (KAN-278).
+      contrasena?: string;
+      // KAN-376 seguimiento (2026-09-14, pedido explicito del owner): junto
+      // con la contrasena directa, tambien crea la Persona y el cargo real
+      // de una sola vez (fn_alta_directa_lider_cdp) -- sin esto, la cuenta
+      // quedaba en un estado intermedio raro (contrasena + invitacion
+      // PENDIENTE, sin rol real hasta que alguien completara el wizard).
+      // Acotado a Lider/Sublider de CdP -- ver fn_alta_directa_lider_cdp.
+      datosPersona?: {
+        primerNombre?: string;
+        segundoNombre?: string;
+        primerApellido?: string;
+        segundoApellido?: string;
+        sexo?: string;
+      };
     };
     try {
       body = await req.json();
@@ -197,13 +216,67 @@ export default {
       }
     }
 
+    const contrasenaDirecta = body.contrasena?.trim();
+    if (contrasenaDirecta && contrasenaDirecta.length < 8) {
+      return Response.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 });
+    }
+
+    // KAN-376 seguimiento (2026-09-14, pedido explicito): nombre/apellido/
+    // sexo son OPCIONALES con contrasena directa -- si no vienen, la cuenta
+    // se crea solo con contrasena (sigue el flujo de siempre, la persona
+    // completa su propio nombre/apellido/sexo en el wizard de membresia al
+    // entrar por primera vez). Si vienen, se exigen los 3 juntos (no tiene
+    // sentido un estado a medias) y se crea la Persona/cargo real de una
+    // sola vez -- acotado a Lider/Sublider de CdP, mismo alcance que
+    // permiteContrasenaDirecta en el frontend.
+    let datosPersonaValidados:
+      | { primerNombre: string; segundoNombre?: string; primerApellido: string; segundoApellido?: string; sexo: string }
+      | null = null;
+    if (contrasenaDirecta && body.datosPersona) {
+      const dp = body.datosPersona;
+      const primerNombre = dp.primerNombre?.trim();
+      const primerApellido = dp.primerApellido?.trim();
+      const sexo = dp.sexo?.trim();
+      const algunoCompletado = primerNombre || primerApellido || sexo;
+      if (algunoCompletado) {
+        if (!primerNombre || !primerApellido || !sexo) {
+          return Response.json({ error: "Si completás nombre/apellido/sexo, se necesitan los 3 juntos (o dejalos todos vacíos)" }, { status: 400 });
+        }
+        if (rol !== "LIDER_CDP" && rol !== "SUBLIDER_CDP") {
+          return Response.json({ error: "Contraseña directa solo está disponible para Líder/Sublíder de Casa de Paz por ahora" }, { status: 400 });
+        }
+        datosPersonaValidados = {
+          primerNombre,
+          segundoNombre: dp.segundoNombre?.trim() || undefined,
+          primerApellido,
+          segundoApellido: dp.segundoApellido?.trim() || undefined,
+          sexo,
+        };
+      }
+    }
+
     const dataCorreo = await datosInvitacionParaCorreo(ctx, rol, redId, casaDePazId, departamentoId);
-    const { data, error } = await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
-      redirectTo: body.redirectTo,
-      // KAN-201: marca que el hook_restringir_alta_no_google (Before User
-      // Created) usa para distinguir esta alta de un registro publico.
-      data: { ...dataCorreo, invitado_por_admin: true },
-    });
+    // KAN-376 seguimiento: con contrasena directa, se crea la cuenta YA
+    // confirmada y con esa contrasena -- no se manda ningun correo (createUser,
+    // no inviteUserByEmail). Sin ella, sigue el flujo de siempre.
+    const { data, error } = contrasenaDirecta
+      ? await ctx.supabaseAdmin.auth.admin.createUser({
+          email: correo,
+          password: contrasenaDirecta,
+          email_confirm: true,
+          // KAN-201: hook_restringir_alta_no_google (Before User Created) lee
+          // invitado_por_admin de user_metadata, no de app_metadata -- mismo
+          // campo que ya usa inviteUserByEmail vía `data`, ver
+          // 20260815010000_fix_hook_invitacion_admin_bloqueada.sql:39.
+          user_metadata: { ...dataCorreo, invitado_por_admin: true },
+          // debe_cambiar_contrasena sí va en app_metadata -- mismo campo que
+          // ya lee auth.service.ts (KAN-278, establecer-contrasena-temporal).
+          app_metadata: { debe_cambiar_contrasena: true },
+        })
+      : await ctx.supabaseAdmin.auth.admin.inviteUserByEmail(correo, {
+          redirectTo: body.redirectTo,
+          data: { ...dataCorreo, invitado_por_admin: true },
+        });
 
     if (error) {
       if (error.status === 409 || error.code === "email_exists") {
@@ -246,20 +319,36 @@ export default {
       return Response.json({ error: error.message }, { status: 500 });
     }
 
-    const { error: errorInvitar } = rol === "SUPERVISOR_RED"
-      ? await ctx.supabase.rpc("fn_estructura_invitar_supervisor_red", {
-          p_usuario_id: data.user.id,
-          p_correo: correo,
-          p_red_id: redId,
-        })
-      : await ctx.supabase.rpc("fn_invitar_lider", {
+    // KAN-376 seguimiento (2026-09-14): con datosPersonaValidados, se crea
+    // la Persona y el cargo real de una sola vez (fn_alta_directa_lider_cdp)
+    // -- sin invitacion PENDIENTE de por medio. Sin ellos, sigue el flujo de
+    // siempre (fn_invitar_lider/fn_estructura_invitar_supervisor_red).
+    const { error: errorInvitar } = datosPersonaValidados
+      ? await ctx.supabase.rpc("fn_alta_directa_lider_cdp", {
           p_usuario_id: data.user.id,
           p_correo: correo,
           p_rol: rol,
-          p_red_id: redId,
           p_casa_de_paz_id: casaDePazId,
-          p_departamento_id: departamentoId,
-        });
+          p_primer_nombre: datosPersonaValidados.primerNombre,
+          p_segundo_nombre: datosPersonaValidados.segundoNombre ?? null,
+          p_primer_apellido: datosPersonaValidados.primerApellido,
+          p_segundo_apellido: datosPersonaValidados.segundoApellido ?? null,
+          p_sexo: datosPersonaValidados.sexo,
+        })
+      : rol === "SUPERVISOR_RED"
+        ? await ctx.supabase.rpc("fn_estructura_invitar_supervisor_red", {
+            p_usuario_id: data.user.id,
+            p_correo: correo,
+            p_red_id: redId,
+          })
+        : await ctx.supabase.rpc("fn_invitar_lider", {
+            p_usuario_id: data.user.id,
+            p_correo: correo,
+            p_rol: rol,
+            p_red_id: redId,
+            p_casa_de_paz_id: casaDePazId,
+            p_departamento_id: departamentoId,
+          });
     if (errorInvitar) {
       return Response.json({ error: errorInvitar.message }, { status: 500 });
     }

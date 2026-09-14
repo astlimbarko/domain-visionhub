@@ -3,7 +3,6 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -25,7 +24,7 @@ import {
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type FormularioPaginadoHandle } from '@/components/shared/FormularioPaginado';
-import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
+import { obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useMinisterios } from '@/hooks/useMinisterios';
 import { aceptarInvitacionLider, notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
@@ -171,7 +170,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
-  const logout = useAuthStore((s) => s.logout);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const correo = useAuthStore((s) => s.correo);
   // KAN-192: el modal saluda por nombre; si todavía no llenó su nombre
@@ -298,11 +296,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     formularioRef.current?.irA(primeraPagina.indice);
   }
 
-  async function salir() {
-    await cerrarSesion();
-    logout();
-  }
-
   function saltar() {
     saltarMembresiaLocal();
   }
@@ -360,28 +353,21 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             pasoInicial={personaCreada ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit, onSubmitInvalido)}
             notaPie={
-              personaCreada && (
-                <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
-                  Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
-                </p>
-              )
+              <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
+                Se puede <strong>saltar</strong> en cualquier momento
+                {personaCreada && ' — el avance queda guardado'}. La próxima vez que inicie sesión se le va a pedir
+                de nuevo.
+              </p>
             }
             accionExtra={
-              personaCreada ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto"
-                  onClick={saltar}
-                >
-                  Saltar
-                </Button>
-              ) : (
-                <Button type="button" variant="outline" className="w-full gap-1.5 sm:w-auto" onClick={salir}>
-                  <LogOut className="h-4 w-4" />
-                  Salir sin completar
-                </Button>
-              )
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+                onClick={saltar}
+              >
+                Saltar
+              </Button>
             }
             pasos={[
               {

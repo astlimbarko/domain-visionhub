@@ -73,10 +73,26 @@ function DashboardContextual({ contexto, vistaInicial }: DashboardContextualProp
 }
 
 export function Dashboard() {
-  const { contextoActivo } = useContextoActivo();
+  const { contextoActivo, contextosDisponibles } = useContextoActivo();
 
   if (!contextoActivo) {
-    return <Navigate to={ROUTES.SELECCIONAR_ROL} replace />;
+    // KAN-376 seguimiento (2026-09-13): mandar siempre a SELECCIONAR_ROL acá
+    // rebotaba en loop infinito (parpadeo) contra el guard equivalente de esa
+    // pantalla (opcionesContextuales.length <= 1 -> vuelve para acá) apenas
+    // una cuenta con 0 roles resueltos podía llegar al Dashboard -- posible
+    // desde que una invitación real sin Persona todavía deja de estar
+    // bloqueada antes de PrivateLayout. Solo tiene sentido elegir si hay más
+    // de una opción; con 0 o 1 no hay nada que elegir (mismo criterio que ya
+    // usa PrivateLayout para esta misma redirección).
+    if (contextosDisponibles && contextosDisponibles.length > 1) {
+      return <Navigate to={ROUTES.SELECCIONAR_ROL} replace />;
+    }
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
+        <p className="font-medium text-foreground">Todavía no tenés ningún rol asignado en esta iglesia.</p>
+        <p className="text-sm">Completá tu membresía o esperá a que te asignen un cargo para ver tu panel.</p>
+      </div>
+    );
   }
 
   const vistaInicial = vistaInicialParaContexto(contextoActivo);

@@ -83,27 +83,6 @@ export function PrivateLayout() {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  // KAN-252 (seguimiento): el caso de invitación real (invitacion_lider,
-  // invitacion.id !== null) sigue sin panel hasta que la persona completa la
-  // página 1 del wizard ("Tu nombre") -- recién ahí se crea la Persona real +
-  // el cargo (fn_aceptar_invitacion_lider), porque el trigger que valida
-  // Persona exige nombre/apellido/sexo reales, que no existen antes de esa
-  // página. El caso general (id === null) sí tiene panel resuelto desde el
-  // inicio (el cargo vive en usuario_rol, no depende de que exista Persona).
-  if (membresiaPendiente && membresiaPendiente.id !== null) {
-    return (
-      <>
-        <MembresiaObligatoria invitacion={membresiaPendiente} />
-        {debeCambiarContrasena && (
-          <CambiarContrasenaObligatoriaModal
-            onGuardado={() => setDebeCambiarContrasena(false)}
-            onSaltar={saltarCambioContrasenaLocal}
-          />
-        )}
-      </>
-    );
-  }
-
   async function handleCerrarSesion() {
     await cerrarSesion();
     logout();
@@ -141,12 +120,20 @@ export function PrivateLayout() {
     <AppShell>
       <BannerModoLectura />
       <Outlet />
-      {membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />}
-      {debeCambiarContrasena && (
+      {/* KAN-376 seguimiento (2026-09-14): antes los dos modales se montaban
+          a la vez cuando una cuenta tenia AMBOS pendientes (contrasena
+          temporal + membresia sin completar, caso real con Felipa) -- se
+          veian superpuestos y, al cerrar el de contrasena, el de membresia
+          aparecia de golpe como si la pantalla se hubiera "reiniciado".
+          Secuenciados: membresia recien se muestra despues de resolver el
+          cambio de contrasena. */}
+      {debeCambiarContrasena ? (
         <CambiarContrasenaObligatoriaModal
           onGuardado={() => setDebeCambiarContrasena(false)}
           onSaltar={saltarCambioContrasenaLocal}
         />
+      ) : (
+        membresiaPendiente && <MembresiaObligatoria invitacion={membresiaPendiente} />
       )}
       {!membresiaPendiente && actualizacionMembresiaPendiente && (
         <ActualizacionMembresiaModal

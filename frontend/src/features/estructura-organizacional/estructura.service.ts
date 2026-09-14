@@ -80,6 +80,7 @@ interface InvitacionRedFila {
   casa_de_paz_id: string | null;
   cargo_codigo: string;
   estado: 'PENDIENTE' | 'COMPLETADA';
+  usuario_id: string;
 }
 
 interface PersonaBusquedaFila {
@@ -323,6 +324,7 @@ export async function obtenerEstructuraOrganizacional(
     etiqueta: invitacion.correo,
     membresiaPendiente: true,
     invitacionId: invitacion.id,
+    usuarioId: invitacion.usuario_id,
   });
   const invitadosDe = (redId: string, codigo: CargoRedEstructura): PersonaEstructura[] =>
     invitacionesPendientes

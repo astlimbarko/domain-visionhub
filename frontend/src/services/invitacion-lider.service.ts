@@ -21,13 +21,29 @@ async function extraerError(error: unknown): Promise<ErrorPersonaExistente> {
   return error as Error;
 }
 
+/** KAN-376 seguimiento (2026-09-14): datos mínimos para crear la Persona +
+ * cargo real de una vez, junto con la contraseña directa -- sin esto la
+ * cuenta quedaba en un estado intermedio (contraseña, sin rol real hasta
+ * que alguien completara el wizard). Acotado a Líder/Sublíder de CdP. */
+export interface DatosPersonaAltaDirecta {
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido?: string;
+  sexo: 'M' | 'F';
+}
+
 export async function invitarLider(
   correo: string,
   rol: RolInvitable | 'SUPERVISOR_RED' | null,
   redId: string | null,
   casaDePazId: string | null,
   departamentoId: string | null = null,
-  pin?: string
+  pin?: string,
+  /** KAN-376 seguimiento: si viene, crea la cuenta con esta contraseña ya
+   * confirmada en vez de mandar el correo de invitación. */
+  contrasena?: string,
+  datosPersona?: DatosPersonaAltaDirecta
 ): Promise<{ id: string; correo: string; yaExistia?: boolean }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
@@ -38,6 +54,8 @@ export async function invitarLider(
       casaDePazId,
       departamentoId,
       pin,
+      contrasena,
+      datosPersona,
       redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });

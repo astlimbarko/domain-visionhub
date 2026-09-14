@@ -9,7 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -22,6 +26,21 @@ import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
  * línea vacía. Cae al correo, igual que ya hace el resto de la app. */
 function etiquetaCargoVigente(v: CargoVigente): string {
   return v.nombre_completo.trim() || v.correo || 'Sin nombre';
+}
+
+/** KAN-376 seguimiento (2026-09-14): piso real que la base exige para crear
+ * una Persona (nombre/apellido/sexo). Este diálogo ya NO pide estos datos
+ * en pantalla (pedido explícito del owner: la persona invitada completa su
+ * propio nombre/apellido/sexo en el wizard de membresía al entrar) -- el
+ * tipo queda documentado acá porque `fn_alta_directa_lider_cdp` y el
+ * backend lo siguen aceptando para casos puntuales llamados directo
+ * (fuera de este diálogo), no por deuda técnica. */
+export interface DatosPersonaDirecta {
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido?: string;
+  sexo: 'M' | 'F';
 }
 
 interface Props {
@@ -46,7 +65,21 @@ interface Props {
    * asignarla?" y recién al confirmar llama a `onAsignar` (mismo callback
    * que ya usa la búsqueda manual). Devolver `void`/nada es una invitación
    * nueva real (todavía sin cuenta), sigue el flujo de siempre. */
-  onInvitar?: (correo: string) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
+  /** KAN-376 seguimiento: segundo argumento opcional -- cuando viene, el
+   * caller debe crear la cuenta con esa contraseña directo (sin correo).
+   * Este diálogo siempre manda `undefined` como tercer argumento (ver
+   * `DatosPersonaDirecta`) -- ver `permiteContrasenaDirecta`. */
+  onInvitar?: (
+    correo: string,
+    contrasena?: string,
+    datosPersona?: DatosPersonaDirecta
+  ) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
+  /** KAN-376 seguimiento (2026-09-13, pedido explicito del owner): habilita
+   * la opcion "asignar contraseña directamente" en el modo Invitar, para
+   * personas a las que les cuesta la tecnologia (no dependen de un correo).
+   * Default false -- opt-in explicito por caller, no aparece en pantallas
+   * que todavia no lo probaron. */
+  permiteContrasenaDirecta?: boolean;
   /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
    * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
    * correo, o quitar a alguien quedan detrás de un paso de confirmación con
@@ -71,6 +104,15 @@ interface Props {
    * diálogos del constructor, que sí lo respetan. Opcional, default `true`
    * (mismo comportamiento de siempre) para no afectar a quien no lo pasa. */
   otpRequerido?: boolean;
+  /** KAN-376 seguimiento (2026-09-13, hallazgo del owner probando en vivo):
+   * una invitación PENDIENTE (sin Persona todavía) no aparece en `vigentes`
+   * (eso es solo cargos confirmados) -- clic en "Cambiar" mostraba "Sin
+   * nadie asignado todavía" sin ninguna forma de cancelarla, aunque el
+   * panel de atrás sí mostraba a esa persona como Líder/Sublíder. Se listan
+   * acá al lado de `vigentes`, con su propia acción de cancelar. */
+  invitacionesPendientes?: { id: string; correo: string }[];
+  onCancelarInvitacion?: (invitacionId: string) => void;
+  cancelandoInvitacion?: boolean;
 }
 
 export function AsignarCargoDialog({
@@ -93,11 +135,18 @@ export function AsignarCargoDialog({
   excluirIdsExtra = [],
   otpRequerido = true,
   cdpId,
+  permiteContrasenaDirecta = false,
+  invitacionesPendientes = [],
+  onCancelarInvitacion,
+  cancelandoInvitacion = false,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
+  const [usarContrasenaDirecta, setUsarContrasenaDirecta] = useState(false);
+  const [contrasenaDirecta, setContrasenaDirecta] = useState('12345678');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
+  const [aCancelarInvitacion, setACancelarInvitacion] = useState<{ id: string; correo: string } | null>(null);
   const [invitadoOk, setInvitadoOk] = useState(false);
   const [personaExistente, setPersonaExistente] = useState<{ id: string; nombre: string } | null>(null);
   const cierreAutomaticoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,7 +159,12 @@ export function AsignarCargoDialog({
   useEffect(() => {
     if (!open && invitadoOk) setInvitadoOk(false);
     if (!open && personaExistente) setPersonaExistente(null);
-  }, [open, invitadoOk, personaExistente]);
+    if (!open && aCancelarInvitacion) setACancelarInvitacion(null);
+    if (!open && usarContrasenaDirecta) {
+      setUsarContrasenaDirecta(false);
+      setContrasenaDirecta('12345678');
+    }
+  }, [open, invitadoOk, personaExistente, aCancelarInvitacion, usarContrasenaDirecta]);
 
   useEffect(() => () => {
     if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
@@ -137,7 +191,12 @@ export function AsignarCargoDialog({
   // siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    const resultado = onInvitar(correoInvitar.trim().toLowerCase());
+    if (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8) return;
+    const resultado = onInvitar(
+      correoInvitar.trim().toLowerCase(),
+      usarContrasenaDirecta ? contrasenaDirecta.trim() : undefined,
+      undefined
+    );
     setCorreoInvitar('');
     if (resultado && typeof resultado.then === 'function') {
       resultado.then((r) => {
@@ -169,6 +228,12 @@ export function AsignarCargoDialog({
     setAQuitar(null);
   }
 
+  function confirmarCancelarInvitacion() {
+    if (!aCancelarInvitacion || !onCancelarInvitacion) return;
+    onCancelarInvitacion(aCancelarInvitacion.id);
+    setACancelarInvitacion(null);
+  }
+
   // Bug real (2026-08-15): sin un <form>, Enter en el input de correo o de
   // OTP no hacía nada (solo funcionaba con el mouse) -- un <form> hace que
   // el navegador dispare "submit" con Enter en cualquier input de texto de
@@ -177,6 +242,8 @@ export function AsignarCargoDialog({
     e.preventDefault();
     if (aQuitar) {
       confirmarBaja();
+    } else if (aCancelarInvitacion) {
+      confirmarCancelarInvitacion();
     } else if (personaExistente) {
       confirmarAsignarExistente();
     } else if (modo === 'invitar') {
@@ -208,7 +275,7 @@ export function AsignarCargoDialog({
         <div className="flex flex-col gap-3">
           {cargandoVigentes ? (
             <Skeleton className="h-8 w-full" />
-          ) : vigentes.length > 0 ? (
+          ) : vigentes.length > 0 || invitacionesPendientes.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {vigentes.map((v, i) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
@@ -228,6 +295,29 @@ export function AsignarCargoDialog({
                     // toque real sin agrandar el icono visible, mismo patron
                     // ya usado en el resto del Constructor (paneles laterales,
                     // botones de zoom/centrar).
+                    className="relative before:absolute before:-inset-2 before:content-['']"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {/* KAN-376 seguimiento: invitación PENDIENTE, todavía sin Persona
+                  -- no está en `vigentes`, pero igual se ve como asignada en el
+                  panel de atrás. Mismo estilo que arriba, distinguida con
+                  "(invitación pendiente)" y su propia acción de cancelar. */}
+              {invitacionesPendientes.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-1.5 text-sm">
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate">{inv.correo}</span>
+                    <span className="text-[11px] text-amber-700">Invitación pendiente</span>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setACancelarInvitacion(inv)}
+                    disabled={cancelandoInvitacion}
+                    aria-label="Cancelar invitación"
                     className="relative before:absolute before:-inset-2 before:content-['']"
                   >
                     <X className="h-4 w-4" />
@@ -254,7 +344,21 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && personaExistente && (
+          {aCancelarInvitacion && (
+            <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm text-foreground">
+                ¿Cancelar la invitación a <span className="font-medium">{aCancelarInvitacion.correo}</span>?
+              </p>
+              {cancelandoInvitacion && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Spinner className="h-3.5 w-3.5" />
+                  Cancelando...
+                </p>
+              )}
+            </div>
+          )}
+
+          {!aQuitar && !aCancelarInvitacion && personaExistente && (
             <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
               <p className="text-sm text-foreground">
                 Ya existe una cuenta con ese correo, asociada a{' '}
@@ -270,7 +374,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !personaExistente && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && invitable && (
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
@@ -295,7 +399,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !personaExistente && modo === 'buscar' && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'buscar' && (
             personaElegida ? (
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                 <span className="truncate">{personaElegida.nombre_completo}</span>
@@ -313,11 +417,11 @@ export function AsignarCargoDialog({
             )
           )}
 
-          {!aQuitar && !personaExistente && modo === 'invitar' && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
-                Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
-                primera vez va a tener que completar el formulario de membresía antes de ver su panel.
+                Si todavía no existe en el sistema, se le invita por correo y deberá completar su membresía al
+                ingresar.
               </p>
               <Input
                 type="email"
@@ -325,14 +429,47 @@ export function AsignarCargoDialog({
                 value={correoInvitar}
                 onChange={(e) => setCorreoInvitar(e.target.value)}
               />
+              {/* KAN-376 seguimiento (2026-09-13): para personas a las que les
+                  cuesta la tecnologia -- en vez de mandar un correo que puede
+                  no llegar a usarse, se le asigna una contraseña directo. Se
+                  la dice el admin de palabra, nunca por escrito, igual que
+                  RestablecerContrasenaBoton (KAN-278). Texto en español neutro,
+                  sin voseo (2026-09-14, pedido explicito). No pide nombre/
+                  apellido/sexo -- eso quedo a criterio de la persona invitada,
+                  que lo completa ella misma en el wizard de membresia al
+                  entrar por primera vez (fn_invitar_lider de siempre, el
+                  backend igual soporta datosPersona opcional si algun dia se
+                  necesita de nuevo via llamada directa). */}
+              {permiteContrasenaDirecta && (
+                <>
+                  <label className="group/field mt-1 flex items-center gap-2.5">
+                    <Checkbox
+                      checked={usarContrasenaDirecta}
+                      onCheckedChange={(v) => setUsarContrasenaDirecta(v === true)}
+                      className="size-5 border-2"
+                    />
+                    <span className="text-sm text-foreground">Configurar contraseña por defecto</span>
+                  </label>
+                  {usarContrasenaDirecta && (
+                    <div className="flex flex-col gap-1.5">
+                      <PasswordInput
+                        value={contrasenaDirecta}
+                        onChange={(e) => setContrasenaDirecta(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                      <p className="text-xs text-muted-foreground">No necesita confirmación por correo.</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          {!aQuitar && !personaExistente && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
             <CampoOtp value={pin ?? ''} onChange={onPinChange} />
           )}
 
-          {!aQuitar && !personaExistente && asignando && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && asignando && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Spinner className="h-3.5 w-3.5" />
               Asignando...
@@ -347,6 +484,15 @@ export function AsignarCargoDialog({
             </Button>
             <Button type="submit" variant="destructive" disabled={quitando || !pinValido}>
               {quitando ? 'Dando de baja...' : 'Confirmar baja'}
+            </Button>
+          </DialogFooter>
+        ) : aCancelarInvitacion ? (
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setACancelarInvitacion(null)} disabled={cancelandoInvitacion}>
+              No
+            </Button>
+            <Button type="submit" variant="destructive" disabled={cancelandoInvitacion}>
+              {cancelandoInvitacion ? 'Cancelando...' : 'Sí, cancelar invitación'}
             </Button>
           </DialogFooter>
         ) : personaExistente ? (
@@ -366,9 +512,16 @@ export function AsignarCargoDialog({
                   {asignando ? 'Asignando...' : 'Confirmar'}
                 </Button>
               ) : (
-                <Button type="submit" className="gap-1.5" disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                <Button
+                  type="submit"
+                  className="gap-1.5"
+                  disabled={
+                    invitando || !correoInvitar.trim() || !pinValido ||
+                    (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8)
+                  }
+                >
                   {invitando && <Spinner className="h-3.5 w-3.5" />}
-                  {invitando ? 'Enviando...' : 'Invitar'}
+                  {invitando ? 'Guardando...' : usarContrasenaDirecta ? 'Agregar y asignar contraseña' : 'Invitar'}
                 </Button>
               )}
             </DialogFooter>
