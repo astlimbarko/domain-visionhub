@@ -257,6 +257,7 @@ export function FormularioMembresiaPublico({ slug, camposObligatorios, onExito }
       enviando={isSubmitting}
       textoFinalizar={t('registroPublico.enviar')}
       onFinalizar={handleSubmit(onSubmit)}
+      alturaAcotada={false}
     />
   );
 }

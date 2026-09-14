@@ -286,6 +286,7 @@ export function RegistrarPersonaAfirmacion({ iglesiaId, soloLectura = false }: P
         enviando={isSubmitting}
         textoFinalizar="Registrar persona"
         onFinalizar={handleSubmit(onSubmit)}
+        alturaAcotada={false}
       />
     </div>
   );
