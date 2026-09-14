@@ -259,6 +259,29 @@ export async function obtenerFechasReportadas(casaDePazId: string, desde: string
 }
 
 /**
+ * KAN-367: mismo rango que obtenerFechasReportadas, pero con reporte_id y
+ * fecha_creacion -- lo que hace falta para que el calendario (círculos
+ * verdes) sea clickeable directo a editar, sin depender del botón aparte de
+ * "Reportes recientes". Se mantiene la función de arriba sin tocar (otros 2
+ * consumidores -- DashboardLiderCdp, el propio HistorialReportes -- solo
+ * necesitan las fechas, no el id).
+ */
+export async function obtenerReportesParaCalendario(
+  casaDePazId: string,
+  desde: string,
+  hasta: string
+): Promise<{ reporte_id: string; fecha_reunion: string; fecha_creacion: string }[]> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('reporte_id:id, fecha_reunion, fecha_creacion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .gte('fecha_reunion', desde)
+    .lte('fecha_reunion', hasta);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
  * Testimonios ya guardados en los reportes semanales de una CdP (campo libre
  * `casa_de_paz_reporte.testimonios`), agrupados por reunión -- card
  * "Testimonio" del dashboard del Líder de CdP (2026-09-08).

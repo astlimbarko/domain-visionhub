@@ -1,15 +1,20 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Flame, History, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
-import { useHistorialReportes } from '@/hooks/useReporte';
+import { useDiasLimiteEdicionReporte, useReportesParaCalendario } from '@/hooks/useReporte';
+import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
+import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
 
 interface Props {
   casaDePazId: string | undefined;
+  /** KAN-367: hace falta para resolver la ventana de edición configurable por iglesia. */
+  iglesiaId: string | undefined;
 }
 
 const NOMBRES_MES = [
@@ -79,7 +84,8 @@ function semanasDelAnioPorMes(anio: number) {
  * semana; rojo = la semana ya cerró sin reporte; gris = semana actual o
  * futura, todavía no corresponde.
  */
-export function HistorialReportesCalendario({ casaDePazId }: Props) {
+export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
+  const navigate = useNavigate();
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const hoyISO = aISO(hoy);
@@ -88,9 +94,20 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
   const desde = grupos[0].semanas[0].inicio;
   const hasta = grupos[grupos.length - 1].semanas.at(-1)!.fin;
 
-  const { data: fechasReportadas = [], isLoading } = useHistorialReportes(casaDePazId, desde, hasta);
+  const { data: reportes = [], isLoading } = useReportesParaCalendario(casaDePazId, desde, hasta);
+  // KAN-367: ventana de edición del propio Líder/Sublíder de esta CdP (el
+  // calendario es su vista, no la de Red/Supervisor -- esa usa la ventana larga en ControlReportesVista).
+  const { data: diasLimiteEdicion = 3 } = useDiasLimiteEdicionReporte(iglesiaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
 
+  const fechasReportadas = useMemo(() => reportes.map((r) => r.fecha_reunion), [reportes]);
   const semanasConReporte = useMemo(() => new Set(fechasReportadas.map((f) => inicioSemanaISO(f))), [fechasReportadas]);
+  // Un reporte por semana (mismo criterio que el resto del calendario) -- si
+  // hubiera más de uno en la misma semana, se queda con el último leído.
+  const reportePorSemana = useMemo(() => {
+    const mapa = new Map<string, { reporteId: string; fechaCreacion: string }>();
+    for (const r of reportes) mapa.set(inicioSemanaISO(r.fecha_reunion), { reporteId: r.reporte_id, fechaCreacion: r.fecha_creacion });
+    return mapa;
+  }, [reportes]);
 
   // Numeración continua de semanas (1..N) en orden cronológico, para el rótulo de cada círculo.
   const numeroDeSemana = useMemo(() => {
@@ -114,6 +131,12 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
   }, [grupos, semanasConReporte, hoyISO]);
 
   const cumplimiento = vencidas > 0 ? Math.round((enviadas / vencidas) * 100) : 0;
+
+  // KAN-367: aviso de que los círculos verdes se pueden editar -- solo aparece si hay al menos uno editable a la vista.
+  const hayReporteEditable = useMemo(
+    () => reportes.some((r) => dentroDeVentanaEdicionReporte(r.fecha_creacion, diasLimiteEdicion)),
+    [reportes, diasLimiteEdicion]
+  );
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -173,6 +196,16 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
               </span>
             </div>
 
+            {/* KAN-367: aviso de que los círculos verdes se pueden editar -- solo si hay al menos uno editable a la vista. */}
+            {hayReporteEditable && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] text-muted-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Pencil className="h-3 w-3" />
+                </span>
+                Tocá un círculo verde para modificar ese reporte (hasta {diasLimiteEdicion} días después de cargado).
+              </div>
+            )}
+
             {/* Filas por mes: nombre completo + círculos numerados (semana 1-53 del año) */}
             <div className="flex flex-col gap-1">
               {grupos.map((grupo) => {
@@ -195,21 +228,32 @@ export function HistorialReportesCalendario({ casaDePazId }: Props) {
                         const enviado = semanasConReporte.has(s.inicio);
                         const semanaVencida = s.fin < hoyISO;
                         const faltante = !enviado && semanaVencida;
+                        // KAN-367: el círculo verde se puede editar mientras el reporte de esa
+                        // semana siga dentro de la ventana configurable (desde que se cargó,
+                        // no desde la reunión) -- el permiso real lo valida el backend igual,
+                        // esto solo decide si el círculo se muestra como clickeable.
+                        const reporteSemana = reportePorSemana.get(s.inicio);
+                        const editable = enviado && !!reporteSemana && dentroDeVentanaEdicionReporte(reporteSemana.fechaCreacion, diasLimiteEdicion);
+                        const tituloBase = `${fechaLegible(s.inicio)} – ${fechaLegible(s.fin)}: ${enviado ? 'reporte entregado' : faltante ? 'no entregado' : 'todavía no corresponde'}`;
 
                         return (
-                          <div
+                          <button
                             key={s.inicio}
-                            title={`${fechaLegible(s.inicio)} – ${fechaLegible(s.fin)}: ${enviado ? 'reporte entregado' : faltante ? 'no entregado' : 'todavía no corresponde'}`}
+                            type="button"
+                            disabled={!editable}
+                            onClick={editable ? () => navigate(rutaReporteEditar(reporteSemana.reporteId)) : undefined}
+                            title={editable ? `${tituloBase} · click para modificar` : tituloBase}
                             className={cn(
-                              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
+                              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
                               enviado && 'text-white',
                               faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
-                              !enviado && !faltante && 'bg-muted text-muted-foreground/60'
+                              !enviado && !faltante && 'bg-muted text-muted-foreground/60',
+                              editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
                             )}
                             style={enviado ? { backgroundColor: VERDE, boxShadow: `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)` } : undefined}
                           >
                             {numeroDeSemana.get(s.inicio)}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

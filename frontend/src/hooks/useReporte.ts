@@ -11,6 +11,7 @@ import {
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerReportesParaCalendario,
   obtenerIdsLiderCdp,
   obtenerLibros,
   obtenerMegaFiestaDelDia,
@@ -155,6 +156,16 @@ export function useHistorialReportes(casaDePazId: string | undefined, desde: str
   return useQuery({
     queryKey: ['reporte', 'historial-fechas', casaDePazId, desde, hasta],
     queryFn: () => obtenerFechasReportadas(casaDePazId as string, desde, hasta),
+    enabled: !!casaDePazId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** KAN-367: igual que useHistorialReportes, pero con reporte_id/fecha_creacion -- para el calendario clickeable. */
+export function useReportesParaCalendario(casaDePazId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['reporte', 'historial-calendario', casaDePazId, desde, hasta],
+    queryFn: () => obtenerReportesParaCalendario(casaDePazId as string, desde, hasta),
     enabled: !!casaDePazId,
     placeholderData: keepPreviousData,
   });

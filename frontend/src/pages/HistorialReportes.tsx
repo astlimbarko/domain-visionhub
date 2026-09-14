@@ -1,7 +1,6 @@
-import { CalendarCheck2, Flame, History, Pencil, Sparkles } from 'lucide-react';
+import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { useLocation } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
@@ -12,9 +11,7 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useDiasLimiteEdicionReporte, useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
-import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
-import { rutaReporteEditar } from '@/utils/constants';
+import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
@@ -33,7 +30,6 @@ function semanasVentana(hoy: Date, n: number): { inicio: string; fin: string }[]
 }
 
 export function HistorialReportes() {
-  const navigate = useNavigate();
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI;
   const location = useLocation();
@@ -46,11 +42,6 @@ export function HistorialReportes() {
   const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const contenedorRef = useRef<HTMLDivElement>(null);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
-  // KAN-375/367: ventana configurable por iglesia, contada desde que se
-  // CARGÓ el reporte (no desde la fecha de la reunión) -- si todavía no
-  // cargó, se asume 3 (mismo default que ya tiene el backend para esta
-  // ventana) para no ocultar "Editar" de golpe mientras resuelve la query.
-  const { data: diasLimiteEdicion = 3 } = useDiasLimiteEdicionReporte(iglesiaActivaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -142,13 +133,15 @@ export function HistorialReportes() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <HistorialReportesCalendario casaDePazId={cdpActiva} />
+          <HistorialReportesCalendario casaDePazId={cdpActiva} iglesiaId={iglesiaActivaId} />
         </div>
 
         <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
           <TarjetaHeader icon={History} color={AZUL} titulo="Reportes recientes" descripcion="Últimos envíos de esta Casa de Paz" />
           <div className="flex flex-col gap-1.5 p-5">
             {recientes.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay reportes.</p>}
+            {/* KAN-367: la edición se hace desde el calendario (círculo verde),
+                no desde acá -- esta lista queda como resumen informativo. */}
             {recientes.map((r) => (
               <div key={r.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-muted/50">
                 <div
@@ -163,22 +156,6 @@ export function HistorialReportes() {
                     {r.total_asistentes} asistentes · {r.total_menores} niños / {r.total_mayores} adultos
                   </p>
                 </div>
-                {/* KAN-271/375/367: solo se muestra dentro de la ventana configurable
-                    por iglesia, contada desde que se cargó el reporte -- el permiso
-                    real siempre lo valida el backend, esto evita un click que ya
-                    sabemos que va a rebotar. */}
-                {dentroDeVentanaEdicionReporte(r.fecha_creacion, diasLimiteEdicion) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 gap-1.5"
-                    onClick={() => navigate(rutaReporteEditar(r.id))}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Editar
-                  </Button>
-                )}
               </div>
             ))}
           </div>
