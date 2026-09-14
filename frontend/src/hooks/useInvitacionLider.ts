@@ -8,6 +8,7 @@ import {
   obtenerInvitacionesLider,
   obtenerMiInvitacionPendiente,
   reenviarInvitacionLider,
+  type DatosPersonaAltaDirecta,
 } from '@/services/invitacion-lider.service';
 import type { RolInvitable } from '@/types/invitacion-lider.types';
 
@@ -30,6 +31,7 @@ export function useInvitarLider() {
       departamentoId,
       pin,
       contrasena,
+      datosPersona,
     }: {
       correo: string;
       rol: RolInvitable | 'SUPERVISOR_RED' | null;
@@ -38,7 +40,8 @@ export function useInvitarLider() {
       departamentoId?: string | null;
       pin?: string;
       contrasena?: string;
-    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin, contrasena),
+      datosPersona?: DatosPersonaAltaDirecta;
+    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin, contrasena, datosPersona),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { AsignarCargoDialog } from '@/components/casas-de-paz/AsignarCargoDialog';
+import { AsignarCargoDialog, type DatosPersonaDirecta } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
@@ -206,13 +206,19 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
   // de asignar en silencio. Una invitacion nueva de verdad (todavia sin
   // cuenta) sigue avisando por toast.
-  async function handleInvitar(correo: string, contrasena?: string) {
+  async function handleInvitar(correo: string, contrasena?: string, datosPersona?: DatosPersonaDirecta) {
     if (!dialogoCargo) return;
     try {
       await invitarLider.mutateAsync(
-        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id, contrasena },
+        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id, contrasena, datosPersona },
       );
-      toast.success(contrasena ? `Cuenta creada para ${correo}` : `Invitación enviada a ${correo}`);
+      toast.success(
+        datosPersona
+          ? `${datosPersona.primerNombre} ${datosPersona.primerApellido} agregado/a con rol asignado`
+          : contrasena
+            ? `Cuenta creada para ${correo}`
+            : `Invitación enviada a ${correo}`
+      );
       void invalidarEstructura();
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
@@ -513,6 +519,25 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           permiteContrasenaDirecta={dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP'}
           invitando={invitarLider.isPending}
           onInvitar={handleInvitar}
+          invitacionesPendientes={
+            // KAN-376 seguimiento (2026-09-13): antes se sacaba de
+            // `invitacionesLider` (fn_listar_invitaciones_lider) -- esa RPC
+            // devolvía vacío para invitaciones reales sin causa clara (a
+            // pesar de que su lógica de permisos debería incluirlas), aunque
+            // `casaDePaz.lideres`/`sublideres` (fn_estructura_listar_invitaciones_red,
+            // la misma fuente que ya usan "Reenviar"/"Restablecer contraseña"
+            // en esta pantalla) sí las trae bien. Se usa esa fuente
+            // confiable en vez de investigar más a fondo la otra RPC.
+            (dialogoCargo.codigo === 'LIDER_CDP'
+              ? lider && lider.invitacionId && lider.correo ? [{ id: lider.invitacionId, correo: lider.correo }] : []
+              : dialogoCargo.codigo === 'SUBLIDER_CDP'
+                ? casaDePaz.sublideres
+                    .filter((s): s is typeof s & { invitacionId: string; correo: string } => !!s.invitacionId && !!s.correo)
+                    .map((s) => ({ id: s.invitacionId, correo: s.correo }))
+                : [])
+          }
+          onCancelarInvitacion={handleCancelarInvitacion}
+          cancelandoInvitacion={cancelarInvitacion.isPending}
         />
       )}
 

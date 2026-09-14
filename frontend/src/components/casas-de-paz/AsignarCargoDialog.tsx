@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -25,6 +26,17 @@ import type { CargoVigente, PersonaBusqueda } from '@/types/casas-de-paz.types';
  * línea vacía. Cae al correo, igual que ya hace el resto de la app. */
 function etiquetaCargoVigente(v: CargoVigente): string {
   return v.nombre_completo.trim() || v.correo || 'Sin nombre';
+}
+
+/** KAN-376 seguimiento (2026-09-14): piso real que la base exige para crear
+ * una Persona (nombre/apellido/sexo) -- se pide junto con la contraseña
+ * directa para no dejar la cuenta en un estado intermedio sin rol real. */
+export interface DatosPersonaDirecta {
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido?: string;
+  sexo: 'M' | 'F';
 }
 
 interface Props {
@@ -50,8 +62,15 @@ interface Props {
    * que ya usa la búsqueda manual). Devolver `void`/nada es una invitación
    * nueva real (todavía sin cuenta), sigue el flujo de siempre. */
   /** KAN-376 seguimiento: segundo argumento opcional -- cuando viene, el
-   * caller debe crear la cuenta con esa contraseña directo (sin correo). */
-  onInvitar?: (correo: string, contrasena?: string) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
+   * caller debe crear la cuenta con esa contraseña directo (sin correo).
+   * Tercer argumento (2026-09-14): cuando viene junto con la contraseña, el
+   * caller crea la Persona y el cargo real de una sola vez, sin invitación
+   * PENDIENTE de por medio -- ver `permiteContrasenaDirecta`. */
+  onInvitar?: (
+    correo: string,
+    contrasena?: string,
+    datosPersona?: DatosPersonaDirecta
+  ) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
   /** KAN-376 seguimiento (2026-09-13, pedido explicito del owner): habilita
    * la opcion "asignar contraseña directamente" en el modo Invitar, para
    * personas a las que les cuesta la tecnologia (no dependen de un correo).
@@ -82,6 +101,15 @@ interface Props {
    * diálogos del constructor, que sí lo respetan. Opcional, default `true`
    * (mismo comportamiento de siempre) para no afectar a quien no lo pasa. */
   otpRequerido?: boolean;
+  /** KAN-376 seguimiento (2026-09-13, hallazgo del owner probando en vivo):
+   * una invitación PENDIENTE (sin Persona todavía) no aparece en `vigentes`
+   * (eso es solo cargos confirmados) -- clic en "Cambiar" mostraba "Sin
+   * nadie asignado todavía" sin ninguna forma de cancelarla, aunque el
+   * panel de atrás sí mostraba a esa persona como Líder/Sublíder. Se listan
+   * acá al lado de `vigentes`, con su propia acción de cancelar. */
+  invitacionesPendientes?: { id: string; correo: string }[];
+  onCancelarInvitacion?: (invitacionId: string) => void;
+  cancelandoInvitacion?: boolean;
 }
 
 export function AsignarCargoDialog({
@@ -105,13 +133,22 @@ export function AsignarCargoDialog({
   otpRequerido = true,
   cdpId,
   permiteContrasenaDirecta = false,
+  invitacionesPendientes = [],
+  onCancelarInvitacion,
+  cancelandoInvitacion = false,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [usarContrasenaDirecta, setUsarContrasenaDirecta] = useState(false);
   const [contrasenaDirecta, setContrasenaDirecta] = useState('12345678');
+  const [primerNombreDirecta, setPrimerNombreDirecta] = useState('');
+  const [segundoNombreDirecta, setSegundoNombreDirecta] = useState('');
+  const [primerApellidoDirecta, setPrimerApellidoDirecta] = useState('');
+  const [segundoApellidoDirecta, setSegundoApellidoDirecta] = useState('');
+  const [sexoDirecta, setSexoDirecta] = useState<'M' | 'F' | ''>('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
+  const [aCancelarInvitacion, setACancelarInvitacion] = useState<{ id: string; correo: string } | null>(null);
   const [invitadoOk, setInvitadoOk] = useState(false);
   const [personaExistente, setPersonaExistente] = useState<{ id: string; nombre: string } | null>(null);
   const cierreAutomaticoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,11 +161,17 @@ export function AsignarCargoDialog({
   useEffect(() => {
     if (!open && invitadoOk) setInvitadoOk(false);
     if (!open && personaExistente) setPersonaExistente(null);
+    if (!open && aCancelarInvitacion) setACancelarInvitacion(null);
     if (!open && usarContrasenaDirecta) {
       setUsarContrasenaDirecta(false);
       setContrasenaDirecta('12345678');
+      setPrimerNombreDirecta('');
+      setSegundoNombreDirecta('');
+      setPrimerApellidoDirecta('');
+      setSegundoApellidoDirecta('');
+      setSexoDirecta('');
     }
-  }, [open, invitadoOk, personaExistente, usarContrasenaDirecta]);
+  }, [open, invitadoOk, personaExistente, aCancelarInvitacion, usarContrasenaDirecta]);
 
   useEffect(() => () => {
     if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
@@ -155,10 +198,23 @@ export function AsignarCargoDialog({
   // siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    if (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8) return;
+    if (usarContrasenaDirecta) {
+      if (contrasenaDirecta.trim().length < 8) return;
+      if (!primerNombreDirecta.trim() || !primerApellidoDirecta.trim() || !sexoDirecta) return;
+    }
+    const datosPersona: DatosPersonaDirecta | undefined = usarContrasenaDirecta
+      ? {
+          primerNombre: primerNombreDirecta.trim(),
+          segundoNombre: segundoNombreDirecta.trim() || undefined,
+          primerApellido: primerApellidoDirecta.trim(),
+          segundoApellido: segundoApellidoDirecta.trim() || undefined,
+          sexo: sexoDirecta as 'M' | 'F',
+        }
+      : undefined;
     const resultado = onInvitar(
       correoInvitar.trim().toLowerCase(),
-      usarContrasenaDirecta ? contrasenaDirecta.trim() : undefined
+      usarContrasenaDirecta ? contrasenaDirecta.trim() : undefined,
+      datosPersona
     );
     setCorreoInvitar('');
     if (resultado && typeof resultado.then === 'function') {
@@ -191,6 +247,12 @@ export function AsignarCargoDialog({
     setAQuitar(null);
   }
 
+  function confirmarCancelarInvitacion() {
+    if (!aCancelarInvitacion || !onCancelarInvitacion) return;
+    onCancelarInvitacion(aCancelarInvitacion.id);
+    setACancelarInvitacion(null);
+  }
+
   // Bug real (2026-08-15): sin un <form>, Enter en el input de correo o de
   // OTP no hacía nada (solo funcionaba con el mouse) -- un <form> hace que
   // el navegador dispare "submit" con Enter en cualquier input de texto de
@@ -199,6 +261,8 @@ export function AsignarCargoDialog({
     e.preventDefault();
     if (aQuitar) {
       confirmarBaja();
+    } else if (aCancelarInvitacion) {
+      confirmarCancelarInvitacion();
     } else if (personaExistente) {
       confirmarAsignarExistente();
     } else if (modo === 'invitar') {
@@ -230,7 +294,7 @@ export function AsignarCargoDialog({
         <div className="flex flex-col gap-3">
           {cargandoVigentes ? (
             <Skeleton className="h-8 w-full" />
-          ) : vigentes.length > 0 ? (
+          ) : vigentes.length > 0 || invitacionesPendientes.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {vigentes.map((v, i) => (
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
@@ -250,6 +314,29 @@ export function AsignarCargoDialog({
                     // toque real sin agrandar el icono visible, mismo patron
                     // ya usado en el resto del Constructor (paneles laterales,
                     // botones de zoom/centrar).
+                    className="relative before:absolute before:-inset-2 before:content-['']"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {/* KAN-376 seguimiento: invitación PENDIENTE, todavía sin Persona
+                  -- no está en `vigentes`, pero igual se ve como asignada en el
+                  panel de atrás. Mismo estilo que arriba, distinguida con
+                  "(invitación pendiente)" y su propia acción de cancelar. */}
+              {invitacionesPendientes.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-1.5 text-sm">
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate">{inv.correo}</span>
+                    <span className="text-[11px] text-amber-700">Invitación pendiente</span>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setACancelarInvitacion(inv)}
+                    disabled={cancelandoInvitacion}
+                    aria-label="Cancelar invitación"
                     className="relative before:absolute before:-inset-2 before:content-['']"
                   >
                     <X className="h-4 w-4" />
@@ -276,7 +363,21 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && personaExistente && (
+          {aCancelarInvitacion && (
+            <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm text-foreground">
+                ¿Cancelar la invitación a <span className="font-medium">{aCancelarInvitacion.correo}</span>?
+              </p>
+              {cancelandoInvitacion && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Spinner className="h-3.5 w-3.5" />
+                  Cancelando...
+                </p>
+              )}
+            </div>
+          )}
+
+          {!aQuitar && !aCancelarInvitacion && personaExistente && (
             <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
               <p className="text-sm text-foreground">
                 Ya existe una cuenta con ese correo, asociada a{' '}
@@ -292,7 +393,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !personaExistente && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && invitable && (
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
@@ -317,7 +418,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !personaExistente && modo === 'buscar' && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'buscar' && (
             personaElegida ? (
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                 <span className="truncate">{personaElegida.nombre_completo}</span>
@@ -335,7 +436,7 @@ export function AsignarCargoDialog({
             )
           )}
 
-          {!aQuitar && !personaExistente && modo === 'invitar' && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
                 Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
@@ -366,13 +467,49 @@ export function AsignarCargoDialog({
                     </span>
                   </label>
                   {usarContrasenaDirecta && (
-                    <div className="flex flex-col gap-1.5">
-                      <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Contraseña</Label>
-                      <PasswordInput
-                        value={contrasenaDirecta}
-                        onChange={(e) => setContrasenaDirecta(e.target.value)}
-                        placeholder="Mínimo 8 caracteres"
-                      />
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Contraseña</Label>
+                        <PasswordInput
+                          value={contrasenaDirecta}
+                          onChange={(e) => setContrasenaDirecta(e.target.value)}
+                          placeholder="Mínimo 8 caracteres"
+                        />
+                      </div>
+                      {/* KAN-376 seguimiento (2026-09-14): sin esto la cuenta quedaba
+                          con contraseña pero sin rol real hasta que alguien
+                          completara el wizard -- se crea la Persona y el cargo
+                          real de una vez, con el mismo mínimo que exige la base. */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Primer nombre</Label>
+                          <Input value={primerNombreDirecta} onChange={(e) => setPrimerNombreDirecta(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Segundo nombre</Label>
+                          <Input value={segundoNombreDirecta} onChange={(e) => setSegundoNombreDirecta(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Primer apellido</Label>
+                          <Input value={primerApellidoDirecta} onChange={(e) => setPrimerApellidoDirecta(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Segundo apellido</Label>
+                          <Input value={segundoApellidoDirecta} onChange={(e) => setSegundoApellidoDirecta(e.target.value)} />
+                        </div>
+                        <div className="col-span-2 flex flex-col gap-1.5">
+                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Sexo</Label>
+                          <Select value={sexoDirecta} onValueChange={(v) => setSexoDirecta(v as 'M' | 'F')}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="M">Masculino</SelectItem>
+                              <SelectItem value="F">Femenino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </>
@@ -380,11 +517,11 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !personaExistente && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && requiereOtp && onPinChange && (modo === 'invitar' || personaElegida) && (
             <CampoOtp value={pin ?? ''} onChange={onPinChange} />
           )}
 
-          {!aQuitar && !personaExistente && asignando && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && asignando && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Spinner className="h-3.5 w-3.5" />
               Asignando...
@@ -399,6 +536,15 @@ export function AsignarCargoDialog({
             </Button>
             <Button type="submit" variant="destructive" disabled={quitando || !pinValido}>
               {quitando ? 'Dando de baja...' : 'Confirmar baja'}
+            </Button>
+          </DialogFooter>
+        ) : aCancelarInvitacion ? (
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setACancelarInvitacion(null)} disabled={cancelandoInvitacion}>
+              No
+            </Button>
+            <Button type="submit" variant="destructive" disabled={cancelandoInvitacion}>
+              {cancelandoInvitacion ? 'Cancelando...' : 'Sí, cancelar invitación'}
             </Button>
           </DialogFooter>
         ) : personaExistente ? (
@@ -423,7 +569,10 @@ export function AsignarCargoDialog({
                   className="gap-1.5"
                   disabled={
                     invitando || !correoInvitar.trim() || !pinValido ||
-                    (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8)
+                    (usarContrasenaDirecta && (
+                      contrasenaDirecta.trim().length < 8 ||
+                      !primerNombreDirecta.trim() || !primerApellidoDirecta.trim() || !sexoDirecta
+                    ))
                   }
                 >
                   {invitando && <Spinner className="h-3.5 w-3.5" />}

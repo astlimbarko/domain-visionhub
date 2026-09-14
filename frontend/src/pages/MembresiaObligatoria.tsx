@@ -24,7 +24,7 @@ import {
   SeccionSeminarioUniversidadMembresia,
 } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { FormularioPaginado, type FormularioPaginadoHandle } from '@/components/shared/FormularioPaginado';
-import { cerrarSesion, obtenerPersonaActual } from '@/services/auth.service';
+import { obtenerPersonaActual } from '@/services/auth.service';
 import { useCompletarMembresiaGeneral, useGuardarPasoMembresiaGeneral, useTiposDiscipulado } from '@/hooks/useMembresiaExtendida';
 import { useMinisterios } from '@/hooks/useMinisterios';
 import { aceptarInvitacionLider, notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
@@ -170,7 +170,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
 
   const completarMembresiaLocal = useAuthStore((s) => s.completarMembresiaLocal);
   const saltarMembresiaLocal = useAuthStore((s) => s.saltarMembresiaLocal);
-  const logout = useAuthStore((s) => s.logout);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const correo = useAuthStore((s) => s.correo);
   // KAN-192: el modal saluda por nombre; si todavía no llenó su nombre
@@ -297,11 +296,6 @@ export function MembresiaObligatoria({ invitacion }: Props) {
     formularioRef.current?.irA(primeraPagina.indice);
   }
 
-  async function salir() {
-    await cerrarSesion();
-    logout();
-  }
-
   function saltar() {
     saltarMembresiaLocal();
   }
@@ -359,36 +353,21 @@ export function MembresiaObligatoria({ invitacion }: Props) {
             pasoInicial={personaCreada ? (invitacion.paso_actual ?? 1) - 1 : 0}
             onFinalizar={handleSubmit(onSubmit, onSubmitInvalido)}
             notaPie={
-              personaCreada && (
-                <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
-                  Se puede <strong>saltar</strong> en cualquier momento — el avance queda guardado.
-                </p>
-              )
+              <p className="rounded-lg bg-[color-mix(in_oklab,var(--color-chart-1)_10%,transparent)] px-3 py-2 text-center text-xs text-foreground">
+                Se puede <strong>saltar</strong> en cualquier momento
+                {personaCreada && ' — el avance queda guardado'}. La próxima vez que inicie sesión se le va a pedir
+                de nuevo.
+              </p>
             }
             accionExtra={
-              personaCreada ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto"
-                  onClick={saltar}
-                >
-                  Saltar
-                </Button>
-              ) : (
-                // KAN-376 seguimiento (2026-09-13, hallazgo del owner probando en
-                // vivo): antes de completar la página 1 todavía no existe la
-                // Persona (el trigger de persona exige nombre/apellido/sexo
-                // reales) -- no hay ningún panel al que "volver", por eso la
-                // única forma técnica de salir de acá es cerrar sesión. Pero en
-                // los hechos YA se comporta como un salto real: no se guardó
-                // nada, y al volver a entrar pide lo mismo de nuevo -- "Salir
-                // sin completar" sonaba a que se perdía algo, cuando no es así.
-                // Mismo texto y comportamiento que el "Saltar" de más adelante.
-                <Button type="button" variant="outline" className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto" onClick={salir}>
-                  Saltar
-                </Button>
-              )
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+                onClick={saltar}
+              >
+                Saltar
+              </Button>
             }
             pasos={[
               {
