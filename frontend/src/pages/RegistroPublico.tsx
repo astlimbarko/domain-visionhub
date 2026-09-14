@@ -76,21 +76,17 @@ export function RegistroPublico() {
                     {t('registroPublico.red')}: <strong>{data.red_nombre}</strong>
                   </>
                 )}
-                {/* KAN-380: ambos opcionales -- sin anfitrion o sin direccion
-                    cargada, la linea correspondiente simplemente no aparece,
-                    no interrumpe el formulario. */}
-                {data.anfitrion_nombre && (
-                  <>
-                    <br />
-                    {t('registroPublico.anfitrion')}: <strong>{data.anfitrion_nombre}</strong>
-                  </>
-                )}
-                {data.direccion && (
-                  <>
-                    <br />
-                    {t('registroPublico.direccion')}: <strong>{data.direccion}</strong>
-                  </>
-                )}
+                {/* KAN-380 (seguimiento): estas 3 SIEMPRE se muestran, aunque
+                    vengan vacias -- a proposito, para que el Lider note de
+                    un vistazo que le falta cargar ese dato en vez de que la
+                    linea desaparezca sin dejar rastro. Nunca interrumpen el
+                    formulario aunque esten en blanco. */}
+                <br />
+                {t('registroPublico.anfitrion')}: <strong>{data.anfitrion_nombre}</strong>
+                <br />
+                {t('registroPublico.direccion')}: <strong>{data.direccion}</strong>
+                <br />
+                {t('registroPublico.ciudad')}: <strong>{data.ciudad}</strong>
               </CardDescription>
             </CardHeader>
             <CardContent>

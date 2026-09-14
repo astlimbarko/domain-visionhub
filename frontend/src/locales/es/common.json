@@ -17,6 +17,7 @@
     "red": "Red",
     "anfitrion": "Anfitrión",
     "direccion": "Dirección",
+    "ciudad": "Ciudad",
     "campos": {
       "primerNombre": "Primer nombre",
       "segundoNombre": "Segundo nombre",
