@@ -28,7 +28,13 @@ export function RegistroPublico() {
     // el gesto en esta página es solo de scroll vertical, sin ambigüedad.
     // Acotado a esta página (no en `html` global) para no afectar tablas con
     // scroll horizontal en otras partes de la app.
-    <div className="flex min-h-svh touch-pan-y items-start justify-center overflow-x-hidden bg-background p-4 sm:py-10">
+    // KAN-384: fondo hueso/off-white acotado a esta página (no al token
+    // --background global, que afectaría toda la app) -- separa
+    // visualmente la tarjeta del formulario del fondo, que antes eran el
+    // mismo blanco puro (--card y --background coinciden en #ffffff). En
+    // dark mode se deja el comportamiento de siempre (bg-background):
+    // "hueso" es un concepto de tema claro, no tiene sentido en oscuro.
+    <div className="flex min-h-svh touch-pan-y items-start justify-center overflow-x-hidden bg-[#F7F4ED] p-4 sm:py-10 dark:bg-background">
       <Card className="w-full max-w-2xl rounded-2xl shadow-lg">
         {isLoading && (
           <CardContent className="flex flex-col gap-4 pt-6">
