@@ -86,11 +86,19 @@ export function useDiasPlazoReporte(iglesiaId: string | undefined) {
   });
 }
 
-/** KAN-375: ventana de edición de reportes configurable (mismo patrón que useDiasPlazoReporte). */
-export function useDiasLimiteEdicionReporte(iglesiaId: string | undefined) {
+/**
+ * KAN-375/367: ventana de edición de reportes configurable (mismo patrón
+ * que useDiasPlazoReporte). Desde KAN-367 hay 2 ventanas separadas -- pasar
+ * 'DIAS_LIMITE_EDICION_REPORTE_CDP' en la vista de Líder/Sublíder de CdP y
+ * 'DIAS_LIMITE_EDICION_REPORTE_RED' en la de Red/Supervisor/Pastor.
+ */
+export function useDiasLimiteEdicionReporte(
+  iglesiaId: string | undefined,
+  codigo: 'DIAS_LIMITE_EDICION_REPORTE_CDP' | 'DIAS_LIMITE_EDICION_REPORTE_RED'
+) {
   return useQuery({
-    queryKey: ['reporte', 'dias-limite-edicion', iglesiaId],
-    queryFn: () => obtenerDiasLimiteEdicionReporte(iglesiaId as string),
+    queryKey: ['reporte', 'dias-limite-edicion', codigo, iglesiaId],
+    queryFn: () => obtenerDiasLimiteEdicionReporte(iglesiaId as string, codigo),
     enabled: !!iglesiaId,
     staleTime: 1000 * 60 * 60,
   });

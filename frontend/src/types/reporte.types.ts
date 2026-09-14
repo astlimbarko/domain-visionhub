@@ -164,6 +164,8 @@ export interface ReporteReciente {
   id: string;
   casa_de_paz_id: string;
   fecha_reunion: string;
+  /** Cuándo se cargó el reporte -- KAN-367: es el ancla real de la ventana de edición, no fecha_reunion. */
+  fecha_creacion: string;
   total_asistentes: number;
   total_menores: number;
   total_mayores: number;

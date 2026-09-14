@@ -190,7 +190,7 @@ export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<
   if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
-    .select('reporte_id, casa_de_paz_id, fecha_reunion, total_asistentes, total_menores, total_mayores')
+    .select('reporte_id, casa_de_paz_id, fecha_reunion, fecha_creacion, total_asistentes, total_menores, total_mayores')
     .in('casa_de_paz_id', casaDePazIds)
     .order('fecha_reunion', { ascending: false })
     .limit(10);
@@ -199,6 +199,7 @@ export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<
     id: r.reporte_id,
     casa_de_paz_id: r.casa_de_paz_id,
     fecha_reunion: r.fecha_reunion,
+    fecha_creacion: r.fecha_creacion,
     total_asistentes: r.total_asistentes,
     total_menores: r.total_menores,
     total_mayores: r.total_mayores,
@@ -577,22 +578,30 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
 }
 
 /**
- * KAN-271/375: mismo límite que fn_puede_editar_reporte_cdp (días desde la
- * fecha de reunión, inclusive) -- solo para decidir si se muestra el botón
- * "Editar" en la UI (evita un click que sabemos que va a rebotar). El
- * permiso real siempre lo valida el backend vía RLS, esto no lo reemplaza.
- * KAN-375 (2026-09-13): antes era una constante fija (7) -- ahora es
- * configurable por iglesia (`DIAS_LIMITE_EDICION_REPORTE`, Panel Supervisor
- * → Control de Reportes, mismo patrón que `obtenerDiasPlazoReporte`).
+ * KAN-271/375/367: mismo límite que fn_puede_editar_reporte_cdp -- solo para
+ * decidir si se muestra el botón "Editar" en la UI (evita un click que
+ * sabemos que va a rebotar). El permiso real siempre lo valida el backend
+ * vía RLS, esto no lo reemplaza.
+ * KAN-367 (2026-09-14): la ventana ya no se cuenta desde la fecha de
+ * reunión -- se cuenta desde `fecha_creacion` (cuándo se cargó el
+ * reporte), para que un reporte atrasado nazca con margen real para
+ * corregirse. Además se separó en 2 códigos de configuración: uno para
+ * Líder/Sublíder de CdP (`DIAS_LIMITE_EDICION_REPORTE_CDP`, default 3) y
+ * otro para Líder/Supervisor de Red, Pastor y Supervisor de la Visión en
+ * Acción (`DIAS_LIMITE_EDICION_REPORTE_RED`, default 30).
  */
-export async function obtenerDiasLimiteEdicionReporte(iglesiaId: string): Promise<number> {
-  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: 'DIAS_LIMITE_EDICION_REPORTE' });
+export async function obtenerDiasLimiteEdicionReporte(
+  iglesiaId: string,
+  codigo: 'DIAS_LIMITE_EDICION_REPORTE_CDP' | 'DIAS_LIMITE_EDICION_REPORTE_RED'
+): Promise<number> {
+  const { data, error } = await supabase.rpc('fn_criterio', { p_iglesia_id: iglesiaId, p_codigo: codigo });
   if (error) throw error;
-  return data ?? 7;
+  return data ?? (codigo === 'DIAS_LIMITE_EDICION_REPORTE_CDP' ? 3 : 30);
 }
 
-export function dentroDeVentanaEdicionReporte(fechaReunionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
-  const limite = new Date(`${fechaReunionISO}T00:00:00`);
+/** `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día calendario local. */
+export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
+  const limite = new Date(fechaCreacionISO);
   limite.setDate(limite.getDate() + diasLimite);
   return hoyISO <= aISO(limite);
 }
