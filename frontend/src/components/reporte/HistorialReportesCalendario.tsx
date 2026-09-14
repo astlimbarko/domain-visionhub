@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,6 +95,39 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const hoyISO = aISO(hoy);
+
+  // KAN-367: en táctil no hay hover -- el tooltip informativo (círculos sin
+  // acción, rojos/grises) no tiene forma de abrirse solo. En dispositivos
+  // táctiles el tap sobre esos círculos lo abre/cierra a mano (uno solo a la
+  // vez); en desktop se deja el comportamiento normal por hover de Radix
+  // (no se toca `open`/`onOpenChange`, undefined = no controlado). Los
+  // círculos editables NO pasan por acá -- tocarlos ya navega directo,
+  // sin paso intermedio de "ver resumen primero" (mismo criterio que en
+  // desktop: el click siempre fue la acción, nunca hizo falta pasar por
+  // el tooltip antes).
+  // Inicializado en el mismo render (no en el efecto) a propósito: si
+  // arrancara en `false` y el efecto lo corrigiera después, el Tooltip
+  // pasaría de no-controlado a controlado entre el primer render y el
+  // segundo -- React (vía Radix) tira warning por ese cambio, y en un
+  // dispositivo táctil real pasaría siempre, no solo en pruebas.
+  const [esTactil, setEsTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+    const onChange = (e: MediaQueryListEvent) => setEsTactil(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const [semanaAbiertaTactil, setSemanaAbiertaTactil] = useState<string | null>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!semanaAbiertaTactil) return;
+    function cerrarSiEsAfuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) setSemanaAbiertaTactil(null);
+    }
+    document.addEventListener('pointerdown', cerrarSiEsAfuera);
+    return () => document.removeEventListener('pointerdown', cerrarSiEsAfuera);
+  }, [semanaAbiertaTactil]);
 
   const grupos = useMemo(() => semanasDelAnioPorMes(anio), [anio]);
   const desde = grupos[0].semanas[0].inicio;
@@ -242,7 +275,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
             )}
 
             {/* Filas por mes: nombre completo + círculos numerados (semana 1-53 del año) */}
-            <div className="flex flex-col gap-1">
+            <div ref={contenedorRef} className="flex flex-col gap-1">
               {grupos.map((grupo) => {
                 const esMesActual = grupo.mes === hoy.getMonth() && anio === hoy.getFullYear();
 
@@ -282,17 +315,36 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                               : 'todavía no corresponde';
 
                         return (
-                          <Tooltip key={s.inicio}>
+                          <Tooltip
+                            key={s.inicio}
+                            {...(esTactil
+                              ? {
+                                  open: semanaAbiertaTactil === s.inicio,
+                                  onOpenChange: (abierto: boolean) => setSemanaAbiertaTactil(abierto ? s.inicio : null),
+                                }
+                              : {})}
+                          >
                             <TooltipTrigger asChild>
                               {/* KAN-367: sin `disabled` nativo a propósito -- un <button disabled>
                                   deja de recibir hover en algunos motores (Safari), lo que le
                                   tapaba el tooltip a las semanas no editables. `aria-disabled` +
-                                  omitir onClick logra lo mismo (no clickeable) sin perder el hover. */}
+                                  omitir onClick logra lo mismo (no clickeable) sin perder el hover.
+                                  En táctil, sin hover, los círculos editables siguen navegando
+                                  directo al tap (no hace falta ver el resumen antes -- mismo
+                                  criterio que en desktop, el click siempre fue la acción); los no
+                                  editables abren/cierran el tooltip a mano, es su única forma de
+                                  mostrar el resumen sin mouse. */}
                               <button
                                 type="button"
                                 aria-disabled={!editable}
                                 tabIndex={editable ? 0 : -1}
-                                onClick={editable ? () => navigate(rutaReporteEditar(reporteSemana.reporteId)) : undefined}
+                                onClick={
+                                  editable
+                                    ? () => navigate(rutaReporteEditar(reporteSemana.reporteId))
+                                    : esTactil
+                                      ? () => setSemanaAbiertaTactil((actual) => (actual === s.inicio ? null : s.inicio))
+                                      : undefined
+                                }
                                 className={cn(
                                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
                                   enviado && 'text-white',
