@@ -29,8 +29,12 @@ function etiquetaCargoVigente(v: CargoVigente): string {
 }
 
 /** KAN-376 seguimiento (2026-09-14): piso real que la base exige para crear
- * una Persona (nombre/apellido/sexo) -- se pide junto con la contraseña
- * directa para no dejar la cuenta en un estado intermedio sin rol real. */
+ * una Persona (nombre/apellido/sexo). Este diálogo ya NO pide estos datos
+ * en pantalla (pedido explícito del owner: la persona invitada completa su
+ * propio nombre/apellido/sexo en el wizard de membresía al entrar) -- el
+ * tipo queda documentado acá porque `fn_alta_directa_lider_cdp` y el
+ * backend lo siguen aceptando para casos puntuales llamados directo
+ * (fuera de este diálogo), no por deuda técnica. */
 export interface DatosPersonaDirecta {
   primerNombre: string;
   segundoNombre?: string;
@@ -63,9 +67,8 @@ interface Props {
    * nueva real (todavía sin cuenta), sigue el flujo de siempre. */
   /** KAN-376 seguimiento: segundo argumento opcional -- cuando viene, el
    * caller debe crear la cuenta con esa contraseña directo (sin correo).
-   * Tercer argumento (2026-09-14): cuando viene junto con la contraseña, el
-   * caller crea la Persona y el cargo real de una sola vez, sin invitación
-   * PENDIENTE de por medio -- ver `permiteContrasenaDirecta`. */
+   * Este diálogo siempre manda `undefined` como tercer argumento (ver
+   * `DatosPersonaDirecta`) -- ver `permiteContrasenaDirecta`. */
   onInvitar?: (
     correo: string,
     contrasena?: string,
@@ -141,11 +144,6 @@ export function AsignarCargoDialog({
   const [correoInvitar, setCorreoInvitar] = useState('');
   const [usarContrasenaDirecta, setUsarContrasenaDirecta] = useState(false);
   const [contrasenaDirecta, setContrasenaDirecta] = useState('12345678');
-  const [primerNombreDirecta, setPrimerNombreDirecta] = useState('');
-  const [segundoNombreDirecta, setSegundoNombreDirecta] = useState('');
-  const [primerApellidoDirecta, setPrimerApellidoDirecta] = useState('');
-  const [segundoApellidoDirecta, setSegundoApellidoDirecta] = useState('');
-  const [sexoDirecta, setSexoDirecta] = useState<'M' | 'F' | ''>('');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
   const [aCancelarInvitacion, setACancelarInvitacion] = useState<{ id: string; correo: string } | null>(null);
@@ -165,11 +163,6 @@ export function AsignarCargoDialog({
     if (!open && usarContrasenaDirecta) {
       setUsarContrasenaDirecta(false);
       setContrasenaDirecta('12345678');
-      setPrimerNombreDirecta('');
-      setSegundoNombreDirecta('');
-      setPrimerApellidoDirecta('');
-      setSegundoApellidoDirecta('');
-      setSexoDirecta('');
     }
   }, [open, invitadoOk, personaExistente, aCancelarInvitacion, usarContrasenaDirecta]);
 
@@ -198,23 +191,11 @@ export function AsignarCargoDialog({
   // siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    if (usarContrasenaDirecta) {
-      if (contrasenaDirecta.trim().length < 8) return;
-      if (!primerNombreDirecta.trim() || !primerApellidoDirecta.trim() || !sexoDirecta) return;
-    }
-    const datosPersona: DatosPersonaDirecta | undefined = usarContrasenaDirecta
-      ? {
-          primerNombre: primerNombreDirecta.trim(),
-          segundoNombre: segundoNombreDirecta.trim() || undefined,
-          primerApellido: primerApellidoDirecta.trim(),
-          segundoApellido: segundoApellidoDirecta.trim() || undefined,
-          sexo: sexoDirecta as 'M' | 'F',
-        }
-      : undefined;
+    if (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8) return;
     const resultado = onInvitar(
       correoInvitar.trim().toLowerCase(),
       usarContrasenaDirecta ? contrasenaDirecta.trim() : undefined,
-      datosPersona
+      undefined
     );
     setCorreoInvitar('');
     if (resultado && typeof resultado.then === 'function') {
@@ -439,8 +420,8 @@ export function AsignarCargoDialog({
           {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
-                Si esta persona todavía no existe en el sistema, mandale una invitación por correo. Al entrar por
-                primera vez va a tener que completar el formulario de membresía antes de ver su panel.
+                Si todavía no existe en el sistema, se le invita por correo y deberá completar su membresía al
+                ingresar.
               </p>
               <Input
                 type="email"
@@ -452,64 +433,31 @@ export function AsignarCargoDialog({
                   cuesta la tecnologia -- en vez de mandar un correo que puede
                   no llegar a usarse, se le asigna una contraseña directo. Se
                   la dice el admin de palabra, nunca por escrito, igual que
-                  RestablecerContrasenaBoton (KAN-278). */}
+                  RestablecerContrasenaBoton (KAN-278). Texto en español neutro,
+                  sin voseo (2026-09-14, pedido explicito). No pide nombre/
+                  apellido/sexo -- eso quedo a criterio de la persona invitada,
+                  que lo completa ella misma en el wizard de membresia al
+                  entrar por primera vez (fn_invitar_lider de siempre, el
+                  backend igual soporta datosPersona opcional si algun dia se
+                  necesita de nuevo via llamada directa). */}
               {permiteContrasenaDirecta && (
                 <>
-                  <label className="group/field mt-1 flex items-start gap-2.5">
+                  <label className="group/field mt-1 flex items-center gap-2.5">
                     <Checkbox
                       checked={usarContrasenaDirecta}
                       onCheckedChange={(v) => setUsarContrasenaDirecta(v === true)}
-                      className="mt-0.5"
+                      className="size-5 border-2"
                     />
-                    <span className="text-sm text-foreground">
-                      Asignar contraseña directamente ahora mismo, en vez de enviar invitación por correo -- se la vas
-                      a decir vos, en persona, nunca por escrito. No hace falta que confirme ningún correo.
-                    </span>
+                    <span className="text-sm text-foreground">Configurar contraseña por defecto</span>
                   </label>
                   {usarContrasenaDirecta && (
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Contraseña</Label>
-                        <PasswordInput
-                          value={contrasenaDirecta}
-                          onChange={(e) => setContrasenaDirecta(e.target.value)}
-                          placeholder="Mínimo 8 caracteres"
-                        />
-                      </div>
-                      {/* KAN-376 seguimiento (2026-09-14): sin esto la cuenta quedaba
-                          con contraseña pero sin rol real hasta que alguien
-                          completara el wizard -- se crea la Persona y el cargo
-                          real de una vez, con el mismo mínimo que exige la base. */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1.5">
-                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Primer nombre</Label>
-                          <Input value={primerNombreDirecta} onChange={(e) => setPrimerNombreDirecta(e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Segundo nombre</Label>
-                          <Input value={segundoNombreDirecta} onChange={(e) => setSegundoNombreDirecta(e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Primer apellido</Label>
-                          <Input value={primerApellidoDirecta} onChange={(e) => setPrimerApellidoDirecta(e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Segundo apellido</Label>
-                          <Input value={segundoApellidoDirecta} onChange={(e) => setSegundoApellidoDirecta(e.target.value)} />
-                        </div>
-                        <div className="col-span-2 flex flex-col gap-1.5">
-                          <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Sexo</Label>
-                          <Select value={sexoDirecta} onValueChange={(v) => setSexoDirecta(v as 'M' | 'F')}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="—" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="M">Masculino</SelectItem>
-                              <SelectItem value="F">Femenino</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+                    <div className="flex flex-col gap-1.5">
+                      <PasswordInput
+                        value={contrasenaDirecta}
+                        onChange={(e) => setContrasenaDirecta(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                      <p className="text-xs text-muted-foreground">No necesita confirmación por correo.</p>
                     </div>
                   )}
                 </>
@@ -569,10 +517,7 @@ export function AsignarCargoDialog({
                   className="gap-1.5"
                   disabled={
                     invitando || !correoInvitar.trim() || !pinValido ||
-                    (usarContrasenaDirecta && (
-                      contrasenaDirecta.trim().length < 8 ||
-                      !primerNombreDirecta.trim() || !primerApellidoDirecta.trim() || !sexoDirecta
-                    ))
+                    (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8)
                   }
                 >
                   {invitando && <Spinner className="h-3.5 w-3.5" />}

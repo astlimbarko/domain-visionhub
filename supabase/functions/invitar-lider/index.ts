@@ -221,32 +221,38 @@ export default {
       return Response.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 });
     }
 
-    // KAN-376 seguimiento (2026-09-14): con contrasena directa, nombre/
-    // apellido/sexo ahora son obligatorios -- sin esto la cuenta quedaba
-    // creada pero sin Persona ni cargo real (estado intermedio confuso).
-    // Acotado a Lider/Sublider de CdP, mismo alcance que permiteContrasenaDirecta
-    // en el frontend.
+    // KAN-376 seguimiento (2026-09-14, pedido explicito): nombre/apellido/
+    // sexo son OPCIONALES con contrasena directa -- si no vienen, la cuenta
+    // se crea solo con contrasena (sigue el flujo de siempre, la persona
+    // completa su propio nombre/apellido/sexo en el wizard de membresia al
+    // entrar por primera vez). Si vienen, se exigen los 3 juntos (no tiene
+    // sentido un estado a medias) y se crea la Persona/cargo real de una
+    // sola vez -- acotado a Lider/Sublider de CdP, mismo alcance que
+    // permiteContrasenaDirecta en el frontend.
     let datosPersonaValidados:
       | { primerNombre: string; segundoNombre?: string; primerApellido: string; segundoApellido?: string; sexo: string }
       | null = null;
-    if (contrasenaDirecta) {
+    if (contrasenaDirecta && body.datosPersona) {
       const dp = body.datosPersona;
-      const primerNombre = dp?.primerNombre?.trim();
-      const primerApellido = dp?.primerApellido?.trim();
-      const sexo = dp?.sexo?.trim();
-      if (!primerNombre || !primerApellido || !sexo) {
-        return Response.json({ error: "Nombre, apellido y sexo son obligatorios para asignar contraseña directa" }, { status: 400 });
+      const primerNombre = dp.primerNombre?.trim();
+      const primerApellido = dp.primerApellido?.trim();
+      const sexo = dp.sexo?.trim();
+      const algunoCompletado = primerNombre || primerApellido || sexo;
+      if (algunoCompletado) {
+        if (!primerNombre || !primerApellido || !sexo) {
+          return Response.json({ error: "Si completás nombre/apellido/sexo, se necesitan los 3 juntos (o dejalos todos vacíos)" }, { status: 400 });
+        }
+        if (rol !== "LIDER_CDP" && rol !== "SUBLIDER_CDP") {
+          return Response.json({ error: "Contraseña directa solo está disponible para Líder/Sublíder de Casa de Paz por ahora" }, { status: 400 });
+        }
+        datosPersonaValidados = {
+          primerNombre,
+          segundoNombre: dp.segundoNombre?.trim() || undefined,
+          primerApellido,
+          segundoApellido: dp.segundoApellido?.trim() || undefined,
+          sexo,
+        };
       }
-      if (rol !== "LIDER_CDP" && rol !== "SUBLIDER_CDP") {
-        return Response.json({ error: "Contraseña directa solo está disponible para Líder/Sublíder de Casa de Paz por ahora" }, { status: 400 });
-      }
-      datosPersonaValidados = {
-        primerNombre,
-        segundoNombre: dp?.segundoNombre?.trim() || undefined,
-        primerApellido,
-        segundoApellido: dp?.segundoApellido?.trim() || undefined,
-        sexo,
-      };
     }
 
     const dataCorreo = await datosInvitacionParaCorreo(ctx, rol, redId, casaDePazId, departamentoId);
