@@ -45,6 +45,18 @@ interface Props {
   /** KAN-179: nota corta encima del pie de botones (ej. "podés saltar cuando
    * quieras") -- opcional, no afecta a los demás llamadores si no se pasa. */
   notaPie?: ReactNode;
+  /** KAN-380 (fix real, 2026-09-14): las clases `flex-1 min-h-0 overflow-y-
+   * auto` del contenido asumían que sin un ancestro con altura acotada (el
+   * Dialog de MembresiaObligatoria) no tenían ningún efecto -- en la
+   * práctica, dentro de un `<Card>` (flex flex-col + overflow-hidden) SÍ
+   * terminan acotando el alto igual, generando un segundo scroll interno
+   * de unos pocos píxeles superpuesto al scroll normal de la página (bug
+   * real visible en el registro público). `true` (default) mantiene el
+   * comportamiento original para MembresiaObligatoria; los flujos de
+   * página completa (FormularioMembresiaPublico, RegistrarPersonaAfirmacion)
+   * pasan `false` para que el contenido fluya con la página, un solo
+   * scroll. */
+  alturaAcotada?: boolean;
 }
 
 export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(function FormularioPaginado({
@@ -56,6 +68,7 @@ export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(fu
   onCambiarPaso,
   accionExtra,
   notaPie,
+  alturaAcotada = true,
 }, ref) {
   const [pasoActual, setPasoActual] = useState(
     Math.min(Math.max(pasoInicial, 0), pasos.length - 1)
@@ -98,7 +111,7 @@ export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(fu
     // (nunca "se salen" de la pantalla). Sin un ancestro acotado (los otros
     // 2 flujos, en pagina completa) estas clases no cambian nada -- flex-1/
     // min-h-0 no tienen efecto fuera de un contenedor flex con altura fija.
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', alturaAcotada && 'min-h-0 flex-1')}>
       <div className="flex shrink-0 flex-col gap-1.5">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{paso.titulo}</span>
@@ -118,8 +131,15 @@ export const FormularioPaginado = forwardRef<FormularioPaginadoHandle, Props>(fu
           cubría el overflow-x-hidden del contenedor de página: el desborde ocurre
           en este div interno. Declarar ambos ejes explícitos deja solo scroll
           vertical (necesario dentro del Dialog de MembresiaObligatoria) sin el
-          horizontal. */}
-      <div key={paso.id} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+          horizontal.
+          KAN-380 (fix real, 2026-09-14): con `alturaAcotada=false` no se pone
+          NINGUNO de los dos -- dejar solo `overflow-x-hidden` reproducía el
+          mismo problema al revés (la regla CSS es simétrica: fijar un solo eje
+          computa el otro como `auto`), generando un scroll interno de unos
+          pocos píxeles superpuesto al scroll normal de la página. Sin
+          contenedor acotado, este div no necesita ser scrollable en ningún
+          eje. */}
+      <div key={paso.id} className={cn(alturaAcotada && 'min-h-0 flex-1 overflow-x-hidden overflow-y-auto')}>
         {paso.contenido}
       </div>
 
