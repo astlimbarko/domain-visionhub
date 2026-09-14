@@ -606,7 +606,7 @@ export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimi
   return hoyISO <= aISO(limite);
 }
 
-/** KAN-271: si el reporte todavía se puede editar (rol + ventana de 7 días) -- ver fn_puede_editar_reporte_cdp. */
+/** KAN-271/367: si el reporte todavía se puede editar (rol + ventana configurable, ver fn_puede_editar_reporte_cdp). */
 export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('fn_puede_editar_reporte_cdp', { p_reporte_id: reporteId });
   if (error) throw error;
@@ -614,9 +614,22 @@ export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
 }
 
 /**
+ * KAN-367: contexto de la CdP (Líder, Anfitrión, Dirección, Ciudad) del
+ * reporte que se está editando -- se muestra en el panel de modificación
+ * cuando quien edita no es el propio Líder/Sublíder de esa CdP (Líder/
+ * Supervisor de Red, Pastor, Supervisor, que pueden estar editando reportes
+ * de varias CdP distintas desde Control de Reportes).
+ */
+export async function obtenerCdpContextoReporte(casaDePazId: string): Promise<{ etiqueta: string; anfitrion_nombre: string; direccion: string; ciudad: string }> {
+  const { data, error } = await supabase.rpc('fn_cdp_contexto_reporte', { p_casa_de_paz_id: casaDePazId });
+  if (error) throw error;
+  return data;
+}
+
+/**
  * KAN-271: trae un reporte ya enviado para precargar el formulario en modo
  * edición (Líder/Supervisor de Red, Líder/Sublíder de CdP, dentro de la
- * ventana de 7 días -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
+ * ventana configurable -- el gate real vive en RLS/fn_puede_editar_reporte_cdp,
  * acá solo se lee).
  */
 export async function obtenerReportePorId(reporteId: string): Promise<ReporteExistente> {
@@ -681,16 +694,22 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
 }
 
 /**
- * KAN-271: edita un reporte ya enviado -- mismo flujo de datos que
+ * KAN-271/367: edita un reporte ya enviado -- mismo flujo de datos que
  * crearReporte (asistencia + ingresos), pero contra un reporte existente en
- * vez de crear uno nuevo. El permiso (rol + ventana de 7 días desde
- * fecha_reunion) lo valida RLS (fn_puede_editar_reporte_cdp); acá solo se
+ * vez de crear uno nuevo. El permiso (rol + ventana configurable desde
+ * fecha_creacion) lo valida RLS (fn_puede_editar_reporte_cdp); acá solo se
  * calcula el diff de asistencia contra lo que ya estaba guardado.
+ * KAN-367: fecha_reunion ya es parte de lo editable (antes quedaba fija) --
+ * el índice único uq_reporte_cdp_fecha sigue protegiendo contra choques al
+ * cambiarla, y fecha_creacion (el ancla real de la ventana) nunca se toca
+ * acá, así que cambiar fecha_reunion no altera el resultado de
+ * fn_puede_editar_reporte_cdp para esta misma fila.
  */
 export async function actualizarReporte(reporteId: string, datos: NuevoReporte): Promise<ResultadoReporte> {
   const { error: errorReporte } = await supabase
     .from('casa_de_paz_reporte')
     .update({
+      fecha_reunion: datos.fecha_reunion,
       libro_id: datos.libro_id || null,
       tema_id: datos.tema_id || null,
       tema_especial_txt: datos.tema_especial_txt || null,

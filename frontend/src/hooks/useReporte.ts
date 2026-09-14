@@ -4,6 +4,7 @@ import {
   anularReporte,
   crearReporte,
   obtenerCamposObligatorios,
+  obtenerCdpContextoReporte,
   obtenerDiasLimiteEdicionReporte,
   obtenerDiasPlazoReporte,
   obtenerEdadMinimaCreyente,
@@ -209,6 +210,16 @@ export function usePuedeEditarReporte(reporteId: string | undefined) {
     queryKey: ['reporte', 'puede-editar', reporteId],
     queryFn: () => puedeEditarReporte(reporteId as string),
     enabled: !!reporteId,
+  });
+}
+
+/** KAN-367: Líder/Anfitrión/Dirección/Ciudad de la CdP -- panel de modificación cuando se edita un reporte ajeno. */
+export function useCdpContextoReporte(casaDePazId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'cdp-contexto', casaDePazId],
+    queryFn: () => obtenerCdpContextoReporte(casaDePazId as string),
+    enabled: habilitado && !!casaDePazId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 

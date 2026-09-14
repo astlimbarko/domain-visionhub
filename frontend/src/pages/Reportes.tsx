@@ -6,13 +6,16 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   CalendarDays,
   Check,
   ClipboardList,
   DollarSign,
   HeartHandshake,
+  MapPin,
   MessageSquare,
   PartyPopper,
+  Pencil,
   Plus,
   Trash2,
   UserPlus,
@@ -45,6 +48,7 @@ import {
   useActualizarReporte,
   useAnularReporte,
   useCamposObligatoriosReporte,
+  useCdpContextoReporte,
   useCrearReporte,
   useEdadMinimaCreyente,
   useIdsLiderCdp,
@@ -113,6 +117,24 @@ export function Reportes() {
 
   const iglesiaActivaId = modoEdicion ? reporteExistente?.iglesia_id : contextoCdp?.iglesiaId;
   const cdpActiva = modoEdicion ? reporteExistente?.casa_de_paz_id : contextoCdp?.cdpId;
+
+  // KAN-367: panel de modificación -- editar un reporte ya enviado exige un
+  // paso explícito de activación (no se habilita directo al entrar), con un
+  // mensaje de advertencia antes de mostrar los campos. Se resetea si se
+  // navega de un reporte a otro sin desmontar el componente (misma ruta,
+  // reporteId distinto).
+  const [activado, setActivado] = useState(false);
+  useEffect(() => {
+    setActivado(false);
+  }, [reporteId]);
+
+  // Si quien edita no es el propio Líder/Sublíder de esta CdP (llegó acá
+  // desde Control de Reportes -- Líder/Supervisor de Red, Pastor,
+  // Supervisor), puede estar editando reportes de varias CdP distintas: se
+  // muestra el contexto (Líder, Anfitrión, Dirección, Ciudad) para que esté
+  // seguro de cuál está editando.
+  const esCdpAjena = modoEdicion && (!contextoCdp || contextoCdp.cdpId !== cdpActiva);
+  const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, esCdpAjena);
   const queryClient = useQueryClient();
   const { data: redes = [] } = useRedes(iglesiaActivaId);
   const colorRedInfo = redes.find((r) => r.id === contextoCdp?.redId)?.color;
@@ -152,7 +174,7 @@ export function Reportes() {
       navigate(-1);
     } catch (e) {
       const mensaje = typeof (e as { message?: string })?.message === 'string' ? (e as { message: string }).message : '';
-      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasaron 7 días o no tenés permiso)' : 'No se pudo anular el reporte');
+      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasó la ventana de edición o no tenés permiso)' : 'No se pudo anular el reporte');
     }
   }
 
@@ -792,8 +814,47 @@ export function Reportes() {
       return (
         <ProximamentePlaceholder
           titulo="Ya no se puede editar"
-          descripcion="Este reporte ya pasó la ventana de 7 días para editarlo, o no tenés permiso sobre esta Casa de Paz."
+          descripcion="Este reporte ya pasó la ventana de edición, o no tenés permiso sobre esta Casa de Paz."
         />
+      );
+    }
+    if (!activado) {
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <DashboardHero
+            icon={ClipboardList}
+            eyebrow="Editar reporte"
+            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
+            color={colorRed ?? undefined}
+          />
+          <section className={CARD_SECCION}>
+            <div className="flex flex-col gap-4 p-5">
+              {esCdpAjena && cdpContexto && (
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">{cdpContexto.etiqueta}</p>
+                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
+                  </p>
+                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
+                  </p>
+                </div>
+              )}
+              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="flex flex-col gap-1 text-sm">
+                  <p className="font-medium">Vas a modificar un reporte ya enviado</p>
+                  <p className="text-muted-foreground">
+                    Incluida la fecha de la reunión. Los cambios pueden afectar estadísticas ya calculadas (cumplimiento, rachas). Solo modificá si estás seguro.
+                  </p>
+                </div>
+              </div>
+              <Button type="button" className="gap-2 self-start" onClick={() => setActivado(true)}>
+                <Pencil className="h-4 w-4" /> Modificar este reporte
+              </Button>
+            </div>
+          </section>
+        </div>
       );
     }
   } else if (!contextoCdp) {
@@ -814,6 +875,18 @@ export function Reportes() {
         color={colorRed ?? undefined}
       />
 
+      {esCdpAjena && cdpContexto && (
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+          <p className="font-medium">{cdpContexto.etiqueta}</p>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
+          </p>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         {/* Información General */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
@@ -829,8 +902,7 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input id="fecha_reunion" type="date" max={hoy} disabled={modoEdicion} {...register('fecha_reunion')} />
-                    {modoEdicion && <p className="text-[11px] text-muted-foreground">La fecha de la reunión no se puede cambiar al editar.</p>}
+                    <Input id="fecha_reunion" type="date" max={hoy} {...register('fecha_reunion')} />
                   </div>
 
                   {megaFiesta && (
