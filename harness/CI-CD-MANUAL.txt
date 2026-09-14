@@ -1,0 +1,196 @@
+VisionHub — Manual para automatizar el despliegue (CI/CD)
+============================================================
+Objetivo: que al hacer merge a `master`, el sitio se compile y se suba
+solo al hosting (cPanel), sin que nadie tenga que generar el build a
+mano ni subir archivos por FTP/File Manager cada vez.
+
+Herramienta: GitHub Actions (viene gratis con el repo en GitHub, no hay
+que instalar nada aparte). Corre en la nube de GitHub cada vez que se
+hace push/merge a la rama que elijamos.
+
+------------------------------------------------------------
+PARTE 1 — Qué necesitás conseguir ANTES de tocar código
+------------------------------------------------------------
+
+1) Credenciales FTP del hosting (cPanel):
+   - Entrar a cPanel -> buscar "Cuentas FTP" / "FTP Accounts".
+   - Si ya existe una cuenta FTP que apunta a la carpeta pública del
+     dominio (la misma carpeta donde hoy se sube `dist/` a mano), esa
+     misma sirve. Si no existe, crear una nueva con:
+       - Usuario (ej. deploy@app.somoscdv.com)
+       - Contraseña (generarla fuerte, no reusar la del cPanel general)
+       - Directorio: la carpeta pública exacta del dominio
+         (normalmente algo como public_html/ o
+         public_html/app.somoscdv.com/ — confirmar cuál es la correcta,
+         es la misma que se usa hoy para subir el build a mano).
+   - Anotar también el HOST FTP (normalmente algo como
+     ftp.somoscdv.com o una IP que da el hosting — está en la misma
+     pantalla de cPanel, o en el correo de bienvenida del hosting).
+   - Puerto: FTP normal es 21. Si el hosting ofrece FTPS/SFTP, mejor
+     (más seguro) — anotar cuál soporta.
+
+   NO hace falta crear cuenta en ningún servicio nuevo para esta parte
+   — todo esto ya existe dentro del panel de cPanel que ya se usa hoy.
+
+2) (Opcional, solo si también querés automatizar el deploy de las
+   Supabase Edge Functions, no solo el frontend):
+   - Un "Access Token" personal de Supabase (Dashboard -> ícono de
+     cuenta -> Access Tokens -> Generate new token). Esto es distinto
+     de la contraseña de tu cuenta — es un token específico para
+     scripts/automatización.
+   - Guardarlo en un lugar seguro apenas se genera (Supabase no lo
+     vuelve a mostrar después).
+
+------------------------------------------------------------
+PARTE 2 — Guardar esas credenciales en GitHub (Secrets)
+------------------------------------------------------------
+
+Los Secrets son variables encriptadas que solo puede leer el propio
+workflow de GitHub Actions — nunca quedan visibles en el código ni en
+los logs.
+
+1) Entrar al repo en GitHub -> pestaña "Settings" (arriba, en el repo,
+   no en tu perfil).
+2) En el menú de la izquierda: "Secrets and variables" -> "Actions".
+3) Botón "New repository secret" y crear uno por uno:
+
+   FTP_HOST        -> el host FTP del hosting (parte 1, punto 1)
+   FTP_USERNAME    -> el usuario FTP
+   FTP_PASSWORD    -> la contraseña FTP
+   FTP_REMOTE_DIR  -> la carpeta pública exacta (ej. /public_html/)
+   VITE_APP_URL    -> https://app.somoscdv.com
+                       (el mismo valor que hoy va en
+                       frontend/.env.production, ver harness/DEPLOY.md
+                       sección 4 — sin esto los links de invitación
+                       pueden mandar a www en vez de app)
+   VITE_SUPABASE_URL         -> el mismo valor que ya tenés en
+                                 frontend/.env (empieza con
+                                 https://mkgdeunylrmuogrfmdnq.supabase.co)
+   VITE_SUPABASE_ANON_KEY    -> el mismo valor que ya tenés en
+                                 frontend/.env (es la "anon key",
+                                 pública, no la service_role)
+
+   Si además vas a automatizar Edge Functions (parte 1, punto 2):
+   SUPABASE_ACCESS_TOKEN -> el access token que generaste
+
+------------------------------------------------------------
+PARTE 3 — Crear el archivo del workflow
+------------------------------------------------------------
+
+Crear la carpeta y el archivo (si no existen):
+
+  .github/workflows/deploy.yml
+
+Contenido a copiar tal cual (ajustar solo si el nombre de rama
+productiva no es `master`, o si la carpeta FTP cambia):
+
+---------------------------------------------------------------
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generar el build de produccion
+        working-directory: frontend
+        env:
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Subir dist/ al hosting por FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: frontend/dist/
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+---------------------------------------------------------------
+
+Notas sobre este archivo:
+- "on: push: branches: [master]" -> se dispara solo cuando algo se
+  mergea/pushea a master. Se puede cambiar a otra rama si el equipo
+  decide usar otra como "productiva".
+- "paths: frontend/**" -> evita builds innecesarios si el cambio fue
+  solo, por ejemplo, en una migración de Supabase o en la bitácora.
+- El paso de FTP usa la acción "SamKirkland/FTP-Deploy-Action" (gratis,
+  de uso público, no hay que instalar nada, GitHub la descarga sola).
+  Si el hosting da SFTP en vez de FTP simple, avisar y se cambia la
+  acción por una de SFTP (ej. "easingthemes/ssh-deploy"), la lógica es
+  la misma pero pide un puerto/clave SSH en vez de usuario/contraseña.
+
+(Opcional) Paso extra al final del mismo job, si tambien se quiere
+automatizar el deploy de una Edge Function puntual cuando cambie:
+
+      - name: Instalar Supabase CLI
+        run: npm install -g supabase
+
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy --project-ref mkgdeunylrmuogrfmdnq
+
+  OJO: esto despliega TODAS las funciones en supabase/functions/ cada
+  vez. Las migraciones de base de datos (supabase/migrations/) NO se
+  automatizan en este manual a propósito -- el equipo las aplica una
+  por una con cuidado (ver visionhub-supabase-migraciones-aisladas en
+  memoria), automatizarlas a ciegas es más riesgoso que el resto.
+
+------------------------------------------------------------
+PARTE 4 — Subir el archivo y probar
+------------------------------------------------------------
+
+1) Crear una rama nueva (ej. `ci/deploy-automatico`), agregar el
+   archivo `.github/workflows/deploy.yml`, commitear y pushear.
+2) Abrir una PR normal, revisarla, mergear a `master` (regla del
+   proyecto: nunca commitear directo en master).
+3) En GitHub, pestaña "Actions" (arriba del repo) -> ahí va a aparecer
+   la corrida del workflow apenas se mergee. Se puede ver el progreso
+   paso a paso en vivo, y si algo falla, el log dice exactamente en
+   qué paso y por qué.
+4) Si el primer intento falla por credenciales (usuario/carpeta FTP
+   mal escritos, por ejemplo), se corrigen los Secrets (Parte 2) y se
+   vuelve a intentar con un pushear vacío o el botón "Re-run jobs" en
+   la misma pantalla de Actions -- no hace falta un commit nuevo.
+5) Una vez que funciona: probar el sitio real en incógnito (login +
+   navegar directo a una ruta profunda, ej. /afirmacion, sin dar 404)
+   -- mismo checklist que ya existe en harness/DEPLOY.md sección 4.
+
+------------------------------------------------------------
+PARTE 5 — Qué NO cambia con esto
+------------------------------------------------------------
+
+- Las migraciones de base de datos (supabase/migrations/) se siguen
+  aplicando a mano, con cuidado, como hasta ahora.
+- La advertencia de harness/DEPLOY.md sobre nunca dejar una "Node.js
+  App" activa en cPanel sigue aplicando igual -- este workflow solo
+  compila y sube archivos estáticos, no levanta ningún servidor Node
+  en el hosting.
+- Esto reemplaza el paso manual de "generar build + subir por FTP a
+  mano", que es justamente la parte larga y tediosa. El resto del
+  proceso (decidir cuándo mergear, revisar el PR, probar en vivo antes
+  de dar por cerrado un ticket) sigue igual.
