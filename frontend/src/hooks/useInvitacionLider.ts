@@ -29,6 +29,7 @@ export function useInvitarLider() {
       casaDePazId,
       departamentoId,
       pin,
+      contrasena,
     }: {
       correo: string;
       rol: RolInvitable | 'SUPERVISOR_RED' | null;
@@ -36,7 +37,8 @@ export function useInvitarLider() {
       casaDePazId: string | null;
       departamentoId?: string | null;
       pin?: string;
-    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin),
+      contrasena?: string;
+    }) => invitarLider(correo, rol, redId, casaDePazId, departamentoId ?? null, pin, contrasena),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });

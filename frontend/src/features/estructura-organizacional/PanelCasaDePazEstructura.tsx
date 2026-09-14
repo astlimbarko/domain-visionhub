@@ -206,13 +206,13 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   // AsignarCargoDialog para que pida confirmacion antes de asignar, en vez
   // de asignar en silencio. Una invitacion nueva de verdad (todavia sin
   // cuenta) sigue avisando por toast.
-  async function handleInvitar(correo: string) {
+  async function handleInvitar(correo: string, contrasena?: string) {
     if (!dialogoCargo) return;
     try {
       await invitarLider.mutateAsync(
-        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id },
+        { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id, contrasena },
       );
-      toast.success(`Invitación enviada a ${correo}`);
+      toast.success(contrasena ? `Cuenta creada para ${correo}` : `Invitación enviada a ${correo}`);
       void invalidarEstructura();
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
@@ -298,12 +298,23 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
               </button>
             </div>
             {lider && (lider.invitacionId || lider.membresiaPendiente || (lider.correo && lider.nombre)) && (
-              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+              <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
                 {lider.invitacionId || lider.membresiaPendiente ? (
-                  <BotonReenviarInvitacion
-                    invitacionId={lider.invitacionId ?? undefined}
-                    entidad={lider.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: lider.id }}
-                  />
+                  <>
+                    <BotonReenviarInvitacion
+                      invitacionId={lider.invitacionId ?? undefined}
+                      entidad={lider.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: lider.id }}
+                    />
+                    {/* KAN-376 seguimiento (2026-09-13, pedido del owner): antes
+                        solo se podia reenviar el correo -- si el destinatario
+                        no puede/no llega a usarlo, ahora tambien se le puede
+                        asignar una contraseña fija sin esperar a que acepte la
+                        invitacion (usuarioId ya existe desde que se lo invito,
+                        aunque la Persona real recien se cree al aceptar). */}
+                    {lider.usuarioId && lider.correo && (
+                      <RestablecerContrasenaBoton correo={lider.correo} entidad={{ cdpId: casaDePaz.id, personaId: lider.usuarioId }} />
+                    )}
+                  </>
                 ) : (
                   <RestablecerContrasenaBoton correo={lider.correo as string} entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
                 )}
@@ -499,6 +510,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           quitando={quitarCargo.isPending}
           excluirIdsExtra={dialogoCargo.codigo === 'SUBLIDER_CDP' && lider ? [lider.id] : []}
           invitable={dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP'}
+          permiteContrasenaDirecta={dialogoCargo.codigo === 'LIDER_CDP' || dialogoCargo.codigo === 'SUBLIDER_CDP'}
           invitando={invitarLider.isPending}
           onInvitar={handleInvitar}
         />

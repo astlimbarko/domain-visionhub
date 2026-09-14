@@ -16,6 +16,10 @@ export interface PersonaEstructura {
   etiqueta: string;
   membresiaPendiente: boolean;
   invitacionId?: string | null;
+  /** KAN-376 seguimiento: usuario_id de la invitación pendiente -- permite
+   * usar "Restablecer contraseña" (KAN-278) antes de que exista una Persona
+   * real (recién se crea al aceptar, fn_completar_membresia). */
+  usuarioId?: string | null;
 }
 
 /** KAN-263: entidad sobre la que se pide reenviar la invitación/recordatorio

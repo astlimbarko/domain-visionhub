@@ -27,7 +27,10 @@ export async function invitarLider(
   redId: string | null,
   casaDePazId: string | null,
   departamentoId: string | null = null,
-  pin?: string
+  pin?: string,
+  /** KAN-376 seguimiento: si viene, crea la cuenta con esta contraseña ya
+   * confirmada en vez de mandar el correo de invitación. */
+  contrasena?: string
 ): Promise<{ id: string; correo: string; yaExistia?: boolean }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
@@ -38,6 +41,7 @@ export async function invitarLider(
       casaDePazId,
       departamentoId,
       pin,
+      contrasena,
       redirectTo: `${obtenerUrlBase()}/completar-cuenta`,
     },
   });

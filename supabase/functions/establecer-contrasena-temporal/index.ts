@@ -145,9 +145,18 @@ export default {
       usuarioActual.user.banned_until && new Date(usuarioActual.user.banned_until) > new Date(),
     );
 
+    // KAN-376 seguimiento (2026-09-13): desde que este endpoint tambien
+    // acepta invitaciones todavia PENDIENTE (usuario_id de respaldo, ver
+    // fn_estructura_datos_reenvio_cargo_cdp), puede llegar una cuenta que
+    // nunca confirmo su correo -- signInWithPassword la rechaza igual
+    // aunque la contraseña sea correcta. Que un admin le asigne la
+    // contraseña en persona ES la confirmacion (mismo criterio que "invitado
+    // por admin" ya usa el resto del flujo de invitaciones) -- se confirma
+    // el correo de paso, sin esperar que la persona use un enlace.
     const { error: errorUpdate } = await ctx.supabaseAdmin.auth.admin.updateUserById(usuario_id, {
       password: contrasena,
       ban_duration: "none",
+      email_confirm: true,
       app_metadata: { ...usuarioActual.user.app_metadata, debe_cambiar_contrasena: true },
     });
     if (errorUpdate) {

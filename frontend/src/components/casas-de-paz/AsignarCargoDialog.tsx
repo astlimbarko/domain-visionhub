@@ -9,7 +9,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { CampoOtp } from '@/components/shared/CampoOtp';
@@ -46,7 +49,15 @@ interface Props {
    * asignarla?" y recién al confirmar llama a `onAsignar` (mismo callback
    * que ya usa la búsqueda manual). Devolver `void`/nada es una invitación
    * nueva real (todavía sin cuenta), sigue el flujo de siempre. */
-  onInvitar?: (correo: string) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
+  /** KAN-376 seguimiento: segundo argumento opcional -- cuando viene, el
+   * caller debe crear la cuenta con esa contraseña directo (sin correo). */
+  onInvitar?: (correo: string, contrasena?: string) => void | Promise<{ personaExistente?: { id: string; nombre: string } } | void>;
+  /** KAN-376 seguimiento (2026-09-13, pedido explicito del owner): habilita
+   * la opcion "asignar contraseña directamente" en el modo Invitar, para
+   * personas a las que les cuesta la tecnologia (no dependen de un correo).
+   * Default false -- opt-in explicito por caller, no aparece en pantallas
+   * que todavia no lo probaron. */
+  permiteContrasenaDirecta?: boolean;
   /** OTP opcional (2026-08-01, Gestión de Redes; 2026-08-01 extendido a
    * quitar): cuando se pasa `onPinChange`, elegir persona, invitar por
    * correo, o quitar a alguien quedan detrás de un paso de confirmación con
@@ -93,9 +104,12 @@ export function AsignarCargoDialog({
   excluirIdsExtra = [],
   otpRequerido = true,
   cdpId,
+  permiteContrasenaDirecta = false,
 }: Props) {
   const [modo, setModo] = useState<'buscar' | 'invitar'>('buscar');
   const [correoInvitar, setCorreoInvitar] = useState('');
+  const [usarContrasenaDirecta, setUsarContrasenaDirecta] = useState(false);
+  const [contrasenaDirecta, setContrasenaDirecta] = useState('12345678');
   const [personaElegida, setPersonaElegida] = useState<PersonaBusqueda | null>(null);
   const [aQuitar, setAQuitar] = useState<CargoVigente | null>(null);
   const [invitadoOk, setInvitadoOk] = useState(false);
@@ -110,7 +124,11 @@ export function AsignarCargoDialog({
   useEffect(() => {
     if (!open && invitadoOk) setInvitadoOk(false);
     if (!open && personaExistente) setPersonaExistente(null);
-  }, [open, invitadoOk, personaExistente]);
+    if (!open && usarContrasenaDirecta) {
+      setUsarContrasenaDirecta(false);
+      setContrasenaDirecta('12345678');
+    }
+  }, [open, invitadoOk, personaExistente, usarContrasenaDirecta]);
 
   useEffect(() => () => {
     if (cierreAutomaticoRef.current) clearTimeout(cierreAutomaticoRef.current);
@@ -137,7 +155,11 @@ export function AsignarCargoDialog({
   // siempre (toast, modal abierto).
   function enviarInvitacion() {
     if (!onInvitar || !correoInvitar.trim() || !pinValido) return;
-    const resultado = onInvitar(correoInvitar.trim().toLowerCase());
+    if (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8) return;
+    const resultado = onInvitar(
+      correoInvitar.trim().toLowerCase(),
+      usarContrasenaDirecta ? contrasenaDirecta.trim() : undefined
+    );
     setCorreoInvitar('');
     if (resultado && typeof resultado.then === 'function') {
       resultado.then((r) => {
@@ -325,6 +347,36 @@ export function AsignarCargoDialog({
                 value={correoInvitar}
                 onChange={(e) => setCorreoInvitar(e.target.value)}
               />
+              {/* KAN-376 seguimiento (2026-09-13): para personas a las que les
+                  cuesta la tecnologia -- en vez de mandar un correo que puede
+                  no llegar a usarse, se le asigna una contraseña directo. Se
+                  la dice el admin de palabra, nunca por escrito, igual que
+                  RestablecerContrasenaBoton (KAN-278). */}
+              {permiteContrasenaDirecta && (
+                <>
+                  <label className="group/field mt-1 flex items-start gap-2.5">
+                    <Checkbox
+                      checked={usarContrasenaDirecta}
+                      onCheckedChange={(v) => setUsarContrasenaDirecta(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm text-foreground">
+                      Asignar contraseña directamente ahora mismo, en vez de enviar invitación por correo -- se la vas
+                      a decir vos, en persona, nunca por escrito. No hace falta que confirme ningún correo.
+                    </span>
+                  </label>
+                  {usarContrasenaDirecta && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">Contraseña</Label>
+                      <PasswordInput
+                        value={contrasenaDirecta}
+                        onChange={(e) => setContrasenaDirecta(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -366,9 +418,16 @@ export function AsignarCargoDialog({
                   {asignando ? 'Asignando...' : 'Confirmar'}
                 </Button>
               ) : (
-                <Button type="submit" className="gap-1.5" disabled={invitando || !correoInvitar.trim() || !pinValido}>
+                <Button
+                  type="submit"
+                  className="gap-1.5"
+                  disabled={
+                    invitando || !correoInvitar.trim() || !pinValido ||
+                    (usarContrasenaDirecta && contrasenaDirecta.trim().length < 8)
+                  }
+                >
                   {invitando && <Spinner className="h-3.5 w-3.5" />}
-                  {invitando ? 'Enviando...' : 'Invitar'}
+                  {invitando ? 'Guardando...' : usarContrasenaDirecta ? 'Agregar y asignar contraseña' : 'Invitar'}
                 </Button>
               )}
             </DialogFooter>
