@@ -11,6 +11,7 @@ import {
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerPrimeraFechaReunion,
   obtenerReportesParaCalendario,
   obtenerIdsLiderCdp,
   obtenerLibros,
@@ -161,13 +162,23 @@ export function useHistorialReportes(casaDePazId: string | undefined, desde: str
   });
 }
 
-/** KAN-367: igual que useHistorialReportes, pero con reporte_id/fecha_creacion -- para el calendario clickeable. */
+/** KAN-367: igual que useHistorialReportes, pero con reporte_id/fecha_creacion/total_mayores/total_ofrendas -- para el calendario clickeable con resumen. */
 export function useReportesParaCalendario(casaDePazId: string | undefined, desde: string, hasta: string) {
   return useQuery({
     queryKey: ['reporte', 'historial-calendario', casaDePazId, desde, hasta],
     queryFn: () => obtenerReportesParaCalendario(casaDePazId as string, desde, hasta),
     enabled: !!casaDePazId,
     placeholderData: keepPreviousData,
+  });
+}
+
+/** KAN-367: primera fecha de reunión histórica de la CdP -- antes de eso, el calendario no puede marcar "no entregado" (todavía no existía). */
+export function usePrimeraFechaReunion(casaDePazId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'primera-fecha-reunion', casaDePazId],
+    queryFn: () => obtenerPrimeraFechaReunion(casaDePazId as string),
+    enabled: !!casaDePazId,
+    staleTime: 1000 * 60 * 60,
   });
 }
 

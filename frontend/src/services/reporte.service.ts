@@ -258,27 +258,91 @@ export async function obtenerFechasReportadas(casaDePazId: string, desde: string
   return (data ?? []).map((r) => r.fecha_reunion);
 }
 
+export interface ReporteCalendarioFila {
+  reporte_id: string;
+  fecha_reunion: string;
+  fecha_creacion: string;
+  /** Asistentes mayores de la edad mínima de creyente (ver EDAD_MINIMA_CREYENTE) -- "adultos" para el resumen del calendario. */
+  total_mayores: number;
+  total_menores: number;
+  total_ofrendas: number;
+  total_diezmos: number;
+}
+
 /**
- * KAN-367: mismo rango que obtenerFechasReportadas, pero con reporte_id y
- * fecha_creacion -- lo que hace falta para que el calendario (círculos
- * verdes) sea clickeable directo a editar, sin depender del botón aparte de
- * "Reportes recientes". Se mantiene la función de arriba sin tocar (otros 2
- * consumidores -- DashboardLiderCdp, el propio HistorialReportes -- solo
- * necesitan las fechas, no el id).
+ * KAN-367: mismo rango que obtenerFechasReportadas, pero con lo que hace
+ * falta para que el calendario (círculos verdes) sea clickeable directo a
+ * editar y muestre un resumen al pasar el mouse -- reporte_id, fecha_creacion,
+ * adultos/niños y ofrendas/diezmos. Se mantiene obtenerFechasReportadas sin
+ * tocar (otros 2 consumidores -- DashboardLiderCdp, el propio
+ * HistorialReportes -- solo necesitan las fechas).
+ *
+ * 2 consultas en paralelo (no N+1 por círculo, todo el año de una vez):
+ * v_reporte_totales ya trae total_mayores/total_menores por reporte_id sin
+ * join extra; finanzas_ingreso ya tiene índice por reporte_id
+ * (idx_ingreso_reporte, 14_finanzas.sql) así que el filtro `IN (...)` no
+ * hace table scan.
  */
 export async function obtenerReportesParaCalendario(
   casaDePazId: string,
   desde: string,
   hasta: string
-): Promise<{ reporte_id: string; fecha_reunion: string; fecha_creacion: string }[]> {
-  const { data, error } = await supabase
-    .from('casa_de_paz_reporte')
-    .select('reporte_id:id, fecha_reunion, fecha_creacion')
+): Promise<ReporteCalendarioFila[]> {
+  const { data: totales, error: errorTotales } = await supabase
+    .from('v_reporte_totales')
+    .select('reporte_id, fecha_reunion, fecha_creacion, total_mayores, total_menores')
     .eq('casa_de_paz_id', casaDePazId)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta);
+  if (errorTotales) throw errorTotales;
+  if (!totales || totales.length === 0) return [];
+
+  const reporteIds = totales.map((r) => r.reporte_id);
+  const { data: ingresos, error: errorIngresos } = await supabase
+    .from('finanzas_ingreso')
+    .select('reporte_id, monto, tipo_ingreso:tipo_ingreso_id(codigo)')
+    .in('reporte_id', reporteIds)
+    .is('fecha_eliminacion', null);
+  if (errorIngresos) throw errorIngresos;
+
+  const ofrendaPorReporte = new Map<string, number>();
+  const diezmoPorReporte = new Map<string, number>();
+  for (const ing of ingresos ?? []) {
+    if (!ing.reporte_id) continue;
+    const tipo = Array.isArray(ing.tipo_ingreso) ? ing.tipo_ingreso[0] : ing.tipo_ingreso;
+    const mapa = tipo?.codigo === 'OFRENDA' ? ofrendaPorReporte : tipo?.codigo === 'DIEZMO' ? diezmoPorReporte : null;
+    if (mapa) mapa.set(ing.reporte_id, (mapa.get(ing.reporte_id) ?? 0) + Number(ing.monto));
+  }
+
+  return totales.map((r) => ({
+    reporte_id: r.reporte_id,
+    fecha_reunion: r.fecha_reunion,
+    fecha_creacion: r.fecha_creacion,
+    total_mayores: r.total_mayores,
+    total_menores: r.total_menores,
+    total_ofrendas: ofrendaPorReporte.get(r.reporte_id) ?? 0,
+    total_diezmos: diezmoPorReporte.get(r.reporte_id) ?? 0,
+  }));
+}
+
+/**
+ * KAN-367: primera fecha de reunión con reporte, en toda la historia de la
+ * CdP (no solo el año en pantalla) -- usa idx_reporte_cdp_fecha, consulta
+ * liviana (MIN con índice). Antes de esa fecha ninguna semana "faltó" un
+ * reporte: la CdP todavía no existía/no se reunía, así que el calendario la
+ * pinta gris en vez de roja.
+ */
+export async function obtenerPrimeraFechaReunion(casaDePazId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .is('fecha_eliminacion', null)
+    .order('fecha_reunion', { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
-  return data ?? [];
+  return data?.fecha_reunion ?? null;
 }
 
 /**

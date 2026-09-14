@@ -4,6 +4,7 @@ const NOMBRES_MES = [
 ];
 
 const NOMBRES_DIA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const NOMBRES_DIA_COMPLETO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const NOMBRES_MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 export function nombreMes(anio: number, mes: number) {
@@ -80,6 +81,12 @@ export function finSemanaISO(fechaISO: string): string {
 export function fechaLegible(fechaISO: string): string {
   const fecha = desdeISO(fechaISO);
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;
+}
+
+/** Igual que `fechaLegible` pero con el nombre del día adelante (ej. "lunes 16 de julio") -- para resúmenes donde importa saber qué día de la semana fue. */
+export function fechaLegibleConDia(fechaISO: string): string {
+  const fecha = desdeISO(fechaISO);
+  return `${NOMBRES_DIA_COMPLETO[fecha.getDay()]} ${fechaLegible(fechaISO)}`;
 }
 
 /** Igual que `fechaLegible` pero con el año -- `fechaLegible` lo omite a

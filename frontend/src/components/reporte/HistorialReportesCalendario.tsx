@@ -3,18 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
-import { useDiasLimiteEdicionReporte, useReportesParaCalendario } from '@/hooks/useReporte';
+import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
-import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, fechaLegibleConDia, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
 
 interface Props {
   casaDePazId: string | undefined;
   /** KAN-367: hace falta para resolver la ventana de edición configurable por iglesia. */
   iglesiaId: string | undefined;
+}
+
+/** `capitalize` de CSS pone mayúscula a cada palabra ("Domingo 8 De Febrero") -- esto solo a la primera letra. */
+function conMayusInicial(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 const NOMBRES_MES = [
@@ -98,14 +104,39 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   // KAN-367: ventana de edición del propio Líder/Sublíder de esta CdP (el
   // calendario es su vista, no la de Red/Supervisor -- esa usa la ventana larga en ControlReportesVista).
   const { data: diasLimiteEdicion = 3 } = useDiasLimiteEdicionReporte(iglesiaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
+  // KAN-367: antes de la primera reunión real de esta CdP, ninguna semana
+  // "faltó" un reporte -- todavía no existía/no se reunía. Se pinta gris, no roja.
+  const { data: primeraFechaReunion } = usePrimeraFechaReunion(casaDePazId);
+  const primeraSemanaISO = useMemo(() => (primeraFechaReunion ? inicioSemanaISO(primeraFechaReunion) : null), [primeraFechaReunion]);
 
   const fechasReportadas = useMemo(() => reportes.map((r) => r.fecha_reunion), [reportes]);
   const semanasConReporte = useMemo(() => new Set(fechasReportadas.map((f) => inicioSemanaISO(f))), [fechasReportadas]);
   // Un reporte por semana (mismo criterio que el resto del calendario) -- si
   // hubiera más de uno en la misma semana, se queda con el último leído.
   const reportePorSemana = useMemo(() => {
-    const mapa = new Map<string, { reporteId: string; fechaCreacion: string }>();
-    for (const r of reportes) mapa.set(inicioSemanaISO(r.fecha_reunion), { reporteId: r.reporte_id, fechaCreacion: r.fecha_creacion });
+    const mapa = new Map<
+      string,
+      {
+        reporteId: string;
+        fechaReunion: string;
+        fechaCreacion: string;
+        totalMayores: number;
+        totalMenores: number;
+        totalOfrendas: number;
+        totalDiezmos: number;
+      }
+    >();
+    for (const r of reportes) {
+      mapa.set(inicioSemanaISO(r.fecha_reunion), {
+        reporteId: r.reporte_id,
+        fechaReunion: r.fecha_reunion,
+        fechaCreacion: r.fecha_creacion,
+        totalMayores: r.total_mayores,
+        totalMenores: r.total_menores,
+        totalOfrendas: r.total_ofrendas,
+        totalDiezmos: r.total_diezmos,
+      });
+    }
     return mapa;
   }, [reportes]);
 
@@ -118,7 +149,11 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   }, [grupos]);
 
   const { enviadas, vencidas, rachaActual } = useMemo(() => {
-    const semanasVencidas = grupos.flatMap((g) => g.semanas).filter((s) => s.fin < hoyISO);
+    // KAN-367: una semana anterior a la primera reunión real no cuenta como
+    // "vencida" -- no se le puede pedir un reporte a una CdP que todavía no existía.
+    const semanasVencidas = grupos
+      .flatMap((g) => g.semanas)
+      .filter((s) => s.fin < hoyISO && (!primeraSemanaISO || s.inicio >= primeraSemanaISO));
     const enviadas = semanasVencidas.filter((s) => semanasConReporte.has(s.inicio)).length;
 
     let racha = 0;
@@ -128,7 +163,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
     }
 
     return { enviadas, vencidas: semanasVencidas.length, rachaActual: racha };
-  }, [grupos, semanasConReporte, hoyISO]);
+  }, [grupos, semanasConReporte, hoyISO, primeraSemanaISO]);
 
   const cumplimiento = vencidas > 0 ? Math.round((enviadas / vencidas) * 100) : 0;
 
@@ -227,33 +262,77 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                       {grupo.semanas.map((s) => {
                         const enviado = semanasConReporte.has(s.inicio);
                         const semanaVencida = s.fin < hoyISO;
-                        const faltante = !enviado && semanaVencida;
+                        // KAN-367: antes de la primera reunión real de esta CdP, la semana no
+                        // "faltó" un reporte -- todavía no existía/no se reunía. Va en gris, no roja.
+                        const antesDePrimera = !enviado && !!primeraSemanaISO && s.inicio < primeraSemanaISO;
+                        const faltante = !enviado && semanaVencida && !antesDePrimera;
                         // KAN-367: el círculo verde se puede editar mientras el reporte de esa
                         // semana siga dentro de la ventana configurable (desde que se cargó,
                         // no desde la reunión) -- el permiso real lo valida el backend igual,
                         // esto solo decide si el círculo se muestra como clickeable.
                         const reporteSemana = reportePorSemana.get(s.inicio);
                         const editable = enviado && !!reporteSemana && dentroDeVentanaEdicionReporte(reporteSemana.fechaCreacion, diasLimiteEdicion);
-                        const tituloBase = `${fechaLegible(s.inicio)} – ${fechaLegible(s.fin)}: ${enviado ? 'reporte entregado' : faltante ? 'no entregado' : 'todavía no corresponde'}`;
+
+                        const estadoTexto = enviado
+                          ? 'reporte entregado'
+                          : antesDePrimera
+                            ? 'antes de la primera reunión'
+                            : faltante
+                              ? 'no entregado'
+                              : 'todavía no corresponde';
 
                         return (
-                          <button
-                            key={s.inicio}
-                            type="button"
-                            disabled={!editable}
-                            onClick={editable ? () => navigate(rutaReporteEditar(reporteSemana.reporteId)) : undefined}
-                            title={editable ? `${tituloBase} · click para modificar` : tituloBase}
-                            className={cn(
-                              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
-                              enviado && 'text-white',
-                              faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
-                              !enviado && !faltante && 'bg-muted text-muted-foreground/60',
-                              editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
-                            )}
-                            style={enviado ? { backgroundColor: VERDE, boxShadow: `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)` } : undefined}
-                          >
-                            {numeroDeSemana.get(s.inicio)}
-                          </button>
+                          <Tooltip key={s.inicio}>
+                            <TooltipTrigger asChild>
+                              {/* KAN-367: sin `disabled` nativo a propósito -- un <button disabled>
+                                  deja de recibir hover en algunos motores (Safari), lo que le
+                                  tapaba el tooltip a las semanas no editables. `aria-disabled` +
+                                  omitir onClick logra lo mismo (no clickeable) sin perder el hover. */}
+                              <button
+                                type="button"
+                                aria-disabled={!editable}
+                                tabIndex={editable ? 0 : -1}
+                                onClick={editable ? () => navigate(rutaReporteEditar(reporteSemana.reporteId)) : undefined}
+                                className={cn(
+                                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
+                                  enviado && 'text-white',
+                                  faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
+                                  !enviado && !faltante && 'bg-muted text-muted-foreground/60',
+                                  editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
+                                )}
+                                style={enviado ? { backgroundColor: VERDE, boxShadow: `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)` } : undefined}
+                              >
+                                {numeroDeSemana.get(s.inicio)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              {enviado && reporteSemana ? (
+                                <div className="flex flex-col gap-[3px]">
+                                  <p className="font-semibold">{conMayusInicial(fechaLegibleConDia(reporteSemana.fechaReunion))}</p>
+                                  <p className="text-muted-foreground">Reporte cargado: {fechaLegible(aISO(new Date(reporteSemana.fechaCreacion)))}</p>
+                                  <p className="text-muted-foreground">Adultos: {reporteSemana.totalMayores}</p>
+                                  <p className="text-muted-foreground">Niños: {reporteSemana.totalMenores}</p>
+                                  <p className="text-muted-foreground">Ofrenda: {reporteSemana.totalOfrendas}</p>
+                                  <p className="text-muted-foreground">Diezmos: {reporteSemana.totalDiezmos}</p>
+                                  {editable && <p className="mt-0.5 font-medium text-primary">Click para modificar</p>}
+                                </div>
+                              ) : faltante ? (
+                                <div className="flex flex-col gap-[3px]">
+                                  <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-destructive" />
+                                    Reporte no entregado
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    Fecha supuesta: {fechaLegible(s.inicio)} – {fechaLegible(s.fin)}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p>
+                                  {fechaLegible(s.inicio)} – {fechaLegible(s.fin)}: {estadoTexto}
+                                </p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
                         );
                       })}
                     </div>
