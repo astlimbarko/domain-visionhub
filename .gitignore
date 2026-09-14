@@ -27,5 +27,7 @@
 !/.mcp.json
 !/bitacora-equipo
 !/bitacora-equipo/**
+!/.github
+!/.github/**
 # Secretos: credenciales SMTP en texto plano (ya cubierto por /*, explicito por seguridad)
 /smtp.txt
