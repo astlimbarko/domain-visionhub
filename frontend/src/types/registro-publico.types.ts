@@ -15,6 +15,11 @@ export type ResolverUrlRegistroResponse =
       casa_de_paz_nombre: string;
       red_nombre: string | null;
       iglesia_nombre: string;
+      // KAN-380: opcionales -- no toda Casa de Paz tiene anfitrion asignado
+      // o direccion cargada. Cuando faltan, el formulario simplemente no
+      // muestra esa linea (ver RegistroPublico.tsx).
+      anfitrion_nombre: string | null;
+      direccion: string | null;
       campos_obligatorios: CamposObligatorios;
     };
 

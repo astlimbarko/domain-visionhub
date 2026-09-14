@@ -76,6 +76,21 @@ export function RegistroPublico() {
                     {t('registroPublico.red')}: <strong>{data.red_nombre}</strong>
                   </>
                 )}
+                {/* KAN-380: ambos opcionales -- sin anfitrion o sin direccion
+                    cargada, la linea correspondiente simplemente no aparece,
+                    no interrumpe el formulario. */}
+                {data.anfitrion_nombre && (
+                  <>
+                    <br />
+                    {t('registroPublico.anfitrion')}: <strong>{data.anfitrion_nombre}</strong>
+                  </>
+                )}
+                {data.direccion && (
+                  <>
+                    <br />
+                    {t('registroPublico.direccion')}: <strong>{data.direccion}</strong>
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
