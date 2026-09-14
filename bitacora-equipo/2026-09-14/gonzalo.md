@@ -23,4 +23,5 @@
 - [x] 3 fases implementadas y commiteadas en rama `feat/kan367-panel-modificacion-reporte-cdp` -- 3 migraciones aplicadas a producción. Bug real encontrado en verificación en vivo: "Reportes recientes" ordenaba por fecha_reunion, un reporte atrasado recién cargado quedaba invisible en esa lista -- corregido a ordenar por fecha_creacion
 - [x] Verificado en vivo end-to-end en dev (Playwright, cuenta de prueba): activación + advertencia + cambio real de fecha de reunión persistido sin alterar fecha_creacion
 - [x] KAN-367 seguimiento: implementado el calendario clickeable pedido (círculos verdes → editar directo, tooltip al pasar el mouse), botón "Editar" lateral sacado -- commit 3f48aa1, build real en Docker sin errores
-- [ ] Pendiente: verificar en vivo (Playwright y extensión de Chrome quedaron desconectados) y deploy manual a producción del frontend (CI/CD sigue bloqueado). KAN-367 queda en "En curso" hasta resolver esto
+- [x] Calendario clickeable verificado en vivo (Playwright reconectó): solo el círculo dentro de ventana queda clickeable, tooltip correcto, navega bien a editar, botón lateral confirmado ausente
+- [ ] Pendiente: deploy manual a producción del frontend (CI/CD sigue bloqueado) y verificar en vivo Fase 3 (OTP Pastor/Supervisor) + encabezado de contexto cruzado. KAN-367 queda en "En curso" hasta resolver esto
