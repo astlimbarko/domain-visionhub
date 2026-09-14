@@ -186,13 +186,21 @@ export async function obtenerMegaFiestaDelDia(casaDePazId: string, fecha: string
   return { evento_id: data.id, titulo: data.titulo };
 }
 
+/**
+ * KAN-367: ordenado por fecha_creacion (últimos ENVÍOS, como ya dice el
+ * título de la sección), no por fecha_reunion -- un reporte atrasado
+ * (backfill, fecha_reunion vieja) recién creado tiene que aparecer acá
+ * arriba de todo para poder corregirlo mientras está en ventana, si no,
+ * quedaba invisible detrás de reportes con fecha_reunion más reciente pero
+ * cargados hace más tiempo (justo el caso que este ticket resuelve).
+ */
 export async function obtenerReportesRecientes(casaDePazIds: string[]): Promise<ReporteReciente[]> {
   if (casaDePazIds.length === 0) return [];
   const { data, error } = await supabase
     .from('v_reporte_totales')
     .select('reporte_id, casa_de_paz_id, fecha_reunion, fecha_creacion, total_asistentes, total_menores, total_mayores')
     .in('casa_de_paz_id', casaDePazIds)
-    .order('fecha_reunion', { ascending: false })
+    .order('fecha_creacion', { ascending: false })
     .limit(10);
   if (error) throw error;
   return (data ?? []).map((r) => ({
