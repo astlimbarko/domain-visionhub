@@ -29,5 +29,8 @@
 !/bitacora-equipo/**
 !/.github
 !/.github/**
+!/.claude
+!/.claude/skills
+!/.claude/skills/**
 # Secretos: credenciales SMTP en texto plano (ya cubierto por /*, explicito por seguridad)
 /smtp.txt
