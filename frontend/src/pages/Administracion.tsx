@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Building2, ChevronDown, Church, Database, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Building2, ChevronDown, Church, Database, GraduationCap, IdCard, KeyRound, MoreVertical, Network, Plus, RadioTower, RotateCcw, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 import { obtenerUrlBase } from '@/utils/app-url';
 import { solicitarRecuperacionContrasena } from '@/services/auth.service';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { ConfirmarCambioDialog } from '@/components/shared/ConfirmarCambioDialog';
+import { GraduarIglesiaDialog } from '@/components/shared/GraduarIglesiaDialog';
 import { AZUL, AMBAR, MARINO, MORADO, TEAL, KpiMosaico } from '@/components/dashboard/DashboardUI';
 import {
   useIglesiasTodas,
@@ -30,6 +31,7 @@ import {
   useToggleUsuarioRol,
   useEliminarCuentaUsuario,
   useDashboardSuperAdmin,
+  useGraduarIglesiaHija,
 } from '@/hooks/useAdmin';
 import { CrearIglesiaDialog } from '@/components/admin/CrearIglesiaDialog';
 import { EditarIglesiaDialog } from '@/components/admin/EditarIglesiaDialog';
@@ -134,6 +136,8 @@ export function Administracion() {
   const [iglesiaEditar, setIglesiaEditar] = useState<IglesiaAdmin | null>(null);
   const [iglesiasContraidas, setIglesiasContraidas] = useState<Set<string>>(() => new Set());
   const [confirmarIglesia, setConfirmarIglesia] = useState<ConfirmarIglesia | null>(null);
+  // KAN-387: iglesia sobre la que se está por graduar/revertir tipo SATELITE<->HIJA.
+  const [graduarIglesia, setGraduarIglesia] = useState<IglesiaAdmin | null>(null);
   const [usuarioEditar, setUsuarioEditar] = useState<UsuarioListado | null>(null);
   const [usuarioRemover, setUsuarioRemover] = useState<UsuarioListado | null>(null);
   const [usuarioEliminar, setUsuarioEliminar] = useState<UsuarioListado | null>(null);
@@ -184,6 +188,7 @@ export function Administracion() {
   const actualizarUsuarioRol = useActualizarUsuarioRol();
   const toggleUsuarioRol = useToggleUsuarioRol();
   const eliminarCuentaUsuario = useEliminarCuentaUsuario();
+  const graduarIglesiaHija = useGraduarIglesiaHija();
 
   function manejarError(e: unknown, generico: string) {
     const error = e as { message?: string } | null;
@@ -202,6 +207,10 @@ export function Administracion() {
       toast.error('Esta iglesia tiene estructura vigente; reasignala antes de eliminar');
     } else if (mensaje.includes('USUARIO_FUERA_DE_ALCANCE')) {
       toast.error('Los cargos de Red y Casa de Paz se gestionan desde Casas de Paz');
+    } else if (mensaje.includes('GRADUAR_SIN_PERMISO')) {
+      toast.error('Se requiere ser Pastor de la iglesia madre o Super Admin');
+    } else if (mensaje.includes('GRADUAR_ESTADO_INVALIDO') || mensaje.includes('REVERTIR_ESTADO_INVALIDO')) {
+      toast.error('El tipo de esta iglesia ya cambió -- recargá e intentá de nuevo');
     } else {
       toast.error(mensaje || generico);
     }
@@ -420,6 +429,16 @@ export function Administracion() {
                             <Network className="h-4 w-4" /> Constructor
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setIglesiaEditar(i)} className="focus:bg-white/10 focus:text-white">Editar</DropdownMenuItem>
+                          {/* KAN-387: solo tiene sentido para una iglesia con madre (hija/satélite). */}
+                          {i.iglesia_padre_id && (
+                            <DropdownMenuItem onSelect={() => setGraduarIglesia(i)} className="gap-1.5 focus:bg-white/10 focus:text-white">
+                              {i.tipo === 'SATELITE' ? (
+                                <><GraduationCap className="h-3.5 w-3.5" /> Graduar a Hija</>
+                              ) : (
+                                <><RotateCcw className="h-3.5 w-3.5" /> Volver a Satélite</>
+                              )}
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onSelect={() => setConfirmarIglesia({ iglesia: i, accion: i.activo ? 'suspender' : 'reactivar' })} className="focus:bg-white/10 focus:text-white">
                             {i.activo ? 'Suspender' : 'Reactivar'}
                           </DropdownMenuItem>
@@ -630,6 +649,29 @@ export function Administracion() {
           procesando={eliminarIglesia.isPending || toggleIglesiaActiva.isPending}
           oscuro
           onConfirmar={confirmarAccionIglesia}
+        />
+      )}
+
+      {graduarIglesia && (
+        <GraduarIglesiaDialog
+          open={!!graduarIglesia}
+          onOpenChange={(abierto) => !abierto && setGraduarIglesia(null)}
+          iglesiaNombre={graduarIglesia.nombre}
+          graduar={graduarIglesia.tipo === 'SATELITE'}
+          procesando={graduarIglesiaHija.isPending}
+          oscuro
+          onConfirmar={() => {
+            graduarIglesiaHija.mutate(
+              { iglesiaId: graduarIglesia.id, graduar: graduarIglesia.tipo === 'SATELITE' },
+              {
+                onSuccess: () => {
+                  toast.success(graduarIglesia.tipo === 'SATELITE' ? 'Iglesia graduada a Hija' : 'Iglesia vuelta a Satélite');
+                  setGraduarIglesia(null);
+                },
+                onError: (e) => manejarError(e, 'No se pudo cambiar el tipo de la iglesia'),
+              }
+            );
+          }}
         />
       )}
 
