@@ -16,6 +16,7 @@ import type {
   ReporteReciente,
   ResultadoReporte,
   Tema,
+  TemaConLibro,
   TestimonioCdp,
 } from '@/types/reporte.types';
 
@@ -77,6 +78,34 @@ export async function obtenerTemas(libroId: string, iglesiaId: string): Promise<
     .order('numero');
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * KAN-367 (2026-09-17): todos los temas de los 13 libros a la vez, con el
+ * libro incluido -- para el buscador de temas (quien carga el reporte suele
+ * saber el nombre del tema, no en qué libro está). Dataset chico (~13 libros
+ * x ~52 temas), se trae todo de una vez y se filtra en el cliente.
+ */
+export async function obtenerTodosLosTemas(iglesiaId: string): Promise<TemaConLibro[]> {
+  const { data, error } = await supabase
+    .from('cdp_tema')
+    .select('id, libro_id, numero, nombre, es_especial, libro:libro_id(numero, nombre)')
+    .eq('activo', true)
+    .or(`iglesia_id.is.null,iglesia_id.eq.${iglesiaId}`)
+    .order('numero');
+  if (error) throw error;
+  return (data ?? []).map((t) => {
+    const libro = Array.isArray(t.libro) ? t.libro[0] : t.libro;
+    return {
+      id: t.id,
+      libro_id: t.libro_id,
+      numero: t.numero,
+      nombre: t.nombre,
+      es_especial: t.es_especial,
+      libro_numero: libro?.numero ?? 0,
+      libro_nombre: libro?.nombre ?? '',
+    };
+  });
 }
 
 export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCdp[]> {
@@ -559,7 +588,6 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       salio_evangelizar: datos.salio_evangelizar,
       evangelizados_declarados: datos.evangelizados_declarados ?? null,
       testimonios: datos.testimonios || null,
-      comentarios: datos.comentarios || null,
     })
     .select('id')
     .single();
@@ -890,7 +918,6 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
       salio_evangelizar: datos.salio_evangelizar,
       evangelizados_declarados: datos.evangelizados_declarados ?? null,
       testimonios: datos.testimonios || null,
-      comentarios: datos.comentarios || null,
     })
     .eq('id', reporteId);
   if (errorReporte) throw errorReporte;

@@ -70,6 +70,7 @@ import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
+import { BuscadorTemaCampo } from '@/components/reporte/BuscadorTemaCampo';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
@@ -87,7 +88,6 @@ const esquema = z.object({
   disertador_id: z.string().optional(),
   salio_evangelizar: z.boolean(),
   testimonios: z.string().optional(),
-  comentarios: z.string().optional(),
   total_ofrendas: z.string().min(1, 'El total de ofrendas es obligatorio, aunque sea 0'),
   moneda_id: z.string().min(1, 'Seleccioná una moneda'),
 });
@@ -329,6 +329,20 @@ export function Reportes() {
   const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
   const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
+  // KAN-367 (2026-09-17): el buscador de temas cambia libro_id y tema_id
+  // juntos, pero `temas` (useTemas, filtrado por libro_id) recién empieza a
+  // pedirse cuando libro_id cambia -- si se setea tema_id antes de que esa
+  // lista llegue, el <Select> nunca lo muestra (el value no vuelve a
+  // cambiar una vez que el item recién aparece, bug real encontrado en
+  // verificación en vivo). Se guarda el tema pendiente y se aplica recién
+  // cuando aparece en `temas` (confirma que ya es la lista del libro correcto).
+  const [temaIdPendiente, setTemaIdPendiente] = useState<string | undefined>();
+  useEffect(() => {
+    if (temaIdPendiente && temas.some((t) => t.id === temaIdPendiente)) {
+      setValue('tema_id', temaIdPendiente, { shouldDirty: true });
+      setTemaIdPendiente(undefined);
+    }
+  }, [temas, temaIdPendiente, setValue]);
   // KAN-373: "especial" ahora puede venir del catálogo (temaActual.es_especial,
   // libros 3/10) O de haber elegido el sentinel (cualquier libro).
   const esTemaEspecial = temaActual?.es_especial || temaId === TEMA_ESPECIAL_SENTINEL;
@@ -360,8 +374,16 @@ export function Reportes() {
       tema_especial_txt: reporteExistente.tema_especial_txt ?? undefined,
       disertador_id: reporteExistente.disertador_id ?? undefined,
       salio_evangelizar: reporteExistente.salio_evangelizar,
-      testimonios: reporteExistente.testimonios ?? undefined,
-      comentarios: reporteExistente.comentarios ?? undefined,
+      // KAN-367 (2026-09-17, pedido del owner): "Comentarios" dejó de ser un
+      // campo aparte -- se unifica en Testimonio. Reportes viejos que
+      // guardaron algo en comentarios lo muestran acá abajo, marcado
+      // explícitamente como "Comentarios:" para no perder ese contexto (la
+      // columna vieja en la base no se borra ni se toca, solo deja de
+      // escribirse desde el formulario).
+      testimonios:
+        [reporteExistente.testimonios, reporteExistente.comentarios ? `Comentarios: ${reporteExistente.comentarios}` : null]
+          .filter(Boolean)
+          .join('\n\n') || undefined,
       total_ofrendas: String(reporteExistente.totalOfrendas),
       moneda_id: reporteExistente.monedaId ?? undefined,
     });
@@ -781,11 +803,7 @@ export function Reportes() {
       return;
     }
     if (campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && !valores.testimonios?.trim()) {
-      toast.error('Los testimonios son obligatorios en esta iglesia');
-      return;
-    }
-    if (campos?.REPORTE_COMENTARIOS_OBLIGATORIO && !valores.comentarios?.trim()) {
-      toast.error('Los comentarios son obligatorios en esta iglesia');
+      toast.error('El testimonio es obligatorio en esta iglesia');
       return;
     }
 
@@ -808,7 +826,6 @@ export function Reportes() {
             : evangelizadosPendientes.length
           : undefined,
         testimonios: valores.testimonios,
-        comentarios: valores.comentarios,
         asistentesExistentes: Array.from(asistentes.entries()).map(([id, v]) => ({
           personaId: id,
           esMenor: v.esMenor,
@@ -1099,13 +1116,48 @@ export function Reportes() {
                     />
                   </div>
 
+                  {/* KAN-367 (2026-09-17): Disertador sube acá, al lado de la
+                      fecha -- antes quedaba al final y ese espacio de al lado
+                      de la fecha quedaba vacío en desktop. */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
+                    <BuscadorPersonaCampo
+                      iglesiaId={iglesiaActivaId}
+                      valor={disertadorNombre}
+                      seleccionado={!!disertadorId}
+                      onCambiarTexto={cambiarTextoDisertador}
+                      onSeleccionar={seleccionarDisertador}
+                      placeholder="Buscar por nombre..."
+                      edadMinima={edadMinima}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
+                  </div>
+
                   {megaFiesta && (
-                    <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                    <label className="flex items-center gap-2 text-sm sm:col-span-2">
                       <Checkbox checked={esMegaFiesta} onCheckedChange={(v) => setEsMegaFiesta(v === true)} />
                       <PartyPopper className="h-4 w-4 text-primary" />
                       Fue la Mega Fiesta de Casas de Paz
                     </label>
                   )}
+
+                  {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
+                      tema pero no el libro -- busca en los 13 a la vez y
+                      completa Libro+Tema solos. Los selects de abajo siguen
+                      funcionando igual para quien sí sabe el libro. */}
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label>Buscar tema</Label>
+                    <BuscadorTemaCampo
+                      iglesiaId={iglesiaActivaId}
+                      onSeleccionar={(nuevoLibroId, nuevoTemaId) => {
+                        setValue('libro_id', nuevoLibroId, { shouldDirty: true });
+                        // tema_id se aplica solo (ver useEffect de temaIdPendiente)
+                        // recién cuando useTemas ya trajo los temas de este libro.
+                        setTemaIdPendiente(nuevoTemaId);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Si sabés el libro, también podés elegirlo directo abajo.</p>
+                  </div>
 
                   <div className="flex flex-col gap-1.5">
                     <Label>Libro {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
@@ -1163,20 +1215,6 @@ export function Reportes() {
                       />
                     </div>
                   )}
-
-                  <div className="flex flex-col gap-1.5 sm:col-span-2 sm:w-72">
-                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
-                    <BuscadorPersonaCampo
-                      iglesiaId={iglesiaActivaId}
-                      valor={disertadorNombre}
-                      seleccionado={!!disertadorId}
-                      onCambiarTexto={cambiarTextoDisertador}
-                      onSeleccionar={seleccionarDisertador}
-                      placeholder="Buscar por nombre..."
-                      edadMinima={edadMinima}
-                    />
-                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
-                  </div>
                 </div>
           </div>
         </section>
@@ -1572,34 +1610,31 @@ export function Reportes() {
           </div>
         </section>
 
-        {/* Narración */}
+        {/* Testimonio -- KAN-367 (2026-09-17, pedido del owner): antes era
+            "Narración" con 2 campos (Testimonios + Comentarios). Se unifica
+            en un solo campo -- lo que se pide es que se cuente como
+            testimonio lo que Dios hizo en la reunión, no un dato suelto. */}
         <section className={CARD_SECCION}>
-          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Narración" descripcion="Qué pasó durante la reunión" />
+          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonio" descripcion="Lo que Dios hizo en esta reunión" />
           <div className="p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="testimonios">Testimonios {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea
-                      id="testimonios"
-                      placeholder="¿Alguien compartió un testimonio?"
-                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
-                      {...register('testimonios')}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="comentarios">Comentarios {campos?.REPORTE_COMENTARIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea
-                      id="comentarios"
-                      placeholder="Cualquier otro detalle de la reunión"
-                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.comentarios)}
-                      {...register('comentarios')}
-                    />
-                  </div>
-                </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="testimonios">Testimonio {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
+              <Textarea
+                id="testimonios"
+                placeholder="Contá como testimonio lo que Dios hizo durante esta reunión de Casa de Paz"
+                rows={4}
+                className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
+                {...register('testimonios')}
+              />
+            </div>
           </div>
         </section>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* KAN-367 (2026-09-17, pedido del owner): "Enviar reporte"/"Guardar
+            cambios" centrado en la fila -- sm:justify-center centra el botón
+            principal; los botones admin (historial/anular) igual quedan a la
+            derecha porque usan sm:ml-auto, que gana sobre justify-content. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
           <div className="flex w-full flex-col gap-1.5 sm:w-auto">
             <Button
               type="submit"

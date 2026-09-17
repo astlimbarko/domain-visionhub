@@ -12,6 +12,14 @@ export interface Tema {
   es_especial: boolean;
 }
 
+/** KAN-367 (2026-09-17): tema con su libro incluido -- para el buscador que
+ * cruza los 13 libros a la vez (quien carga el reporte suele saber el
+ * nombre del tema, pero no en qué libro está). */
+export interface TemaConLibro extends Tema {
+  libro_numero: number;
+  libro_nombre: string;
+}
+
 export interface MiembroCdp {
   persona_id: string;
   nombre_completo: string;
@@ -110,7 +118,6 @@ export interface NuevoReporte {
   salio_evangelizar: boolean;
   evangelizados_declarados?: number;
   testimonios?: string;
-  comentarios?: string;
   asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
   visitasNuevas: NuevaVisita[];
   totalOfrendas: number;
@@ -152,6 +159,9 @@ export interface ReporteExistente {
   salio_evangelizar: boolean;
   evangelizados_declarados: number | null;
   testimonios: string | null;
+  /** KAN-367 (2026-09-17): campo viejo, ya no se pide en el formulario (se
+   * unificó en `testimonios`) -- se sigue leyendo solo para mostrarlo dentro
+   * del campo Testimonio al editar un reporte que lo tenía. */
   comentarios: string | null;
   totalOfrendas: number;
   /** Diezmos por persona ya guardados (siempre con personaId + nombre). */

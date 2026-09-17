@@ -22,6 +22,7 @@ import {
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
+  obtenerTodosLosTemas,
   obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
   puedeAnularReporte,
@@ -39,6 +40,16 @@ export function useTemas(libroId: string | undefined, iglesiaId: string | undefi
     queryKey: ['reporte', 'temas', libroId, iglesiaId],
     queryFn: () => obtenerTemas(libroId as string, iglesiaId as string),
     enabled: !!libroId && !!iglesiaId,
+  });
+}
+
+/** KAN-367 (2026-09-17): todos los temas de los 13 libros, para el buscador de temas. */
+export function useTodosLosTemas(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'todos-los-temas', iglesiaId],
+    queryFn: () => obtenerTodosLosTemas(iglesiaId as string),
+    enabled: !!iglesiaId,
+    staleTime: 1000 * 60 * 60,
   });
 }
 
