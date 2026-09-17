@@ -215,16 +215,21 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
 const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
 const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
 
+// KAN-388 (2026-09-17, pedido explícito del owner): /avances es de acceso
+// solo por URL directa (no aparece en CATALOGO_NAV), pero cualquier rol de
+// sistema puede entrar -- la visibilidad real de CADA publicación la filtra
+// el backend (fn_avances_visibles), esto solo evita el redirect del guard
+// de rutas. SIN_ROL queda afuera a propósito (sin rol no hay nada que ver).
 const RUTAS_POR_ROL: Record<RolUI, string[]> = {
-  LIDER_CDP: RUTAS_LIDER_CDP,
-  SUBLIDER_CDP: RUTAS_SUBLIDER_CDP,
-  LIDER_RED: RUTAS_LIDER_RED,
-  SUPERVISOR: RUTAS_SUPERVISOR,
-  PASTOR: RUTAS_PASTOR,
-  SUPER_ADMIN: RUTAS_SUPER_ADMIN,
-  LIDER_DEPARTAMENTO: RUTAS_LIDER_DEPARTAMENTO,
-  LIDER_JOVENES: RUTAS_LIDER_JOVENES,
-  ENCARGADO_MATRIMONIOS: RUTAS_ENCARGADO_MATRIMONIOS,
+  LIDER_CDP: [...RUTAS_LIDER_CDP, ROUTES.AVANCES],
+  SUBLIDER_CDP: [...RUTAS_SUBLIDER_CDP, ROUTES.AVANCES],
+  LIDER_RED: [...RUTAS_LIDER_RED, ROUTES.AVANCES],
+  SUPERVISOR: [...RUTAS_SUPERVISOR, ROUTES.AVANCES],
+  PASTOR: [...RUTAS_PASTOR, ROUTES.AVANCES],
+  SUPER_ADMIN: [...RUTAS_SUPER_ADMIN, ROUTES.AVANCES],
+  LIDER_DEPARTAMENTO: [...RUTAS_LIDER_DEPARTAMENTO, ROUTES.AVANCES],
+  LIDER_JOVENES: [...RUTAS_LIDER_JOVENES, ROUTES.AVANCES],
+  ENCARGADO_MATRIMONIOS: [...RUTAS_ENCARGADO_MATRIMONIOS, ROUTES.AVANCES],
   // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
   // una capacidad ortogonal (Afirmación) o /cuenta.
   SIN_ROL: [],

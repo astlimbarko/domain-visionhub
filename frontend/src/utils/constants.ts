@@ -5,6 +5,9 @@ export const ROUTES = {
   SELECCIONAR_ROL: '/seleccionar-rol',
   AUTH_CALLBACK: '/auth/callback',
   DASHBOARD: '/',
+  // KAN-388: acceso solo por URL directa, a propósito no está en CATALOGO_NAV
+  // (el owner pidió explícitamente que no aparezca en el menú lateral).
+  AVANCES: '/avances',
   PERSONAS: '/personas',
   CASAS_DE_PAZ: '/casas-de-paz',
   MINISTERIOS: '/ministerios',

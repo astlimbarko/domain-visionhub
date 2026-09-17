@@ -28,6 +28,7 @@ import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGl
 // que el bundle inicial no incluya código de páginas que la mayoría de
 // sesiones nunca abre en la primera carga.
 const Personas = lazy(() => import('@/pages/Personas').then((m) => ({ default: m.Personas })));
+const Avances = lazy(() => import('@/pages/Avances').then((m) => ({ default: m.Avances })));
 const CasasDePaz = lazy(() => import('@/pages/CasasDePaz').then((m) => ({ default: m.CasasDePaz })));
 const Ministerios = lazy(() => import('@/pages/Ministerios').then((m) => ({ default: m.Ministerios })));
 const Reportes = lazy(() => import('@/pages/Reportes').then((m) => ({ default: m.Reportes })));
@@ -179,6 +180,16 @@ function App() {
 
             {/* Cuenta: accesible para todos */}
             <Route path={ROUTES.CUENTA} element={<Cuenta />} />
+
+            {/* KAN-388: acceso solo por URL directa -- a propósito no está en
+                CATALOGO_NAV/sidebar. Cualquier rol de sistema puede entrar
+                (RUTAS_POR_ROL), la visibilidad real de cada publicación la
+                filtra fn_avances_visibles del lado del backend. */}
+            <Route path={ROUTES.AVANCES} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.AVANCES)}><Avances /></RequiereRol>
+              </Suspense>
+            } />
 
             {/* Rutas protegidas por rol — páginas cargadas bajo demanda (ver imports lazy arriba) */}
             <Route path={ROUTES.PERSONAS} element={
