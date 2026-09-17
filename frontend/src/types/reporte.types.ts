@@ -12,6 +12,14 @@ export interface Tema {
   es_especial: boolean;
 }
 
+/** KAN-367 (2026-09-17): tema con su libro incluido -- para el buscador que
+ * cruza los 13 libros a la vez (quien carga el reporte suele saber el
+ * nombre del tema, pero no en qué libro está). */
+export interface TemaConLibro extends Tema {
+  libro_numero: number;
+  libro_nombre: string;
+}
+
 export interface MiembroCdp {
   persona_id: string;
   nombre_completo: string;
@@ -50,7 +58,6 @@ export interface CamposObligatoriosReporte {
   REPORTE_TEMA_OBLIGATORIO: boolean;
   REPORTE_DISERTADOR_OBLIGATORIO: boolean;
   REPORTE_TESTIMONIOS_OBLIGATORIO: boolean;
-  REPORTE_COMENTARIOS_OBLIGATORIO: boolean;
   REPORTE_SALIO_EVANGELIZAR_VISIBLE: boolean;
 }
 
@@ -110,7 +117,6 @@ export interface NuevoReporte {
   salio_evangelizar: boolean;
   evangelizados_declarados?: number;
   testimonios?: string;
-  comentarios?: string;
   asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
   visitasNuevas: NuevaVisita[];
   totalOfrendas: number;
@@ -152,12 +158,22 @@ export interface ReporteExistente {
   salio_evangelizar: boolean;
   evangelizados_declarados: number | null;
   testimonios: string | null;
+  /** KAN-367 (2026-09-17): campo viejo, ya no se pide en el formulario (se
+   * unificó en `testimonios`) -- se sigue leyendo solo para mostrarlo dentro
+   * del campo Testimonio al editar un reporte que lo tenía. */
   comentarios: string | null;
   totalOfrendas: number;
   /** Diezmos por persona ya guardados (siempre con personaId + nombre). */
   diezmos: DiezmoLinea[];
   monedaId: string | null;
-  asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean }[];
+  /**
+   * KAN-367 (2026-09-17, bug real encontrado en verificación en vivo):
+   * `nombreCompleto` solo viene para `esVisita: true` -- quien asiste como
+   * visita/asistente nuevo no está en el pool de miembros de la CdP
+   * (`miembros`), así que sin el nombre acá el formulario de edición no
+   * podía mostrarlo en ninguna lista (aunque sí contaba en el total).
+   */
+  asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean; nombreCompleto?: string }[];
 }
 
 export interface ReporteReciente {

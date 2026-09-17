@@ -468,7 +468,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       {/* Content */}
-      <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#12172a]' : 'bg-muted/30')}>
+      {/* KAN-367 (2026-09-17, pedido del owner): bg-muted/30 -> /80. --muted
+          es un gris muy pálido (#f5f5f7); a /30-/50 no se notaba casi nada
+          de diferencia contra blanco puro, hacía falta subir bastante la
+          opacidad para que el contraste con las cards blancas se note de
+          verdad. Pedido general de fondo, no específico de una pantalla
+          (este wrapper es compartido por toda la app). */}
+      <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#12172a]' : 'bg-muted/80')}>
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
         <header

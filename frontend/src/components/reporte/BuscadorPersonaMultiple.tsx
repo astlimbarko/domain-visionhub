@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { VERDE } from '@/components/dashboard/DashboardUI';
 import type { MiembroCdp } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -54,6 +55,12 @@ interface Props {
   buscandoGlobal?: boolean;
   onSeleccionarGlobal?: (persona: PersonaBusqueda) => void;
   onTextoCambia?: (texto: string) => void;
+  /** KAN-367 (pedido del owner, 2026-09-17): ids que ya estaban guardados al
+   * abrir el reporte para editar -- esas pastillas se ven en rojo suave
+   * (mismo criterio que los demás campos "cargados de la base"), en vez del
+   * color de categoría normal. Quien se agrega/saca durante esta sesión de
+   * edición no entra acá, sigue con su color de categoría de siempre. */
+  idsOriginales?: Set<string>;
 }
 
 /** Separa un nombre completo tecleado en sus partes -- no hay forma de
@@ -109,6 +116,7 @@ export function BuscadorPersonaMultiple({
   buscandoGlobal,
   onSeleccionarGlobal,
   onTextoCambia,
+  idsOriginales,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -301,11 +309,16 @@ export function BuscadorPersonaMultiple({
             encontrara a nadie -- "botón directo" siempre visible, sin tener
             que escribir primero. Abre el mismo mini-formulario de siempre. */}
         {permitirAgregarNueva && (
+          // KAN-367 (2026-09-17, pedido del owner): antes era un outline
+          // plano que se perdía contra el fondo blanco -- tinte de color
+          // (mismo patrón color-mix que el resto del proyecto, ver skill
+          // frontend-style) para que se note sin ser un botón sólido invasivo.
           <Button
             type="button"
             variant="outline"
             size="icon"
-            className="h-10 w-10 shrink-0 rounded-xl"
+            className="h-10 w-10 shrink-0 rounded-xl border-transparent"
+            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
             title="Agregar persona nueva"
             onClick={abrirFormNueva}
           >
@@ -390,11 +403,13 @@ export function BuscadorPersonaMultiple({
           {seleccionados.map((id) => {
             const persona = miembros.find((m) => m.persona_id === id);
             if (!persona) return null;
+            const esOriginal = idsOriginales?.has(id) ?? false;
+            const colorPastilla = esOriginal ? 'var(--destructive)' : colorChip;
             return (
               <span
                 key={id}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                style={{ backgroundColor: `color-mix(in oklab, ${colorChip} 14%, transparent)`, color: colorChip }}
+                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
               >
                 {persona.nombre_completo}
                 {!persona.tiene_fecha_nacimiento && onEsMenorChange && (

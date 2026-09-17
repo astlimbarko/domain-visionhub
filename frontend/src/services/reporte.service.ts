@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { calcularEdad } from '@/utils/edad';
-import { aISO, fechasReunionDelMes } from '@/utils/calendario-fechas';
+import { fechasReunionDelMes } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
   DiezmoLinea,
@@ -16,6 +16,7 @@ import type {
   ReporteReciente,
   ResultadoReporte,
   Tema,
+  TemaConLibro,
   TestimonioCdp,
 } from '@/types/reporte.types';
 
@@ -77,6 +78,34 @@ export async function obtenerTemas(libroId: string, iglesiaId: string): Promise<
     .order('numero');
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * KAN-367 (2026-09-17): todos los temas de los 13 libros a la vez, con el
+ * libro incluido -- para el buscador de temas (quien carga el reporte suele
+ * saber el nombre del tema, no en qué libro está). Dataset chico (~13 libros
+ * x ~52 temas), se trae todo de una vez y se filtra en el cliente.
+ */
+export async function obtenerTodosLosTemas(iglesiaId: string): Promise<TemaConLibro[]> {
+  const { data, error } = await supabase
+    .from('cdp_tema')
+    .select('id, libro_id, numero, nombre, es_especial, libro:libro_id(numero, nombre)')
+    .eq('activo', true)
+    .or(`iglesia_id.is.null,iglesia_id.eq.${iglesiaId}`)
+    .order('numero');
+  if (error) throw error;
+  return (data ?? []).map((t) => {
+    const libro = Array.isArray(t.libro) ? t.libro[0] : t.libro;
+    return {
+      id: t.id,
+      libro_id: t.libro_id,
+      numero: t.numero,
+      nombre: t.nombre,
+      es_especial: t.es_especial,
+      libro_numero: libro?.numero ?? 0,
+      libro_nombre: libro?.nombre ?? '',
+    };
+  });
 }
 
 export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCdp[]> {
@@ -237,13 +266,39 @@ export async function obtenerUltimaFechaReporteRed(casaDePazIds: string[]): Prom
 
 /**
  * Anula (baja lógica) un reporte ya enviado -- p. ej. un duplicado cargado por
- * error. Mismo permiso y ventana de 7 días que la edición (KAN-271), validado
- * server-side por `fn_anular_reporte_cdp`. Da de baja también su asistencia e
- * ingresos (estos vía trigger de cascada).
+ * error. Mismo permiso y misma ventana configurable que la edición (KAN-367
+ * -- `fn_anular_reporte_cdp` reusa `fn_puede_editar_reporte_cdp` tal cual),
+ * validado server-side. Da de baja también su asistencia e ingresos (estos
+ * vía trigger de cascada).
  */
 export async function anularReporte(reporteId: string): Promise<void> {
   const { error } = await supabase.rpc('fn_anular_reporte_cdp', { p_reporte_id: reporteId });
   if (error) throw error;
+}
+
+export interface HistorialReporteEntrada {
+  id: string;
+  tipo: 'MODIFICADO' | 'ANULADO';
+  snapshotAnterior: Record<string, unknown>;
+  modificadoPorNombre: string;
+  fechaCreacion: string;
+}
+
+/**
+ * KAN-367 (2026-09-17): historial de cambios de un reporte -- solo Pastor/
+ * Supervisor de la Visión en Acción (fn_historial_reporte_cdp lo exige server-side,
+ * la tabla en sí no tiene GRANT directo a authenticated).
+ */
+export async function obtenerHistorialReporte(reporteId: string): Promise<HistorialReporteEntrada[]> {
+  const { data, error } = await supabase.rpc('fn_historial_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return (data ?? []).map((r: { id: string; tipo: string; snapshot_anterior: Record<string, unknown>; modificado_por_nombre: string; fecha_creacion: string }) => ({
+    id: r.id,
+    tipo: r.tipo as 'MODIFICADO' | 'ANULADO',
+    snapshotAnterior: r.snapshot_anterior,
+    modificadoPorNombre: r.modificado_por_nombre,
+    fechaCreacion: r.fecha_creacion,
+  }));
 }
 
 /** Fechas de reunion con reporte enviado dentro del rango -- para pintar el calendario de Historial de Reportes. */
@@ -533,7 +588,6 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       salio_evangelizar: datos.salio_evangelizar,
       evangelizados_declarados: datos.evangelizados_declarados ?? null,
       testimonios: datos.testimonios || null,
-      comentarios: datos.comentarios || null,
     })
     .select('id')
     .single();
@@ -694,16 +748,32 @@ export async function obtenerDiasLimiteEdicionReporte(
   return data ?? (codigo === 'DIAS_LIMITE_EDICION_REPORTE_CDP' ? 3 : 30);
 }
 
-/** `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día calendario local. */
-export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
-  const limite = new Date(fechaCreacionISO);
-  limite.setDate(limite.getDate() + diasLimite);
-  return hoyISO <= aISO(limite);
+/**
+ * `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día
+ * calendario UTC, igual que `fecha_creacion::date >= current_date - N` en
+ * `fn_puede_editar_reporte_cdp` (Postgres corre en UTC). Antes comparaba contra
+ * el día local del navegador: un reporte cargado cerca de la medianoche podía
+ * verse como editable en el calendario (círculo verde clickeable) y el backend
+ * lo rechazaba igual al intentar abrirlo -- bug real encontrado en KAN-367
+ * (2026-09-15), reportado como "algunos círculos verdes no muestran contenido".
+ */
+export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number): boolean {
+  const limite = new Date(`${fechaCreacionISO.slice(0, 10)}T00:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() + diasLimite);
+  const hoyUTC = new Date().toISOString().slice(0, 10);
+  return hoyUTC <= limite.toISOString().slice(0, 10);
 }
 
 /** KAN-271/367: si el reporte todavía se puede editar (rol + ventana configurable, ver fn_puede_editar_reporte_cdp). */
 export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('fn_puede_editar_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return !!data;
+}
+
+/** KAN-367: si el reporte todavía se puede ANULAR -- ventana propia, en horas, más corta que la de editar (ver fn_puede_anular_reporte_cdp). */
+export async function puedeAnularReporte(reporteId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_puede_anular_reporte_cdp', { p_reporte_id: reporteId });
   if (error) throw error;
   return !!data;
 }
@@ -765,7 +835,11 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
         )
         .eq('id', reporteId)
         .single(),
-      supabase.from('casa_de_paz_asistencia').select('persona_id, es_visita, es_menor').eq('reporte_id', reporteId).is('fecha_eliminacion', null),
+      supabase
+        .from('casa_de_paz_asistencia')
+        .select('persona_id, es_visita, es_menor, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
+        .eq('reporte_id', reporteId)
+        .is('fecha_eliminacion', null),
       supabase
         .from('finanzas_ingreso')
         .select('monto, moneda_id, persona_id, tipo_ingreso:tipo_ingreso_id(codigo), persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
@@ -812,7 +886,11 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
     totalOfrendas,
     diezmos,
     monedaId,
-    asistentes: (asistencia ?? []).map((a) => ({ personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined })),
+    asistentes: (asistencia ?? []).map((a) => {
+      const p = Array.isArray(a.persona) ? a.persona[0] : a.persona;
+      const nombreCompleto = p ? [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' ') : undefined;
+      return { personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined, nombreCompleto };
+    }),
   };
 }
 
@@ -840,7 +918,6 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
       salio_evangelizar: datos.salio_evangelizar,
       evangelizados_declarados: datos.evangelizados_declarados ?? null,
       testimonios: datos.testimonios || null,
-      comentarios: datos.comentarios || null,
     })
     .eq('id', reporteId);
   if (errorReporte) throw errorReporte;

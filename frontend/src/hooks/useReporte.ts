@@ -11,6 +11,7 @@ import {
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerHistorialReporte,
   obtenerPrimeraFechaReunion,
   obtenerReportesParaCalendario,
   obtenerIdsLiderCdp,
@@ -21,8 +22,10 @@ import {
   obtenerReportesRecientes,
   obtenerReportesRedRango,
   obtenerTemas,
+  obtenerTodosLosTemas,
   obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
+  puedeAnularReporte,
   puedeEditarReporte,
   puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
@@ -37,6 +40,16 @@ export function useTemas(libroId: string | undefined, iglesiaId: string | undefi
     queryKey: ['reporte', 'temas', libroId, iglesiaId],
     queryFn: () => obtenerTemas(libroId as string, iglesiaId as string),
     enabled: !!libroId && !!iglesiaId,
+  });
+}
+
+/** KAN-367 (2026-09-17): todos los temas de los 13 libros, para el buscador de temas. */
+export function useTodosLosTemas(iglesiaId: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'todos-los-temas', iglesiaId],
+    queryFn: () => obtenerTodosLosTemas(iglesiaId as string),
+    enabled: !!iglesiaId,
+    staleTime: 1000 * 60 * 60,
   });
 }
 
@@ -237,6 +250,15 @@ export function usePuedeEditarReporte(reporteId: string | undefined) {
   });
 }
 
+/** KAN-367: ventana propia (en horas) para ANULAR -- más corta que la de editar, se chequea aparte para no mostrar "Anular reporte" cuando ya no se puede. */
+export function usePuedeAnularReporte(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'puede-anular', reporteId],
+    queryFn: () => puedeAnularReporte(reporteId as string),
+    enabled: habilitado && !!reporteId,
+  });
+}
+
 /** KAN-367: Líder/Anfitrión/Dirección/Ciudad de la CdP -- panel de modificación cuando se edita un reporte ajeno. */
 export function useCdpContextoReporte(casaDePazId: string | undefined, habilitado: boolean) {
   return useQuery({
@@ -284,6 +306,15 @@ export function useAnularReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+  });
+}
+
+/** KAN-367 (2026-09-17): historial de cambios de un reporte -- solo Pastor/Supervisor, gateado server-side. */
+export function useHistorialReporte(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'historial-cambios', reporteId],
+    queryFn: () => obtenerHistorialReporte(reporteId as string),
+    enabled: habilitado && !!reporteId,
   });
 }
 

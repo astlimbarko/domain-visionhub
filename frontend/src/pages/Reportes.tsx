@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Check,
   ClipboardList,
+  History,
   DollarSign,
   HeartHandshake,
   MapPin,
@@ -54,8 +55,11 @@ import {
   useEdadMinimaCreyente,
   useIdsLiderCdp,
   useLibros,
+  useDiasLimiteEdicionReporte,
+  useHistorialReporte,
   useMegaFiestaDelDia,
   useMiembrosCdp,
+  usePuedeAnularReporte,
   usePuedeEditarReporte,
   usePuedeSolicitarEdicionFueraVentana,
   useReportePorId,
@@ -66,10 +70,13 @@ import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
+import { BuscadorTemaCampo } from '@/components/reporte/BuscadorTemaCampo';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
+import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -81,7 +88,6 @@ const esquema = z.object({
   disertador_id: z.string().optional(),
   salio_evangelizar: z.boolean(),
   testimonios: z.string().optional(),
-  comentarios: z.string().optional(),
   total_ofrendas: z.string().min(1, 'El total de ofrendas es obligatorio, aunque sea 0'),
   moneda_id: z.string().min(1, 'Seleccioná una moneda'),
 });
@@ -90,6 +96,27 @@ type FormValues = z.infer<typeof esquema>;
 
 /** Wrapper estándar del design system para toda card de sección (ver skill frontend-style). */
 const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
+
+/**
+ * KAN-367: rojo suave para "esto es un dato guardado que estás por editar" --
+ * pedido explícito del owner (2026-09-17) para que se note que se trata de
+ * modificar algo ya existente, no cargar algo nuevo. Nota: esto se aparta a
+ * propósito de la convención del proyecto de reservar `--destructive` solo
+ * para errores reales (ver skill frontend-style) -- decisión consciente del
+ * owner, no un descuido.
+ */
+const ROJO = 'var(--destructive)';
+
+/**
+ * KAN-367: en modo edición, un campo que todavía tiene el valor que vino de
+ * la base (no fue tocado desde que se cargó el reporte, `!dirty`) se ve rojo
+ * suave. Apenas se modifica pasa a verse igual que un campo nuevo (blanco,
+ * `CAMPO_ESTILO` normal). Fuera de modo edición no hay diferencia (todo es
+ * blanco, como siempre).
+ */
+function claseCampoEdicion(enModoEdicion: boolean, dirty: boolean): string {
+  return cn(CAMPO_ESTILO, enModoEdicion && !dirty && 'bg-destructive/10 text-foreground');
+}
 // Mismo wrapper, sin overflow-hidden -- para secciones con un buscador
 // (BuscadorPersonaMultiple/BuscadorPersonaCampo/EvangelismoPendientePanel)
 // cuyo desplegable es absolute y quedaba recortado por el borde de la card
@@ -117,6 +144,9 @@ export function Reportes() {
   // tienen una, a diferencia de Líder/Sublíder de CdP).
   const { data: reporteExistente, isLoading: cargandoReporteExistente, isError: errorReporteExistente } = useReportePorId(reporteId);
   const { data: puedeEditar, isLoading: cargandoPuedeEditar } = usePuedeEditarReporte(reporteId);
+  // KAN-367: ventana propia de "Anular" (en horas) -- se chequea aparte de
+  // puedeEditar (en días) para no mostrar el botón cuando ya no corresponde.
+  const { data: puedeAnular } = usePuedeAnularReporte(reporteId, modoEdicion);
 
   const iglesiaActivaId = modoEdicion ? reporteExistente?.iglesia_id : contextoCdp?.iglesiaId;
   const cdpActiva = modoEdicion ? reporteExistente?.casa_de_paz_id : contextoCdp?.cdpId;
@@ -138,6 +168,25 @@ export function Reportes() {
   // seguro de cuál está editando.
   const esCdpAjena = modoEdicion && (!contextoCdp || contextoCdp.cdpId !== cdpActiva);
   const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, esCdpAjena);
+
+  // KAN-367 (pedido del owner, 2026-09-17): mostrar el número real de días de
+  // la ventana (configurable en Panel del Supervisor -> Formularios -> Control
+  // de Reportes) en el aviso de edición, para que quede claro de dónde sale
+  // ese límite -- no un texto fijo que se desactualice si alguien lo cambia ahí.
+  const { data: diasLimiteEdicionCdp } = useDiasLimiteEdicionReporte(iglesiaActivaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
+
+  // KAN-367 (2026-09-17): "Ver historial de cambios" solo visible para
+  // Pastor/Supervisor de la Visión en Acción (o Super Admin) -- el Líder/
+  // Sublíder de la CdP no lo ve. El backend igual lo exige de nuevo
+  // (fn_historial_reporte_cdp), esto es solo para no mostrar un botón que
+  // va a fallar.
+  const esSupervisionVisionAccion =
+    contextoActivo?.rolUI === 'PASTOR' || contextoActivo?.rolUI === 'SUPERVISOR' || contextoActivo?.rolUI === 'SUPER_ADMIN';
+  const [mostrandoHistorial, setMostrandoHistorial] = useState(false);
+  const { data: historial, isLoading: cargandoHistorial } = useHistorialReporte(
+    reporteId,
+    modoEdicion && esSupervisionVisionAccion && mostrandoHistorial
+  );
 
   // KAN-367: Pastor / Supervisor de la Visión en Acción, fuera de la ventana
   // normal, pueden pedir autorización puntual (justificación + OTP) en vez
@@ -192,6 +241,18 @@ export function Reportes() {
   const anular = useAnularReporte(cdpActiva);
   // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
   const [confirmandoAnular, setConfirmandoAnular] = useState(false);
+  // KAN-367 (pedido del owner, 2026-09-17): botón "Sí, anular" arranca
+  // deshabilitado con cuenta regresiva de 3 segundos -- nadie lo confirma
+  // por reflejo. Arranca de nuevo cada vez que se abre el diálogo.
+  const [segundosParaAnular, setSegundosParaAnular] = useState(3);
+  useEffect(() => {
+    if (!confirmandoAnular) return;
+    setSegundosParaAnular(3);
+    const id = window.setInterval(() => {
+      setSegundosParaAnular((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [confirmandoAnular]);
 
   async function anularReporteActual() {
     if (!reporteId) return;
@@ -201,13 +262,18 @@ export function Reportes() {
       navigate(-1);
     } catch (e) {
       const mensaje = typeof (e as { message?: string })?.message === 'string' ? (e as { message: string }).message : '';
-      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasó la ventana de edición o no tenés permiso)' : 'No se pudo anular el reporte');
+      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasó la ventana para anular, o no tenés permiso)' : 'No se pudo anular el reporte');
     }
   }
 
   // Un único mapa persona → { esVisita, esMenor } evita que alguien quede
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
   const [asistentes, setAsistentes] = useState<Map<string, { esVisita: boolean; esMenor?: boolean }>>(new Map());
+  // KAN-367 (pedido del owner, 2026-09-17): quiénes ya estaban marcados al
+  // abrir el reporte para editar -- sus pastillas se ven en rojo suave.
+  // Nunca se toca fuera del efecto de precarga: agregar/sacar gente durante
+  // la edición no entra ni sale de este set.
+  const [idsAsistentesOriginales, setIdsAsistentesOriginales] = useState<Set<string>>(new Set());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
   // Bug real reportado por el owner (2026-09-05): "Asistentes nuevos" no
   // buscaba a nadie, así que una visita recurrente (alguien que ya está en
@@ -246,7 +312,7 @@ export function Reportes() {
     watch,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(esquema),
     defaultValues: { fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id },
@@ -263,6 +329,20 @@ export function Reportes() {
   const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
   const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
+  // KAN-367 (2026-09-17): el buscador de temas cambia libro_id y tema_id
+  // juntos, pero `temas` (useTemas, filtrado por libro_id) recién empieza a
+  // pedirse cuando libro_id cambia -- si se setea tema_id antes de que esa
+  // lista llegue, el <Select> nunca lo muestra (el value no vuelve a
+  // cambiar una vez que el item recién aparece, bug real encontrado en
+  // verificación en vivo). Se guarda el tema pendiente y se aplica recién
+  // cuando aparece en `temas` (confirma que ya es la lista del libro correcto).
+  const [temaIdPendiente, setTemaIdPendiente] = useState<string | undefined>();
+  useEffect(() => {
+    if (temaIdPendiente && temas.some((t) => t.id === temaIdPendiente)) {
+      setValue('tema_id', temaIdPendiente, { shouldDirty: true });
+      setTemaIdPendiente(undefined);
+    }
+  }, [temas, temaIdPendiente, setValue]);
   // KAN-373: "especial" ahora puede venir del catálogo (temaActual.es_especial,
   // libros 3/10) O de haber elegido el sentinel (cualquier libro).
   const esTemaEspecial = temaActual?.es_especial || temaId === TEMA_ESPECIAL_SENTINEL;
@@ -294,8 +374,16 @@ export function Reportes() {
       tema_especial_txt: reporteExistente.tema_especial_txt ?? undefined,
       disertador_id: reporteExistente.disertador_id ?? undefined,
       salio_evangelizar: reporteExistente.salio_evangelizar,
-      testimonios: reporteExistente.testimonios ?? undefined,
-      comentarios: reporteExistente.comentarios ?? undefined,
+      // KAN-367 (2026-09-17, pedido del owner): "Comentarios" dejó de ser un
+      // campo aparte -- se unifica en Testimonio. Reportes viejos que
+      // guardaron algo en comentarios lo muestran acá abajo, marcado
+      // explícitamente como "Comentarios:" para no perder ese contexto (la
+      // columna vieja en la base no se borra ni se toca, solo deja de
+      // escribirse desde el formulario).
+      testimonios:
+        [reporteExistente.testimonios, reporteExistente.comentarios ? `Comentarios: ${reporteExistente.comentarios}` : null]
+          .filter(Boolean)
+          .join('\n\n') || undefined,
       total_ofrendas: String(reporteExistente.totalOfrendas),
       moneda_id: reporteExistente.monedaId ?? undefined,
     });
@@ -303,6 +391,19 @@ export function Reportes() {
     setDisertadorNombre(reporteExistente.disertador_nombre ?? '');
     setEvangelizadosDeclaradosEdicion(reporteExistente.evangelizados_declarados ?? undefined);
     setAsistentes(new Map(reporteExistente.asistentes.map((a) => [a.personaId, { esVisita: a.esVisita, esMenor: a.esMenor }])));
+    setIdsAsistentesOriginales(new Set(reporteExistente.asistentes.map((a) => a.personaId)));
+    // KAN-367 (bug real encontrado en verificación en vivo, 2026-09-17): quien
+    // asiste como visita/asistente nuevo (esVisita) no está en el pool de
+    // miembros de la CdP -- sin esto, contaba en el total pero no aparecía en
+    // ninguna lista al editar (ni en Regular/Niños, que excluyen a las
+    // visitas a propósito, ni en Asistentes nuevos, que en modo edición
+    // arranca vacío). Se muestran acá como "ya existentes" -- ya tienen
+    // persona_id real, no hace falta crearlas de nuevo.
+    setAsistentesNuevosExistentes(
+      reporteExistente.asistentes
+        .filter((a) => a.esVisita && a.nombreCompleto)
+        .map((a) => ({ id: a.personaId, nombre_completo: a.nombreCompleto as string }))
+    );
     setFormPrecargado(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reporteExistente, modoEdicion]);
@@ -548,6 +649,15 @@ export function Reportes() {
         monto: Number.isFinite(monto) && monto > 0 ? monto : 0,
       },
     ]);
+    cancelarDiezmanteManual();
+  }
+
+  // Bug real encontrado (pedido del owner, 2026-09-17): no había forma de
+  // cerrar este mini-formulario sin completarlo -- si alguien lo abría, se
+  // arrepentía o borraba lo que había escrito, quedaba atascado ahí (el
+  // botón "Agregar" no hacía nada sin nombre/apellido/sexo, y no había
+  // Cancelar/X). Mismo patrón que ya usan "Asistentes nuevos"/Evangelismo.
+  function cancelarDiezmanteManual() {
     setNombreDiezmante('');
     setApellidoDiezmante('');
     setSexoDiezmante('');
@@ -693,11 +803,7 @@ export function Reportes() {
       return;
     }
     if (campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && !valores.testimonios?.trim()) {
-      toast.error('Los testimonios son obligatorios en esta iglesia');
-      return;
-    }
-    if (campos?.REPORTE_COMENTARIOS_OBLIGATORIO && !valores.comentarios?.trim()) {
-      toast.error('Los comentarios son obligatorios en esta iglesia');
+      toast.error('El testimonio es obligatorio en esta iglesia');
       return;
     }
 
@@ -720,7 +826,6 @@ export function Reportes() {
             : evangelizadosPendientes.length
           : undefined,
         testimonios: valores.testimonios,
-        comentarios: valores.comentarios,
         asistentesExistentes: Array.from(asistentes.entries()).map(([id, v]) => ({
           personaId: id,
           esMenor: v.esMenor,
@@ -850,7 +955,7 @@ export function Reportes() {
         return (
           <ProximamentePlaceholder
             titulo="Ya no se puede editar"
-            descripcion="Este reporte ya pasó la ventana de edición, o no tenés permiso sobre esta Casa de Paz."
+            descripcion="Este reporte ya pasó tu ventana de edición, o no tenés permiso sobre esta Casa de Paz. Pedile al Líder de Red, Pastor o Supervisor de la Visión en Acción que lo corrija -- ellos tienen más margen y pueden autorizar la edición fuera de ventana."
           />
         );
       }
@@ -925,11 +1030,13 @@ export function Reportes() {
                 <div className="flex flex-col gap-1 text-sm">
                   <p className="font-medium">Vas a modificar un reporte ya enviado</p>
                   <p className="text-muted-foreground">
-                    Incluida la fecha de la reunión. Los cambios pueden afectar estadísticas ya calculadas (cumplimiento, rachas). Solo modificá si estás seguro.
+                    Puede afectar estadísticas ya calculadas.
+                    {diasLimiteEdicionCdp !== undefined &&
+                      ` Tenés hasta ${diasLimiteEdicionCdp} día${diasLimiteEdicionCdp === 1 ? '' : 's'} desde que se cargó (configurable en Supervisión).`}
                   </p>
                 </div>
               </div>
-              <Button type="button" className="gap-2 self-start" onClick={() => setActivado(true)}>
+              <Button type="button" variant="destructive" className="gap-2 self-start" onClick={() => setActivado(true)}>
                 <Pencil className="h-4 w-4" /> Modificar este reporte
               </Button>
             </div>
@@ -955,6 +1062,16 @@ export function Reportes() {
         color={colorRed ?? undefined}
       />
 
+      {/* KAN-367 (pedido del owner, 2026-09-17): explica qué significa el
+          rojo -- sin esto no queda claro que es "esto ya está guardado", no
+          un error. */}
+      {modoEdicion && (
+        <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-destructive/40" />
+          Los campos en rojo tienen el dato ya guardado. Al escribir en uno, pasa a blanco para mostrar que lo estás modificando.
+        </p>
+      )}
+
       {esCdpAjena && cdpContexto && (
         <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
           <p className="font-medium">{cdpContexto.etiqueta}</p>
@@ -967,7 +1084,15 @@ export function Reportes() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn('flex flex-col gap-6', modoEdicion && '-mx-4 rounded-3xl p-4 sm:-mx-5 sm:p-5')}
+        // KAN-367 (pedido del owner, 2026-09-17): tinte rojo sutil solo en
+        // modo edición, para que se note a simple vista que se está
+        // modificando un dato ya guardado -- mismo patrón de color-mix que
+        // ya usan TarjetaHeader/franjas de sección, no un color plano nuevo.
+        style={modoEdicion ? { backgroundColor: `color-mix(in oklab, ${ROJO} 4%, transparent)` } : undefined}
+      >
         {/* Información General */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
@@ -982,21 +1107,72 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input id="fecha_reunion" type="date" max={hoy} {...register('fecha_reunion')} />
+                    <Input
+                      id="fecha_reunion"
+                      type="date"
+                      max={hoy}
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
+                      {...register('fecha_reunion')}
+                    />
+                  </div>
+
+                  {/* KAN-367 (2026-09-17): Disertador sube acá, al lado de la
+                      fecha -- antes quedaba al final y ese espacio de al lado
+                      de la fecha quedaba vacío en desktop. */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
+                    <BuscadorPersonaCampo
+                      iglesiaId={iglesiaActivaId}
+                      valor={disertadorNombre}
+                      seleccionado={!!disertadorId}
+                      onCambiarTexto={cambiarTextoDisertador}
+                      onSeleccionar={seleccionarDisertador}
+                      placeholder="Buscar por nombre..."
+                      edadMinima={edadMinima}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
                   </div>
 
                   {megaFiesta && (
-                    <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                    <label className="flex items-center gap-2 text-sm sm:col-span-2">
                       <Checkbox checked={esMegaFiesta} onCheckedChange={(v) => setEsMegaFiesta(v === true)} />
                       <PartyPopper className="h-4 w-4 text-primary" />
                       Fue la Mega Fiesta de Casas de Paz
                     </label>
                   )}
 
+                  {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
+                      tema pero no el libro -- busca en los 13 a la vez y
+                      completa Libro+Tema solos. Los selects de abajo siguen
+                      funcionando igual para quien sí sabe el libro. */}
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label>Buscar tema</Label>
+                    <BuscadorTemaCampo
+                      iglesiaId={iglesiaActivaId}
+                      onSeleccionar={(nuevoLibroId, nuevoTemaId) => {
+                        setValue('libro_id', nuevoLibroId, { shouldDirty: true });
+                        // tema_id se aplica solo (ver useEffect de temaIdPendiente)
+                        // recién cuando useTemas ya trajo los temas de este libro.
+                        setTemaIdPendiente(nuevoTemaId);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Si sabés el libro, también podés elegirlo directo abajo.</p>
+                  </div>
+
                   <div className="flex flex-col gap-1.5">
                     <Label>Libro {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select value={libroId ?? ''} onValueChange={(v) => setValue('libro_id', v)}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={libroId ?? ''}
+                      onValueChange={(v) => {
+                        setValue('libro_id', v, { shouldDirty: true });
+                        // Si había un tema pendiente de una selección previa
+                        // por el buscador (de otro libro), un cambio manual
+                        // de libro lo invalida -- si no, podría aplicarse
+                        // tarde y de sorpresa si se vuelve a ese libro después.
+                        setTemaIdPendiente(undefined);
+                      }}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.libro_id))}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1011,8 +1187,17 @@ export function Reportes() {
 
                   <div className="flex flex-col gap-1.5">
                     <Label>Tema {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select value={temaId ?? ''} onValueChange={(v) => setValue('tema_id', v)} disabled={!libroId}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={temaId ?? ''}
+                      onValueChange={(v) => {
+                        setValue('tema_id', v, { shouldDirty: true });
+                        // Elección manual gana sobre cualquier tema pendiente
+                        // del buscador que todavía no se haya aplicado.
+                        setTemaIdPendiente(undefined);
+                      }}
+                      disabled={!libroId}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.tema_id))}>
                         <SelectValue placeholder={libroId ? '—' : 'Elegí primero un libro'} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1033,23 +1218,13 @@ export function Reportes() {
                   {esTemaEspecial && (
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label htmlFor="tema_especial_txt">Descripción del tema especial</Label>
-                      <Input id="tema_especial_txt" {...register('tema_especial_txt')} />
+                      <Input
+                        id="tema_especial_txt"
+                        className={claseCampoEdicion(modoEdicion, !!dirtyFields.tema_especial_txt)}
+                        {...register('tema_especial_txt')}
+                      />
                     </div>
                   )}
-
-                  <div className="flex flex-col gap-1.5 sm:col-span-2 sm:w-72">
-                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
-                    <BuscadorPersonaCampo
-                      iglesiaId={iglesiaActivaId}
-                      valor={disertadorNombre}
-                      seleccionado={!!disertadorId}
-                      onCambiarTexto={cambiarTextoDisertador}
-                      onSeleccionar={seleccionarDisertador}
-                      placeholder="Buscar por nombre..."
-                      edadMinima={edadMinima}
-                    />
-                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
-                  </div>
                 </div>
           </div>
         </section>
@@ -1128,11 +1303,16 @@ export function Reportes() {
                               </button>
                             </span>
                           ))}
-                          {asistentesNuevosExistentes.map((p) => (
+                          {asistentesNuevosExistentes.map((p) => {
+                            // KAN-367 (2026-09-17): mismo criterio que las demás
+                            // pastillas -- si ya estaba guardada al abrir el
+                            // reporte para editar, se ve en rojo suave.
+                            const colorPastilla = idsAsistentesOriginales.has(p.id) ? 'var(--destructive)' : VERDE;
+                            return (
                             <span
                               key={p.id}
                               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                              style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                              style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                             >
                               <Check className="h-3 w-3 shrink-0" />
                               {p.nombre_completo}
@@ -1145,7 +1325,8 @@ export function Reportes() {
                                 <X className="h-3 w-3" />
                               </button>
                             </span>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1163,6 +1344,7 @@ export function Reportes() {
                         onEsMenorChange={cambiarEsMenorAsistente}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
+                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
                       />
                     </div>
 
@@ -1177,6 +1359,7 @@ export function Reportes() {
                         colorChip={AMBAR}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
+                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
                       />
                     </div>
 
@@ -1285,7 +1468,14 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="total_ofrendas">Total ofrendas *</Label>
-                    <Input id="total_ofrendas" type="number" step="0.01" min="0" {...register('total_ofrendas')} />
+                    <Input
+                      id="total_ofrendas"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.total_ofrendas)}
+                      {...register('total_ofrendas')}
+                    />
                     {errors.total_ofrendas ? (
                       <p className="text-sm text-destructive">{errors.total_ofrendas.message}</p>
                     ) : (
@@ -1294,8 +1484,11 @@ export function Reportes() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Moneda</Label>
-                    <Select value={monedaId ?? ''} onValueChange={(v) => setValue('moneda_id', v, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={monedaId ?? ''}
+                      onValueChange={(v) => setValue('moneda_id', v, { shouldValidate: true, shouldDirty: true })}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.moneda_id))}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1405,8 +1598,15 @@ export function Reportes() {
                       <Label className="text-xs">Monto</Label>
                       <Input type="number" step="0.01" min="0" className="w-28" value={montoDiezmanteManual} onChange={(e) => setMontoDiezmanteManual(e.target.value)} />
                     </div>
-                    <Button type="button" onClick={agregarDiezmanteManual}>
+                    <Button
+                      type="button"
+                      onClick={agregarDiezmanteManual}
+                      disabled={!nombreDiezmante.trim() || !apellidoDiezmante.trim() || !sexoDiezmante}
+                    >
                       Agregar
+                    </Button>
+                    <Button type="button" variant="outline" onClick={cancelarDiezmanteManual}>
+                      Cancelar
                     </Button>
                   </div>
                 </div>
@@ -1420,34 +1620,55 @@ export function Reportes() {
           </div>
         </section>
 
-        {/* Narración */}
+        {/* Testimonio -- KAN-367 (2026-09-17, pedido del owner): antes era
+            "Narración" con 2 campos (Testimonios + Comentarios). Se unifica
+            en un solo campo -- lo que se pide es que se cuente como
+            testimonio lo que Dios hizo en la reunión, no un dato suelto. */}
         <section className={CARD_SECCION}>
-          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Narración" descripcion="Qué pasó durante la reunión" />
+          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonio" descripcion="Lo que Dios hizo en esta reunión" />
           <div className="p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="testimonios">Testimonios {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea id="testimonios" placeholder="¿Alguien compartió un testimonio?" {...register('testimonios')} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="comentarios">Comentarios {campos?.REPORTE_COMENTARIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea id="comentarios" placeholder="Cualquier otro detalle de la reunión" {...register('comentarios')} />
-                  </div>
-                </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="testimonios">Testimonio {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
+              <Textarea
+                id="testimonios"
+                placeholder="Contá como testimonio lo que Dios hizo durante esta reunión de Casa de Paz"
+                rows={4}
+                className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
+                {...register('testimonios')}
+              />
+            </div>
           </div>
         </section>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* KAN-367 (2026-09-17, pedido del owner): "Enviar reporte"/"Guardar
+            cambios" centrado en la fila -- sm:justify-center centra el botón
+            principal; los botones admin (historial/anular) igual quedan a la
+            derecha porque usan sm:ml-auto, que gana sobre justify-content. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
           <div className="flex w-full flex-col gap-1.5 sm:w-auto">
             <Button
               type="submit"
+              variant={modoEdicion ? 'destructive' : 'default'}
               disabled={isSubmitting || totalAsistentesActual === 0}
               title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
-              className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
+              className={cn(
+                'h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8',
+                // KAN-367 (pedido del owner, 2026-09-17): rojo sólido + texto
+                // blanco, no el destructive suave -- que se note el peligro
+                // de verdad en el botón principal de guardar una edición.
+                modoEdicion && 'bg-destructive text-white shadow-sm shadow-destructive/30 hover:bg-destructive/90'
+              )}
             >
               {isSubmitting && <Spinner className="h-4 w-4" />}
               {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
             </Button>
+            {/* KAN-367 (pedido del owner, 2026-09-17): aviso de que esto
+                reemplaza los datos guardados -- entre comillas porque en
+                realidad no se pierde nada, queda en el historial de cambios
+                que solo puede ver Supervisión de la Visión en Acción. */}
+            {modoEdicion && (
+              <p className="text-[11px] text-muted-foreground">Esto "reemplaza" los datos guardados -- queda un historial que solo ve Supervisión.</p>
+            )}
             {/* El botón deshabilitado usa disabled:pointer-events-none (button.tsx)
                 -- ni siquiera recibe el toque, así que un toast al tocarlo no es
                 posible. Antes la única explicación era el `title` de arriba, un
@@ -1461,40 +1682,140 @@ export function Reportes() {
           </div>
 
           {/* Anular reporte (solo en edición): baja lógica para sacar un reporte
-              cargado por error/duplicado. Confirmación inline en dos pasos, sin
-              diálogo bloqueante. El permiso/ventana lo valida el backend igual. */}
-          {modoEdicion && (
-            confirmandoAnular ? (
-              <div className="flex items-center gap-2 sm:ml-auto">
-                <span className="text-sm text-muted-foreground">¿Anular este reporte?</span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="h-10 gap-2 rounded-xl"
-                  disabled={anular.isPending}
-                  onClick={anularReporteActual}
-                >
-                  {anular.isPending && <Spinner className="h-4 w-4" />}
-                  Sí, anular
-                </Button>
-                <Button type="button" variant="ghost" className="h-10 rounded-xl" onClick={() => setConfirmandoAnular(false)} disabled={anular.isPending}>
-                  Cancelar
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-11 gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive sm:ml-auto"
-                onClick={() => setConfirmandoAnular(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-                Anular reporte
-              </Button>
-            )
+              cargado por error/duplicado. KAN-367: tiene su propia ventana (en
+              horas, más corta que la de editar) -- puedeAnular !== false deja
+              el botón visible mientras carga (undefined) y solo lo oculta
+              cuando ya se confirmó que la ventana pasó. El backend igual
+              vuelve a validar el permiso real al confirmar. */}
+          {modoEdicion && esSupervisionVisionAccion && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-2 rounded-xl sm:ml-auto"
+              onClick={() => setMostrandoHistorial(true)}
+            >
+              <History className="h-4 w-4" />
+              Ver historial de cambios
+            </Button>
+          )}
+          {modoEdicion && puedeAnular !== false && (
+            <Button
+              type="button"
+              variant="ghost"
+              className={cn('h-11 gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive', !esSupervisionVisionAccion && 'sm:ml-auto')}
+              onClick={() => setConfirmandoAnular(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Anular reporte
+            </Button>
           )}
         </div>
       </form>
+
+      {/* KAN-367 (pedido del owner, 2026-09-17): confirmación fuerte -- diálogo
+          con advertencia destacada + botón bloqueado 3 segundos, en vez del
+          confirm inline chiquito de antes. */}
+      <Dialog open={confirmandoAnular} onOpenChange={(v) => !anular.isPending && setConfirmandoAnular(v)}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-destructive">Vas a anular este reporte</p>
+              <p className="text-sm text-muted-foreground">
+                Se da de baja el reporte y su asistencia. No es para corregir un dato -- para eso usá "Guardar cambios". Esta acción queda registrada.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmandoAnular(false)} disabled={anular.isPending}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" disabled={segundosParaAnular > 0 || anular.isPending} onClick={anularReporteActual}>
+              {anular.isPending && <Spinner className="h-4 w-4" />}
+              {segundosParaAnular > 0 ? `Esperá ${segundosParaAnular}s...` : 'Sí, anular'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* KAN-367 (2026-09-17): historial de cambios -- solo Pastor/Supervisor.
+          Muestra el valor ANTERIOR de cada edición (lo que decía antes de
+          ese guardado), más nuevo primero -- incluye tema/fecha, asistencia
+          e ingresos (ofrenda + diezmos) tal como estaban antes del cambio. */}
+      <Dialog open={mostrandoHistorial} onOpenChange={setMostrandoHistorial}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Historial de cambios</DialogTitle>
+            <DialogDescription>Solo visible para Pastor/Supervisor. Cada entrada muestra cómo estaba el reporte antes de ese cambio.</DialogDescription>
+          </DialogHeader>
+          <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
+            {cargandoHistorial ? (
+              <Skeleton className="h-24 w-full rounded-xl" />
+            ) : !historial || historial.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Este reporte nunca se modificó ni se anuló.</p>
+            ) : (
+              historial.map((h) => {
+                // KAN-367 (2026-09-17): entradas viejas guardaron el snapshot
+                // "plano" (solo columnas de casa_de_paz_reporte). Las nuevas
+                // lo anidan en { reporte, asistencia, ingresos } -- se soporta
+                // ambos formatos para no romper el historial ya guardado.
+                const snap = h.snapshotAnterior;
+                const reporteAntes = ((snap.reporte as Record<string, unknown> | undefined) ?? snap) as Record<string, unknown>;
+                const asistenciaAntes = Array.isArray(snap.asistencia)
+                  ? (snap.asistencia as { nombre_completo: string; es_visita: boolean }[])
+                  : null;
+                const ingresosAntes = Array.isArray(snap.ingresos)
+                  ? (snap.ingresos as { tipo: string; nombre_completo: string | null; monto: number }[])
+                  : null;
+                const ofrendaAntes = ingresosAntes?.find((i) => i.tipo === 'OFRENDA')?.monto;
+                const diezmosAntes = ingresosAntes?.filter((i) => i.tipo === 'DIEZMO') ?? [];
+
+                return (
+                  <div key={h.id} className="flex flex-col gap-1.5 rounded-xl border border-border/60 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                          h.tipo === 'ANULADO' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                        )}
+                      >
+                        {h.tipo === 'ANULADO' ? 'Anulado' : 'Modificado'}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(h.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Por <span className="font-medium text-foreground">{h.modificadoPorNombre}</span>
+                    </p>
+                    {typeof reporteAntes.fecha_reunion === 'string' && (
+                      <p className="text-muted-foreground">Fecha de reunión antes: {fechaLegible(reporteAntes.fecha_reunion as string)}</p>
+                    )}
+                    {asistenciaAntes && (
+                      <p className="text-muted-foreground">
+                        Asistencia antes: {asistenciaAntes.length} persona{asistenciaAntes.length === 1 ? '' : 's'}
+                        {asistenciaAntes.length > 0 && ` (${asistenciaAntes.map((a) => a.nombre_completo).join(', ')})`}
+                      </p>
+                    )}
+                    {ingresosAntes && (ofrendaAntes !== undefined || diezmosAntes.length > 0) && (
+                      <p className="text-muted-foreground">
+                        {ofrendaAntes !== undefined && `Ofrenda antes: ${ofrendaAntes}`}
+                        {ofrendaAntes !== undefined && diezmosAntes.length > 0 && ' · '}
+                        {diezmosAntes.length > 0 &&
+                          `Diezmos antes: ${diezmosAntes.length} persona${diezmosAntes.length === 1 ? '' : 's'} (${diezmosAntes.reduce((s, d) => s + d.monto, 0)})`}
+                      </p>
+                    )}
+                    <details className="text-[11px] text-muted-foreground">
+                      <summary className="cursor-pointer select-none">Ver datos completos de antes</summary>
+                      <pre className="mt-1 overflow-x-auto rounded-lg bg-muted/40 p-2 text-[10px]">{JSON.stringify(h.snapshotAnterior, null, 2)}</pre>
+                    </details>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pendienteConfirmarAsistente} onOpenChange={(v) => !v && setPendienteConfirmarAsistente(null)}>
         <DialogContent className="sm:max-w-sm" showCloseButton={false}>
