@@ -11,3 +11,8 @@
 - [x] Confirmado: Supervisor/Pastor ya tienen entrada de navegación real a los reportes vía "Historial de Reportes" (matriz clickeable) -- no hacía falta nada nuevo
 - [x] Fix: botón "Anular reporte" no chequeaba su propia ventana en horas -- ahora se oculta cuando ya pasó (antes solo se enteraba al confirmar y fallar)
 - [ ] Falta: desplegar a producción y probar en vivo con usuario real Pastor/Supervisor antes de pasar KAN-367 a "En revisión"
+- [x] KAN-386: buscador de temas que cruza los 13 libros (fix de condición de carrera real en la selección)
+- [x] KAN-386: "Narración" (Testimonios+Comentarios) unificado en un solo campo "Testimonio"
+- [x] KAN-386: lecciones reales cargadas para Libro 5 y Libro 9 (104 temas, estaban vacíos)
+- [x] KAN-386: fondo con más contraste (toda la app), botón "agregar persona" más visible, Disertador reubicado, Enviar centrado
+- [ ] Falta: desplegar KAN-386 a producción y probar con usuario real
