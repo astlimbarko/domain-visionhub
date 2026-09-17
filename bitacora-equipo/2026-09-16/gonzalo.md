@@ -15,4 +15,6 @@
 - [x] KAN-386: "Narración" (Testimonios+Comentarios) unificado en un solo campo "Testimonio"
 - [x] KAN-386: lecciones reales cargadas para Libro 5 y Libro 9 (104 temas, estaban vacíos)
 - [x] KAN-386: fondo con más contraste (toda la app), botón "agregar persona" más visible, Disertador reubicado, Enviar centrado
-- [ ] Falta: desplegar KAN-386 a producción y probar con usuario real
+- [x] PR #69 mergeado a master (KAN-367 + KAN-386 juntos)
+- [x] Deploy manual a producción (app.somoscdv.com): backup de public/ (`public_backup_20260917_0040`), build Docker, subida+extracción por cPanel. Sitio verificado cargando en incógnito.
+- [ ] Falta: probar en vivo el flujo completo con usuario real (login lo hace el owner)
