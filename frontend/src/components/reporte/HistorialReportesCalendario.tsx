@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
-import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario } from '@/hooks/useReporte';
+import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario, useReunionesNoRealizadas } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, fechaLegibleConDia, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
@@ -173,6 +173,16 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
     return mapa;
   }, [reportes]);
 
+  // KAN-393: semanas "reunión no realizada" -- quedan afuera de
+  // useReportesParaCalendario a propósito (v_reporte_totales las excluye,
+  // ver la migración), así que se resuelven con un query aparte.
+  const { data: reunionesNoRealizadas = [] } = useReunionesNoRealizadas(casaDePazId, desde, hasta);
+  const motivoNoRealizadaPorSemana = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const r of reunionesNoRealizadas) mapa.set(inicioSemanaISO(r.fecha_reunion), r.motivo ?? '');
+    return mapa;
+  }, [reunionesNoRealizadas]);
+
   // Numeración continua de semanas (1..N) en orden cronológico, para el rótulo de cada círculo.
   const numeroDeSemana = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -184,9 +194,14 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   const { enviadas, vencidas, rachaActual } = useMemo(() => {
     // KAN-367: una semana anterior a la primera reunión real no cuenta como
     // "vencida" -- no se le puede pedir un reporte a una CdP que todavía no existía.
+    // KAN-392: "reunión no realizada" tampoco cuenta como vencida -- no debe
+    // contabilizarse ni como presentado ni como no presentado, queda afuera
+    // del cálculo de cumplimiento por completo (pedido explícito del owner).
     const semanasVencidas = grupos
       .flatMap((g) => g.semanas)
-      .filter((s) => s.fin < hoyISO && (!primeraSemanaISO || s.inicio >= primeraSemanaISO));
+      .filter(
+        (s) => s.fin < hoyISO && (!primeraSemanaISO || s.inicio >= primeraSemanaISO) && !motivoNoRealizadaPorSemana.has(s.inicio)
+      );
     const enviadas = semanasVencidas.filter((s) => semanasConReporte.has(s.inicio)).length;
 
     let racha = 0;
@@ -196,7 +211,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
     }
 
     return { enviadas, vencidas: semanasVencidas.length, rachaActual: racha };
-  }, [grupos, semanasConReporte, hoyISO, primeraSemanaISO]);
+  }, [grupos, semanasConReporte, hoyISO, primeraSemanaISO, motivoNoRealizadaPorSemana]);
 
   const cumplimiento = vencidas > 0 ? Math.round((enviadas / vencidas) * 100) : 0;
 
@@ -259,6 +274,10 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 No entregado
               </span>
               <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: AZUL }} />
+                Reunión no realizada
+              </span>
+              <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
                 Próxima semana
               </span>
@@ -298,7 +317,11 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                         // KAN-367: antes de la primera reunión real de esta CdP, la semana no
                         // "faltó" un reporte -- todavía no existía/no se reunía. Va en gris, no roja.
                         const antesDePrimera = !enviado && !!primeraSemanaISO && s.inicio < primeraSemanaISO;
-                        const faltante = !enviado && semanaVencida && !antesDePrimera;
+                        // KAN-393: "reunión no realizada" tiene prioridad sobre "faltante" --
+                        // no debe aparecer simultáneamente como no presentado.
+                        const motivoNoRealizada = motivoNoRealizadaPorSemana.get(s.inicio);
+                        const noRealizada = motivoNoRealizada !== undefined;
+                        const faltante = !enviado && !noRealizada && semanaVencida && !antesDePrimera;
                         // KAN-367: el círculo verde se puede editar mientras el reporte de esa
                         // semana siga dentro de la ventana configurable (desde que se cargó,
                         // no desde la reunión) -- el permiso real lo valida el backend igual,
@@ -308,11 +331,13 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
 
                         const estadoTexto = enviado
                           ? 'reporte entregado'
-                          : antesDePrimera
-                            ? 'antes de la primera reunión'
-                            : faltante
-                              ? 'no entregado'
-                              : 'todavía no corresponde';
+                          : noRealizada
+                            ? 'reunión no realizada'
+                            : antesDePrimera
+                              ? 'antes de la primera reunión'
+                              : faltante
+                                ? 'no entregado'
+                                : 'todavía no corresponde';
 
                         return (
                           <Tooltip
@@ -349,13 +374,17 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
                                   enviado && 'text-white',
                                   faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
-                                  !enviado && !faltante && 'bg-muted text-muted-foreground/60',
+                                  noRealizada && 'text-white',
+                                  !enviado && !faltante && !noRealizada && 'bg-muted text-muted-foreground/60',
                                   editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
                                 )}
                                 // KAN-367 (pedido del owner, 2026-09-17): entregado-editable vs
                                 // entregado-vencido son el mismo estado semántico (verde) pero uno
                                 // se puede tocar y el otro no -- distinto tono (no solo el anillo)
                                 // para que se note a simple vista sin depender del hover/tooltip.
+                                // KAN-393 (color pedido explícito por el owner): "reunión no
+                                // realizada" usa AZUL -- distinto de VERDE/destructive/gris, no se
+                                // confunde con ningún estado existente.
                                 style={
                                   enviado
                                     ? {
@@ -364,7 +393,9 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                           ? `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)`
                                           : undefined,
                                       }
-                                    : undefined
+                                    : noRealizada
+                                      ? { backgroundColor: AZUL }
+                                      : undefined
                                 }
                               >
                                 {numeroDeSemana.get(s.inicio)}
@@ -380,6 +411,14 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   <p className="text-muted-foreground">Ofrenda: {reporteSemana.totalOfrendas}</p>
                                   <p className="text-muted-foreground">Diezmos: {reporteSemana.totalDiezmos}</p>
                                   {editable && <p className="mt-0.5 font-medium text-primary">Click para modificar</p>}
+                                </div>
+                              ) : noRealizada ? (
+                                <div className="flex flex-col gap-[3px]">
+                                  <p className="flex items-center gap-1.5 font-semibold" style={{ color: AZUL }}>
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: AZUL }} />
+                                    Reunión no realizada
+                                  </p>
+                                  <p className="text-muted-foreground">Motivo: {motivoNoRealizada || '—'}</p>
                                 </div>
                               ) : faltante ? (
                                 <div className="flex flex-col gap-[3px]">

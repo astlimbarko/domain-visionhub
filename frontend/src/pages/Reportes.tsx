@@ -52,6 +52,7 @@ import {
   useCamposObligatoriosReporte,
   useCdpContextoReporte,
   useCrearReporte,
+  useCrearReunionNoRealizada,
   useEdadMinimaCreyente,
   useIdsLiderCdp,
   useLibros,
@@ -237,6 +238,7 @@ export function Reportes() {
   const { data: edadMinima = 12 } = useEdadMinimaCreyente(iglesiaActivaId);
   const { data: monedas = [] } = useMonedasActivas(iglesiaActivaId);
   const crear = useCrearReporte(cdpActiva);
+  const crearNoRealizada = useCrearReunionNoRealizada(cdpActiva);
   const actualizar = useActualizarReporte(cdpActiva);
   const anular = useAnularReporte(cdpActiva);
   // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
@@ -305,6 +307,15 @@ export function Reportes() {
   const [evangelizadosDeclaradosEdicion, setEvangelizadosDeclaradosEdicion] = useState<number | undefined>(undefined);
   const [esMegaFiesta, setEsMegaFiesta] = useState(false);
   const [disertadorNombre, setDisertadorNombre] = useState('');
+  // KAN-392 (2026-09-17, pedido del owner): "esta semana no se realizó la
+  // reunión" -- solo tiene sentido al cargar un reporte nuevo, no editando
+  // uno que ya existe (por eso el checkbox más abajo solo se muestra si
+  // `!modoEdicion`). Reemplaza el formulario entero por uno mínimo
+  // (fecha + motivo), sin tocar la lógica normal de asistencia/finanzas/
+  // evangelismo -- va por un camino de guardado totalmente aparte
+  // (crearReunionNoRealizada), no por onSubmit.
+  const [reunionNoRealizada, setReunionNoRealizada] = useState(false);
+  const [motivoNoRealizada, setMotivoNoRealizada] = useState('');
 
   const {
     register,
@@ -745,6 +756,33 @@ export function Reportes() {
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
 
+  // KAN-392: camino de guardado totalmente aparte de onSubmit -- no pasa por
+  // react-hook-form/zod (el formulario normal ni se muestra cuando
+  // `reunionNoRealizada` está tildado), solo motivo + fecha_reunion (mismo
+  // input de fecha de siempre, reusado).
+  async function enviarReunionNoRealizada() {
+    if (!cdpActiva || !iglesiaActivaId || !motivoNoRealizada.trim()) return;
+    try {
+      await crearNoRealizada.mutateAsync({
+        iglesia_id: iglesiaActivaId,
+        casa_de_paz_id: cdpActiva,
+        fecha_reunion: fechaReunion,
+        motivo: motivoNoRealizada.trim(),
+      });
+      toast.success('Semana registrada como reunión no realizada');
+      setReunionNoRealizada(false);
+      setMotivoNoRealizada('');
+      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
+    } catch (e) {
+      const error = e as { code?: string; message?: string } | null;
+      if (error?.code === '23505') {
+        toast.error('Ya existe un reporte para esa fecha en esta Casa de Paz.');
+      } else {
+        toast.error('No se pudo guardar');
+      }
+    }
+  }
+
   async function onSubmit(valores: FormValues) {
     if (!cdpActiva || !iglesiaActivaId) return;
 
@@ -1084,6 +1122,63 @@ export function Reportes() {
         </div>
       )}
 
+      {/* KAN-392 (2026-09-17, pedido del owner): solo tiene sentido al cargar
+          un reporte nuevo -- no se ofrece editando uno ya existente. */}
+      {!modoEdicion && (
+        <label
+          className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            className="mt-0.5"
+            checked={reunionNoRealizada}
+            onCheckedChange={(v) => {
+              setReunionNoRealizada(v === true);
+              if (v !== true) setMotivoNoRealizada('');
+            }}
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium">Esta semana no se realizó la reunión de Casa de Paz</span>
+            <span className="text-[12px] text-muted-foreground">
+              No cuenta como reporte no presentado, pero tampoco como reunión realizada -- queda como semana justificada.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {reunionNoRealizada ? (
+        <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fecha_reunion_no_realizada">Fecha de la reunión *</Label>
+            <Input
+              id="fecha_reunion_no_realizada"
+              type="date"
+              max={hoy}
+              className={CAMPO_ESTILO}
+              value={fechaReunion}
+              onChange={(e) => setValue('fecha_reunion', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="motivo_no_realizada">Motivo por el que no se realizó la reunión *</Label>
+            <Textarea
+              id="motivo_no_realizada"
+              className={CAMPO_ESTILO}
+              value={motivoNoRealizada}
+              onChange={(e) => setMotivoNoRealizada(e.target.value)}
+              placeholder="Ej: se suspendió por una actividad general de la iglesia"
+            />
+          </div>
+          <Button
+            type="button"
+            className="h-11 gap-2 self-start rounded-xl"
+            disabled={!motivoNoRealizada.trim() || crearNoRealizada.isPending}
+            onClick={enviarReunionNoRealizada}
+          >
+            {crearNoRealizada.isPending ? 'Guardando...' : 'Guardar semana sin reunión'}
+          </Button>
+        </div>
+      ) : (
       <form
         onSubmit={handleSubmit(onSubmit)}
         className={cn('flex flex-col gap-6', modoEdicion && '-mx-4 rounded-3xl p-4 sm:-mx-5 sm:p-5')}
@@ -1711,6 +1806,7 @@ export function Reportes() {
           )}
         </div>
       </form>
+      )}
 
       {/* KAN-367 (pedido del owner, 2026-09-17): confirmación fuerte -- diálogo
           con advertencia destacada + botón bloqueado 3 segundos, en vez del
