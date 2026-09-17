@@ -623,6 +623,15 @@ export function Reportes() {
         monto: Number.isFinite(monto) && monto > 0 ? monto : 0,
       },
     ]);
+    cancelarDiezmanteManual();
+  }
+
+  // Bug real encontrado (pedido del owner, 2026-09-17): no había forma de
+  // cerrar este mini-formulario sin completarlo -- si alguien lo abría, se
+  // arrepentía o borraba lo que había escrito, quedaba atascado ahí (el
+  // botón "Agregar" no hacía nada sin nombre/apellido/sexo, y no había
+  // Cancelar/X). Mismo patrón que ya usan "Asistentes nuevos"/Evangelismo.
+  function cancelarDiezmanteManual() {
     setNombreDiezmante('');
     setApellidoDiezmante('');
     setSexoDiezmante('');
@@ -1537,8 +1546,15 @@ export function Reportes() {
                       <Label className="text-xs">Monto</Label>
                       <Input type="number" step="0.01" min="0" className="w-28" value={montoDiezmanteManual} onChange={(e) => setMontoDiezmanteManual(e.target.value)} />
                     </div>
-                    <Button type="button" onClick={agregarDiezmanteManual}>
+                    <Button
+                      type="button"
+                      onClick={agregarDiezmanteManual}
+                      disabled={!nombreDiezmante.trim() || !apellidoDiezmante.trim() || !sexoDiezmante}
+                    >
                       Agregar
+                    </Button>
+                    <Button type="button" variant="outline" onClick={cancelarDiezmanteManual}>
+                      Cancelar
                     </Button>
                   </div>
                 </div>
@@ -1586,7 +1602,13 @@ export function Reportes() {
               variant={modoEdicion ? 'destructive' : 'default'}
               disabled={isSubmitting || totalAsistentesActual === 0}
               title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
-              className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
+              className={cn(
+                'h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8',
+                // KAN-367 (pedido del owner, 2026-09-17): rojo sólido + texto
+                // blanco, no el destructive suave -- que se note el peligro
+                // de verdad en el botón principal de guardar una edición.
+                modoEdicion && 'bg-destructive text-white shadow-sm shadow-destructive/30 hover:bg-destructive/90'
+              )}
             >
               {isSubmitting && <Spinner className="h-4 w-4" />}
               {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
