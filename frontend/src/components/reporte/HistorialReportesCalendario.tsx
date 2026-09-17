@@ -352,7 +352,20 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   !enviado && !faltante && 'bg-muted text-muted-foreground/60',
                                   editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
                                 )}
-                                style={enviado ? { backgroundColor: VERDE, boxShadow: `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)` } : undefined}
+                                // KAN-367 (pedido del owner, 2026-09-17): entregado-editable vs
+                                // entregado-vencido son el mismo estado semántico (verde) pero uno
+                                // se puede tocar y el otro no -- distinto tono (no solo el anillo)
+                                // para que se note a simple vista sin depender del hover/tooltip.
+                                style={
+                                  enviado
+                                    ? {
+                                        backgroundColor: editable ? VERDE : `color-mix(in oklab, ${VERDE} 55%, var(--muted-foreground))`,
+                                        boxShadow: editable
+                                          ? `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)`
+                                          : undefined,
+                                      }
+                                    : undefined
+                                }
                               >
                                 {numeroDeSemana.get(s.inicio)}
                               </button>

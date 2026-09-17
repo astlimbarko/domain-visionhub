@@ -54,6 +54,7 @@ import {
   useEdadMinimaCreyente,
   useIdsLiderCdp,
   useLibros,
+  useDiasLimiteEdicionReporte,
   useMegaFiestaDelDia,
   useMiembrosCdp,
   usePuedeEditarReporte,
@@ -70,6 +71,8 @@ import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendi
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
+import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -90,6 +93,27 @@ type FormValues = z.infer<typeof esquema>;
 
 /** Wrapper estándar del design system para toda card de sección (ver skill frontend-style). */
 const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
+
+/**
+ * KAN-367: rojo suave para "esto es un dato guardado que estás por editar" --
+ * pedido explícito del owner (2026-09-17) para que se note que se trata de
+ * modificar algo ya existente, no cargar algo nuevo. Nota: esto se aparta a
+ * propósito de la convención del proyecto de reservar `--destructive` solo
+ * para errores reales (ver skill frontend-style) -- decisión consciente del
+ * owner, no un descuido.
+ */
+const ROJO = 'var(--destructive)';
+
+/**
+ * KAN-367: en modo edición, un campo que todavía tiene el valor que vino de
+ * la base (no fue tocado desde que se cargó el reporte, `!dirty`) se ve rojo
+ * suave. Apenas se modifica pasa a verse igual que un campo nuevo (blanco,
+ * `CAMPO_ESTILO` normal). Fuera de modo edición no hay diferencia (todo es
+ * blanco, como siempre).
+ */
+function claseCampoEdicion(enModoEdicion: boolean, dirty: boolean): string {
+  return cn(CAMPO_ESTILO, enModoEdicion && !dirty && 'bg-destructive/10 text-foreground');
+}
 // Mismo wrapper, sin overflow-hidden -- para secciones con un buscador
 // (BuscadorPersonaMultiple/BuscadorPersonaCampo/EvangelismoPendientePanel)
 // cuyo desplegable es absolute y quedaba recortado por el borde de la card
@@ -138,6 +162,12 @@ export function Reportes() {
   // seguro de cuál está editando.
   const esCdpAjena = modoEdicion && (!contextoCdp || contextoCdp.cdpId !== cdpActiva);
   const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, esCdpAjena);
+
+  // KAN-367 (pedido del owner, 2026-09-17): mostrar el número real de días de
+  // la ventana (configurable en Panel del Supervisor -> Formularios -> Control
+  // de Reportes) en el aviso de edición, para que quede claro de dónde sale
+  // ese límite -- no un texto fijo que se desactualice si alguien lo cambia ahí.
+  const { data: diasLimiteEdicionCdp } = useDiasLimiteEdicionReporte(iglesiaActivaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
 
   // KAN-367: Pastor / Supervisor de la Visión en Acción, fuera de la ventana
   // normal, pueden pedir autorización puntual (justificación + OTP) en vez
@@ -246,7 +276,7 @@ export function Reportes() {
     watch,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(esquema),
     defaultValues: { fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id },
@@ -850,7 +880,7 @@ export function Reportes() {
         return (
           <ProximamentePlaceholder
             titulo="Ya no se puede editar"
-            descripcion="Este reporte ya pasó la ventana de edición, o no tenés permiso sobre esta Casa de Paz."
+            descripcion="Este reporte ya pasó tu ventana de edición, o no tenés permiso sobre esta Casa de Paz. Pedile al Líder de Red, Pastor o Supervisor de la Visión en Acción que lo corrija -- ellos tienen más margen y pueden autorizar la edición fuera de ventana."
           />
         );
       }
@@ -927,9 +957,14 @@ export function Reportes() {
                   <p className="text-muted-foreground">
                     Incluida la fecha de la reunión. Los cambios pueden afectar estadísticas ya calculadas (cumplimiento, rachas). Solo modificá si estás seguro.
                   </p>
+                  {diasLimiteEdicionCdp !== undefined && (
+                    <p className="text-muted-foreground">
+                      Podés modificarlo hasta {diasLimiteEdicionCdp} día{diasLimiteEdicionCdp === 1 ? '' : 's'} después de haberlo cargado -- ese límite lo define Supervisión de la Visión en Acción (Panel del Supervisor → Formularios → Control de Reportes).
+                    </p>
+                  )}
                 </div>
               </div>
-              <Button type="button" className="gap-2 self-start" onClick={() => setActivado(true)}>
+              <Button type="button" variant="destructive" className="gap-2 self-start" onClick={() => setActivado(true)}>
                 <Pencil className="h-4 w-4" /> Modificar este reporte
               </Button>
             </div>
@@ -955,6 +990,16 @@ export function Reportes() {
         color={colorRed ?? undefined}
       />
 
+      {/* KAN-367 (pedido del owner, 2026-09-17): explica qué significa el
+          rojo -- sin esto no queda claro que es "esto ya está guardado", no
+          un error. */}
+      {modoEdicion && (
+        <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-destructive/40" />
+          Los campos en rojo tienen el dato ya guardado. Al escribir en uno, pasa a blanco para mostrar que lo estás modificando.
+        </p>
+      )}
+
       {esCdpAjena && cdpContexto && (
         <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
           <p className="font-medium">{cdpContexto.etiqueta}</p>
@@ -967,7 +1012,15 @@ export function Reportes() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn('flex flex-col gap-6', modoEdicion && '-mx-4 rounded-3xl p-4 sm:-mx-5 sm:p-5')}
+        // KAN-367 (pedido del owner, 2026-09-17): tinte rojo sutil solo en
+        // modo edición, para que se note a simple vista que se está
+        // modificando un dato ya guardado -- mismo patrón de color-mix que
+        // ya usan TarjetaHeader/franjas de sección, no un color plano nuevo.
+        style={modoEdicion ? { backgroundColor: `color-mix(in oklab, ${ROJO} 4%, transparent)` } : undefined}
+      >
         {/* Información General */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
@@ -982,7 +1035,13 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input id="fecha_reunion" type="date" max={hoy} {...register('fecha_reunion')} />
+                    <Input
+                      id="fecha_reunion"
+                      type="date"
+                      max={hoy}
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
+                      {...register('fecha_reunion')}
+                    />
                   </div>
 
                   {megaFiesta && (
@@ -995,8 +1054,13 @@ export function Reportes() {
 
                   <div className="flex flex-col gap-1.5">
                     <Label>Libro {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select value={libroId ?? ''} onValueChange={(v) => setValue('libro_id', v)}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={libroId ?? ''}
+                      onValueChange={(v) => {
+                        setValue('libro_id', v, { shouldDirty: true });
+                      }}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.libro_id))}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1011,8 +1075,12 @@ export function Reportes() {
 
                   <div className="flex flex-col gap-1.5">
                     <Label>Tema {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select value={temaId ?? ''} onValueChange={(v) => setValue('tema_id', v)} disabled={!libroId}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={temaId ?? ''}
+                      onValueChange={(v) => setValue('tema_id', v, { shouldDirty: true })}
+                      disabled={!libroId}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.tema_id))}>
                         <SelectValue placeholder={libroId ? '—' : 'Elegí primero un libro'} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1033,7 +1101,11 @@ export function Reportes() {
                   {esTemaEspecial && (
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label htmlFor="tema_especial_txt">Descripción del tema especial</Label>
-                      <Input id="tema_especial_txt" {...register('tema_especial_txt')} />
+                      <Input
+                        id="tema_especial_txt"
+                        className={claseCampoEdicion(modoEdicion, !!dirtyFields.tema_especial_txt)}
+                        {...register('tema_especial_txt')}
+                      />
                     </div>
                   )}
 
@@ -1285,7 +1357,14 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="total_ofrendas">Total ofrendas *</Label>
-                    <Input id="total_ofrendas" type="number" step="0.01" min="0" {...register('total_ofrendas')} />
+                    <Input
+                      id="total_ofrendas"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.total_ofrendas)}
+                      {...register('total_ofrendas')}
+                    />
                     {errors.total_ofrendas ? (
                       <p className="text-sm text-destructive">{errors.total_ofrendas.message}</p>
                     ) : (
@@ -1294,8 +1373,11 @@ export function Reportes() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Moneda</Label>
-                    <Select value={monedaId ?? ''} onValueChange={(v) => setValue('moneda_id', v, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full">
+                    <Select
+                      value={monedaId ?? ''}
+                      onValueChange={(v) => setValue('moneda_id', v, { shouldValidate: true, shouldDirty: true })}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.moneda_id))}>
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1427,11 +1509,21 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="testimonios">Testimonios {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea id="testimonios" placeholder="¿Alguien compartió un testimonio?" {...register('testimonios')} />
+                    <Textarea
+                      id="testimonios"
+                      placeholder="¿Alguien compartió un testimonio?"
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
+                      {...register('testimonios')}
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="comentarios">Comentarios {campos?.REPORTE_COMENTARIOS_OBLIGATORIO && '*'}</Label>
-                    <Textarea id="comentarios" placeholder="Cualquier otro detalle de la reunión" {...register('comentarios')} />
+                    <Textarea
+                      id="comentarios"
+                      placeholder="Cualquier otro detalle de la reunión"
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.comentarios)}
+                      {...register('comentarios')}
+                    />
                   </div>
                 </div>
           </div>

@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { calcularEdad } from '@/utils/edad';
-import { aISO, fechasReunionDelMes } from '@/utils/calendario-fechas';
+import { fechasReunionDelMes } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
   DiezmoLinea,
@@ -237,9 +237,10 @@ export async function obtenerUltimaFechaReporteRed(casaDePazIds: string[]): Prom
 
 /**
  * Anula (baja lógica) un reporte ya enviado -- p. ej. un duplicado cargado por
- * error. Mismo permiso y ventana de 7 días que la edición (KAN-271), validado
- * server-side por `fn_anular_reporte_cdp`. Da de baja también su asistencia e
- * ingresos (estos vía trigger de cascada).
+ * error. Mismo permiso y misma ventana configurable que la edición (KAN-367
+ * -- `fn_anular_reporte_cdp` reusa `fn_puede_editar_reporte_cdp` tal cual),
+ * validado server-side. Da de baja también su asistencia e ingresos (estos
+ * vía trigger de cascada).
  */
 export async function anularReporte(reporteId: string): Promise<void> {
   const { error } = await supabase.rpc('fn_anular_reporte_cdp', { p_reporte_id: reporteId });
@@ -694,11 +695,20 @@ export async function obtenerDiasLimiteEdicionReporte(
   return data ?? (codigo === 'DIAS_LIMITE_EDICION_REPORTE_CDP' ? 3 : 30);
 }
 
-/** `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día calendario local. */
-export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number, hoyISO: string = aISO(new Date())): boolean {
-  const limite = new Date(fechaCreacionISO);
-  limite.setDate(limite.getDate() + diasLimite);
-  return hoyISO <= aISO(limite);
+/**
+ * `fechaCreacionISO` es un timestamp completo (con hora) -- se compara por día
+ * calendario UTC, igual que `fecha_creacion::date >= current_date - N` en
+ * `fn_puede_editar_reporte_cdp` (Postgres corre en UTC). Antes comparaba contra
+ * el día local del navegador: un reporte cargado cerca de la medianoche podía
+ * verse como editable en el calendario (círculo verde clickeable) y el backend
+ * lo rechazaba igual al intentar abrirlo -- bug real encontrado en KAN-367
+ * (2026-09-15), reportado como "algunos círculos verdes no muestran contenido".
+ */
+export function dentroDeVentanaEdicionReporte(fechaCreacionISO: string, diasLimite: number): boolean {
+  const limite = new Date(`${fechaCreacionISO.slice(0, 10)}T00:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() + diasLimite);
+  const hoyUTC = new Date().toISOString().slice(0, 10);
+  return hoyUTC <= limite.toISOString().slice(0, 10);
 }
 
 /** KAN-271/367: si el reporte todavía se puede editar (rol + ventana configurable, ver fn_puede_editar_reporte_cdp). */
