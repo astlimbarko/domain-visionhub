@@ -54,6 +54,12 @@ interface Props {
   resultadosBusquedaGlobal?: PersonaBusqueda[];
   buscandoGlobal?: boolean;
   onSeleccionarGlobal?: (persona: PersonaBusqueda) => void;
+  /** KAN-391: si es `false`, nunca muestra de qué CdP viene un resultado de
+   * `resultadosBusquedaGlobal` aunque el dato venga poblado -- el padre
+   * decide esto según rol + criterio `REPORTE_MOSTRAR_ORIGEN_ASISTENTE`
+   * (Líder de Red/Supervisor siempre en `true`, Líder/Sublíder de CdP según
+   * el criterio). Default `true` para no romper otros usos futuros. */
+  mostrarOrigenBusquedaGlobal?: boolean;
   onTextoCambia?: (texto: string) => void;
   /** KAN-367 (pedido del owner, 2026-09-17): ids que ya estaban guardados al
    * abrir el reporte para editar -- esas pastillas se ven en rojo suave
@@ -61,6 +67,13 @@ interface Props {
    * color de categoría normal. Quien se agrega/saca durante esta sesión de
    * edición no entra acá, sigue con su color de categoría de siempre. */
   idsOriginales?: Set<string>;
+  /** KAN-391 (2026-09-17): cuando el padre unifica varios buscadores en un
+   * mismo `miembros`/`seleccionados` pero quiere seguir mostrando los
+   * resultados agrupados a mano (por categoría propia, con su color), oculta
+   * el listado de pastillas y el "Total" que este componente arma solo --
+   * el checkbox de la lista desplegable sigue reflejando la selección real
+   * (viene de `seleccionados`), solo se oculta el resumen de abajo. */
+  ocultarResultados?: boolean;
 }
 
 /** Separa un nombre completo tecleado en sus partes -- no hay forma de
@@ -117,6 +130,8 @@ export function BuscadorPersonaMultiple({
   onSeleccionarGlobal,
   onTextoCambia,
   idsOriginales,
+  ocultarResultados,
+  mostrarOrigenBusquedaGlobal = true,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -264,7 +279,12 @@ export function BuscadorPersonaMultiple({
                     >
                       <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" />
                       {p.nombre_completo}
-                      <span className="text-xs text-muted-foreground">(ya está en el sistema)</span>
+                      {/* KAN-391: de qué CdP viene, cuando se sabe -- si no
+                          tiene membresía principal (ej. evangelizado suelto),
+                          se muestra el texto genérico de siempre. */}
+                      <span className="text-xs text-muted-foreground">
+                        {mostrarOrigenBusquedaGlobal && p.casa_de_paz_nombre ? `(de ${p.casa_de_paz_nombre})` : '(ya está en el sistema)'}
+                      </span>
                     </button>
                   ))}
                   {buscandoGlobal && <p className="px-3 py-2 text-sm text-muted-foreground">Buscando...</p>}
@@ -398,7 +418,7 @@ export function BuscadorPersonaMultiple({
         </div>
       )}
 
-      {seleccionados.length > 0 && (
+      {!ocultarResultados && seleccionados.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {seleccionados.map((id) => {
             const persona = miembros.find((m) => m.persona_id === id);
@@ -441,7 +461,7 @@ export function BuscadorPersonaMultiple({
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">Total: {seleccionados.length}</p>
+      {!ocultarResultados && <p className="text-[11px] text-muted-foreground">Total: {seleccionados.length}</p>}
     </div>
   );
 }

@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
+import { useAuthStore } from '@/store/auth.store';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
 import {
   useActualizarReporte,
@@ -137,6 +138,12 @@ export function Reportes() {
   const navigate = useNavigate();
   const { contextoActivo } = useContextoActivo();
   const contextoCdp = contextoActivo?.alcance === 'CDP' ? contextoActivo : null;
+  // KAN-391: Líder de Red y Supervisor (y por encima) siempre ven de qué CdP
+  // viene un asistente encontrado por búsqueda global -- el criterio
+  // configurable REPORTE_MOSTRAR_ORIGEN_ASISTENTE solo aplica a Líder/
+  // Sublíder de CdP (ver campos, más abajo).
+  const rolActivo = useAuthStore((s) => s.rolActivo);
+  const esRolCdp = rolActivo === 'LIDER_CDP' || rolActivo === 'SUBLIDER_CDP';
 
   // KAN-271: en modo edición, la iglesia/CdP salen del reporte que se está
   // editando, no del contexto activo -- Líder/Supervisor de Red edita
@@ -227,10 +234,18 @@ export function Reportes() {
   // con MultiplicarCdpDialog.tsx, donde el Líder sí debe poder elegirse al
   // dividir una CdP).
   const { data: idsLider } = useIdsLiderCdp(cdpActiva);
-  const miembros = useMemo(
-    () => (idsLider ? miembrosCrudo.filter((m) => !idsLider.has(m.persona_id)) : miembrosCrudo),
-    [miembrosCrudo, idsLider]
-  );
+  const miembros = useMemo(() => {
+    const sinLider = idsLider ? miembrosCrudo.filter((m) => !idsLider.has(m.persona_id)) : miembrosCrudo;
+    // KAN-391 (2026-09-17): encontrado al probar el buscador unificado --
+    // useMiembrosCdp puede traer a la misma persona 2 veces (fan-out del
+    // JOIN de origen, visto en datos reales de prueba). Antes pasaba
+    // desapercibido porque "regulares" y "niños" eran 2 listas separadas;
+    // al unificarlas en un solo pool, React se queja de keys duplicadas.
+    // Dedup acá, en el único punto donde se arma el pool para toda la
+    // pantalla, en vez de en cada lugar que lo consume.
+    const vistos = new Set<string>();
+    return sinLider.filter((m) => (vistos.has(m.persona_id) ? false : (vistos.add(m.persona_id), true)));
+  }, [miembrosCrudo, idsLider]);
   const { data: campos } = useCamposObligatoriosReporte(iglesiaActivaId);
   // Umbral configurable por iglesia (default 12): mismo criterio que ya usa el backend
   // para Estados SSVA y el Dashboard, en vez de un "12" fijo que podía no coincidir.
@@ -283,6 +298,16 @@ export function Reportes() {
   const [textoAsistenteNuevo, setTextoAsistenteNuevo] = useState('');
   const [asistentesNuevosExistentes, setAsistentesNuevosExistentes] = useState<PersonaBusqueda[]>([]);
   const { data: resultadosAsistenteNuevo = [], isFetching: buscandoAsistenteNuevo } = useBuscarPersonas(iglesiaActivaId, textoAsistenteNuevo);
+  // KAN-390 (2026-09-17, pedido del owner): "se reconcilió" -- manual, por
+  // persona, disponible para cualquier asistente que ya existía en el
+  // sistema (regulares/niños del pool de la CdP, o encontrado por la
+  // búsqueda global). No aplica a `visitasNuevas` (persona recién creada,
+  // no hay de qué "volver"). Se registra como evento de Evangelismo al
+  // enviar -- no toca persona_estado.
+  const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
+  function cambiarReconciliacion(personaId: string, valor: boolean) {
+    setReconciliadosPorPersona((prev) => ({ ...prev, [personaId]: valor }));
+  }
   // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
@@ -710,6 +735,12 @@ export function Reportes() {
   // cumple esa edad, pasa solo a la lista de regulares en el siguiente render, sin acción manual.
   const poolRegulares = miembros.filter((m) => (m.edad === null || m.edad >= edadMinima) && !idsNuevos.includes(m.persona_id));
   const poolNinos = miembros.filter((m) => m.edad !== null && m.edad < edadMinima && !idsNuevos.includes(m.persona_id));
+  // KAN-391 (2026-09-17, pedido del owner): un solo campo de búsqueda para
+  // nuevos+regulares+niños -- regulares y niños particionan `miembros` sin
+  // solapar (ver filtros de arriba), así que la unión es directa. La
+  // clasificación real sigue siendo automática por edad vía idsRegulares/
+  // idsNinos, esto solo unifica el buscador.
+  const poolAsistenciaUnico = [...poolRegulares, ...poolNinos];
 
   // Búsqueda global de "Asistentes nuevos": excluye a quien ya es miembro de
   // esta CdP (esa persona corresponde a "Asistencia regular"/"de niños", no
@@ -881,6 +912,31 @@ export function Reportes() {
         }
       }
 
+      // KAN-390 (2026-09-17): "se reconcilió" tildado en alguna pastilla --
+      // mejor esfuerzo igual que los evangelizados de arriba, el reporte ya
+      // se guardó y no debe revertirse si esto falla.
+      const idsReconciliados = Object.entries(reconciliadosPorPersona)
+        .filter(([id, marcado]) => marcado && asistentes.has(id))
+        .map(([id]) => id);
+      if (idsReconciliados.length > 0) {
+        try {
+          await Promise.all(
+            idsReconciliados.map((personaId) =>
+              crearEvangelizado({
+                casa_de_paz_id: cdpActiva,
+                iglesia_id: iglesiaActivaId,
+                fecha: valores.fecha_reunion,
+                persona_id: personaId,
+                es_reconciliacion: true,
+              })
+            )
+          );
+          queryClient.invalidateQueries({ queryKey: ['evangelismo'] });
+        } catch {
+          toast.error('El reporte se guardó, pero no se pudieron registrar todas las reconciliaciones');
+        }
+      }
+
       if (modoEdicion) {
         toast.success(
           `Reporte actualizado: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
@@ -900,6 +956,7 @@ export function Reportes() {
       setDiezmos([]);
       setTextoBuscadorDiezmante('');
       setEvangelizadosPendientes([]);
+      setReconciliadosPorPersona({});
       setEsMegaFiesta(false);
       setDisertadorNombre('');
     } catch (e) {
@@ -1245,32 +1302,48 @@ export function Reportes() {
                 ) : (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs text-muted-foreground">Asistentes nuevos</Label>
-                      {/* Sin pool local -- por definición "nuevo" es alguien
-                          fuera del sistema. Pero antes de ofrecer crearla,
-                          se busca en toda la iglesia (resultadosAsistenteNuevoFiltrados):
-                          una visita recurrente ya tiene persona_id de otra
-                          semana, y sin esto se duplicaba cada vez que volvía
-                          a asistir (bug real reportado por el owner, 2026-09-05). */}
+                      <Label className="text-xs text-muted-foreground">Asistencia</Label>
+                      {/* KAN-391 (2026-09-17, pedido del owner): un solo campo
+                          busca a la vez en el pool de la CdP (regulares+niños,
+                          poolAsistenciaUnico) y en toda la iglesia
+                          (resultadosAsistenteNuevoFiltrados + alta de persona
+                          nueva) -- antes eran 3 buscadores separados y había
+                          que adivinar en cuál escribir si la persona ya
+                          existía en otra CdP. La clasificación nuevo/regular/
+                          niño sigue siendo automática (esVisita + edad, sin
+                          tocar esa lógica); acá solo se unifica el campo de
+                          entrada -- el resultado se sigue mostrando agrupado
+                          abajo en las mismas 3 categorías visuales de
+                          siempre (ocultarResultados suprime las pastillas
+                          propias del componente, se arman a mano por grupo). */}
                       <BuscadorPersonaMultiple
-                        titulo="Agregar asistente nuevo"
-                        miembros={[]}
-                        seleccionados={[]}
-                        onToggle={() => {}}
+                        titulo="Buscar persona"
+                        miembros={poolAsistenciaUnico}
+                        seleccionados={idsSinVisita}
+                        onToggle={(id) => toggleAsistente(id, false)}
                         placeholder="Escribí el nombre de la persona..."
-                        colorChip={VERDE}
+                        colorChip={AZUL}
+                        esMenorPorPersona={esMenorPorPersona}
+                        onEsMenorChange={cambiarEsMenorAsistente}
+                        asisteCdpPorPersona={asisteCdpPorPersona}
+                        onAsisteCdpChange={cambiarAsisteCdp}
+                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
                         permitirAgregarNueva
                         onAgregarNueva={agregarAsistenteNuevo}
                         resultadosBusquedaGlobal={resultadosAsistenteNuevoFiltrados}
                         buscandoGlobal={buscandoAsistenteNuevo}
                         onSeleccionarGlobal={agregarAsistenteExistente}
                         onTextoCambia={setTextoAsistenteNuevo}
+                        ocultarResultados
+                        mostrarOrigenBusquedaGlobal={!esRolCdp || (campos?.REPORTE_MOSTRAR_ORIGEN_ASISTENTE ?? true)}
                       />
-                      {/* Mismo diseño de chip que "Asistencia regular"/"de niños" al
-                          seleccionar a alguien (pastilla de color + X) -- pedido del
-                          owner (2026-09-03), y va debajo de este buscador (no al
-                          final de la sección) para que se vea justo donde se agregó. */}
-                      {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0 || asistentesNuevosExistentes.length > 0) && (
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs text-muted-foreground">
+                        Asistentes nuevos ({visitasNuevas.length + evangelizadosExistentesComoAsistentes.length + asistentesNuevosExistentes.length})
+                      </Label>
+                      {(visitasNuevas.length > 0 || evangelizadosExistentesComoAsistentes.length > 0 || asistentesNuevosExistentes.length > 0) ? (
                         <div className="flex flex-wrap gap-1.5">
                           {visitasNuevas.map((v) => (
                             <span
@@ -1317,6 +1390,17 @@ export function Reportes() {
                               <Check className="h-3 w-3 shrink-0" />
                               {p.nombre_completo}
                               {esMenorPorPersona[p.id] && <span className="text-[10px] opacity-80">(menor)</span>}
+                              {/* KAN-390: encontrada por búsqueda global -- es
+                                  justo el caso típico de "volvió después de
+                                  mucho tiempo", se puede marcar como RE. */}
+                              <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  className="h-3 w-3"
+                                  checked={reconciliadosPorPersona[p.id] ?? false}
+                                  onCheckedChange={(v) => cambiarReconciliacion(p.id, v === true)}
+                                />
+                                se reconcilió
+                              </label>
                               <button
                                 type="button"
                                 onClick={() => quitarAsistenteExistente(p.id)}
@@ -1328,39 +1412,116 @@ export function Reportes() {
                             );
                           })}
                         </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Nadie todavía.</p>
                       )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs text-muted-foreground">Asistencia regular (mayores de {edadMinima} años)</Label>
-                      <BuscadorPersonaMultiple
-                        titulo={`Seleccionar personas (≥${edadMinima} años)`}
-                        miembros={poolRegulares}
-                        seleccionados={idsRegulares}
-                        onToggle={(id) => toggleAsistente(id, false)}
-                        placeholder={`Buscar personas mayores de ${edadMinima} años...`}
-                        colorChip={AZUL}
-                        esMenorPorPersona={esMenorPorPersona}
-                        onEsMenorChange={cambiarEsMenorAsistente}
-                        asisteCdpPorPersona={asisteCdpPorPersona}
-                        onAsisteCdpChange={cambiarAsisteCdp}
-                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
-                      />
+                      <Label className="text-xs text-muted-foreground">
+                        Asistencia regular, mayores de {edadMinima} años ({idsRegulares.length})
+                      </Label>
+                      {/* KAN-391: ya no tiene buscador propio (unificado
+                          arriba) -- estas son las pastillas de quienes
+                          quedaron clasificados acá, con los mismos controles
+                          de siempre (es menor / asiste a esta CDP) más el
+                          nuevo de RE (KAN-390). */}
+                      {idsRegulares.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {idsRegulares.map((id) => {
+                            const persona = poolRegulares.find((m) => m.persona_id === id);
+                            if (!persona) return null;
+                            const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
+                            const colorPastilla = esOriginal ? 'var(--destructive)' : AZUL;
+                            return (
+                              <span
+                                key={id}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
+                              >
+                                {persona.nombre_completo}
+                                {!persona.tiene_fecha_nacimiento && (
+                                  <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                    <Checkbox
+                                      className="h-3 w-3"
+                                      checked={esMenorPorPersona[id] ?? false}
+                                      onCheckedChange={(v) => cambiarEsMenorAsistente(id, v === true)}
+                                    />
+                                    es menor
+                                  </label>
+                                )}
+                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    className="h-3 w-3"
+                                    checked={asisteCdpPorPersona[id] ?? true}
+                                    onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
+                                  />
+                                  Asiste a esta CDP
+                                </label>
+                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    className="h-3 w-3"
+                                    checked={reconciliadosPorPersona[id] ?? false}
+                                    onCheckedChange={(v) => cambiarReconciliacion(id, v === true)}
+                                  />
+                                  se reconcilió
+                                </label>
+                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Nadie todavía.</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs text-muted-foreground">Asistencia de niños (menores de {edadMinima} años)</Label>
-                      <BuscadorPersonaMultiple
-                        titulo={`Seleccionar niños (<${edadMinima} años)`}
-                        miembros={poolNinos}
-                        seleccionados={idsNinos}
-                        onToggle={(id) => toggleAsistente(id, false)}
-                        placeholder={`Buscar niños menores de ${edadMinima} años...`}
-                        colorChip={AMBAR}
-                        asisteCdpPorPersona={asisteCdpPorPersona}
-                        onAsisteCdpChange={cambiarAsisteCdp}
-                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
-                      />
+                      <Label className="text-xs text-muted-foreground">
+                        Asistencia de niños, menores de {edadMinima} años ({idsNinos.length})
+                      </Label>
+                      {idsNinos.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {idsNinos.map((id) => {
+                            const persona = poolNinos.find((m) => m.persona_id === id);
+                            if (!persona) return null;
+                            const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
+                            const colorPastilla = esOriginal ? 'var(--destructive)' : AMBAR;
+                            return (
+                              <span
+                                key={id}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
+                              >
+                                {persona.nombre_completo}
+                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    className="h-3 w-3"
+                                    checked={asisteCdpPorPersona[id] ?? true}
+                                    onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
+                                  />
+                                  Asiste a esta CDP
+                                </label>
+                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    className="h-3 w-3"
+                                    checked={reconciliadosPorPersona[id] ?? false}
+                                    onCheckedChange={(v) => cambiarReconciliacion(id, v === true)}
+                                  />
+                                  se reconcilió
+                                </label>
+                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Nadie todavía.</p>
+                      )}
                     </div>
 
                     {pendientesEsMenor.length > 0 && (

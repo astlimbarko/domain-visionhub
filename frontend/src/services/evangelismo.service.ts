@@ -102,6 +102,7 @@ export async function crearEvangelizado(datos: NuevoEvangelizado) {
       tipo_evangelismo_id: datos.tipo_evangelismo_id || null,
       evangelizado_por_id: datos.evangelizado_por_id || null,
       testimonio: datos.testimonio || null,
+      es_reconciliacion: datos.es_reconciliacion ?? false,
     },
   });
   if (error) throw error;
