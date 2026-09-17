@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { VERDE } from '@/components/dashboard/DashboardUI';
 import type { MiembroCdp } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -308,11 +309,16 @@ export function BuscadorPersonaMultiple({
             encontrara a nadie -- "botón directo" siempre visible, sin tener
             que escribir primero. Abre el mismo mini-formulario de siempre. */}
         {permitirAgregarNueva && (
+          // KAN-367 (2026-09-17, pedido del owner): antes era un outline
+          // plano que se perdía contra el fondo blanco -- tinte de color
+          // (mismo patrón color-mix que el resto del proyecto, ver skill
+          // frontend-style) para que se note sin ser un botón sólido invasivo.
           <Button
             type="button"
             variant="outline"
             size="icon"
-            className="h-10 w-10 shrink-0 rounded-xl"
+            className="h-10 w-10 shrink-0 rounded-xl border-transparent"
+            style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
             title="Agregar persona nueva"
             onClick={abrirFormNueva}
           >
