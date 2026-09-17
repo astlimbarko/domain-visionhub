@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Check,
   ClipboardList,
+  History,
   DollarSign,
   HeartHandshake,
   MapPin,
@@ -55,6 +56,7 @@ import {
   useIdsLiderCdp,
   useLibros,
   useDiasLimiteEdicionReporte,
+  useHistorialReporte,
   useMegaFiestaDelDia,
   useMiembrosCdp,
   usePuedeEditarReporte,
@@ -169,6 +171,19 @@ export function Reportes() {
   // ese límite -- no un texto fijo que se desactualice si alguien lo cambia ahí.
   const { data: diasLimiteEdicionCdp } = useDiasLimiteEdicionReporte(iglesiaActivaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
 
+  // KAN-367 (2026-09-17): "Ver historial de cambios" solo visible para
+  // Pastor/Supervisor de la Visión en Acción (o Super Admin) -- el Líder/
+  // Sublíder de la CdP no lo ve. El backend igual lo exige de nuevo
+  // (fn_historial_reporte_cdp), esto es solo para no mostrar un botón que
+  // va a fallar.
+  const esSupervisionVisionAccion =
+    contextoActivo?.rolUI === 'PASTOR' || contextoActivo?.rolUI === 'SUPERVISOR' || contextoActivo?.rolUI === 'SUPER_ADMIN';
+  const [mostrandoHistorial, setMostrandoHistorial] = useState(false);
+  const { data: historial, isLoading: cargandoHistorial } = useHistorialReporte(
+    reporteId,
+    modoEdicion && esSupervisionVisionAccion && mostrandoHistorial
+  );
+
   // KAN-367: Pastor / Supervisor de la Visión en Acción, fuera de la ventana
   // normal, pueden pedir autorización puntual (justificación + OTP) en vez
   // de quedar bloqueados como el resto de los roles.
@@ -222,6 +237,18 @@ export function Reportes() {
   const anular = useAnularReporte(cdpActiva);
   // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
   const [confirmandoAnular, setConfirmandoAnular] = useState(false);
+  // KAN-367 (pedido del owner, 2026-09-17): botón "Sí, anular" arranca
+  // deshabilitado con cuenta regresiva de 3 segundos -- nadie lo confirma
+  // por reflejo. Arranca de nuevo cada vez que se abre el diálogo.
+  const [segundosParaAnular, setSegundosParaAnular] = useState(3);
+  useEffect(() => {
+    if (!confirmandoAnular) return;
+    setSegundosParaAnular(3);
+    const id = window.setInterval(() => {
+      setSegundosParaAnular((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [confirmandoAnular]);
 
   async function anularReporteActual() {
     if (!reporteId) return;
@@ -231,13 +258,18 @@ export function Reportes() {
       navigate(-1);
     } catch (e) {
       const mensaje = typeof (e as { message?: string })?.message === 'string' ? (e as { message: string }).message : '';
-      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasó la ventana de edición o no tenés permiso)' : 'No se pudo anular el reporte');
+      toast.error(mensaje.includes('REPORTE_ANULAR_SIN_PERMISO') ? 'Ya no se puede anular (pasó la ventana para anular, o no tenés permiso)' : 'No se pudo anular el reporte');
     }
   }
 
   // Un único mapa persona → { esVisita, esMenor } evita que alguien quede
   // seleccionado en más de una de las 3 listas (nuevos / regulares / niños) a la vez.
   const [asistentes, setAsistentes] = useState<Map<string, { esVisita: boolean; esMenor?: boolean }>>(new Map());
+  // KAN-367 (pedido del owner, 2026-09-17): quiénes ya estaban marcados al
+  // abrir el reporte para editar -- sus pastillas se ven en rojo suave.
+  // Nunca se toca fuera del efecto de precarga: agregar/sacar gente durante
+  // la edición no entra ni sale de este set.
+  const [idsAsistentesOriginales, setIdsAsistentesOriginales] = useState<Set<string>>(new Set());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
   // Bug real reportado por el owner (2026-09-05): "Asistentes nuevos" no
   // buscaba a nadie, así que una visita recurrente (alguien que ya está en
@@ -333,6 +365,19 @@ export function Reportes() {
     setDisertadorNombre(reporteExistente.disertador_nombre ?? '');
     setEvangelizadosDeclaradosEdicion(reporteExistente.evangelizados_declarados ?? undefined);
     setAsistentes(new Map(reporteExistente.asistentes.map((a) => [a.personaId, { esVisita: a.esVisita, esMenor: a.esMenor }])));
+    setIdsAsistentesOriginales(new Set(reporteExistente.asistentes.map((a) => a.personaId)));
+    // KAN-367 (bug real encontrado en verificación en vivo, 2026-09-17): quien
+    // asiste como visita/asistente nuevo (esVisita) no está en el pool de
+    // miembros de la CdP -- sin esto, contaba en el total pero no aparecía en
+    // ninguna lista al editar (ni en Regular/Niños, que excluyen a las
+    // visitas a propósito, ni en Asistentes nuevos, que en modo edición
+    // arranca vacío). Se muestran acá como "ya existentes" -- ya tienen
+    // persona_id real, no hace falta crearlas de nuevo.
+    setAsistentesNuevosExistentes(
+      reporteExistente.asistentes
+        .filter((a) => a.esVisita && a.nombreCompleto)
+        .map((a) => ({ id: a.personaId, nombre_completo: a.nombreCompleto as string }))
+    );
     setFormPrecargado(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reporteExistente, modoEdicion]);
@@ -955,13 +1000,10 @@ export function Reportes() {
                 <div className="flex flex-col gap-1 text-sm">
                   <p className="font-medium">Vas a modificar un reporte ya enviado</p>
                   <p className="text-muted-foreground">
-                    Incluida la fecha de la reunión. Los cambios pueden afectar estadísticas ya calculadas (cumplimiento, rachas). Solo modificá si estás seguro.
+                    Puede afectar estadísticas ya calculadas.
+                    {diasLimiteEdicionCdp !== undefined &&
+                      ` Tenés hasta ${diasLimiteEdicionCdp} día${diasLimiteEdicionCdp === 1 ? '' : 's'} desde que se cargó (configurable en Supervisión).`}
                   </p>
-                  {diasLimiteEdicionCdp !== undefined && (
-                    <p className="text-muted-foreground">
-                      Podés modificarlo hasta {diasLimiteEdicionCdp} día{diasLimiteEdicionCdp === 1 ? '' : 's'} después de haberlo cargado -- ese límite lo define Supervisión de la Visión en Acción (Panel del Supervisor → Formularios → Control de Reportes).
-                    </p>
-                  )}
                 </div>
               </div>
               <Button type="button" variant="destructive" className="gap-2 self-start" onClick={() => setActivado(true)}>
@@ -1200,11 +1242,16 @@ export function Reportes() {
                               </button>
                             </span>
                           ))}
-                          {asistentesNuevosExistentes.map((p) => (
+                          {asistentesNuevosExistentes.map((p) => {
+                            // KAN-367 (2026-09-17): mismo criterio que las demás
+                            // pastillas -- si ya estaba guardada al abrir el
+                            // reporte para editar, se ve en rojo suave.
+                            const colorPastilla = idsAsistentesOriginales.has(p.id) ? 'var(--destructive)' : VERDE;
+                            return (
                             <span
                               key={p.id}
                               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                              style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
+                              style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                             >
                               <Check className="h-3 w-3 shrink-0" />
                               {p.nombre_completo}
@@ -1217,7 +1264,8 @@ export function Reportes() {
                                 <X className="h-3 w-3" />
                               </button>
                             </span>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1235,6 +1283,7 @@ export function Reportes() {
                         onEsMenorChange={cambiarEsMenorAsistente}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
+                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
                       />
                     </div>
 
@@ -1249,6 +1298,7 @@ export function Reportes() {
                         colorChip={AMBAR}
                         asisteCdpPorPersona={asisteCdpPorPersona}
                         onAsisteCdpChange={cambiarAsisteCdp}
+                        idsOriginales={modoEdicion ? idsAsistentesOriginales : undefined}
                       />
                     </div>
 
@@ -1533,6 +1583,7 @@ export function Reportes() {
           <div className="flex w-full flex-col gap-1.5 sm:w-auto">
             <Button
               type="submit"
+              variant={modoEdicion ? 'destructive' : 'default'}
               disabled={isSubmitting || totalAsistentesActual === 0}
               title={totalAsistentesActual === 0 ? 'Marcá al menos una persona antes de enviar el reporte' : undefined}
               className="h-12 w-full gap-2 rounded-xl text-[15px] font-semibold sm:w-auto sm:px-8"
@@ -1540,6 +1591,13 @@ export function Reportes() {
               {isSubmitting && <Spinner className="h-4 w-4" />}
               {isSubmitting ? (modoEdicion ? 'Guardando...' : 'Enviando...') : modoEdicion ? 'Guardar cambios' : 'Enviar reporte'}
             </Button>
+            {/* KAN-367 (pedido del owner, 2026-09-17): aviso de que esto
+                reemplaza los datos guardados -- entre comillas porque en
+                realidad no se pierde nada, queda en el historial de cambios
+                que solo puede ver Supervisión de la Visión en Acción. */}
+            {modoEdicion && (
+              <p className="text-[11px] text-muted-foreground">Esto "reemplaza" los datos guardados -- queda un historial que solo ve Supervisión.</p>
+            )}
             {/* El botón deshabilitado usa disabled:pointer-events-none (button.tsx)
                 -- ni siquiera recibe el toque, así que un toast al tocarlo no es
                 posible. Antes la única explicación era el `title` de arriba, un
@@ -1555,38 +1613,105 @@ export function Reportes() {
           {/* Anular reporte (solo en edición): baja lógica para sacar un reporte
               cargado por error/duplicado. Confirmación inline en dos pasos, sin
               diálogo bloqueante. El permiso/ventana lo valida el backend igual. */}
+          {modoEdicion && esSupervisionVisionAccion && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-2 rounded-xl sm:ml-auto"
+              onClick={() => setMostrandoHistorial(true)}
+            >
+              <History className="h-4 w-4" />
+              Ver historial de cambios
+            </Button>
+          )}
           {modoEdicion && (
-            confirmandoAnular ? (
-              <div className="flex items-center gap-2 sm:ml-auto">
-                <span className="text-sm text-muted-foreground">¿Anular este reporte?</span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="h-10 gap-2 rounded-xl"
-                  disabled={anular.isPending}
-                  onClick={anularReporteActual}
-                >
-                  {anular.isPending && <Spinner className="h-4 w-4" />}
-                  Sí, anular
-                </Button>
-                <Button type="button" variant="ghost" className="h-10 rounded-xl" onClick={() => setConfirmandoAnular(false)} disabled={anular.isPending}>
-                  Cancelar
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-11 gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive sm:ml-auto"
-                onClick={() => setConfirmandoAnular(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-                Anular reporte
-              </Button>
-            )
+            <Button
+              type="button"
+              variant="ghost"
+              className={cn('h-11 gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive', !esSupervisionVisionAccion && 'sm:ml-auto')}
+              onClick={() => setConfirmandoAnular(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Anular reporte
+            </Button>
           )}
         </div>
       </form>
+
+      {/* KAN-367 (pedido del owner, 2026-09-17): confirmación fuerte -- diálogo
+          con advertencia destacada + botón bloqueado 3 segundos, en vez del
+          confirm inline chiquito de antes. */}
+      <Dialog open={confirmandoAnular} onOpenChange={(v) => !anular.isPending && setConfirmandoAnular(v)}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-destructive">Vas a anular este reporte</p>
+              <p className="text-sm text-muted-foreground">
+                Se da de baja el reporte y su asistencia. No es para corregir un dato -- para eso usá "Guardar cambios". Esta acción queda registrada.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmandoAnular(false)} disabled={anular.isPending}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" disabled={segundosParaAnular > 0 || anular.isPending} onClick={anularReporteActual}>
+              {anular.isPending && <Spinner className="h-4 w-4" />}
+              {segundosParaAnular > 0 ? `Esperá ${segundosParaAnular}s...` : 'Sí, anular'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* KAN-367 (2026-09-17): historial de cambios -- solo Pastor/Supervisor.
+          Muestra el valor ANTERIOR de cada edición (lo que decía antes de
+          ese guardado), más nuevo primero. Solo cubre los campos propios del
+          reporte (fecha de reunión, tema, testimonios, comentarios) -- no
+          incluye asistencia ni finanzas, que viven en tablas aparte. */}
+      <Dialog open={mostrandoHistorial} onOpenChange={setMostrandoHistorial}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Historial de cambios</DialogTitle>
+            <DialogDescription>Solo visible para Pastor/Supervisor. Cada entrada muestra cómo estaba el reporte antes de ese cambio.</DialogDescription>
+          </DialogHeader>
+          <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
+            {cargandoHistorial ? (
+              <Skeleton className="h-24 w-full rounded-xl" />
+            ) : !historial || historial.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Este reporte nunca se modificó ni se anuló.</p>
+            ) : (
+              historial.map((h) => (
+                <div key={h.id} className="flex flex-col gap-1.5 rounded-xl border border-border/60 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                        h.tipo === 'ANULADO' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                      )}
+                    >
+                      {h.tipo === 'ANULADO' ? 'Anulado' : 'Modificado'}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(h.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Por <span className="font-medium text-foreground">{h.modificadoPorNombre}</span>
+                  </p>
+                  {typeof h.snapshotAnterior.fecha_reunion === 'string' && (
+                    <p className="text-muted-foreground">Fecha de reunión antes: {fechaLegible(h.snapshotAnterior.fecha_reunion as string)}</p>
+                  )}
+                  <details className="text-[11px] text-muted-foreground">
+                    <summary className="cursor-pointer select-none">Ver datos completos de antes</summary>
+                    <pre className="mt-1 overflow-x-auto rounded-lg bg-muted/40 p-2 text-[10px]">{JSON.stringify(h.snapshotAnterior, null, 2)}</pre>
+                  </details>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pendienteConfirmarAsistente} onOpenChange={(v) => !v && setPendienteConfirmarAsistente(null)}>
         <DialogContent className="sm:max-w-sm" showCloseButton={false}>

@@ -157,7 +157,14 @@ export interface ReporteExistente {
   /** Diezmos por persona ya guardados (siempre con personaId + nombre). */
   diezmos: DiezmoLinea[];
   monedaId: string | null;
-  asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean }[];
+  /**
+   * KAN-367 (2026-09-17, bug real encontrado en verificación en vivo):
+   * `nombreCompleto` solo viene para `esVisita: true` -- quien asiste como
+   * visita/asistente nuevo no está en el pool de miembros de la CdP
+   * (`miembros`), así que sin el nombre acá el formulario de edición no
+   * podía mostrarlo en ninguna lista (aunque sí contaba en el total).
+   */
+  asistentes: { personaId: string; esVisita: boolean; esMenor?: boolean; nombreCompleto?: string }[];
 }
 
 export interface ReporteReciente {

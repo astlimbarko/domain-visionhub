@@ -247,6 +247,31 @@ export async function anularReporte(reporteId: string): Promise<void> {
   if (error) throw error;
 }
 
+export interface HistorialReporteEntrada {
+  id: string;
+  tipo: 'MODIFICADO' | 'ANULADO';
+  snapshotAnterior: Record<string, unknown>;
+  modificadoPorNombre: string;
+  fechaCreacion: string;
+}
+
+/**
+ * KAN-367 (2026-09-17): historial de cambios de un reporte -- solo Pastor/
+ * Supervisor de la Visión en Acción (fn_historial_reporte_cdp lo exige server-side,
+ * la tabla en sí no tiene GRANT directo a authenticated).
+ */
+export async function obtenerHistorialReporte(reporteId: string): Promise<HistorialReporteEntrada[]> {
+  const { data, error } = await supabase.rpc('fn_historial_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return (data ?? []).map((r: { id: string; tipo: string; snapshot_anterior: Record<string, unknown>; modificado_por_nombre: string; fecha_creacion: string }) => ({
+    id: r.id,
+    tipo: r.tipo as 'MODIFICADO' | 'ANULADO',
+    snapshotAnterior: r.snapshot_anterior,
+    modificadoPorNombre: r.modificado_por_nombre,
+    fechaCreacion: r.fecha_creacion,
+  }));
+}
+
 /** Fechas de reunion con reporte enviado dentro del rango -- para pintar el calendario de Historial de Reportes. */
 export async function obtenerFechasReportadas(casaDePazId: string, desde: string, hasta: string): Promise<string[]> {
   const { data, error } = await supabase
@@ -775,7 +800,11 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
         )
         .eq('id', reporteId)
         .single(),
-      supabase.from('casa_de_paz_asistencia').select('persona_id, es_visita, es_menor').eq('reporte_id', reporteId).is('fecha_eliminacion', null),
+      supabase
+        .from('casa_de_paz_asistencia')
+        .select('persona_id, es_visita, es_menor, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
+        .eq('reporte_id', reporteId)
+        .is('fecha_eliminacion', null),
       supabase
         .from('finanzas_ingreso')
         .select('monto, moneda_id, persona_id, tipo_ingreso:tipo_ingreso_id(codigo), persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
@@ -822,7 +851,11 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
     totalOfrendas,
     diezmos,
     monedaId,
-    asistentes: (asistencia ?? []).map((a) => ({ personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined })),
+    asistentes: (asistencia ?? []).map((a) => {
+      const p = Array.isArray(a.persona) ? a.persona[0] : a.persona;
+      const nombreCompleto = p ? [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' ') : undefined;
+      return { personaId: a.persona_id, esVisita: a.es_visita, esMenor: a.es_menor ?? undefined, nombreCompleto };
+    }),
   };
 }
 

@@ -11,6 +11,7 @@ import {
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
+  obtenerHistorialReporte,
   obtenerPrimeraFechaReunion,
   obtenerReportesParaCalendario,
   obtenerIdsLiderCdp,
@@ -284,6 +285,15 @@ export function useAnularReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+  });
+}
+
+/** KAN-367 (2026-09-17): historial de cambios de un reporte -- solo Pastor/Supervisor, gateado server-side. */
+export function useHistorialReporte(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'historial-cambios', reporteId],
+    queryFn: () => obtenerHistorialReporte(reporteId as string),
+    enabled: habilitado && !!reporteId,
   });
 }
 

@@ -144,6 +144,12 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
   ROUTES.CASAS_DE_PAZ,
+  // KAN-367 (bug real encontrado en verificación en vivo, 2026-09-17): el
+  // backend (fn_puede_editar_reporte_cdp) ya le da a Pastor/Supervisor la
+  // ventana larga para editar cualquier reporte de la iglesia, pero sin esta
+  // ruta el guard de PrivateLayout los rechazaba antes de llegar a la
+  // pantalla -- ni por URL directa ni entrando desde Historial de Reportes.
+  ROUTES.REPORTES_EDITAR,
   ROUTES.HISTORIAL_REPORTES,
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,

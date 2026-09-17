@@ -54,6 +54,12 @@ interface Props {
   buscandoGlobal?: boolean;
   onSeleccionarGlobal?: (persona: PersonaBusqueda) => void;
   onTextoCambia?: (texto: string) => void;
+  /** KAN-367 (pedido del owner, 2026-09-17): ids que ya estaban guardados al
+   * abrir el reporte para editar -- esas pastillas se ven en rojo suave
+   * (mismo criterio que los demás campos "cargados de la base"), en vez del
+   * color de categoría normal. Quien se agrega/saca durante esta sesión de
+   * edición no entra acá, sigue con su color de categoría de siempre. */
+  idsOriginales?: Set<string>;
 }
 
 /** Separa un nombre completo tecleado en sus partes -- no hay forma de
@@ -109,6 +115,7 @@ export function BuscadorPersonaMultiple({
   buscandoGlobal,
   onSeleccionarGlobal,
   onTextoCambia,
+  idsOriginales,
 }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -390,11 +397,13 @@ export function BuscadorPersonaMultiple({
           {seleccionados.map((id) => {
             const persona = miembros.find((m) => m.persona_id === id);
             if (!persona) return null;
+            const esOriginal = idsOriginales?.has(id) ?? false;
+            const colorPastilla = esOriginal ? 'var(--destructive)' : colorChip;
             return (
               <span
                 key={id}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                style={{ backgroundColor: `color-mix(in oklab, ${colorChip} 14%, transparent)`, color: colorChip }}
+                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
               >
                 {persona.nombre_completo}
                 {!persona.tiene_fecha_nacimiento && onEsMenorChange && (
