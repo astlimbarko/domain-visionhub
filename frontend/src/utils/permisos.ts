@@ -61,6 +61,9 @@ export interface NavItem {
 const RUTAS_LIDER_CDP: string[] = [
   ROUTES.DASHBOARD,
   ROUTES.PERSONAS,
+  // KAN-386 seguimiento (2026-09-17): "Membresía" -- mismo censo que ve
+  // Supervisión en Afirmación, scoped a la CdP propia.
+  ROUTES.MEMBRESIA_CDP,
   ROUTES.REPORTES,
   ROUTES.REPORTES_EDITAR,
   ROUTES.HISTORIAL_REPORTES,
@@ -99,6 +102,7 @@ const RUTAS_SUBLIDER_CDP: string[] = [
   ROUTES.HISTORIAL_ASISTENCIA,
   ROUTES.CALENDARIO,
   ROUTES.PERSONAS,
+  ROUTES.MEMBRESIA_CDP,
   ROUTES.TESTIMONIOS_CDP,
 ];
 
@@ -239,6 +243,10 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, color: '#0071e3' },
   { icon: Home, label: 'Casas de Paz', path: ROUTES.CASAS_DE_PAZ, color: '#0aa5c0', labelPorRol: { LIDER_RED: 'Gestión de Casas de Paz', LIDER_CDP: 'Perfil de Casa de Paz', SUBLIDER_CDP: 'Perfil de Casa de Paz' } },
   { icon: Users, label: 'Personas', path: ROUTES.PERSONAS, color: '#5856d6' },
+  // KAN-386 seguimiento (2026-09-17): mismo color/ícono que "Membresía
+  // (Afirmación)" -- mismo concepto (censo de miembros), acá scoped a la
+  // CdP propia del Líder/Sublíder.
+  { icon: Users, label: 'Membresía', path: ROUTES.MEMBRESIA_CDP, color: '#5856d6' },
   { icon: ClipboardCheck, label: 'Control de Reportes', path: ROUTES.CONTROL_REPORTES, color: '#ff9f0a' },
   { icon: ClipboardList, label: 'Reportes', path: ROUTES.REPORTES, color: '#ff9f0a' },
   { icon: History, label: 'Historial de Reportes', path: ROUTES.HISTORIAL_REPORTES, color: '#5ac8fa' },
