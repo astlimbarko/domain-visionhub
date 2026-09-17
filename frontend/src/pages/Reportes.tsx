@@ -1165,6 +1165,11 @@ export function Reportes() {
                       value={libroId ?? ''}
                       onValueChange={(v) => {
                         setValue('libro_id', v, { shouldDirty: true });
+                        // Si había un tema pendiente de una selección previa
+                        // por el buscador (de otro libro), un cambio manual
+                        // de libro lo invalida -- si no, podría aplicarse
+                        // tarde y de sorpresa si se vuelve a ese libro después.
+                        setTemaIdPendiente(undefined);
                       }}
                     >
                       <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.libro_id))}>
@@ -1184,7 +1189,12 @@ export function Reportes() {
                     <Label>Tema {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
                     <Select
                       value={temaId ?? ''}
-                      onValueChange={(v) => setValue('tema_id', v, { shouldDirty: true })}
+                      onValueChange={(v) => {
+                        setValue('tema_id', v, { shouldDirty: true });
+                        // Elección manual gana sobre cualquier tema pendiente
+                        // del buscador que todavía no se haya aplicado.
+                        setTemaIdPendiente(undefined);
+                      }}
                       disabled={!libroId}
                     >
                       <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.tema_id))}>
