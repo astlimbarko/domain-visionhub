@@ -59,6 +59,7 @@ import {
   useHistorialReporte,
   useMegaFiestaDelDia,
   useMiembrosCdp,
+  usePuedeAnularReporte,
   usePuedeEditarReporte,
   usePuedeSolicitarEdicionFueraVentana,
   useReportePorId,
@@ -143,6 +144,9 @@ export function Reportes() {
   // tienen una, a diferencia de Líder/Sublíder de CdP).
   const { data: reporteExistente, isLoading: cargandoReporteExistente, isError: errorReporteExistente } = useReportePorId(reporteId);
   const { data: puedeEditar, isLoading: cargandoPuedeEditar } = usePuedeEditarReporte(reporteId);
+  // KAN-367: ventana propia de "Anular" (en horas) -- se chequea aparte de
+  // puedeEditar (en días) para no mostrar el botón cuando ya no corresponde.
+  const { data: puedeAnular } = usePuedeAnularReporte(reporteId, modoEdicion);
 
   const iglesiaActivaId = modoEdicion ? reporteExistente?.iglesia_id : contextoCdp?.iglesiaId;
   const cdpActiva = modoEdicion ? reporteExistente?.casa_de_paz_id : contextoCdp?.cdpId;
@@ -1633,8 +1637,11 @@ export function Reportes() {
           </div>
 
           {/* Anular reporte (solo en edición): baja lógica para sacar un reporte
-              cargado por error/duplicado. Confirmación inline en dos pasos, sin
-              diálogo bloqueante. El permiso/ventana lo valida el backend igual. */}
+              cargado por error/duplicado. KAN-367: tiene su propia ventana (en
+              horas, más corta que la de editar) -- puedeAnular !== false deja
+              el botón visible mientras carga (undefined) y solo lo oculta
+              cuando ya se confirmó que la ventana pasó. El backend igual
+              vuelve a validar el permiso real al confirmar. */}
           {modoEdicion && esSupervisionVisionAccion && (
             <Button
               type="button"
@@ -1646,7 +1653,7 @@ export function Reportes() {
               Ver historial de cambios
             </Button>
           )}
-          {modoEdicion && (
+          {modoEdicion && puedeAnular !== false && (
             <Button
               type="button"
               variant="ghost"

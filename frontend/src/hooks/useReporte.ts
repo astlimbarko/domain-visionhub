@@ -24,6 +24,7 @@ import {
   obtenerTemas,
   obtenerTestimoniosCdp,
   obtenerUltimaFechaReporteRed,
+  puedeAnularReporte,
   puedeEditarReporte,
   puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
@@ -235,6 +236,15 @@ export function usePuedeEditarReporte(reporteId: string | undefined) {
     queryKey: ['reporte', 'puede-editar', reporteId],
     queryFn: () => puedeEditarReporte(reporteId as string),
     enabled: !!reporteId,
+  });
+}
+
+/** KAN-367: ventana propia (en horas) para ANULAR -- más corta que la de editar, se chequea aparte para no mostrar "Anular reporte" cuando ya no se puede. */
+export function usePuedeAnularReporte(reporteId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'puede-anular', reporteId],
+    queryFn: () => puedeAnularReporte(reporteId as string),
+    enabled: habilitado && !!reporteId,
   });
 }
 

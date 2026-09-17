@@ -743,6 +743,13 @@ export async function puedeEditarReporte(reporteId: string): Promise<boolean> {
   return !!data;
 }
 
+/** KAN-367: si el reporte todavía se puede ANULAR -- ventana propia, en horas, más corta que la de editar (ver fn_puede_anular_reporte_cdp). */
+export async function puedeAnularReporte(reporteId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('fn_puede_anular_reporte_cdp', { p_reporte_id: reporteId });
+  if (error) throw error;
+  return !!data;
+}
+
 /**
  * KAN-367: contexto de la CdP (Líder, Anfitrión, Dirección, Ciudad) del
  * reporte que se está editando -- se muestra en el panel de modificación
