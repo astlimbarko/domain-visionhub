@@ -1688,9 +1688,8 @@ export function Reportes() {
 
       {/* KAN-367 (2026-09-17): historial de cambios -- solo Pastor/Supervisor.
           Muestra el valor ANTERIOR de cada edición (lo que decía antes de
-          ese guardado), más nuevo primero. Solo cubre los campos propios del
-          reporte (fecha de reunión, tema, testimonios, comentarios) -- no
-          incluye asistencia ni finanzas, que viven en tablas aparte. */}
+          ese guardado), más nuevo primero -- incluye tema/fecha, asistencia
+          e ingresos (ofrenda + diezmos) tal como estaban antes del cambio. */}
       <Dialog open={mostrandoHistorial} onOpenChange={setMostrandoHistorial}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -1703,33 +1702,64 @@ export function Reportes() {
             ) : !historial || historial.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">Este reporte nunca se modificó ni se anuló.</p>
             ) : (
-              historial.map((h) => (
-                <div key={h.id} className="flex flex-col gap-1.5 rounded-xl border border-border/60 p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                        h.tipo === 'ANULADO' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                      )}
-                    >
-                      {h.tipo === 'ANULADO' ? 'Anulado' : 'Modificado'}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {new Date(h.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </span>
+              historial.map((h) => {
+                // KAN-367 (2026-09-17): entradas viejas guardaron el snapshot
+                // "plano" (solo columnas de casa_de_paz_reporte). Las nuevas
+                // lo anidan en { reporte, asistencia, ingresos } -- se soporta
+                // ambos formatos para no romper el historial ya guardado.
+                const snap = h.snapshotAnterior;
+                const reporteAntes = ((snap.reporte as Record<string, unknown> | undefined) ?? snap) as Record<string, unknown>;
+                const asistenciaAntes = Array.isArray(snap.asistencia)
+                  ? (snap.asistencia as { nombre_completo: string; es_visita: boolean }[])
+                  : null;
+                const ingresosAntes = Array.isArray(snap.ingresos)
+                  ? (snap.ingresos as { tipo: string; nombre_completo: string | null; monto: number }[])
+                  : null;
+                const ofrendaAntes = ingresosAntes?.find((i) => i.tipo === 'OFRENDA')?.monto;
+                const diezmosAntes = ingresosAntes?.filter((i) => i.tipo === 'DIEZMO') ?? [];
+
+                return (
+                  <div key={h.id} className="flex flex-col gap-1.5 rounded-xl border border-border/60 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                          h.tipo === 'ANULADO' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                        )}
+                      >
+                        {h.tipo === 'ANULADO' ? 'Anulado' : 'Modificado'}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(h.fechaCreacion).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Por <span className="font-medium text-foreground">{h.modificadoPorNombre}</span>
+                    </p>
+                    {typeof reporteAntes.fecha_reunion === 'string' && (
+                      <p className="text-muted-foreground">Fecha de reunión antes: {fechaLegible(reporteAntes.fecha_reunion as string)}</p>
+                    )}
+                    {asistenciaAntes && (
+                      <p className="text-muted-foreground">
+                        Asistencia antes: {asistenciaAntes.length} persona{asistenciaAntes.length === 1 ? '' : 's'}
+                        {asistenciaAntes.length > 0 && ` (${asistenciaAntes.map((a) => a.nombre_completo).join(', ')})`}
+                      </p>
+                    )}
+                    {ingresosAntes && (ofrendaAntes !== undefined || diezmosAntes.length > 0) && (
+                      <p className="text-muted-foreground">
+                        {ofrendaAntes !== undefined && `Ofrenda antes: ${ofrendaAntes}`}
+                        {ofrendaAntes !== undefined && diezmosAntes.length > 0 && ' · '}
+                        {diezmosAntes.length > 0 &&
+                          `Diezmos antes: ${diezmosAntes.length} persona${diezmosAntes.length === 1 ? '' : 's'} (${diezmosAntes.reduce((s, d) => s + d.monto, 0)})`}
+                      </p>
+                    )}
+                    <details className="text-[11px] text-muted-foreground">
+                      <summary className="cursor-pointer select-none">Ver datos completos de antes</summary>
+                      <pre className="mt-1 overflow-x-auto rounded-lg bg-muted/40 p-2 text-[10px]">{JSON.stringify(h.snapshotAnterior, null, 2)}</pre>
+                    </details>
                   </div>
-                  <p className="text-muted-foreground">
-                    Por <span className="font-medium text-foreground">{h.modificadoPorNombre}</span>
-                  </p>
-                  {typeof h.snapshotAnterior.fecha_reunion === 'string' && (
-                    <p className="text-muted-foreground">Fecha de reunión antes: {fechaLegible(h.snapshotAnterior.fecha_reunion as string)}</p>
-                  )}
-                  <details className="text-[11px] text-muted-foreground">
-                    <summary className="cursor-pointer select-none">Ver datos completos de antes</summary>
-                    <pre className="mt-1 overflow-x-auto rounded-lg bg-muted/40 p-2 text-[10px]">{JSON.stringify(h.snapshotAnterior, null, 2)}</pre>
-                  </details>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </DialogContent>
