@@ -109,6 +109,8 @@ export async function listarEstados(): Promise<EstadoCatalogo[]> {
  * CdP/Red) -- no solo identidad básica. Ver fn_afirmacion_buscar_membresia.
  * Filtros como objeto (no posicionales) -- ya son 8, en línea se vuelve
  * ilegible y fácil de desordenar por accidente. */
+export type CumpleanosPeriodo = 'DIA' | 'SEMANA' | 'MES';
+
 export interface FiltrosMembresiaAfirmacion {
   redId?: string;
   casaDePazId?: string;
@@ -118,6 +120,8 @@ export interface FiltrosMembresiaAfirmacion {
   conProfesion?: boolean;
   estadoCivil?: string;
   bautizado?: boolean;
+  /** KAN-401: filtra contra fecha_nacimiento ignorando el año (día/semana/mes actual). */
+  cumpleanosPeriodo?: CumpleanosPeriodo;
 }
 
 export async function buscarMembresiaAfirmacion(
@@ -140,6 +144,7 @@ export async function buscarMembresiaAfirmacion(
     p_con_profesion: filtros.conProfesion ?? null,
     p_estado_civil: filtros.estadoCivil ?? null,
     p_bautizado: filtros.bautizado ?? null,
+    p_cumpleanos_periodo: filtros.cumpleanosPeriodo ?? null,
   });
   if (error) throw error;
   const resultados = data ?? [];
