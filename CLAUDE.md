@@ -199,6 +199,14 @@ funcionalidad salió de varios tickets, se agrupa en una sola entrada).
   ahora la persona — no nombres de archivos, funciones, tablas ni
   detalles internos. Ejemplo: no "se arregló el trigger de RLS", sí
   "ahora cada usuario ve solo la información de su iglesia".
+- **Descripción con función de mini-manual** (pedido explícito
+  2026-09-17): breve (2-4 líneas), pero no solo anuncia el cambio — dice
+  también **dónde** encontrarlo (qué pantalla/menú) y **cómo** usarlo, para
+  que la persona lo ubique sola sin tener que preguntar. Ejemplo: no
+  "ahora se puede registrar una semana sin reunión", sí "en el reporte
+  semanal de tu Casa de Paz, marcá el casillero 'Reunión no realizada' y
+  contá el motivo (ej. un congreso) — esa semana no cuenta como reporte
+  faltante".
 - **Alcance**: quién lo puede ver, respetando el modelo de visibilidad ya
   implementado (jerarquía general ascendente + alcances especiales
   Evangelismo/Afirmación) — no inventar una lista de roles a mano.
