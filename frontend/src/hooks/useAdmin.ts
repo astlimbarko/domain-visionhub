@@ -7,6 +7,7 @@ import {
   crearUsuarioRol,
   eliminarCuentaUsuario,
   eliminarIglesia,
+  graduarIglesiaHija,
   invitarUsuario,
   obtenerDashboardSuperAdmin,
   obtenerIglesiasTodas,
@@ -179,6 +180,21 @@ export function useToggleUsuarioRol() {
     mutationFn: ({ usuarioRolId, activo, pin }: { usuarioRolId: string; activo: boolean; pin?: string }) =>
       toggleUsuarioRol(usuarioRolId, activo, pin),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] }),
+  });
+}
+
+/** KAN-387: invalida tanto la lista de Administración (Super Admin) como el
+ * resumen del Constructor de Pastor (fn_mis_iglesias_hijas) -- el mismo
+ * cambio de `tipo` se ve reflejado en las dos pantallas. */
+export function useGraduarIglesiaHija() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ iglesiaId, graduar }: { iglesiaId: string; graduar: boolean }) =>
+      graduarIglesiaHija(iglesiaId, graduar),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'iglesias'] });
+      queryClient.invalidateQueries({ queryKey: ['calendario', 'iglesias-hijas'] });
+    },
   });
 }
 
