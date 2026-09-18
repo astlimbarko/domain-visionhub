@@ -28,6 +28,7 @@ import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGl
 // que el bundle inicial no incluya código de páginas que la mayoría de
 // sesiones nunca abre en la primera carga.
 const Personas = lazy(() => import('@/pages/Personas').then((m) => ({ default: m.Personas })));
+const Membresia = lazy(() => import('@/pages/Membresia').then((m) => ({ default: m.Membresia })));
 const CasasDePaz = lazy(() => import('@/pages/CasasDePaz').then((m) => ({ default: m.CasasDePaz })));
 const Ministerios = lazy(() => import('@/pages/Ministerios').then((m) => ({ default: m.Ministerios })));
 const Reportes = lazy(() => import('@/pages/Reportes').then((m) => ({ default: m.Reportes })));
@@ -184,6 +185,11 @@ function App() {
             <Route path={ROUTES.PERSONAS} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.PERSONAS)}><Personas /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.MEMBRESIA_CDP} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.MEMBRESIA_CDP)}><Membresia /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.CASAS_DE_PAZ} element={

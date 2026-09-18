@@ -59,6 +59,10 @@ export interface CamposObligatoriosReporte {
   REPORTE_DISERTADOR_OBLIGATORIO: boolean;
   REPORTE_TESTIMONIOS_OBLIGATORIO: boolean;
   REPORTE_SALIO_EVANGELIZAR_VISIBLE: boolean;
+  /** KAN-391: Líder/Sublíder de CdP ven el origen (de qué CdP) de un
+   * asistente encontrado por búsqueda global -- Líder de Red y Supervisor
+   * siempre lo ven, este criterio no les aplica (gate por rol en frontend). */
+  REPORTE_MOSTRAR_ORIGEN_ASISTENTE: boolean;
 }
 
 export interface MegaFiestaDelDia {
