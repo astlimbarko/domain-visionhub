@@ -179,6 +179,33 @@ estado desde cero. No esperar a que la sesión completa termine para
 guardar memoria: cada tarea cerrada es un punto natural para hacerlo, así
 un corte a mitad de la siguiente tarea no pierde lo ya avanzado.
 
+## Avances de VisionHub (`/avances`, obligatorio)
+
+Página de solo lectura en `/avances` (KAN-388, 2026-09-17) — changelog
+funcional para líderes/supervisores/autoridades, **no** la bitácora
+técnica de arriba. No aparece en el menú lateral, es acceso por URL
+directa.
+
+**Toda funcionalidad, mejora o corrección con efecto perceptible para el
+usuario final tiene que quedar registrada ahí antes de dar la tarea por
+terminada** — no alcanza con que quede en la bitácora o en Jira. Una
+entrada = una funcionalidad real, no un ticket ni un commit (si una misma
+funcionalidad salió de varios tickets, se agrupa en una sola entrada).
+
+- **Tipo**: `EN_CURSO` (ya se empezó, todavía no está lista), `TERMINADO`
+  (disponible para probar/usar), o `CORRECCION` (se arregló algo que el
+  usuario podía notar).
+- **Lenguaje**: sencillo, sin tecnicismos, en términos de qué puede hacer
+  ahora la persona — no nombres de archivos, funciones, tablas ni
+  detalles internos. Ejemplo: no "se arregló el trigger de RLS", sí
+  "ahora cada usuario ve solo la información de su iglesia".
+- **Alcance**: quién lo puede ver, respetando el modelo de visibilidad ya
+  implementado (jerarquía general ascendente + alcances especiales
+  Evangelismo/Afirmación) — no inventar una lista de roles a mano.
+
+Ver `visionhub-membresia-cdp-re-asistencia-unificada-2026-09-17` en
+memoria para el detalle técnico de cómo está armado.
+
 ## Otras convenciones del proyecto
 
 Ver también `harness/README.md` (specs técnicas del sistema) y
