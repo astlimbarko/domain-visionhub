@@ -12,6 +12,18 @@ import { rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, fechaLegibleConDia, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
 
+/**
+ * KAN-393 usó `AZUL` (marca/cumplimiento, ya usado en el header de esta misma
+ * tarjeta para el % de cumplimiento) para "reunión no realizada" -- pedido
+ * explícito del owner (2026-09-17): tiene que ser CELESTE, un color propio,
+ * no el mismo azul que ya representa otro concepto en la misma pantalla.
+ * No hay celeste en la paleta compartida de `DashboardUI` (AZUL/VERDE/AMBAR/
+ * MORADO/MARINO/TEAL) -- se reusa el mismo hex que ya representa "Casas de
+ * Paz" en `AREA_ICONO` de `pages/Avances.tsx`, coherente porque este
+ * calendario ES el de reportes de una Casa de Paz.
+ */
+const CELESTE = '#0aa5c0';
+
 interface Props {
   casaDePazId: string | undefined;
   /** KAN-367: hace falta para resolver la ventana de edición configurable por iglesia. */
@@ -274,7 +286,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 No entregado
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: AZUL }} />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CELESTE }} />
                 Reunión no realizada
               </span>
               <span className="flex items-center gap-1.5">
@@ -301,16 +313,27 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 return (
                   <div
                     key={grupo.mes}
-                    className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-1.5"
+                    // KAN-392 (bug real reportado por el owner en su celular): con `flex-wrap`
+                    // el mes de 5 semanas se quedaba sin ancho para el 5to círculo y lo
+                    // mandaba a una segunda línea, dando la impresión de "2 filas" para ese
+                    // mes -- la fila de un mes SIEMPRE tiene que verse en una sola línea.
+                    // `flex-nowrap` fuerza eso; el label achicado en mobile (abajo) + los
+                    // círculos también más chicos en mobile le hacen lugar de sobra incluso a
+                    // 6-7 semanas en 390px. `overflow-x-auto` en el contenedor de círculos
+                    // (no acá) queda como red de seguridad, no como mecanismo principal.
+                    className="flex flex-nowrap items-center gap-1.5 rounded-xl px-2 py-1.5 sm:gap-2.5"
                     style={esMesActual ? { backgroundColor: `color-mix(in oklab, ${VERDE} 8%, transparent)` } : undefined}
                   >
                     <span
-                      className="w-28 shrink-0 text-[13px] font-semibold"
+                      className="w-9 shrink-0 text-[13px] font-semibold sm:w-28"
                       style={{ color: esMesActual ? VERDE : 'var(--muted-foreground)' }}
                     >
-                      {NOMBRES_MES[grupo.mes]}
+                      {/* Mobile: mes abreviado (menos ancho fijo para dejarle lugar a los
+                          círculos); desde `sm` en adelante, nombre completo como siempre. */}
+                      <span className="sm:hidden">{NOMBRES_MES[grupo.mes].slice(0, 3)}</span>
+                      <span className="hidden sm:inline">{NOMBRES_MES[grupo.mes]}</span>
                     </span>
-                    <div className="flex flex-1 flex-wrap gap-1.5">
+                    <div className="flex flex-1 flex-nowrap gap-1 overflow-x-auto sm:gap-1.5">
                       {grupo.semanas.map((s) => {
                         const enviado = semanasConReporte.has(s.inicio);
                         const semanaVencida = s.fin < hoyISO;
@@ -371,7 +394,10 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                       : undefined
                                 }
                                 className={cn(
-                                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110',
+                                  // KAN-392: círculo más chico en mobile (h-7/w-7) -- junto con el
+                                  // label abreviado y `flex-nowrap` de arriba, evita que la fila de
+                                  // un mes de 5-6 semanas necesite una segunda línea en 390px.
+                                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-none text-[11px] font-bold tabular-nums transition-transform duration-150 hover:z-10 hover:scale-110 sm:h-8 sm:w-8',
                                   enviado && 'text-white',
                                   faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
                                   noRealizada && 'text-white',
@@ -382,9 +408,10 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                 // entregado-vencido son el mismo estado semántico (verde) pero uno
                                 // se puede tocar y el otro no -- distinto tono (no solo el anillo)
                                 // para que se note a simple vista sin depender del hover/tooltip.
-                                // KAN-393 (color pedido explícito por el owner): "reunión no
-                                // realizada" usa AZUL -- distinto de VERDE/destructive/gris, no se
-                                // confunde con ningún estado existente.
+                                // KAN-393 (color pedido explícito por el owner, 2026-09-17): "reunión
+                                // no realizada" usa CELESTE, no AZUL -- AZUL ya representa el % de
+                                // cumplimiento en el header de esta misma tarjeta, reusarlo acá
+                                // mezclaba dos conceptos distintos bajo el mismo color.
                                 style={
                                   enviado
                                     ? {
@@ -394,7 +421,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                           : undefined,
                                       }
                                     : noRealizada
-                                      ? { backgroundColor: AZUL }
+                                      ? { backgroundColor: CELESTE }
                                       : undefined
                                 }
                               >
@@ -414,8 +441,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                 </div>
                               ) : noRealizada ? (
                                 <div className="flex flex-col gap-[3px]">
-                                  <p className="flex items-center gap-1.5 font-semibold" style={{ color: AZUL }}>
-                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: AZUL }} />
+                                  <p className="flex items-center gap-1.5 font-semibold" style={{ color: CELESTE }}>
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: CELESTE }} />
                                     Reunión no realizada
                                   </p>
                                   <p className="text-muted-foreground">Motivo: {motivoNoRealizada || '—'}</p>
