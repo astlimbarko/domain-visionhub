@@ -4,6 +4,7 @@ import {
   anularReporte,
   autorizarEdicionReporteFueraVentana,
   crearReporte,
+  crearReunionNoRealizada,
   obtenerCamposObligatorios,
   obtenerCdpContextoReporte,
   obtenerDiasLimiteEdicionReporte,
@@ -14,6 +15,7 @@ import {
   obtenerHistorialReporte,
   obtenerPrimeraFechaReunion,
   obtenerReportesParaCalendario,
+  obtenerReunionesNoRealizadas,
   obtenerIdsLiderCdp,
   obtenerLibros,
   obtenerMegaFiestaDelDia,
@@ -229,6 +231,33 @@ export function useCrearReporte(casaDePazId: string | undefined) {
       // sin esto, el Dashboard queda con datos viejos hasta el próximo refetch natural.
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+  });
+}
+
+/** KAN-392: mismo patrón de invalidación que useCrearReporte, pero sin las
+ * queries de asistencia/miembros/finanzas -- una "reunión no realizada" no
+ * las toca (no hay asistencia, no hay ingresos). */
+export function useCrearReunionNoRealizada(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: { iglesia_id: string; casa_de_paz_id: string; fecha_reunion: string; motivo: string }) =>
+      crearReunionNoRealizada(datos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
+    },
+  });
+}
+
+/** KAN-393: semanas "reunión no realizada" del rango visible del calendario. */
+export function useReunionesNoRealizadas(casaDePazId: string | undefined, desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId, desde, hasta],
+    queryFn: () => obtenerReunionesNoRealizadas(casaDePazId as string, desde, hasta),
+    enabled: !!casaDePazId,
+    placeholderData: keepPreviousData,
   });
 }
 

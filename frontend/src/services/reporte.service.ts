@@ -573,6 +573,52 @@ export async function obtenerHistorialAsistencia(
   };
 }
 
+/** KAN-392 (2026-09-17, pedido del owner): insert mínimo, aparte del flujo
+ * normal de crearReporte -- sin asistencia/finanzas/evangelismo, ninguna de
+ * esas validaciones aplica porque no se llaman esas RPCs. `motivo` es
+ * obligatorio también del lado de la base (chk_reporte_motivo_no_realizada),
+ * no solo en el formulario. */
+export async function crearReunionNoRealizada(datos: {
+  iglesia_id: string;
+  casa_de_paz_id: string;
+  fecha_reunion: string;
+  motivo: string;
+}): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .insert({
+      iglesia_id: datos.iglesia_id,
+      casa_de_paz_id: datos.casa_de_paz_id,
+      fecha_reunion: datos.fecha_reunion,
+      reunion_no_realizada: true,
+      motivo_no_realizada: datos.motivo,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** KAN-393: semanas marcadas "reunión no realizada" en el rango -- quedan
+ * afuera de v_reporte_totales a propósito (no cuentan como presentado), así
+ * que el calendario las resuelve con un query aparte. */
+export async function obtenerReunionesNoRealizadas(
+  casaDePazId: string,
+  desde: string,
+  hasta: string
+): Promise<{ fecha_reunion: string; motivo: string | null }[]> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('fecha_reunion, motivo_no_realizada')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('reunion_no_realizada', true)
+    .is('fecha_eliminacion', null)
+    .gte('fecha_reunion', desde)
+    .lte('fecha_reunion', hasta);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ fecha_reunion: r.fecha_reunion, motivo: r.motivo_no_realizada }));
+}
+
 export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReporte> {
   const { data: reporte, error: errorReporte } = await supabase
     .from('casa_de_paz_reporte')
