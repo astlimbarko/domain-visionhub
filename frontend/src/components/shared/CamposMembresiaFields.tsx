@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { FieldErrors, FieldValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,21 +95,45 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
     <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
       <div className="flex flex-col gap-1">
         <Label htmlFor="primer_nombre">{t('registroPublico.campos.primerNombre')} *</Label>
-        <Input id="primer_nombre" className={CAMPO_ESTILO} {...register('primer_nombre' as never)} />
+        <Input
+          id="primer_nombre"
+          className={CAMPO_ESTILO}
+          {...register('primer_nombre' as never, {
+            onBlur: (e) => setValue('primer_nombre' as never, normalizarNombre(e.target.value, true) as never, { shouldValidate: true }),
+          })}
+        />
         {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="segundo_nombre">{t('registroPublico.campos.segundoNombre')}</Label>
-        <Input id="segundo_nombre" className={CAMPO_ESTILO} {...register('segundo_nombre' as never)} />
+        <Input
+          id="segundo_nombre"
+          className={CAMPO_ESTILO}
+          {...register('segundo_nombre' as never, {
+            onBlur: (e) => setValue('segundo_nombre' as never, normalizarNombre(e.target.value) as never, { shouldValidate: true }),
+          })}
+        />
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="primer_apellido">{t('registroPublico.campos.primerApellido')} *</Label>
-        <Input id="primer_apellido" className={CAMPO_ESTILO} {...register('primer_apellido' as never)} />
+        <Input
+          id="primer_apellido"
+          className={CAMPO_ESTILO}
+          {...register('primer_apellido' as never, {
+            onBlur: (e) => setValue('primer_apellido' as never, normalizarNombre(e.target.value) as never, { shouldValidate: true }),
+          })}
+        />
         {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="segundo_apellido">{t('registroPublico.campos.segundoApellido')}</Label>
-        <Input id="segundo_apellido" className={CAMPO_ESTILO} {...register('segundo_apellido' as never)} />
+        <Input
+          id="segundo_apellido"
+          className={CAMPO_ESTILO}
+          {...register('segundo_apellido' as never, {
+            onBlur: (e) => setValue('segundo_apellido' as never, normalizarNombre(e.target.value) as never, { shouldValidate: true }),
+          })}
+        />
       </div>
 
       <div className="flex flex-col gap-1">

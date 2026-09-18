@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import {
   cargoRangoRespondido,
   discipuladosRespondido,
@@ -409,21 +410,45 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_nombre">Primer nombre *</Label>
-                      <Input id="primer_nombre" className={CAMPO_ESTILO} {...register('primer_nombre')} />
+                      <Input
+                        id="primer_nombre"
+                        className={CAMPO_ESTILO}
+                        {...register('primer_nombre', {
+                          onBlur: (e) => setValue('primer_nombre', normalizarNombre(e.target.value, true), { shouldValidate: true }),
+                        })}
+                      />
                       {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_nombre">Segundo nombre</Label>
-                      <Input id="segundo_nombre" className={CAMPO_ESTILO} {...register('segundo_nombre')} />
+                      <Input
+                        id="segundo_nombre"
+                        className={CAMPO_ESTILO}
+                        {...register('segundo_nombre', {
+                          onBlur: (e) => setValue('segundo_nombre', normalizarNombre(e.target.value), { shouldValidate: true }),
+                        })}
+                      />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="primer_apellido">Primer apellido *</Label>
-                      <Input id="primer_apellido" className={CAMPO_ESTILO} {...register('primer_apellido')} />
+                      <Input
+                        id="primer_apellido"
+                        className={CAMPO_ESTILO}
+                        {...register('primer_apellido', {
+                          onBlur: (e) => setValue('primer_apellido', normalizarNombre(e.target.value), { shouldValidate: true }),
+                        })}
+                      />
                       {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="segundo_apellido">Segundo apellido</Label>
-                      <Input id="segundo_apellido" className={CAMPO_ESTILO} {...register('segundo_apellido')} />
+                      <Input
+                        id="segundo_apellido"
+                        className={CAMPO_ESTILO}
+                        {...register('segundo_apellido', {
+                          onBlur: (e) => setValue('segundo_apellido', normalizarNombre(e.target.value), { shouldValidate: true }),
+                        })}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-1.5 sm:col-span-2">

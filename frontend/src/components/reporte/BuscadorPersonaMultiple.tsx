@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import { VERDE } from '@/components/dashboard/DashboardUI';
 import type { MiembroCdp } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -356,19 +357,35 @@ export function BuscadorPersonaMultiple({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Nombre *</Label>
-              <Input value={nombreNueva} onChange={(e) => setNombreNueva(e.target.value)} />
+              <Input
+                value={nombreNueva}
+                onChange={(e) => setNombreNueva(e.target.value)}
+                onBlur={(e) => setNombreNueva(normalizarNombre(e.target.value, true))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Segundo nombre</Label>
-              <Input value={segundoNombreNueva} onChange={(e) => setSegundoNombreNueva(e.target.value)} />
+              <Input
+                value={segundoNombreNueva}
+                onChange={(e) => setSegundoNombreNueva(e.target.value)}
+                onBlur={(e) => setSegundoNombreNueva(normalizarNombre(e.target.value))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Apellido paterno *</Label>
-              <Input value={apellidoPaternoNueva} onChange={(e) => setApellidoPaternoNueva(e.target.value)} />
+              <Input
+                value={apellidoPaternoNueva}
+                onChange={(e) => setApellidoPaternoNueva(e.target.value)}
+                onBlur={(e) => setApellidoPaternoNueva(normalizarNombre(e.target.value))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Apellido materno</Label>
-              <Input value={apellidoMaternoNueva} onChange={(e) => setApellidoMaternoNueva(e.target.value)} />
+              <Input
+                value={apellidoMaternoNueva}
+                onChange={(e) => setApellidoMaternoNueva(e.target.value)}
+                onBlur={(e) => setApellidoMaternoNueva(normalizarNombre(e.target.value))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Sexo *</Label>
