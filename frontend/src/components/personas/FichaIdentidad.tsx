@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import { useActualizarIdentidad, useGuardarDetalle } from '@/hooks/usePersonas';
 import {
   DISCIPULADO_NIVEL_LABELS,
@@ -76,16 +77,36 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Primer nombre *">
-          <Input value={form.primerNombre} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, primerNombre: e.target.value }))} />
+          <Input
+            value={form.primerNombre}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, primerNombre: e.target.value }))}
+            onBlur={(e) => setForm((f) => ({ ...f, primerNombre: normalizarNombre(e.target.value, true) }))}
+          />
         </Campo>
         <Campo label="Segundo nombre">
-          <Input value={form.segundoNombre} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, segundoNombre: e.target.value }))} />
+          <Input
+            value={form.segundoNombre}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, segundoNombre: e.target.value }))}
+            onBlur={(e) => setForm((f) => ({ ...f, segundoNombre: normalizarNombre(e.target.value) }))}
+          />
         </Campo>
         <Campo label="Primer apellido *">
-          <Input value={form.primerApellido} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, primerApellido: e.target.value }))} />
+          <Input
+            value={form.primerApellido}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, primerApellido: e.target.value }))}
+            onBlur={(e) => setForm((f) => ({ ...f, primerApellido: normalizarNombre(e.target.value) }))}
+          />
         </Campo>
         <Campo label="Segundo apellido">
-          <Input value={form.segundoApellido} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, segundoApellido: e.target.value }))} />
+          <Input
+            value={form.segundoApellido}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, segundoApellido: e.target.value }))}
+            onBlur={(e) => setForm((f) => ({ ...f, segundoApellido: normalizarNombre(e.target.value) }))}
+          />
         </Campo>
         <Campo label="Sexo *">
           <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditar}>
