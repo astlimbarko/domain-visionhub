@@ -19,6 +19,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Briefcase,
+  CakeSlice,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -41,14 +42,16 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AZUL, TEAL, VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
 import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
-import { buscarMembresiaAfirmacion, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
+import { buscarMembresiaAfirmacion, type CumpleanosPeriodo, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
+import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import { OPCIONES_EFESIO, OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
@@ -60,6 +63,7 @@ const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_ESTADOS = '__todos__';
+const TODOS_LOS_CUMPLEANOS = '__todos__';
 
 const SELECT_ENCABEZADO =
   'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
@@ -82,6 +86,12 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 const EFESIO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_EFESIO.map((o) => [o.value, o.label]));
+
+const CUMPLEANOS_LABEL: Record<CumpleanosPeriodo, string> = {
+  DIA: 'Cumpleaños de hoy',
+  SEMANA: 'Cumpleaños de la semana',
+  MES: 'Cumpleaños del mes',
+};
 
 function formatFechaParcial(anio: number | null, mes: number | null, dia: number | null): string | null {
   if (!anio) return null;
@@ -333,6 +343,15 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
+  // KAN-401: arranca en SEMANA por defecto (pedido explícito del owner) --
+  // a diferencia de Red/CdP/Estado, el valor inicial no es "todos". Igual
+  // se puede volver a "todos" desde el propio select (mismo patrón que las
+  // otras columnas), por si alguien quiere ver a todo el mundo de nuevo.
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS>('SEMANA');
+  // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
+  // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
+  const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
 
   const { data: redes = [] } = useRedes(scoped ? undefined : iglesiaId);
   const { data: cdps = [] } = useCdpsIglesia(scoped ? undefined : iglesiaId);
@@ -344,7 +363,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   }, [textoInput]);
   useEffect(
     () => setPagina(1),
-    [texto, redId, casaDePazIdFiltroUi, estadoId, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro]
+    [texto, redId, casaDePazIdFiltroUi, estadoId, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro, cumpleanosFiltro]
   );
 
   const redIdFiltro = scoped ? undefined : redId === TODAS_LAS_REDES ? undefined : redId;
@@ -361,8 +380,20 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesion: conProfesionFiltro,
       estadoCivil: estadoCivilFiltro,
       bautizado: bautizadoFiltro,
+      cumpleanosPeriodo: cumpleanosFiltro === TODOS_LOS_CUMPLEANOS ? undefined : cumpleanosFiltro,
     }),
-    [redIdFiltro, casaDePazIdFiltro, estadoIdFiltro, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro, scoped]
+    [
+      redIdFiltro,
+      casaDePazIdFiltro,
+      estadoIdFiltro,
+      sexoFiltro,
+      viaFiltro,
+      conProfesionFiltro,
+      estadoCivilFiltro,
+      bautizadoFiltro,
+      scoped,
+      cumpleanosFiltro,
+    ]
   );
 
   const sinFiltros =
@@ -373,6 +404,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !viaFiltro &&
     !conProfesionFiltro &&
     !estadoCivilFiltro &&
+    cumpleanosFiltro === TODOS_LOS_CUMPLEANOS &&
     !bautizadoFiltro;
 
   function limpiarFiltros() {
@@ -384,6 +416,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
+    setCumpleanosFiltro(TODOS_LOS_CUMPLEANOS);
   }
 
   function alternarEstadoPorSigla(sigla: string) {
@@ -450,6 +483,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
+    cumpleanosFiltro !== TODOS_LOS_CUMPLEANOS && CUMPLEANOS_LABEL[cumpleanosFiltro],
   ]
     .filter(Boolean)
     .join(' · ');
@@ -682,6 +716,19 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                     <EncabezadoOrdenable columna="edad" ordenActual={orden} onOrdenar={ordenarPor}>
                       Edad
                     </EncabezadoOrdenable>
+                    <th className="px-2 py-2">
+                      <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS)}>
+                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
+                          <SelectValue placeholder="Cumpleaños" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TODOS_LOS_CUMPLEANOS}>Cumpleaños</SelectItem>
+                          <SelectItem value="DIA">Día</SelectItem>
+                          <SelectItem value="SEMANA">Semana</SelectItem>
+                          <SelectItem value="MES">Mes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
                     {scoped ? (
                       <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado</th>
@@ -782,6 +829,32 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.sexo === 'M' ? 'M' : 'F'}</td>
                         <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{p.edad ?? '—'}</td>
+                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
+                            if (!fechaCumple) return null;
+                            return (
+                              <Tooltip
+                                {...(esTactil
+                                  ? { open: tortaAbiertaId === p.id, onOpenChange: (abierto: boolean) => setTortaAbiertaId(abierto ? p.id : null) }
+                                  : {})}
+                              >
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                                    style={{ backgroundColor: `color-mix(in oklab, ${AMBAR} 16%, transparent)` }}
+                                    onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
+                                    aria-label="Cumple años esta semana"
+                                  >
+                                    <CakeSlice className="h-3.5 w-3.5" style={{ color: AMBAR }} />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
+                        </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.ci ?? '—'}</td>
                         {scoped ? (
                           <td className="px-3 py-2.5">
