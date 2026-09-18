@@ -166,6 +166,10 @@ export interface NuevoEvangelizado {
    * evangelismo_testimonio.sql). El campo en el formulario solo aparece con
    * ese tipo elegido (NuevoEvangelizadoDialog.tsx). */
   testimonio?: string;
+  /** KAN-390 (2026-09-17): la persona volvió después de mucho tiempo e hizo
+   * de nuevo la oración de fe -- manual, tildado al marcar asistencia en el
+   * reporte de CdP. No toca persona_estado, queda como evento aparte. */
+  es_reconciliacion?: boolean;
 }
 
 /** Evangelizado registrado directo por un Líder de Red sin Casa de Paz propia

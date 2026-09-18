@@ -202,6 +202,21 @@ function filtrarYMapearPersonas(data: FilaPersonaBusqueda[], tokens: string[], e
     .map(({ id, nombre_completo }) => ({ id, nombre_completo }));
 }
 
+/** KAN-391: resuelve de qué CdP es miembro principal cada persona de un lote
+ * -- vía RPC (`fn_origen_cdp_personas`) porque la RLS de `casa_de_paz`
+ * bloquea al Líder/Sublíder de CdP leer el nombre de una CdP ajena con un
+ * `.select()` normal, aunque la persona en sí sea visible. */
+async function enriquecerConOrigenCdp(personas: PersonaBusqueda[]): Promise<PersonaBusqueda[]> {
+  if (personas.length === 0) return personas;
+  const { data, error } = await supabase.rpc('fn_origen_cdp_personas', { p_persona_ids: personas.map((p) => p.id) });
+  if (error) throw error;
+  const origenPorPersona = new Map((data ?? []).map((r) => [r.persona_id, { id: r.casa_de_paz_id, nombre: r.casa_de_paz_nombre }]));
+  return personas.map((p) => {
+    const origen = origenPorPersona.get(p.id);
+    return origen ? { ...p, casa_de_paz_id: origen.id, casa_de_paz_nombre: origen.nombre } : p;
+  });
+}
+
 /**
  * Q-MR-12 (2026-08-15, decisión del owner): busca prioritariamente entre los
  * miembros de la propia Casa de Paz (`cdpId`) y, solo si ahí no aparece
@@ -249,7 +264,10 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
     .limit(30);
   if (error) throw error;
 
-  return filtrarYMapearPersonas(data ?? [], tokens, edadMinima);
+  // KAN-391: de qué CdP viene cada resultado, para mostrar el origen cuando
+  // no es de la CdP activa -- vía RPC aparte (ver enriquecerConOrigenCdp),
+  // no con un `.select()` anidado (la RLS de `casa_de_paz` lo bloquea).
+  return enriquecerConOrigenCdp(filtrarYMapearPersonas(data ?? [], tokens, edadMinima));
 }
 
 // KAN-205: RPC en vez de consulta directa -- persona.correo (campo de

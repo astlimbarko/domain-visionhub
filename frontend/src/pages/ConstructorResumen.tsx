@@ -7,12 +7,17 @@
  * directo al lienzo de una sola iglesia; no había forma de ver ni elegir
  * entre iglesia madre e hijas/satélite desde ahí.
  */
-import { Building2, Network, RadioTower } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, GraduationCap, Network, RadioTower, RotateCcw } from 'lucide-react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { MARINO, MORADO } from '@/components/dashboard/DashboardUI';
+import { GraduarIglesiaDialog } from '@/components/shared/GraduarIglesiaDialog';
 import { useEstructuraOrganizacional } from '@/features/estructura-organizacional/useEstructuraOrganizacional';
 import { useIglesiasHijas } from '@/hooks/useCalendario';
+import { useGraduarIglesiaHija } from '@/hooks/useAdmin';
 import { useRolUI } from '@/hooks/useRolUI';
 import { ROUTES, rutaEstructuraOrganizacional } from '@/utils/constants';
 
@@ -20,6 +25,11 @@ export function ConstructorResumen() {
   const { iglesiaId } = useParams<{ iglesiaId: string }>();
   const navigate = useNavigate();
   const rolUI = useRolUI();
+  // KAN-387: solo el Pastor de ESTA iglesia (la madre, en esta pantalla) puede
+  // graduar/revertir sus hijas/satélite -- coincide con el gate del backend
+  // (fn_es_pastor_en de la iglesia_padre_id). Supervisor/Líder de Red no ven el botón.
+  const [graduarIglesia, setGraduarIglesia] = useState<{ id: string; nombre: string; tipo: 'HIJA' | 'SATELITE' } | null>(null);
+  const graduarIglesiaHija = useGraduarIglesiaHija();
 
   const { data, isLoading, isError } = useEstructuraOrganizacional(iglesiaId);
   // fn_mis_iglesias_hijas exige ser Pastor o Supervisor (IGLESIA_FUERA_DE_ALCANCE
@@ -63,9 +73,9 @@ export function ConstructorResumen() {
     ...data.departamentos.flatMap((d) => d.lideres.map((l) => l.id)),
   ]).size;
 
-  const iglesiasParaEntrar: { id: string; nombre: string; esSatelite: boolean }[] = [
+  const iglesiasParaEntrar: { id: string; nombre: string; esSatelite: boolean; tipo?: 'HIJA' | 'SATELITE' }[] = [
     { id: data.iglesia.id, nombre: data.iglesia.nombre, esSatelite: false },
-    ...iglesiasHijas.map((hija) => ({ id: hija.id, nombre: hija.nombre, esSatelite: hija.tipo === 'SATELITE' })),
+    ...iglesiasHijas.map((hija) => ({ id: hija.id, nombre: hija.nombre, esSatelite: hija.tipo === 'SATELITE', tipo: hija.tipo })),
   ];
 
   return (
@@ -80,27 +90,78 @@ export function ConstructorResumen() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {iglesiasParaEntrar.map((iglesia) => (
-          <button
+          <div
             key={iglesia.id}
-            type="button"
-            onClick={() => navigate(rutaEstructuraOrganizacional(iglesia.id))}
-            className="group flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           >
-            <span
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
-              style={{ backgroundColor: iglesia.esSatelite ? MORADO : MARINO }}
+            <button
+              type="button"
+              onClick={() => navigate(rutaEstructuraOrganizacional(iglesia.id))}
+              className="flex min-w-0 items-center gap-4 text-left"
             >
-              {iglesia.esSatelite ? <RadioTower className="h-6 w-6" /> : <Building2 className="h-6 w-6" />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-foreground">{iglesia.nombre}</p>
-              <p className="text-xs text-muted-foreground">{iglesia.esSatelite ? 'Iglesia satélite' : 'Ir al Constructor'}</p>
-            </div>
-            <Network className="h-5 w-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-          </button>
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+                style={{ backgroundColor: iglesia.esSatelite ? MORADO : MARINO }}
+              >
+                {iglesia.esSatelite ? <RadioTower className="h-6 w-6" /> : <Building2 className="h-6 w-6" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-semibold text-foreground">{iglesia.nombre}</p>
+                <p className="text-xs text-muted-foreground">{iglesia.esSatelite ? 'Iglesia satélite' : 'Ir al Constructor'}</p>
+              </div>
+              <Network className="h-5 w-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+            </button>
+            {/* KAN-387: solo el Pastor de esta iglesia (la madre acá) puede graduar/revertir sus hijas/satélite. */}
+            {rolUI === 'PASTOR' && iglesia.tipo && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-fit gap-1.5"
+                onClick={() => setGraduarIglesia({ id: iglesia.id, nombre: iglesia.nombre, tipo: iglesia.tipo as 'HIJA' | 'SATELITE' })}
+              >
+                {iglesia.tipo === 'SATELITE' ? (
+                  <><GraduationCap className="h-3.5 w-3.5" /> Graduar a Hija</>
+                ) : (
+                  <><RotateCcw className="h-3.5 w-3.5" /> Volver a Satélite</>
+                )}
+              </Button>
+            )}
+          </div>
         ))}
         {cargandoHijas && <Skeleton className="h-28 w-full rounded-2xl" />}
       </div>
+
+      {graduarIglesia && (
+        <GraduarIglesiaDialog
+          open={!!graduarIglesia}
+          onOpenChange={(abierto) => !abierto && setGraduarIglesia(null)}
+          iglesiaNombre={graduarIglesia.nombre}
+          graduar={graduarIglesia.tipo === 'SATELITE'}
+          procesando={graduarIglesiaHija.isPending}
+          onConfirmar={() => {
+            graduarIglesiaHija.mutate(
+              { iglesiaId: graduarIglesia.id, graduar: graduarIglesia.tipo === 'SATELITE' },
+              {
+                onSuccess: () => {
+                  toast.success(graduarIglesia.tipo === 'SATELITE' ? 'Iglesia graduada a Hija' : 'Iglesia vuelta a Satélite');
+                  setGraduarIglesia(null);
+                },
+                onError: (e) => {
+                  const mensaje = (e as { message?: string })?.message ?? '';
+                  if (mensaje.includes('GRADUAR_SIN_PERMISO')) {
+                    toast.error('Se requiere ser Pastor de la iglesia madre o Super Admin');
+                  } else if (mensaje.includes('GRADUAR_ESTADO_INVALIDO') || mensaje.includes('REVERTIR_ESTADO_INVALIDO')) {
+                    toast.error('El tipo de esta iglesia ya cambió -- recargá e intentá de nuevo');
+                  } else {
+                    toast.error('No se pudo cambiar el tipo de la iglesia');
+                  }
+                },
+              }
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

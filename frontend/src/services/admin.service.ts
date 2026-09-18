@@ -78,6 +78,15 @@ export async function eliminarIglesia(iglesiaId: string, pin?: string): Promise<
   if (error) throw error;
 }
 
+/** KAN-387: mueve `iglesia.tipo` entre SATELITE y HIJA -- toggle reversible,
+ * sin resolver cargos/roles compartidos con la iglesia madre (eso queda
+ * fuera de alcance a propósito, ver GraduarIglesiaDialog). Gate del lado del
+ * servidor: Super Admin, o Pastor de la iglesia MADRE de esta iglesia. */
+export async function graduarIglesiaHija(iglesiaId: string, graduar: boolean): Promise<void> {
+  const { error } = await supabase.rpc('fn_graduar_iglesia_hija', { p_iglesia_id: iglesiaId, p_graduar: graduar });
+  if (error) throw error;
+}
+
 export async function obtenerUsuarios(iglesiaId?: string): Promise<UsuarioListado[]> {
   const { data, error } = await supabase.rpc('fn_listar_usuarios', { p_iglesia_id: iglesiaId ?? null });
   if (error) throw error;

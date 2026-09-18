@@ -147,8 +147,10 @@ export async function buscarMembresiaAfirmacion(
 }
 
 // Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.
-export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string): Promise<EstadisticasPersonasAfirmacion> {
-  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId });
+// KAN-386 seguimiento (2026-09-17): casaDePazId opcional -- scoped al panel
+// "Membresía" por CdP (Líder/Sublíder CdP, Líder/Supervisor de Red).
+export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string, casaDePazId?: string): Promise<EstadisticasPersonasAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId, p_casa_de_paz_id: casaDePazId ?? null });
   if (error) throw error;
   return data as EstadisticasPersonasAfirmacion;
 }

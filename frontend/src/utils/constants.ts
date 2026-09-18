@@ -9,6 +9,10 @@ export const ROUTES = {
   // (el owner pidió explícitamente que no aparezca en el menú lateral).
   AVANCES: '/avances',
   PERSONAS: '/personas',
+  // KAN-386 seguimiento (2026-09-17): "Membresía" por CdP -- mismo censo
+  // rico que ve Supervisión en AFIRMACION_PERSONAS, pero scoped a una sola
+  // Casa de Paz (Líder/Sublíder de CdP, Líder/Supervisor de Red).
+  MEMBRESIA_CDP: '/membresia',
   CASAS_DE_PAZ: '/casas-de-paz',
   MINISTERIOS: '/ministerios',
   REPORTES: '/reportes',

@@ -31,6 +31,11 @@ export interface CdpResumen {
 export interface PersonaBusqueda {
   id: string;
   nombre_completo: string;
+  /** KAN-391 (2026-09-17): CdP principal de la persona, cuando la búsqueda
+   * es global (fuera del pool de la CdP activa) -- para mostrar de dónde
+   * viene. `null`/`undefined` si no tiene membresía principal o no aplica. */
+  casa_de_paz_id?: string | null;
+  casa_de_paz_nombre?: string | null;
 }
 
 export type CargoRedCodigo = 'LIDER_RED' | 'SUBLIDER_RED' | 'ENCARGADO_DEPARTAMENTOS_RED' | 'ENCARGADO_MINISTERIO_RED';
