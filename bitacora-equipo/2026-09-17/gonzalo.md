@@ -2,13 +2,24 @@
 
 - [x] KAN-367/386: mergeado PR #69 y desplegado a producción (falta probar con usuario real)
 - [x] Análisis completo de arquitectura KAN-251 (madre/satélite/hija), plan de acción entregado
-- [x] KAN-387: toggle graduar Satélite→Hija implementado (rama aparte, con Magnus), aplicado a producción — sin desplegar frontend
-- [x] KAN-389: panel Membresía por CdP, refactorizado a componente compartido real con Afirmación, verificado en vivo
-- [x] KAN-390: RE manual (checkbox "se reconcilió"), registrado en Evangelismo, verificado end-to-end en Génesis
-- [x] KAN-391: buscador unificado de asistencia (nuevos+regulares+niños en 1 campo) + origen de CdP, verificado en vivo
+- [x] KAN-387: toggle graduar Satélite→Hija implementado (rama aparte, con Magnus)
+- [x] KAN-389: panel Membresía por CdP, refactorizado a componente compartido real con Afirmación
+- [x] KAN-390: RE manual (checkbox "se reconcilió"), registrado en Evangelismo
+- [x] KAN-391: buscador unificado de asistencia (nuevos+regulares+niños en 1 campo) + origen de CdP
 - [x] KAN-394: anotado en cola (Pastor/Supervisor, panel agregado de iglesias hijas+satélites) — no implementar todavía
-- [x] KAN-395 (bug real, sin tocar): 2 motores de RE corriendo en paralelo sobre persona_estado — documentado para revisión
-- [x] KAN-396 (bug real, mitigado): obtenerMiembrosCdp podía duplicar una persona — dedup en frontend, raíz sin arreglar
-- [ ] KAN-387: encontré un caso real de rol cruzado (4 Anillo↔Montero) sin resolver — NO probé el toggle contra iglesias reales, falta decisión de cómo resolverlo antes de usarlo en producción
-- [ ] Falta desplegar a producción: KAN-389, KAN-390, KAN-391 (solo DB aplicada, frontend no)
-- [ ] Falta: mecanismo de RE ↔ chip "RE" del panel Membresía siguen siendo conceptos separados (no unificados a propósito, ver memoria)
+- [x] KAN-395: portado el motor de RE al motor nuevo de estados (Copérnico investigó, Lisa implementó)
+- [x] KAN-396: fix real de raíz — `fn_visitas_regulares_cdp` duplicaba personas con membresía secundaria
+- [x] KAN-251: fix de seguridad real (autorevisión) — lectura de estructura madre↔satélite era bidireccional, corregida a solo madre→satélite
+- [x] KAN-397: `casa_de_paz_membresia` ahora valida que la persona pertenezca a la iglesia
+- [x] KAN-388: página `/avances` (changelog para líderes/Pastores), con 25 entradas reales cargadas + límite de 50 + fix de visibilidad Pastor/Supervisor
+- [x] KAN-392/393: registrar "reunión no realizada" en el reporte de CdP + estado visual en el calendario (color celeste, wrap mobile corregido)
+- [x] KAN-264: normalización automática de mayúsculas/minúsculas de nombres (5 formularios, incluido reporte de CdP)
+- [x] KAN-265: estudio de datos mal cargados en la base (~20-30 casos reales), plan de corrección dejado en Jira, sin implementar
+- [x] KAN-399: bug real encontrado en vivo (Urías) — el buscador de asistencia no reconocía a Simpatizantes con visita previa como "de la CdP", corregido (Magnus)
+- [x] KAN-398: plan de permisos de edición Membresía por CdP/Red, dejado en Jira sin implementar (a pedido del owner)
+- [x] Sumado 4to agente con nombre propio: Urías (QA), documentado en CLAUDE.md
+- [x] Fix de build real encontrado recién al desplegar: tipado de `fn_origen_cdp_personas` rompía `tsc -b` (no lo mostraba vite dev)
+- [x] **Deploy real a producción** (`app.somoscdv.com`): backup + build + extracción vía cPanel, verificado en vivo (login, `/avances`, fix KAN-399, calendario mobile+celeste)
+- [ ] KAN-387: caso real de rol cruzado (4 Anillo↔Montero) sin resolver — no probado el toggle contra iglesias reales
+- [ ] KAN-265: falta implementar la corrección real de los datos (vista previa + aprobación antes del UPDATE)
+- [ ] KAN-398: falta implementar (switch de Supervisión + vista de Red agrupada)
