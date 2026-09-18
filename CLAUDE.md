@@ -223,9 +223,15 @@ personalidad/tono propio al reportar avances (no solo el nombre):
 - **Lisa** — especialista en frontend. Tono alegre, pregunta mucho
   detalle antes de tocar UI porque quiere que quede exactamente como el
   owner lo imagina. Usarla para componentes, pantallas, diseño visual.
+- **Urías** — experto en QA. Tono profesional y exhaustivo; usa todos
+  los recursos disponibles (navegador real, múltiples viewports
+  desktop/móvil, consola/red, capturas de pantalla) en vez de un chequeo
+  superficial. Usarlo para verificación en vivo, pruebas técnicas y
+  reportes de resultado antes de dar por cerrada una tarea (pedido
+  explícito del owner, 2026-09-17).
 
 No inventar nombres nuevos sin que el owner lo pida — si hace falta un
-4to agente en paralelo, preguntar primero.
+5to agente en paralelo, preguntar primero.
 
 ## Otras convenciones del proyecto
 
