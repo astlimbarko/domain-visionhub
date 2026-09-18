@@ -115,11 +115,13 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
       .select('persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento)')
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
-    // Asistentes Nuevos que ya llegaron a Nuevo Convertido/Creyente por
-    // asistencia (fn_recalcular_estados_cdp_reporte, 2026-09-06): cuentan
-    // para "Asistencia Regular" aunque todavía no tengan membresía formal
-    // (eso sigue atado al bautismo, es manual -- SugerenciaMiembroRegular).
-    supabase.rpc('fn_visitas_regulares_cdp', { p_casa_de_paz_id: casaDePazId }),
+    // KAN-399 (2026-09-17): antes usaba fn_visitas_regulares_cdp, que exige
+    // estado >= Nuevo Convertido -- una visita que se quedó en Simpatizante
+    // quedaba afuera del pool local del buscador de asistencia, aunque
+    // "Personas de mi Casa de Paz" (fn_personas_de_cdp) sí la reconoce como
+    // de esta CdP. fn_visitas_cdp usa el mismo criterio de "asistencia sin
+    // membresía en esta CdP" que fn_personas_de_cdp, sin filtrar por estado.
+    supabase.rpc('fn_visitas_cdp', { p_casa_de_paz_id: casaDePazId }),
   ]);
   if (error) throw error;
   if (errorVisitas) throw errorVisitas;
