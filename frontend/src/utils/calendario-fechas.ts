@@ -139,6 +139,26 @@ export function calcularEdad(fechaNacimientoISO: string): number {
   return edad;
 }
 
+/** KAN-401: fecha (ISO) del cumpleaños de la persona en el año que
+ * corresponda para caer dentro de la semana [lunes, domingo] de `hoyISO` --
+ * prueba el año de inicio y el de fin de esa semana porque puede cruzar el
+ * 31 de diciembre (ej. hoy 30/dic, cumpleaños 2/enero: cae esta semana
+ * aunque el año calendario todavía no cambió). Devuelve null si no cae ahí.
+ * Nacidos 29/feb en un año no bisiesto: `new Date` los corre solo a 1/mar
+ * (comportamiento nativo de JS), no se corrige a propósito -- es el mismo
+ * criterio que ya usa la gente para festejar ese día en años no bisiestos. */
+export function fechaCumpleEnSemana(fechaNacimientoISO: string, hoyISO: string = aISO(new Date())): string | null {
+  const nacimiento = desdeISO(fechaNacimientoISO);
+  const inicio = inicioSemanaISO(hoyISO);
+  const fin = finSemanaISO(hoyISO);
+  const anios = new Set([desdeISO(inicio).getFullYear(), desdeISO(fin).getFullYear()]);
+  for (const anio of anios) {
+    const candidato = aISO(new Date(anio, nacimiento.getMonth(), nacimiento.getDate()));
+    if (candidato >= inicio && candidato <= fin) return candidato;
+  }
+  return null;
+}
+
 /** Número de semana ISO-8601 (1-53, lunes a domingo, la semana 1 es la que
  * contiene el primer jueves del año) -- para mostrar junto al rango de
  * fechas en "Resumen semanal" (KAN-285, pedido explícito del owner). */
