@@ -206,11 +206,19 @@ function filtrarYMapearPersonas(data: FilaPersonaBusqueda[], tokens: string[], e
  * -- vía RPC (`fn_origen_cdp_personas`) porque la RLS de `casa_de_paz`
  * bloquea al Líder/Sublíder de CdP leer el nombre de una CdP ajena con un
  * `.select()` normal, aunque la persona en sí sea visible. */
+type FilaOrigenCdp = { persona_id: string; casa_de_paz_id: string; casa_de_paz_nombre: string };
+
 async function enriquecerConOrigenCdp(personas: PersonaBusqueda[]): Promise<PersonaBusqueda[]> {
   if (personas.length === 0) return personas;
   const { data, error } = await supabase.rpc('fn_origen_cdp_personas', { p_persona_ids: personas.map((p) => p.id) });
   if (error) throw error;
-  const origenPorPersona = new Map((data ?? []).map((r) => [r.persona_id, { id: r.casa_de_paz_id, nombre: r.casa_de_paz_nombre }]));
+  // El cliente de Supabase no está tipado con el schema (createClient sin
+  // Database genérico, ver supabase.ts) -- sin esta anotación explícita,
+  // tsc infiere `data` como `{}[]` en vez de `any[]` y rompe el build de
+  // producción (tsc -b sí es estricto, a diferencia de vite dev/HMR que no
+  // lo nota). Mismo shape que retorna fn_origen_cdp_personas.
+  const filas = (data ?? []) as FilaOrigenCdp[];
+  const origenPorPersona = new Map(filas.map((r) => [r.persona_id, { id: r.casa_de_paz_id, nombre: r.casa_de_paz_nombre }]));
   return personas.map((p) => {
     const origen = origenPorPersona.get(p.id);
     return origen ? { ...p, casa_de_paz_id: origen.id, casa_de_paz_nombre: origen.nombre } : p;
