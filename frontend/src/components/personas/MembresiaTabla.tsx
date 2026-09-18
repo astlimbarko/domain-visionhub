@@ -689,13 +689,30 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           {isLoading ? (
             <Skeleton className="h-96 w-full rounded-2xl" />
           ) : filasOrdenadas.length === 0 ? (
-            <p className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-              {texto.trim()
-                ? 'Sin resultados para esa búsqueda.'
-                : scoped
-                  ? 'Esta Casa de Paz todavía no tiene miembros registrados.'
-                  : 'Esta iglesia todavía no tiene personas registradas.'}
-            </p>
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+              <p>
+                {texto.trim()
+                  ? 'Sin resultados para esa búsqueda.'
+                  : !sinFiltros
+                    ? // KAN-401: con el filtro de cumpleaños activo por defecto (Semana),
+                      // "0 resultados" pasó de ser un caso raro a uno común -- el mensaje
+                      // de "todavía no tiene miembros" quedaba engañoso (la CdP/iglesia sí
+                      // tiene gente, solo que ninguno cumple años en el período elegido).
+                      'Nadie coincide con los filtros aplicados.'
+                    : scoped
+                      ? 'Esta Casa de Paz todavía no tiene miembros registrados.'
+                      : 'Esta iglesia todavía no tiene personas registradas.'}
+              </p>
+              {/* KAN-401: con 0 filas la tabla (y los selects de su encabezado,
+                  incluido el de Cumpleaños) no se renderiza -- sin este botón,
+                  activar un filtro que da 0 resultados dejaba a la persona sin
+                  forma de volver atrás. */}
+              {!sinFiltros && !texto.trim() && (
+                <Button type="button" variant="outline" size="sm" onClick={limpiarFiltros}>
+                  Ver a todos
+                </Button>
+              )}
+            </div>
           ) : (
             <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
               <table
