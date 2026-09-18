@@ -5,6 +5,9 @@ export const ROUTES = {
   SELECCIONAR_ROL: '/seleccionar-rol',
   AUTH_CALLBACK: '/auth/callback',
   DASHBOARD: '/',
+  // KAN-388: acceso solo por URL directa, a propósito no está en CATALOGO_NAV
+  // (el owner pidió explícitamente que no aparezca en el menú lateral).
+  AVANCES: '/avances',
   PERSONAS: '/personas',
   // KAN-386 seguimiento (2026-09-17): "Membresía" por CdP -- mismo censo
   // rico que ve Supervisión en AFIRMACION_PERSONAS, pero scoped a una sola
