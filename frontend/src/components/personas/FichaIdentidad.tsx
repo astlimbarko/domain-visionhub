@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import { normalizarNombre } from '@/utils/normalizarNombre';
 import { useActualizarIdentidad, useGuardarDetalle } from '@/hooks/usePersonas';
 import {
@@ -78,6 +80,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Primer nombre *">
           <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.primerNombre}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, primerNombre: e.target.value }))}
@@ -86,6 +89,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         </Campo>
         <Campo label="Segundo nombre">
           <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.segundoNombre}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, segundoNombre: e.target.value }))}
@@ -94,6 +98,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         </Campo>
         <Campo label="Primer apellido *">
           <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.primerApellido}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, primerApellido: e.target.value }))}
@@ -102,6 +107,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         </Campo>
         <Campo label="Segundo apellido">
           <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.segundoApellido}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, segundoApellido: e.target.value }))}
@@ -110,7 +116,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         </Campo>
         <Campo label="Sexo *">
           <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditar}>
-            <SelectTrigger>
+            <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -122,6 +128,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Fecha de nacimiento">
           <Input
             type="date"
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.fechaNacimiento}
             max={new Date().toISOString().slice(0, 10)}
             disabled={!puedeEditar}
@@ -129,16 +136,37 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
           />
         </Campo>
         <Campo label="Carnet de identidad">
-          <Input value={form.ci} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))} />
+          <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.ci}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))}
+          />
         </Campo>
         <Campo label="Correo">
-          <Input type="email" value={form.correo} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} />
+          <Input
+            type="email"
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.correo}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))}
+          />
         </Campo>
         <Campo label="Ciudad de nacimiento">
-          <Input value={form.nacimientoCiudad} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, nacimientoCiudad: e.target.value }))} />
+          <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.nacimientoCiudad}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, nacimientoCiudad: e.target.value }))}
+          />
         </Campo>
         <Campo label="Ocupación">
-          <Input value={form.ocupacion} disabled={!puedeEditar} onChange={(e) => setForm((f) => ({ ...f, ocupacion: e.target.value }))} />
+          <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.ocupacion}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, ocupacion: e.target.value }))}
+          />
         </Campo>
         <Campo label="Estado civil">
           <Select
@@ -146,7 +174,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onValueChange={(v) => setForm((f) => ({ ...f, estadoCivil: v as EstadoCivil }))}
             disabled={!puedeEditar}
           >
-            <SelectTrigger>
+            <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
               <SelectValue placeholder="Sin especificar" />
             </SelectTrigger>
             <SelectContent>
@@ -164,7 +192,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onValueChange={(v) => setForm((f) => ({ ...f, gradoInstruccion: v as GradoInstruccion }))}
             disabled={!puedeEditar}
           >
-            <SelectTrigger>
+            <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
               <SelectValue placeholder="Sin especificar" />
             </SelectTrigger>
             <SelectContent>
@@ -179,6 +207,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Fecha de bautizo">
           <Input
             type="date"
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.fechaBautizo}
             max={new Date().toISOString().slice(0, 10)}
             disabled={!puedeEditar}
@@ -188,6 +217,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Fecha de retiro">
           <Input
             type="date"
+            className={cn(puedeEditar && CAMPO_ESTILO)}
             value={form.fechaRetiro}
             max={new Date().toISOString().slice(0, 10)}
             disabled={!puedeEditar}
@@ -200,7 +230,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onValueChange={(v) => setForm((f) => ({ ...f, discipuladoNivel: v as DiscipuladoNivel }))}
             disabled={!puedeEditar}
           >
-            <SelectTrigger>
+            <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
               <SelectValue placeholder="Sin especificar" />
             </SelectTrigger>
             <SelectContent>
@@ -219,6 +249,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
           <Campo label="Apellido de casada">
             <div className="flex gap-2">
               <Input
+                className={cn(puedeEditar && CAMPO_ESTILO)}
                 value={form.apellidoCasada}
                 disabled={!puedeEditar}
                 onChange={(e) => setForm((f) => ({ ...f, apellidoCasada: e.target.value }))}
