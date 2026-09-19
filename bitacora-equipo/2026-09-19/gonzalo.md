@@ -8,3 +8,4 @@
 - [x] KAN-403: PR #89 creado (https://github.com/astlimbarko/domain-visionhub/pull/89), sin mergear todavía
 - [x] KAN-403: corregida la simplificación de filtros de Membresía -- el owner aclaró que el pedido era sacar solo Nuevos Convertidos/Reconciliados (son de Evangelismo), no todos los chips. Restaurados Por URL/Formulario, Simpatizantes/Creyentes, Con profesión, estado civil, Bautizados
 - [ ] KAN-404 creado (en cola, sin implementar): falta scroll horizontal también arriba de la tabla de Membresía, no solo abajo
+- [x] KAN-403: entrada en /avances aplicada a la base real (EN_CURSO, se pasa a TERMINADO cuando se despliegue) -- el owner preguntó si ya estaba hecho, no lo estaba, se creó y aplicó en el momento
