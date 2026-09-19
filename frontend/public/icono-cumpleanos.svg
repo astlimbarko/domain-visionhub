@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 473">
+<defs>
+  <clipPath id="clip"><circle cx="235" cy="236" r="231"/></clipPath>
+</defs>
+
+<circle cx="235" cy="236" r="231" fill="#F9733A"/>
+
+<g clip-path="url(#clip)" fill="#D45B28" opacity="0.7">
+  <polygon points="188,126 196,118 205,127 205,157 235,157 235,126 243,118 252,127 252,157 279,157 279,126 287,118 296,127 459,290 459,473 239,473 98,359 372,359"/>
+</g>
+
+<path d="M98 350 H372 C372 357 365 362 357 362 H113 C105 362 98 357 98 350 Z" fill="#fff"/>
+
+<rect x="139" y="242" width="193" height="104" rx="10" fill="#fff"/>
+<path d="M139 294
+C153 294 158 282 174 282
+C190 282 196 294 213 294
+C230 294 236 282 252 282
+C268 282 274 294 291 294
+C307 294 314 282 332 282"
+fill="none" stroke="#F9733A" stroke-width="7" stroke-linecap="round"/>
+
+<rect x="165" y="161" width="141" height="77" rx="10" fill="#fff"/>
+<path d="M165 196
+C177 196 181 187 194 187
+C207 187 211 196 224 196
+C237 196 241 187 254 187
+C267 187 272 196 286 196
+C294 196 300 198 306 201"
+fill="none" stroke="#F9733A" stroke-width="7" stroke-linecap="round"/>
+
+<rect x="188" y="126" width="8" height="31" rx="1" fill="#fff"/>
+<rect x="232" y="126" width="8" height="31" rx="1" fill="#fff"/>
+<rect x="276" y="126" width="8" height="31" rx="1" fill="#fff"/>
+
+<path d="M192 105 C186 113 184 119 192 126 C200 119 198 113 192 105 Z"
+fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+<path d="M236 105 C230 113 228 119 236 126 C244 119 242 113 236 105 Z"
+fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+<path d="M280 105 C274 113 272 119 280 126 C288 119 286 113 280 105 Z"
+fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+</svg>

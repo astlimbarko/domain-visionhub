@@ -20,7 +20,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   Briefcase,
-  CakeSlice,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -44,7 +43,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AZUL, TEAL, VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
+import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
@@ -888,11 +887,14 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                   <button
                                     type="button"
                                     className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                                    style={{ backgroundColor: `color-mix(in oklab, ${AMBAR} 16%, transparent)` }}
                                     onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
-                                    <CakeSlice className="h-3.5 w-3.5" style={{ color: AMBAR }} />
+                                    {/* Ícono personalizado del owner (2026-09-19), reemplaza el
+                                        CakeSlice de lucide-react -- ya trae su propio círculo/
+                                        color, no necesita el halo color-mix que sí hacía falta
+                                        con el ícono de línea anterior. */}
+                                    <img src="/icono-cumpleanos.svg" alt="" className="h-6 w-6" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
