@@ -81,7 +81,12 @@ export function ModalAnuncios() {
               <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
             </div>
           ) : (
-            <Suspense fallback={<div className="h-48 w-64 max-w-full animate-pulse bg-muted" />}>
+            // KAN-402: fallback sin fondo -- un bg-muted acá se veía como un
+            // cuadro gris sólido saltando antes del difuminado real de la
+            // imagen (hallazgo del owner). Transparente, misma medida para
+            // no saltar el layout, y la transición del propio Dialog
+            // (fade-in/zoom-in) es lo único que se ve mientras carga.
+            <Suspense fallback={<div className="h-48 w-64 max-w-full" />}>
               <ImagenAnuncioZoom
                 src={imagenUrl}
                 alt={anuncioActual.titulo}
