@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Eye, EyeOff, Pencil, TriangleAlert, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowRightLeft, Eye, EyeOff, Pencil, TriangleAlert, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,24 @@ interface Props {
  * la convención global. */
 const BOTON_ROJO_FUERTE =
   'border-transparent bg-destructive text-white shadow-sm shadow-destructive/20 hover:bg-destructive/90 hover:shadow-md hover:shadow-destructive/25';
+
+/** KAN-403 seguimiento 2026-09-18 (pedido explícito del owner: "que entre
+ * todo en la misma pantalla, con paginado y un botón Siguiente, guardar
+ * solo al final con un botón Actualizar grande centrado"). 9 páginas --
+ * Identidad y censo se separa en 2 porque sus 15 campos no entran en una
+ * pantalla de celular sin scroll ni agrupando de a 2. */
+const TITULOS_PAGINA = [
+  'Evangelismo y cargos',
+  'Identidad y censo — Datos personales',
+  'Identidad y censo — Censo eclesiástico',
+  'Direcciones',
+  'Teléfonos',
+  'Llegada a la iglesia',
+  'Familia',
+  'Ministerios',
+  'Milagros',
+] as const;
+const TOTAL_PAGINAS = TITULOS_PAGINA.length;
 
 /** El código de regla va antes de ": " en el mensaje del backend (RAISE
  * EXCEPTION 'CODIGO: texto legible'). El texto que sigue ya es español
@@ -72,13 +90,19 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const [mostrarAdvertenciaEditar, setMostrarAdvertenciaEditar] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [pagina, setPagina] = useState(0);
   const identidadRef = useRef<FichaIdentidadHandle>(null);
 
   // Al seleccionar una persona nueva (o reabrir), siempre arranca en modo
-  // lectura -- si no, quedaba "pegado" en el modo de la persona anterior.
+  // lectura y en la página 1 -- si no, quedaba "pegado" en el modo/página
+  // de la persona anterior.
   useEffect(() => {
     setModoEdicion(false);
+    setPagina(0);
   }, [personaId]);
+
+  const esPrimeraPagina = pagina === 0;
+  const esUltimaPagina = pagina === TOTAL_PAGINAS - 1;
 
   // Pedido del owner (2026-09-02): además de los operativos (Pastor/Supervisor
   // de la Visión), el Líder y el Supervisor de Red pueden editar la ficha de las
@@ -186,131 +210,218 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                 </div>
               )}
 
-              <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
-                {ficha.evangelismo && (
+              {/* KAN-403 seguimiento 2026-09-18: paginado en vez de todo con
+                  scroll (pedido explícito del owner) -- las 9 páginas están
+                  TODAS montadas siempre (solo se ocultan con `hidden`), no
+                  se desmontan al navegar, para no perder lo que la persona
+                  ya tipeó en otra página al ir y volver. Cada Ficha* sigue
+                  usando `key={modoEdicion}` para descartar cambios sin
+                  guardar al tocar "Cancelar edición" -- eso no cambia. */}
+              <div className="flex flex-1 flex-col overflow-y-auto pr-1">
+                <p className="mb-3 shrink-0 text-xs font-medium text-muted-foreground">
+                  Página {pagina + 1} de {TOTAL_PAGINAS} — {TITULOS_PAGINA[pagina]}
+                </p>
+
+                <div className={cn('flex flex-col gap-4', pagina !== 0 && 'hidden')}>
+                  {ficha.evangelismo ? (
+                    <Card className="rounded-2xl shrink-0">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Evangelismo</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <FichaEvangelismo evangelismo={ficha.evangelismo} />
+                      </CardContent>
+                    </Card>
+                  ) : null}
+                  {ficha.cargos.length > 0 ? (
+                    <Card className="rounded-2xl shrink-0">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Cargos vigentes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-wrap gap-2">
+                        {ficha.cargos.map((c, i) => (
+                          <Badge key={i} variant="secondary">
+                            {c.cargo_nombre} — {c.entidad}
+                          </Badge>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  ) : null}
+                  {!ficha.evangelismo && ficha.cargos.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Sin datos de evangelismo ni cargos vigentes.</p>
+                  )}
+                </div>
+
+                {/* Una sola instancia/estado de FichaIdentidad para las 2
+                    páginas (Datos personales + Censo eclesiástico) -- si se
+                    montara 2 veces (una por página) cada una tendría su
+                    propio form interno por separado, y guardar() desde el
+                    ref solo vería la mitad de lo tipeado. Se muestra en
+                    ambas páginas, cambiando qué mitad de sus propios campos
+                    renderiza según el número de página actual. */}
+                <div className={cn(pagina !== 1 && pagina !== 2 && 'hidden')}>
                   <Card className="rounded-2xl shrink-0">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Evangelismo</CardTitle>
+                      <CardTitle className="text-base">
+                        Identidad y censo — {pagina === 2 ? 'Censo eclesiástico' : 'Datos personales'}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <FichaEvangelismo evangelismo={ficha.evangelismo} />
+                      <FichaIdentidad
+                        key={modoEdicion ? 'edit' : 'view'}
+                        ref={identidadRef}
+                        personaId={ficha.persona.id}
+                        ficha={ficha}
+                        puedeEditar={editando}
+                        pagina={pagina === 2 ? 2 : 1}
+                      />
                     </CardContent>
                   </Card>
-                )}
+                </div>
 
-                {ficha.cargos.length > 0 && (
+                <div className={cn(pagina !== 3 && 'hidden')}>
                   <Card className="rounded-2xl shrink-0">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Cargos vigentes</CardTitle>
+                      <CardTitle className="text-base">Direcciones</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex flex-wrap gap-2">
-                      {ficha.cargos.map((c, i) => (
-                        <Badge key={i} variant="secondary">
-                          {c.cargo_nombre} — {c.entidad}
-                        </Badge>
-                      ))}
+                    <CardContent>
+                      <FichaDirecciones
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        iglesiaId={ficha.persona.iglesia_id}
+                        direcciones={ficha.direcciones}
+                        puedeEditar={editando}
+                      />
                     </CardContent>
                   </Card>
-                )}
+                </div>
 
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Identidad y censo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaIdentidad key={modoEdicion ? 'edit' : 'view'} ref={identidadRef} personaId={ficha.persona.id} ficha={ficha} puedeEditar={editando} />
-                  </CardContent>
-                </Card>
+                <div className={cn(pagina !== 4 && 'hidden')}>
+                  <Card className="rounded-2xl shrink-0">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Teléfonos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaTelefonos
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        iglesiaId={ficha.persona.iglesia_id}
+                        telefonos={ficha.telefonos}
+                        puedeEditar={editando}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
 
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Direcciones</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaDirecciones
-                      key={modoEdicion ? 'edit' : 'view'}
-                      personaId={ficha.persona.id}
-                      iglesiaId={ficha.persona.iglesia_id}
-                      direcciones={ficha.direcciones}
-                      puedeEditar={editando}
-                    />
-                  </CardContent>
-                </Card>
+                <div className={cn(pagina !== 5 && 'hidden')}>
+                  <Card className="rounded-2xl shrink-0">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Llegada a la iglesia</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaLlegada
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        iglesiaId={ficha.persona.iglesia_id}
+                        llegadas={ficha.llegadas}
+                        puedeEditar={editando}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
 
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Teléfonos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaTelefonos
-                      key={modoEdicion ? 'edit' : 'view'}
-                      personaId={ficha.persona.id}
-                      iglesiaId={ficha.persona.iglesia_id}
-                      telefonos={ficha.telefonos}
-                      puedeEditar={editando}
-                    />
-                  </CardContent>
-                </Card>
+                <div className={cn(pagina !== 6 && 'hidden')}>
+                  <Card className="rounded-2xl shrink-0">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Familia</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaFamilia
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        iglesiaId={ficha.persona.iglesia_id}
+                        ficha={ficha}
+                        puedeEditar={editando}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
 
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Llegada a la iglesia</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaLlegada
-                      key={modoEdicion ? 'edit' : 'view'}
-                      personaId={ficha.persona.id}
-                      iglesiaId={ficha.persona.iglesia_id}
-                      llegadas={ficha.llegadas}
-                      puedeEditar={editando}
-                    />
-                  </CardContent>
-                </Card>
+                <div className={cn(pagina !== 7 && 'hidden')}>
+                  <Card className="rounded-2xl shrink-0">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Ministerios</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaMinisterios
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        iglesiaId={ficha.persona.iglesia_id}
+                        ministerios={ficha.ministerios ?? []}
+                        puedeEditar={editando}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
 
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Familia</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaFamilia
-                      key={modoEdicion ? 'edit' : 'view'}
-                      personaId={ficha.persona.id}
-                      iglesiaId={ficha.persona.iglesia_id}
-                      ficha={ficha}
-                      puedeEditar={editando}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Ministerios</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaMinisterios
-                      key={modoEdicion ? 'edit' : 'view'}
-                      personaId={ficha.persona.id}
-                      iglesiaId={ficha.persona.iglesia_id}
-                      ministerios={ficha.ministerios ?? []}
-                      puedeEditar={editando}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl shrink-0">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Milagros</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FichaMilagros key={modoEdicion ? 'edit' : 'view'} personaId={ficha.persona.id} milagros={ficha.milagros ?? []} puedeEditar={editando} />
-                  </CardContent>
-                </Card>
+                <div className={cn(pagina !== 8 && 'hidden')}>
+                  <Card className="rounded-2xl shrink-0">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Milagros</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaMilagros
+                        key={modoEdicion ? 'edit' : 'view'}
+                        personaId={ficha.persona.id}
+                        milagros={ficha.milagros ?? []}
+                        puedeEditar={editando}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
 
-              {editando && (
-                <div className="sticky bottom-0 -mx-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
-                  <Button type="button" onClick={() => setMostrarConfirmar(true)} className={cn('w-full sm:w-fit', BOTON_ROJO_FUERTE)}>
-                    Guardar cambios
+              {/* Última página + editando: "Actualizar" grande y centrado
+                  (pedido explícito del owner) en vez del footer normal de
+                  Atrás/Siguiente -- "Atrás" queda disponible más chico
+                  debajo por si se quiere revisar algo antes de guardar. */}
+              {esUltimaPagina && editando ? (
+                <div className="sticky bottom-0 -mx-0 flex flex-col items-center gap-2 border-t border-border bg-background/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-background/80">
+                  <Button
+                    type="button"
+                    size="lg"
+                    onClick={() => setMostrarConfirmar(true)}
+                    className={cn('w-full max-w-xs text-base', BOTON_ROJO_FUERTE)}
+                  >
+                    Actualizar
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="gap-1" onClick={() => setPagina((p) => p - 1)}>
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Atrás
+                  </Button>
+                </div>
+              ) : (
+                <div className="sticky bottom-0 -mx-0 flex items-center justify-between border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={esPrimeraPagina}
+                    onClick={() => setPagina((p) => p - 1)}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Atrás
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={esUltimaPagina}
+                    onClick={() => setPagina((p) => p + 1)}
+                  >
+                    Siguiente
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )}
@@ -335,15 +446,15 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
       <Dialog open={mostrarConfirmar} onOpenChange={(o) => !guardando && setMostrarConfirmar(o)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Guardar cambios</DialogTitle>
-            <DialogDescription>¿Estás seguro de que querés guardar estos cambios?</DialogDescription>
+            <DialogTitle>Actualizar datos</DialogTitle>
+            <DialogDescription>¿Estás seguro de que querés actualizar estos datos?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setMostrarConfirmar(false)} disabled={guardando}>
               Cancelar
             </Button>
             <Button type="button" className={BOTON_ROJO_FUERTE} onClick={() => void confirmarGuardar()} disabled={guardando}>
-              {guardando ? 'Guardando...' : 'Guardar'}
+              {guardando ? 'Actualizando...' : 'Actualizar'}
             </Button>
           </DialogFooter>
         </DialogContent>

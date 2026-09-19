@@ -24,6 +24,13 @@ interface Props {
   personaId: string;
   ficha: PersonaFicha;
   puedeEditar: boolean;
+  /** KAN-403 seguimiento 2026-09-18 (pedido explícito del owner, paginado
+   * para que entre en pantalla sin scroll): 1 = datos personales básicos,
+   * 2 = censo eclesiástico. El form/estado es uno solo -- separar la
+   * sección en 2 <FichaIdentidad> con la misma key haría perder lo tipeado
+   * al pasar de página, así que esto solo cambia qué mitad de los mismos
+   * campos se muestra, no remonta nada. */
+  pagina: 1 | 2;
 }
 
 /** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaSheet
@@ -34,7 +41,7 @@ export interface FichaIdentidadHandle {
   guardar: () => Promise<void>;
 }
 
-export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function FichaIdentidad({ personaId, ficha, puedeEditar }, ref) {
+export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function FichaIdentidad({ personaId, ficha, puedeEditar, pagina }, ref) {
   const [form, setForm] = useState(() => construirForm(ficha));
   useEffect(() => setForm(construirForm(ficha)), [ficha]);
 
@@ -77,6 +84,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
 
   return (
     <div className="flex flex-col gap-4">
+      {pagina === 1 && (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Primer nombre *">
           <Input
@@ -156,6 +164,11 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))}
           />
         </Campo>
+      </div>
+      )}
+
+      {pagina === 2 && (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Ciudad de nacimiento">
           <Input
             className={cn(puedeEditar && CAMPO_ESTILO)}
@@ -250,8 +263,9 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
           </Select>
         </Campo>
       </div>
+      )}
 
-      {form.estadoCivil === 'CASADO' && (
+      {pagina === 2 && form.estadoCivil === 'CASADO' && (
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <Campo label="Apellido de casada">
             <div className="flex gap-2">
