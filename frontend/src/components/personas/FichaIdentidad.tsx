@@ -115,10 +115,10 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
           />
         </Campo>
         {/* Pares pensados por longitud de contenido, no por orden alfabético
-            del censo original -- campos cortos (Sexo/CI) juntos, campos
-            medios (fecha/correo) juntos, así ninguna columna queda con
-            mucho espacio vacío al lado de un campo largo (pedido explícito
-            del owner, KAN-403 seguimiento 2026-09-18). */}
+            del censo original -- campos cortos (Sexo/Fecha de nacimiento)
+            juntos, campos de texto libre (CI/Correo) juntos, así ninguna
+            columna queda con mucho espacio vacío al lado de un campo largo
+            (pedido explícito del owner, KAN-403 seguimiento 2026-09-18). */}
         <Campo label="Sexo *">
           <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditar}>
             <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
@@ -130,14 +130,6 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             </SelectContent>
           </Select>
         </Campo>
-        <Campo label="Carnet de identidad">
-          <Input
-            className={cn(puedeEditar && CAMPO_ESTILO)}
-            value={form.ci}
-            disabled={!puedeEditar}
-            onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))}
-          />
-        </Campo>
         <Campo label="Fecha de nacimiento">
           <Input
             type="date"
@@ -146,6 +138,14 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             max={new Date().toISOString().slice(0, 10)}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, fechaNacimiento: e.target.value }))}
+          />
+        </Campo>
+        <Campo label="Carnet de identidad">
+          <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.ci}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))}
           />
         </Campo>
         <Campo label="Correo">
