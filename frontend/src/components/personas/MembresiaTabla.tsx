@@ -13,7 +13,7 @@
 // - Con `casaDePazId` (Líder/Sublíder de CdP, vía MembresiaCdp): todo eso se
 //   oculta (redundante o no soportado a nivel CdP), el filtro queda fijo a
 //   esa CdP.
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDown,
@@ -68,6 +68,14 @@ const TODOS_LOS_CUMPLEANOS = '__todos__';
 
 const SELECT_ENCABEZADO =
   'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
+
+// KAN-404 seguimiento (2026-09-19, pedido explícito del owner): la columna
+// Cumpleaños pasa a 2 filas -- "Cumpleaños" fijo arriba (como el resto de
+// encabezados) y el período (Día/Semana/Mes/Todos) abajo, con estilo
+// distinto a propósito para que se note que la 2da fila es el filtro
+// interactivo y la 1ra es solo el nombre de columna.
+const SELECT_ENCABEZADO_PERIODO =
+  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-xs font-medium normal-case text-foreground shadow-none hover:text-primary focus-visible:ring-0 data-[state=open]:text-primary [&>span]:truncate';
 
 type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
@@ -358,6 +366,29 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
 
+  // KAN-404 (pedido explícito del owner, 2026-09-19): la tabla es ancha y
+  // antes solo tenía el scroll horizontal nativo al fondo -- para
+  // scrollear había que bajar hasta el final. Esta barra fina de arriba
+  // (mismo ancho que la tabla real) se sincroniza en las 2 direcciones con
+  // el scroll real de la tabla, así se puede mover desde arriba sin bajar.
+  const scrollArribaRef = useRef<HTMLDivElement>(null);
+  const scrollTablaRef = useRef<HTMLDivElement>(null);
+  const sincronizandoScroll = useRef(false);
+
+  function sincronizarDesdeArriba() {
+    if (sincronizandoScroll.current || !scrollArribaRef.current || !scrollTablaRef.current) return;
+    sincronizandoScroll.current = true;
+    scrollTablaRef.current.scrollLeft = scrollArribaRef.current.scrollLeft;
+    sincronizandoScroll.current = false;
+  }
+
+  function sincronizarDesdeTabla() {
+    if (sincronizandoScroll.current || !scrollArribaRef.current || !scrollTablaRef.current) return;
+    sincronizandoScroll.current = true;
+    scrollArribaRef.current.scrollLeft = scrollTablaRef.current.scrollLeft;
+    sincronizandoScroll.current = false;
+  }
+
   const { data: redes = [] } = useRedes(scoped ? undefined : iglesiaId);
   const { data: cdps = [] } = useCdpsIglesia(scoped ? undefined : iglesiaId);
   const { data: estados = [] } = useEstados();
@@ -523,6 +554,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
 
   const porEstado = estadisticas?.por_estado ?? {};
   const porEstadoCivil = estadisticas?.por_estado_civil ?? {};
+
+  // KAN-404: mismo ancho para la tabla real y la barra de scroll fantasma
+  // de arriba -- si difirieran, el scroll superior no llegaría al mismo
+  // punto final que el de abajo.
+  const anchoTabla = vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]';
 
   return (
     <div className="flex flex-col gap-6">
@@ -740,13 +776,16 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               )}
             </div>
           ) : (
-            <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
-              <table
-                className={cn(
-                  'w-full border-collapse text-sm',
-                  vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]'
-                )}
+            <>
+              <div ref={scrollArribaRef} onScroll={sincronizarDesdeArriba} className="overflow-x-auto">
+                <div className={cn('h-px', anchoTabla)} />
+              </div>
+              <div
+                ref={scrollTablaRef}
+                onScroll={sincronizarDesdeTabla}
+                className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}
               >
+              <table className={cn('w-full border-collapse text-sm', anchoTabla)}>
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
@@ -760,17 +799,23 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       Edad
                     </EncabezadoOrdenable>
                     <th className="px-2 py-2">
-                      <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS)}>
-                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                          <SelectValue placeholder="Cumpleaños" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODOS_LOS_CUMPLEANOS}>Cumpleaños</SelectItem>
-                          <SelectItem value="DIA">Día</SelectItem>
-                          <SelectItem value="SEMANA">Semana</SelectItem>
-                          <SelectItem value="MES">Mes</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
+                        <Select
+                          value={cumpleanosFiltro}
+                          onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS)}
+                        >
+                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-start')}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={TODOS_LOS_CUMPLEANOS}>Todos</SelectItem>
+                            <SelectItem value="DIA">Día</SelectItem>
+                            <SelectItem value="SEMANA">Semana</SelectItem>
+                            <SelectItem value="MES">Mes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
                     {scoped ? (
@@ -978,7 +1023,8 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
 
           {!isLoading && filasOrdenadas.length > 0 && totalPaginas > 1 && (
