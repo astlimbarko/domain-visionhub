@@ -19,6 +19,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Briefcase,
   CakeSlice,
   ChevronLeft,
   ChevronRight,
@@ -26,9 +27,11 @@ import {
   CircleCheck,
   Download,
   FileText,
+  Heart,
   type LucideIcon,
   Maximize2,
   Minimize2,
+  QrCode,
   Search,
   User,
   Users,
@@ -47,7 +50,7 @@ import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
-import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion } from '@/hooks/useAfirmacion';
+import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
 import { buscarMembresiaAfirmacion, type CumpleanosPeriodo, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
 import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
@@ -76,6 +79,16 @@ const VIA_REGISTRO_LABEL: Record<'URL' | 'FORMULARIO', string> = {
 };
 
 const RANGO_MIEMBRO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_RANGO_MIEMBRO.map((o) => [o.value, o.label]));
+
+// KAN-403 seguimiento (2026-09-19, aclaración explícita del owner): de los
+// 4 estados SSVA solo Simpatizante y Creyente son de Afirmación -- Nuevo
+// Convertido y Reconciliado son etapas del embudo de Evangelismo, no van acá
+// como chip (siguen filtrables desde el select "Estado" del encabezado de
+// la tabla, que sí lista los 4).
+const ESTADO_LABEL: Record<string, string> = {
+  SIM: 'Simpatizantes',
+  CRE: 'Creyentes',
+};
 
 const EFESIO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_EFESIO.map((o) => [o.value, o.label]));
 
@@ -325,6 +338,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [casaDePazIdFiltroUi, setCasaDePazIdFiltroUi] = useState<string>(TODAS_LAS_CDP);
   const [estadoId, setEstadoId] = useState<string>(TODOS_LOS_ESTADOS);
   const [sexoFiltro, setSexoFiltro] = useState<'M' | 'F'>();
+  const [viaFiltro, setViaFiltro] = useState<'URL' | 'FORMULARIO'>();
+  const [conProfesionFiltro, setConProfesionFiltro] = useState<boolean>();
+  const [estadoCivilFiltro, setEstadoCivilFiltro] = useState<EstadoCivil>();
+  const [bautizadoFiltro, setBautizadoFiltro] = useState<boolean>();
   const [pagina, setPagina] = useState(1);
   const [orden, setOrden] = useState<{ columna: ColumnaOrden; direccion: DireccionOrden } | null>(null);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
@@ -350,7 +367,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     const t = setTimeout(() => setTexto(textoInput), 300);
     return () => clearTimeout(t);
   }, [textoInput]);
-  useEffect(() => setPagina(1), [texto, redId, casaDePazIdFiltroUi, estadoId, sexoFiltro, cumpleanosFiltro]);
+  useEffect(
+    () => setPagina(1),
+    [texto, redId, casaDePazIdFiltroUi, estadoId, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro, cumpleanosFiltro]
+  );
 
   const redIdFiltro = scoped ? undefined : redId === TODAS_LAS_REDES ? undefined : redId;
   const casaDePazIdFiltro = scoped ? casaDePazId : casaDePazIdFiltroUi === TODAS_LAS_CDP ? undefined : casaDePazIdFiltroUi;
@@ -362,23 +382,60 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       casaDePazId: casaDePazIdFiltro,
       estadoId: estadoIdFiltro,
       sexo: sexoFiltro,
+      viaRegistro: scoped ? undefined : viaFiltro,
+      conProfesion: conProfesionFiltro,
+      estadoCivil: estadoCivilFiltro,
+      bautizado: bautizadoFiltro,
       cumpleanosPeriodo: cumpleanosFiltro === TODOS_LOS_CUMPLEANOS ? undefined : cumpleanosFiltro,
     }),
-    [redIdFiltro, casaDePazIdFiltro, estadoIdFiltro, sexoFiltro, cumpleanosFiltro]
+    [
+      redIdFiltro,
+      casaDePazIdFiltro,
+      estadoIdFiltro,
+      sexoFiltro,
+      viaFiltro,
+      conProfesionFiltro,
+      estadoCivilFiltro,
+      bautizadoFiltro,
+      scoped,
+      cumpleanosFiltro,
+    ]
   );
 
   const sinFiltros =
-    !redIdFiltro && (scoped || !casaDePazIdFiltro) && !estadoIdFiltro && !sexoFiltro && cumpleanosFiltro === TODOS_LOS_CUMPLEANOS;
+    !redIdFiltro &&
+    (scoped || !casaDePazIdFiltro) &&
+    !estadoIdFiltro &&
+    !sexoFiltro &&
+    !viaFiltro &&
+    !conProfesionFiltro &&
+    !estadoCivilFiltro &&
+    cumpleanosFiltro === TODOS_LOS_CUMPLEANOS &&
+    !bautizadoFiltro;
 
   function limpiarFiltros() {
     setRedId(TODAS_LAS_REDES);
     setCasaDePazIdFiltroUi(TODAS_LAS_CDP);
     setEstadoId(TODOS_LOS_ESTADOS);
     setSexoFiltro(undefined);
+    setViaFiltro(undefined);
+    setConProfesionFiltro(undefined);
+    setEstadoCivilFiltro(undefined);
+    setBautizadoFiltro(undefined);
     setCumpleanosFiltro(TODOS_LOS_CUMPLEANOS);
   }
 
+  function alternarEstadoPorSigla(sigla: string) {
+    const estado = estados.find((e) => e.sigla === sigla);
+    if (!estado) return;
+    setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
+  }
+
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId);
+  // fn_afirmacion_estadisticas_registro no soporta filtro de CdP -- en modo
+  // scoped ni se pide (enabled:false vía iglesiaId undefined), mostraría
+  // datos de toda la iglesia si se llamara igual.
+  const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(scoped ? undefined : iglesiaId);
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaId, texto, pagina, POR_PAGINA, filtros);
 
   useEffect(() => {
@@ -440,6 +497,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !scoped && casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
     estadoIdFiltro && estados.find((e) => e.id === estadoIdFiltro)?.nombre,
     sexoFiltro && (sexoFiltro === 'M' ? 'Hombres' : 'Mujeres'),
+    !scoped && viaFiltro && VIA_REGISTRO_LABEL[viaFiltro],
+    conProfesionFiltro && 'Con profesión',
+    estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
+    bautizadoFiltro && 'Bautizados',
     cumpleanosFiltro !== TODOS_LOS_CUMPLEANOS && CUMPLEANOS_LABEL[cumpleanosFiltro],
   ]
     .filter(Boolean)
@@ -461,20 +522,24 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     }
   }
 
+  const porEstado = estadisticas?.por_estado ?? {};
+  const porEstadoCivil = estadisticas?.por_estado_civil ?? {};
+
   return (
     <div className="flex flex-col gap-6">
-      {/* KAN-403: se sacaron los chips de análisis (Estados SSVA, estado
-          civil, vía de registro, con profesión, bautizados) -- esta
-          pantalla es de edición rápida, no analítica. Esos datos siguen
-          disponibles en el reporte/CSV/PDF, solo no como filtro acá. */}
-      {cargandoEstadisticas ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+      {/* KAN-403 seguimiento (2026-09-19, aclaración explícita del owner):
+          se sacaron SOLO Nuevos Convertidos y Reconciliados (son etapas de
+          Evangelismo, no de Afirmación) -- el resto de los chips de
+          análisis se mantienen, esta pantalla sigue siendo también un
+          resumen visual, no solo edición. */}
+      {cargandoEstadisticas || (!scoped && cargandoRegistro) ? (
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {Array.from({ length: scoped ? 8 : 12 }).map((_, i) => (
             <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <KpiChipFiltro
             icon={Users}
             label="Total"
@@ -513,6 +578,98 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             }}
           >
             {estadisticas?.mujeres ?? 0}
+          </KpiChipFiltro>
+          {!scoped && (
+            <>
+              <KpiChipFiltro
+                icon={QrCode}
+                label="Por URL"
+                color={AZUL}
+                activo={viaFiltro === 'URL'}
+                cargando={filtroEnCurso === 'via-url' && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso('via-url');
+                  setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
+                }}
+              >
+                {estadisticasRegistro?.por_url ?? 0}
+              </KpiChipFiltro>
+              <KpiChipFiltro
+                icon={FileText}
+                label="Por formulario"
+                color={TEAL}
+                activo={viaFiltro === 'FORMULARIO'}
+                cargando={filtroEnCurso === 'via-formulario' && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso('via-formulario');
+                  setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
+                }}
+              >
+                {estadisticasRegistro?.por_formulario ?? 0}
+              </KpiChipFiltro>
+            </>
+          )}
+          {/* KAN-403 seguimiento 2026-09-19: solo SIM y CRE -- NC y RE son
+              de Evangelismo, no de Afirmación (aclaración explícita del
+              owner). Siguen filtrables desde el select "Estado" del
+              encabezado de la tabla si hace falta. */}
+          {(['SIM', 'CRE'] as const).map((sigla) => (
+            <KpiChipFiltro
+              key={sigla}
+              icon={Users}
+              label={ESTADO_LABEL[sigla]}
+              color={AZUL}
+              activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
+              cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
+              onClick={() => {
+                setFiltroEnCurso(`estado-${sigla}`);
+                alternarEstadoPorSigla(sigla);
+              }}
+            >
+              {porEstado[sigla] ?? 0}
+            </KpiChipFiltro>
+          ))}
+          <KpiChipFiltro
+            icon={Briefcase}
+            label="Con profesión"
+            color={TEAL}
+            activo={conProfesionFiltro === true}
+            cargando={filtroEnCurso === 'con-profesion' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('con-profesion');
+              setConProfesionFiltro((actual) => (actual ? undefined : true));
+            }}
+          >
+            {estadisticas?.con_profesion ?? 0}
+          </KpiChipFiltro>
+          {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
+            <KpiChipFiltro
+              key={codigo}
+              icon={Heart}
+              label={ESTADO_CIVIL_LABELS[codigo]}
+              color={AZUL}
+              activo={estadoCivilFiltro === codigo}
+              cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
+              onClick={() => {
+                setFiltroEnCurso(`estado-civil-${codigo}`);
+                setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
+              }}
+            >
+              {porEstadoCivil[codigo] ?? 0}
+            </KpiChipFiltro>
+          ))}
+          <KpiChipFiltro
+            icon={CircleCheck}
+            label="Bautizados"
+            color={VERDE}
+            activo={bautizadoFiltro === true}
+            cargando={filtroEnCurso === 'bautizados' && isFetching}
+            onClick={() => {
+              setFiltroEnCurso('bautizados');
+              setBautizadoFiltro((actual) => (actual ? undefined : true));
+            }}
+          >
+            {estadisticas?.bautizados ?? 0}
           </KpiChipFiltro>
         </div>
       )}
