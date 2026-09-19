@@ -1,16 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { EyeOff, IdCard, Mail, Maximize2, Phone } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowRightLeft, Eye, EyeOff, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
-import { FichaPersonaExtendida } from './FichaPersonaExtendida';
-import { FichaPersonaEditorSheet } from './FichaPersonaEditorSheet';
+import { FichaIdentidad, type FichaIdentidadHandle } from './FichaIdentidad';
+import { FichaDirecciones } from './FichaDirecciones';
+import { FichaTelefonos } from './FichaTelefonos';
+import { FichaLlegada } from './FichaLlegada';
+import { FichaFamilia } from './FichaFamilia';
+import { FichaEvangelismo } from './FichaEvangelismo';
+import { FichaMinisterios } from './FichaMinisterios';
+import { FichaMilagros } from './FichaMilagros';
 import { MoverPersonaRedDialog } from './MoverPersonaRedDialog';
 
 interface Props {
@@ -29,29 +35,20 @@ function mensajeAmigable(e: unknown, generico: string): string {
   return generico;
 }
 
-function FilaDato({ icon: Icon, label, valor }: { icon: LucideIcon; label: string; valor: string | null }) {
-  return (
-    <div className="flex items-center gap-2.5 text-sm">
-      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="truncate font-medium text-foreground">{valor ?? '—'}</span>
-    </div>
-  );
-}
-
 /**
- * KAN-227: orquestador de los 3 modos de la ficha de persona -- misma firma
- * de props que antes (personaId + onOpenChange) para no tocar los 3 call
- * sites (pages/Personas.tsx, pages/AfirmacionPersonas.tsx,
- * PersonasDeRedVista.tsx).
+ * KAN-403: modal único centrado -- reemplaza la cascada anterior de 3
+ * componentes (FichaPersonaSheet resumido -> FichaPersonaExtendida "ver
+ * completa" -> FichaPersonaEditorSheet "editar"), cada uno un panel/overlay
+ * distinto que había que ir abriendo en cadena. Ahora todo vive en un solo
+ * Dialog centrado con un booleano `modoEdicion`: por defecto de solo
+ * lectura, el botón "Editar" activa la edición in-place de las mismas 8
+ * secciones (no hay una vista "resumida" aparte que mostrar/ocultar).
  *
- * - Resumido (acá mismo): sidebar liviana de solo lectura -- identidad,
- *   estado, contacto y cargos. Botón "Ver ficha completa" pasa a extendido.
- * - Extendido (FichaPersonaExtendida): overlay grande con TODOS los datos,
- *   solo lectura, con lápiz "Editar" y las acciones rápidas (Cambiar de
- *   Red, Ocultar) que antes vivían acá.
- * - Editor (FichaPersonaEditorSheet): el contenido editable de siempre,
- *   se abre desde el lápiz del extendido.
+ * `key={modoEdicion}` en cada sección: al cancelar la edición (volver a
+ * modoEdicion=false sin guardar), las secciones se remontan y descartan
+ * cualquier campo tocado a mano que no se haya guardado -- ninguna sección
+ * tiene su propio botón "Cancelar" a nivel de fila, así que esta es la
+ * forma limpia de que "Cancelar" realmente descarte cambios.
  */
 export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const iglesias = useAuthStore((s) => s.iglesias);
@@ -59,14 +56,15 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const toggleOculto = useToggleOculto(personaId ?? '');
   const moverRed = useMoverPersonaRed(personaId ?? '');
   const [mostrarMoverRed, setMostrarMoverRed] = useState(false);
-  const [extendidoAbierto, setExtendidoAbierto] = useState(false);
-  const [editorAbierto, setEditorAbierto] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const identidadRef = useRef<FichaIdentidadHandle>(null);
 
   // Al seleccionar una persona nueva (o reabrir), siempre arranca en modo
-  // resumido -- si no, quedaba "pegado" en el modo de la persona anterior.
+  // lectura -- si no, quedaba "pegado" en el modo de la persona anterior.
   useEffect(() => {
-    setExtendidoAbierto(false);
-    setEditorAbierto(false);
+    setModoEdicion(false);
   }, [personaId]);
 
   // Pedido del owner (2026-09-02): además de los operativos (Pastor/Supervisor
@@ -81,6 +79,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const esLiderDeSuRed =
     !!ficha?.casa_de_paz?.red_id && (misRoles?.redes_lider ?? []).some((r) => r.id === ficha.casa_de_paz?.red_id);
   const puedeEditar = esOperativo || esLiderDeSuRed;
+  const editando = puedeEditar && modoEdicion;
 
   // Cargos vigentes que quedan atados a la Red/Casa de Paz que la persona
   // deja si se traslada -- no se "llevan" a la Red nueva (ver fn_mover_persona_red).
@@ -109,12 +108,21 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
     });
   }
 
-  const telefonoPrincipal = ficha?.telefonos.find((t) => t.es_principal && t.activo)?.numero ?? null;
+  async function confirmarGuardar() {
+    setGuardando(true);
+    try {
+      await identidadRef.current?.guardar();
+      setModoEdicion(false);
+    } finally {
+      setGuardando(false);
+      setMostrarConfirmar(false);
+    }
+  }
 
   return (
     <>
-      <Sheet open={!!personaId && !extendidoAbierto} onOpenChange={(open) => !open && onOpenChange(false)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+      <Dialog open={!!personaId} onOpenChange={(open) => !open && onOpenChange(false)}>
+        <DialogContent className="flex h-[92dvh] flex-col sm:max-w-3xl">
           {isLoading || !ficha ? (
             <div className="flex flex-col gap-4 p-4">
               <Skeleton className="h-8 w-2/3" />
@@ -122,8 +130,8 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
             </div>
           ) : (
             <>
-              <SheetHeader>
-                <SheetTitle className="flex flex-wrap items-center gap-2 pr-8 text-lg">
+              <DialogHeader>
+                <DialogTitle className="flex flex-wrap items-center gap-2 pr-8 text-lg">
                   {ficha.persona.nombre_completo}
                   {ficha.estado_actual && <Badge variant="outline">{ficha.estado_actual.sigla}</Badge>}
                   {ficha.persona.oculto && (
@@ -132,70 +140,201 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                       Oculta
                     </Badge>
                   )}
-                </SheetTitle>
+                </DialogTitle>
                 <p className="text-sm text-muted-foreground">
                   {ficha.persona.edad !== null ? `${ficha.persona.edad} años` : 'Edad no registrada'}
                   {ficha.casa_de_paz && ` · ${ficha.casa_de_paz.etiqueta}${ficha.casa_de_paz.red_nombre ? ` (${ficha.casa_de_paz.red_nombre})` : ''}`}
                 </p>
-              </SheetHeader>
+              </DialogHeader>
 
-              <div className="flex flex-col gap-4 px-4 pb-6">
-                <div className="flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-muted/20 p-3.5">
-                  <FilaDato icon={IdCard} label="CI" valor={ficha.persona.ci} />
-                  <FilaDato icon={Phone} label="Teléfono" valor={telefonoPrincipal} />
-                  <FilaDato icon={Mail} label="Correo" valor={ficha.persona.correo} />
+              {puedeEditar && (
+                <div className="flex flex-wrap gap-2 border-b border-border/60 pb-4">
+                  {modoEdicion ? (
+                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setModoEdicion(false)}>
+                      <X className="h-3.5 w-3.5" />
+                      Cancelar edición
+                    </Button>
+                  ) : (
+                    <Button type="button" size="sm" className="gap-1.5" onClick={() => setModoEdicion(true)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
+                  )}
+                  {ficha.casa_de_paz && (
+                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarMoverRed(true)}>
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                      Cambiar de Red
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={toggleOculto.isPending} onClick={manejarToggleOculto}>
+                    {ficha.persona.oculto ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    {ficha.persona.oculto ? 'Quitar de ocultas' : 'Ocultar de búsquedas'}
+                  </Button>
                 </div>
+              )}
 
-                {ficha.cargos.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {ficha.cargos.map((c, i) => (
-                      <Badge key={i} variant="secondary">
-                        {c.cargo_nombre} — {c.entidad}
-                      </Badge>
-                    ))}
-                  </div>
+              <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                {ficha.evangelismo && (
+                  <Card className="rounded-2xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Evangelismo</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FichaEvangelismo evangelismo={ficha.evangelismo} />
+                    </CardContent>
+                  </Card>
                 )}
 
-                <Button type="button" className="w-full gap-1.5" onClick={() => setExtendidoAbierto(true)}>
-                  <Maximize2 className="h-4 w-4" />
-                  Ver ficha completa
-                </Button>
+                {ficha.cargos.length > 0 && (
+                  <Card className="rounded-2xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Cargos vigentes</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      {ficha.cargos.map((c, i) => (
+                        <Badge key={i} variant="secondary">
+                          {c.cargo_nombre} — {c.entidad}
+                        </Badge>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Identidad y censo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaIdentidad key={modoEdicion ? 'edit' : 'view'} ref={identidadRef} personaId={ficha.persona.id} ficha={ficha} puedeEditar={editando} />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Direcciones</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaDirecciones
+                      key={modoEdicion ? 'edit' : 'view'}
+                      personaId={ficha.persona.id}
+                      iglesiaId={ficha.persona.iglesia_id}
+                      direcciones={ficha.direcciones}
+                      puedeEditar={editando}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Teléfonos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaTelefonos
+                      key={modoEdicion ? 'edit' : 'view'}
+                      personaId={ficha.persona.id}
+                      iglesiaId={ficha.persona.iglesia_id}
+                      telefonos={ficha.telefonos}
+                      puedeEditar={editando}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Llegada a la iglesia</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaLlegada
+                      key={modoEdicion ? 'edit' : 'view'}
+                      personaId={ficha.persona.id}
+                      iglesiaId={ficha.persona.iglesia_id}
+                      llegadas={ficha.llegadas}
+                      puedeEditar={editando}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Familia</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaFamilia
+                      key={modoEdicion ? 'edit' : 'view'}
+                      personaId={ficha.persona.id}
+                      iglesiaId={ficha.persona.iglesia_id}
+                      ficha={ficha}
+                      puedeEditar={editando}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Ministerios</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaMinisterios
+                      key={modoEdicion ? 'edit' : 'view'}
+                      personaId={ficha.persona.id}
+                      iglesiaId={ficha.persona.iglesia_id}
+                      ministerios={ficha.ministerios ?? []}
+                      puedeEditar={editando}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Milagros</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FichaMilagros key={modoEdicion ? 'edit' : 'view'} personaId={ficha.persona.id} milagros={ficha.milagros ?? []} puedeEditar={editando} />
+                  </CardContent>
+                </Card>
               </div>
+
+              {editando && (
+                <div className="sticky bottom-0 -mx-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+                  <Button type="button" onClick={() => setMostrarConfirmar(true)} className="w-full sm:w-fit">
+                    Guardar cambios
+                  </Button>
+                </div>
+              )}
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {ficha && (
-        <>
-          <FichaPersonaExtendida
-            ficha={ficha}
-            puedeEditar={puedeEditar}
-            open={extendidoAbierto}
-            onOpenChange={(open) => {
-              setExtendidoAbierto(open);
-              if (!open) onOpenChange(false);
-            }}
-            onEditar={() => setEditorAbierto(true)}
-            onToggleOculto={manejarToggleOculto}
-            ocultando={toggleOculto.isPending}
-            onCambiarRed={ficha.casa_de_paz ? () => setMostrarMoverRed(true) : undefined}
-          />
-
-          <FichaPersonaEditorSheet ficha={ficha} puedeEditar={puedeEditar} open={editorAbierto} onOpenChange={setEditorAbierto} />
-
-          <MoverPersonaRedDialog
-            open={mostrarMoverRed}
-            onOpenChange={setMostrarMoverRed}
-            iglesiaId={ficha.persona.iglesia_id}
-            personaNombre={ficha.persona.nombre_completo}
-            redOrigenId={ficha.casa_de_paz?.red_id ?? null}
-            cargosOrigen={cargosOrigen}
-            procesando={moverRed.isPending}
-            onMover={manejarMover}
-          />
-        </>
+        <MoverPersonaRedDialog
+          open={mostrarMoverRed}
+          onOpenChange={setMostrarMoverRed}
+          iglesiaId={ficha.persona.iglesia_id}
+          personaNombre={ficha.persona.nombre_completo}
+          redOrigenId={ficha.casa_de_paz?.red_id ?? null}
+          cargosOrigen={cargosOrigen}
+          procesando={moverRed.isPending}
+          onMover={manejarMover}
+        />
       )}
+
+      <Dialog open={mostrarConfirmar} onOpenChange={(o) => !guardando && setMostrarConfirmar(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Guardar cambios</DialogTitle>
+            <DialogDescription>¿Estás seguro de que querés guardar estos cambios?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMostrarConfirmar(false)} disabled={guardando}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void confirmarGuardar()} disabled={guardando}>
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

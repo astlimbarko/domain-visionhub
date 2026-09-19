@@ -24,7 +24,7 @@ interface Props {
   puedeEditar: boolean;
 }
 
-/** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaEditorSheet
+/** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaSheet
  * (pedido del owner: se veía "en el medio" de la hoja) -- este handle expone
  * la acción para que el pie lo dispare sin que FichaIdentidad renderice su
  * propio botón. */
