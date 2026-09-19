@@ -175,7 +175,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
 
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
                 {ficha.evangelismo && (
-                  <Card className="rounded-2xl">
+                  <Card className="rounded-2xl shrink-0">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Evangelismo</CardTitle>
                     </CardHeader>
@@ -186,7 +186,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                 )}
 
                 {ficha.cargos.length > 0 && (
-                  <Card className="rounded-2xl">
+                  <Card className="rounded-2xl shrink-0">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm">Cargos vigentes</CardTitle>
                     </CardHeader>
@@ -200,7 +200,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </Card>
                 )}
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Identidad y censo</CardTitle>
                   </CardHeader>
@@ -209,7 +209,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Direcciones</CardTitle>
                   </CardHeader>
@@ -224,7 +224,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Teléfonos</CardTitle>
                   </CardHeader>
@@ -239,7 +239,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Llegada a la iglesia</CardTitle>
                   </CardHeader>
@@ -254,7 +254,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Familia</CardTitle>
                   </CardHeader>
@@ -269,7 +269,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Ministerios</CardTitle>
                   </CardHeader>
@@ -284,7 +284,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl">
+                <Card className="rounded-2xl shrink-0">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Milagros</CardTitle>
                   </CardHeader>
