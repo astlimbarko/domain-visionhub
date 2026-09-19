@@ -6,3 +6,5 @@
 - [x] KAN-403: bug real encontrado y corregido antes de probar -- la primera versión del paginado montaba `FichaIdentidad` 2 veces (una por página), cada una con su propio formulario aislado; el guardado solo veía la mitad de los datos. Corregido a una sola instancia compartida
 - [x] KAN-403: verificado en vivo extremo a extremo (editar un campo, navegar entre páginas sin perderlo, Actualizar, confirmar que persiste de verdad, revertir el dato de prueba) + capturas reales en desktop/móvil
 - [x] KAN-403: PR #89 creado (https://github.com/astlimbarko/domain-visionhub/pull/89), sin mergear todavía
+- [x] KAN-403: corregida la simplificación de filtros de Membresía -- el owner aclaró que el pedido era sacar solo Nuevos Convertidos/Reconciliados (son de Evangelismo), no todos los chips. Restaurados Por URL/Formulario, Simpatizantes/Creyentes, Con profesión, estado civil, Bautizados
+- [ ] KAN-404 creado (en cola, sin implementar): falta scroll horizontal también arriba de la tabla de Membresía, no solo abajo
