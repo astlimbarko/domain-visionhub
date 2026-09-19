@@ -14,6 +14,7 @@
 //   oculta (redundante o no soportado a nivel CdP), el filtro queda fijo a
 //   esa CdP.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDown,
   ArrowUp,
@@ -53,6 +54,7 @@ import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirma
 import { buscarMembresiaAfirmacion, type CumpleanosPeriodo, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
 import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { obtenerFicha } from '@/services/persona.service';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import { OPCIONES_EFESIO, OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
 import type { MembresiaResultadoBusqueda } from '@/types/persona.types';
@@ -326,6 +328,7 @@ interface Props {
 
 export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, iglesiaNombre, titulo = 'Membresía', descripcion }: Props) {
   const scoped = !!casaDePazId;
+  const queryClient = useQueryClient();
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
@@ -451,6 +454,18 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       if (actual?.columna !== columna) return { columna, direccion: 'asc' };
       return { columna, direccion: actual.direccion === 'asc' ? 'desc' : 'asc' };
     });
+  }
+
+  // KAN-403: el modal de ficha ya está montado siempre (React Query lo
+  // muestra desde caché al instante en reaperturas) -- la demora real que
+  // sentía el owner es el PRIMER fetch de cada persona nueva (un round-trip
+  // real de red, no optimizable de raíz). Precargar el modal vacío al
+  // cargar la página no ayuda porque no se sabe a quién van a abrir; en
+  // cambio, adelantar el fetch apenas el mouse entra a la fila (antes del
+  // clic real) hace que el dato ya esté en caché cuando de verdad hacen
+  // clic, sin tocar el mecanismo de carga del modal.
+  function precargarFicha(personaId: string) {
+    void queryClient.prefetchQuery({ queryKey: ['personas', 'ficha', personaId], queryFn: () => obtenerFicha(personaId) });
   }
 
   async function exportarCsv() {
@@ -837,6 +852,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       <tr
                         key={p.id}
                         onClick={() => setPersonaSeleccionadaId(p.id)}
+                        onMouseEnter={() => precargarFicha(p.id)}
                         className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
                       >
                         <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
