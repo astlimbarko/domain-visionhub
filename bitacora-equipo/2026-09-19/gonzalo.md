@@ -7,5 +7,8 @@
 - [x] KAN-403: verificado en vivo extremo a extremo (editar un campo, navegar entre páginas sin perderlo, Actualizar, confirmar que persiste de verdad, revertir el dato de prueba) + capturas reales en desktop/móvil
 - [x] KAN-403: PR #89 creado (https://github.com/astlimbarko/domain-visionhub/pull/89), sin mergear todavía
 - [x] KAN-403: corregida la simplificación de filtros de Membresía -- el owner aclaró que el pedido era sacar solo Nuevos Convertidos/Reconciliados (son de Evangelismo), no todos los chips. Restaurados Por URL/Formulario, Simpatizantes/Creyentes, Con profesión, estado civil, Bautizados
-- [ ] KAN-404 creado (en cola, sin implementar): falta scroll horizontal también arriba de la tabla de Membresía, no solo abajo
 - [x] KAN-403: entrada en /avances aplicada a la base real (EN_CURSO, se pasa a TERMINADO cuando se despliegue) -- el owner preguntó si ya estaba hecho, no lo estaba, se creó y aplicó en el momento
+- [x] Ícono personalizado de torta (SVG del owner) en la columna Cumpleaños de Membresía, reemplaza el ícono genérico de antes
+- [x] KAN-402 seguimiento: bug del cuadro gris del anuncio "volvió" -- causa real: la rama de KAN-403 se creó antes de que el fix de KAN-402 llegara a master (nunca se mergeó), el código viejo seguía ahí. Reaplicado el mismo fix, ya verificado antes
+- [x] KAN-404 implementado (ya no queda en cola): scroll horizontal también arriba de la tabla de Membresía, sincronizado con el de abajo -- verificado en vivo en ambas direcciones
+- [x] Encabezado de la columna Cumpleaños pasa a 2 filas: "Cumpleaños" fijo arriba, el período (Todos/Día/Semana/Mes) abajo con estilo distinto -- antes el valor seleccionado reemplazaba la palabra "Cumpleaños"
