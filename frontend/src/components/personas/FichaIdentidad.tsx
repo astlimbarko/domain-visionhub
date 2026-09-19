@@ -114,6 +114,11 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onBlur={(e) => setForm((f) => ({ ...f, segundoApellido: normalizarNombre(e.target.value) }))}
           />
         </Campo>
+        {/* Pares pensados por longitud de contenido, no por orden alfabético
+            del censo original -- campos cortos (Sexo/CI) juntos, campos
+            medios (fecha/correo) juntos, así ninguna columna queda con
+            mucho espacio vacío al lado de un campo largo (pedido explícito
+            del owner, KAN-403 seguimiento 2026-09-18). */}
         <Campo label="Sexo *">
           <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditar}>
             <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
@@ -125,6 +130,14 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             </SelectContent>
           </Select>
         </Campo>
+        <Campo label="Carnet de identidad">
+          <Input
+            className={cn(puedeEditar && CAMPO_ESTILO)}
+            value={form.ci}
+            disabled={!puedeEditar}
+            onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))}
+          />
+        </Campo>
         <Campo label="Fecha de nacimiento">
           <Input
             type="date"
@@ -133,14 +146,6 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             max={new Date().toISOString().slice(0, 10)}
             disabled={!puedeEditar}
             onChange={(e) => setForm((f) => ({ ...f, fechaNacimiento: e.target.value }))}
-          />
-        </Campo>
-        <Campo label="Carnet de identidad">
-          <Input
-            className={cn(puedeEditar && CAMPO_ESTILO)}
-            value={form.ci}
-            disabled={!puedeEditar}
-            onChange={(e) => setForm((f) => ({ ...f, ci: e.target.value }))}
           />
         </Campo>
         <Campo label="Correo">
@@ -224,13 +229,16 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             onChange={(e) => setForm((f) => ({ ...f, fechaRetiro: e.target.value }))}
           />
         </Campo>
-        <Campo label="Nivel de discipulado completado">
+        {/* Sola en su fila a propósito -- las opciones de este Select son
+            las más largas de toda la sección, se ven apretadas a media
+            columna. */}
+        <Campo label="Nivel de discipulado completado" className="sm:col-span-2">
           <Select
             value={form.discipuladoNivel}
             onValueChange={(v) => setForm((f) => ({ ...f, discipuladoNivel: v as DiscipuladoNivel }))}
             disabled={!puedeEditar}
           >
-            <SelectTrigger className={cn(puedeEditar && CAMPO_ESTILO)}>
+            <SelectTrigger className={cn('sm:max-w-sm', puedeEditar && CAMPO_ESTILO)}>
               <SelectValue placeholder="Sin especificar" />
             </SelectTrigger>
             <SelectContent>
@@ -279,9 +287,9 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
   );
 });
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+function Campo({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn('flex flex-col gap-1.5', className)}>
       <Label>{label}</Label>
       {children}
     </div>

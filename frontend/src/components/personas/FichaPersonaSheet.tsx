@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Eye, EyeOff, Pencil, X } from 'lucide-react';
+import { ArrowRightLeft, Eye, EyeOff, Pencil, TriangleAlert, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
@@ -23,6 +24,17 @@ interface Props {
   personaId: string | undefined;
   onOpenChange: (open: boolean) => void;
 }
+
+/** Rojo fuerte a propósito (pedido explícito del owner, KAN-403 seguimiento
+ * 2026-09-18) para "Editar"/"Guardar cambios" -- refuerza que tocar estos
+ * datos es una acción que pesa, no un botón más. Nota: esto se aparta a
+ * propósito de la convención general del proyecto ("destructive es solo
+ * para errores reales", ver frontend-style skill) -- acá se usa el mismo
+ * tono para señalizar "cuidado, estás por cambiar datos reales de una
+ * persona", pedido puntual del owner para esta pantalla, no un cambio de
+ * la convención global. */
+const BOTON_ROJO_FUERTE =
+  'border-transparent bg-destructive text-white shadow-sm shadow-destructive/20 hover:bg-destructive/90 hover:shadow-md hover:shadow-destructive/25';
 
 /** El código de regla va antes de ": " en el mensaje del backend (RAISE
  * EXCEPTION 'CODIGO: texto legible'). El texto que sigue ya es español
@@ -57,6 +69,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const moverRed = useMoverPersonaRed(personaId ?? '');
   const [mostrarMoverRed, setMostrarMoverRed] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [mostrarAdvertenciaEditar, setMostrarAdvertenciaEditar] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const identidadRef = useRef<FichaIdentidadHandle>(null);
@@ -155,7 +168,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                       Cancelar edición
                     </Button>
                   ) : (
-                    <Button type="button" size="sm" className="gap-1.5" onClick={() => setModoEdicion(true)}>
+                    <Button type="button" size="sm" className={cn('gap-1.5', BOTON_ROJO_FUERTE)} onClick={() => setMostrarAdvertenciaEditar(true)}>
                       <Pencil className="h-3.5 w-3.5" />
                       Editar
                     </Button>
@@ -296,7 +309,7 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
 
               {editando && (
                 <div className="sticky bottom-0 -mx-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
-                  <Button type="button" onClick={() => setMostrarConfirmar(true)} className="w-full sm:w-fit">
+                  <Button type="button" onClick={() => setMostrarConfirmar(true)} className={cn('w-full sm:w-fit', BOTON_ROJO_FUERTE)}>
                     Guardar cambios
                   </Button>
                 </div>
@@ -329,8 +342,38 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
             <Button type="button" variant="outline" onClick={() => setMostrarConfirmar(false)} disabled={guardando}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void confirmarGuardar()} disabled={guardando}>
+            <Button type="button" className={BOTON_ROJO_FUERTE} onClick={() => void confirmarGuardar()} disabled={guardando}>
               {guardando ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mostrarAdvertenciaEditar} onOpenChange={setMostrarAdvertenciaEditar}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <TriangleAlert className="h-5 w-5" />
+              Vas a editar datos reales
+            </DialogTitle>
+            <DialogDescription>
+              Estás por modificar la información de <strong>{ficha?.persona.nombre_completo}</strong>. Sos responsable de que
+              los datos que cambies sean correctos -- una vez guardados, reemplazan a los actuales.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMostrarAdvertenciaEditar(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className={BOTON_ROJO_FUERTE}
+              onClick={() => {
+                setModoEdicion(true);
+                setMostrarAdvertenciaEditar(false);
+              }}
+            >
+              Entiendo, editar
             </Button>
           </DialogFooter>
         </DialogContent>
