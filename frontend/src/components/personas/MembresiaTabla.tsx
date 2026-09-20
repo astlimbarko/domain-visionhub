@@ -20,6 +20,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Briefcase,
+  Cake,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -43,7 +44,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AZUL, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
@@ -356,11 +357,13 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
-  // KAN-401: arranca en SEMANA por defecto (pedido explícito del owner) --
-  // a diferencia de Red/CdP/Estado, el valor inicial no es "todos". Igual
-  // se puede volver a "todos" desde el propio select (mismo patrón que las
-  // otras columnas), por si alguien quiere ver a todo el mundo de nuevo.
-  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS>('SEMANA');
+  // KAN-401 seguimiento (2026-09-19, el owner revirtió su propia decisión
+  // anterior al verla en vivo): arranca en "todos" como el resto de los
+  // filtros de columna (Red/CdP/Estado) -- entrar a Afirmación/Membresía ya
+  // filtrado por defecto (antes: solo quien cumple esta semana) dejaba a la
+  // vista una sola persona la mayoría de las veces, sin que se notara que
+  // había un filtro activo.
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS>(TODOS_LOS_CUMPLEANOS);
   // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
   // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
   const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
@@ -756,10 +759,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                 {texto.trim()
                   ? 'Sin resultados para esa búsqueda.'
                   : !sinFiltros
-                    ? // KAN-401: con el filtro de cumpleaños activo por defecto (Semana),
-                      // "0 resultados" pasó de ser un caso raro a uno común -- el mensaje
-                      // de "todavía no tiene miembros" quedaba engañoso (la CdP/iglesia sí
-                      // tiene gente, solo que ninguno cumple años en el período elegido).
+                    ? // KAN-401: cualquier combinación de filtros (incluido el de
+                      // cumpleaños) puede dar 0 resultados -- el mensaje de "todavía
+                      // no tiene miembros" quedaba engañoso en ese caso (la CdP/
+                      // iglesia sí tiene gente, ninguno coincide con lo filtrado).
                       'Nadie coincide con los filtros aplicados.'
                     : scoped
                       ? 'Esta Casa de Paz todavía no tiene miembros registrados.'
@@ -931,15 +934,16 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-white"
+                                    style={{ backgroundColor: MORADO }}
                                     onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
-                                    {/* Ícono personalizado del owner (2026-09-19), reemplaza el
-                                        CakeSlice de lucide-react -- ya trae su propio círculo/
-                                        color, no necesita el halo color-mix que sí hacía falta
-                                        con el ícono de línea anterior. */}
-                                    <img src="/icono-cumpleanos.svg" alt="" className="h-6 w-6" />
+                                    {/* Mismo ícono/color que el badge de cumpleaños del calendario
+                                        de Casas de Paz (CalendarioGrid.tsx) -- pedido explícito del
+                                        owner (2026-09-19), reusar en vez del SVG a medida que se
+                                        había puesto antes. */}
+                                    <Cake className="h-3.5 w-3.5" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
