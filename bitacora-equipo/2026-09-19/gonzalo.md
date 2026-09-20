@@ -12,3 +12,6 @@
 - [x] KAN-402 seguimiento: bug del cuadro gris del anuncio "volvió" -- causa real: la rama de KAN-403 se creó antes de que el fix de KAN-402 llegara a master (nunca se mergeó), el código viejo seguía ahí. Reaplicado el mismo fix, ya verificado antes
 - [x] KAN-404 implementado (ya no queda en cola): scroll horizontal también arriba de la tabla de Membresía, sincronizado con el de abajo -- verificado en vivo en ambas direcciones
 - [x] Encabezado de la columna Cumpleaños pasa a 2 filas: "Cumpleaños" fijo arriba, el período (Todos/Día/Semana/Mes) abajo con estilo distinto -- antes el valor seleccionado reemplazaba la palabra "Cumpleaños"
+- [x] Ícono de torta del SVG personalizado reemplazado por el mismo ícono (Cake de lucide-react + morado) que ya usa el calendario de Casas de Paz -- pedido explícito del owner, consistencia entre las 2 pantallas
+- [x] Filtro de Cumpleaños ya no arranca en "Semana" -- vuelve a "todos" (el owner revirtió su propia decisión anterior al verla en vivo, dejaba una sola persona filtrada sin que se notara)
+- [ ] Este último bloque (ícono + filtro) quedó SIN verificar en vivo -- ni Playwright ni la extensión de Chrome respondieron en esta sesión. tsc/lint limpios, mismo patrón que CalendarioGrid.tsx, pero falta confirmación visual
