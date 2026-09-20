@@ -65,7 +65,6 @@ const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_ESTADOS = '__todos__';
-const TODOS_LOS_CUMPLEANOS = '__todos__';
 
 const SELECT_ENCABEZADO =
   'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
@@ -357,13 +356,12 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
-  // KAN-401 seguimiento (2026-09-19, el owner revirtió su propia decisión
-  // anterior al verla en vivo): arranca en "todos" como el resto de los
-  // filtros de columna (Red/CdP/Estado) -- entrar a Afirmación/Membresía ya
-  // filtrado por defecto (antes: solo quien cumple esta semana) dejaba a la
-  // vista una sola persona la mayoría de las veces, sin que se notara que
-  // había un filtro activo.
-  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS>(TODOS_LOS_CUMPLEANOS);
+  // KAN-401 seguimiento (2026-09-19, pedido explícito del owner): a
+  // diferencia de Red/CdP/Estado, este filtro NO tiene opción "todos" --
+  // conceptualmente no tiene sentido ("cumpleaños de todo el año" no es un
+  // filtro útil en una columna pensada para avisar quién cumple pronto).
+  // Siempre hay un período activo (Día/Semana/Mes), arranca en Semana.
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo>('SEMANA');
   // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
   // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
   const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
@@ -419,7 +417,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesion: conProfesionFiltro,
       estadoCivil: estadoCivilFiltro,
       bautizado: bautizadoFiltro,
-      cumpleanosPeriodo: cumpleanosFiltro === TODOS_LOS_CUMPLEANOS ? undefined : cumpleanosFiltro,
+      cumpleanosPeriodo: cumpleanosFiltro,
     }),
     [
       redIdFiltro,
@@ -443,7 +441,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !viaFiltro &&
     !conProfesionFiltro &&
     !estadoCivilFiltro &&
-    cumpleanosFiltro === TODOS_LOS_CUMPLEANOS &&
     !bautizadoFiltro;
 
   function limpiarFiltros() {
@@ -455,7 +452,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
-    setCumpleanosFiltro(TODOS_LOS_CUMPLEANOS);
+    // El filtro de cumpleaños no tiene "sin filtrar" -- "limpiar" lo vuelve
+    // a su default (Semana), no lo apaga.
+    setCumpleanosFiltro('SEMANA');
   }
 
   function alternarEstadoPorSigla(sigla: string) {
@@ -534,7 +533,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
-    cumpleanosFiltro !== TODOS_LOS_CUMPLEANOS && CUMPLEANOS_LABEL[cumpleanosFiltro],
+    CUMPLEANOS_LABEL[cumpleanosFiltro],
   ]
     .filter(Boolean)
     .join(' · ');
@@ -804,15 +803,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                     <th className="px-2 py-2">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
-                        <Select
-                          value={cumpleanosFiltro}
-                          onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS)}
-                        >
+                        <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo)}>
                           <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-start')}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={TODOS_LOS_CUMPLEANOS}>Todos</SelectItem>
                             <SelectItem value="DIA">Día</SelectItem>
                             <SelectItem value="SEMANA">Semana</SelectItem>
                             <SelectItem value="MES">Mes</SelectItem>

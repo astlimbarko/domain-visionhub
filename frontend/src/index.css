@@ -153,6 +153,18 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
   }
+
+  /* Bug real (2026-09-19): al abrir cualquier Select/Dialog de Radix, su
+     mecanismo de scroll-lock mide el ancho de la scrollbar y le mete
+     `margin-right` a `<body>` para compensarla -- pero acá la scrollbar
+     vive en `<html>` (fix de arriba), nunca en `<body>`, así que esa
+     compensación no tiene nada que compensar y el layout se corría ~10px
+     cada vez que se abría un dropdown (ej. filtros de la tabla de
+     Membresía). Anulado explícitamente porque `scrollbar-gutter: stable`
+     en `html` ya reserva ese espacio siempre. */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
 }
 
 /* LogoSpinner (components/ui/logo-spinner.tsx) -- sonar minimalista: el sello
