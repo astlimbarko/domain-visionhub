@@ -357,11 +357,12 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
   // KAN-401 seguimiento (2026-09-19, pedido explícito del owner): a
-  // diferencia de Red/CdP/Estado, este filtro NO tiene opción "todos" --
-  // conceptualmente no tiene sentido ("cumpleaños de todo el año" no es un
-  // filtro útil en una columna pensada para avisar quién cumple pronto).
-  // Siempre hay un período activo (Día/Semana/Mes), arranca en Semana.
-  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo>('SEMANA');
+  // diferencia de Red/CdP/Estado, este filtro NO tiene una opción "todos"
+  // en la lista -- "cumpleaños de todo el año" no tiene sentido como
+  // filtro útil acá. Pero sí arranca SIN filtrar (undefined, sin período
+  // elegido) para no ocultar de entrada a la mayoría de las personas --
+  // recién filtra cuando el usuario elige Día/Semana/Mes a propósito.
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | undefined>(undefined);
   // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
   // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
   const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
@@ -441,7 +442,8 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !viaFiltro &&
     !conProfesionFiltro &&
     !estadoCivilFiltro &&
-    !bautizadoFiltro;
+    !bautizadoFiltro &&
+    !cumpleanosFiltro;
 
   function limpiarFiltros() {
     setRedId(TODAS_LAS_REDES);
@@ -452,9 +454,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
-    // El filtro de cumpleaños no tiene "sin filtrar" -- "limpiar" lo vuelve
-    // a su default (Semana), no lo apaga.
-    setCumpleanosFiltro('SEMANA');
+    setCumpleanosFiltro(undefined);
   }
 
   function alternarEstadoPorSigla(sigla: string) {
@@ -533,7 +533,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
-    CUMPLEANOS_LABEL[cumpleanosFiltro],
+    cumpleanosFiltro && CUMPLEANOS_LABEL[cumpleanosFiltro],
   ]
     .filter(Boolean)
     .join(' · ');
@@ -801,11 +801,14 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       Edad
                     </EncabezadoOrdenable>
                     <th className="px-2 py-2">
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col items-center gap-0.5">
                         <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
-                        <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo)}>
-                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-start')}>
-                            <SelectValue />
+                        <Select
+                          value={cumpleanosFiltro ?? ''}
+                          onValueChange={(v) => setCumpleanosFiltro(v ? (v as CumpleanosPeriodo) : undefined)}
+                        >
+                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-center')}>
+                            <SelectValue placeholder="Período" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="DIA">Día</SelectItem>
@@ -929,16 +932,15 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-white"
-                                    style={{ backgroundColor: MORADO }}
+                                    className="inline-flex h-6 w-6 items-center justify-center"
                                     onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
-                                    {/* Mismo ícono/color que el badge de cumpleaños del calendario
-                                        de Casas de Paz (CalendarioGrid.tsx) -- pedido explícito del
-                                        owner (2026-09-19), reusar en vez del SVG a medida que se
-                                        había puesto antes. */}
-                                    <Cake className="h-3.5 w-3.5" />
+                                    {/* Mismo ícono que el badge de cumpleaños del calendario de
+                                        Casas de Paz (CalendarioGrid.tsx). Sin círculo ni relleno
+                                        (pedido explícito del owner, 2026-09-19): solo el dibujo en
+                                        líneas moradas, no un badge sólido. */}
+                                    <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
