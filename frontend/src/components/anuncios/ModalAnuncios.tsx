@@ -20,7 +20,7 @@
 // -- ahora se muestra siempre al ingresar, "son anuncios de inicio de
 // sesion", por delante del formulario de membresia si tambien aplica. Zoom
 // (rueda del mouse, pellizco tactil, doble clic/toque) via ImagenAnuncioZoom.
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { ImageOff, XIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
@@ -48,11 +48,39 @@ export function ModalAnuncios() {
   // sin este aviso se veia como un modal roto en vez de "algo fallo".
   const { data: imagenUrl, isLoading: cargandoImagen, isError: fallaImagen } = useUrlAnuncio(anuncioActual?.imagen_path);
 
+  // Bug real (2026-09-20, hallazgo del owner): tener la URL firmada
+  // (cargandoImagen=false) no significa que el navegador ya bajó los
+  // píxeles de la imagen -- ImagenAnuncioZoom hace su propio fetch interno
+  // (useTamanioNatural) recién cuando el Dialog ya está montado, así que el
+  // fondo oscuro/difuminado (DialogOverlay) aparecía y animaba ANTES que la
+  // imagen misma, dando la sensación de "carga y espera". Se precarga acá
+  // la imagen real (mismo patrón que useTamanioNatural) para que el modal
+  // completo -- fondo e imagen -- aparezca en el mismo instante. El segundo
+  // fetch que hace ImagenAnuncioZoom sale de la caché del navegador, no
+  // pega otra vez a la red.
+  const [imagenPrecargada, setImagenPrecargada] = useState(false);
+  useEffect(() => {
+    setImagenPrecargada(false);
+    if (!imagenUrl) return;
+    let vigente = true;
+    const img = new Image();
+    const listo = () => {
+      if (vigente) setImagenPrecargada(true);
+    };
+    img.onload = listo;
+    img.onerror = listo; // fail-open: si la imagen falla, que abra igual -- ImagenAnuncioZoom muestra su propio aviso de error, no hay que bloquear el modal por eso.
+    img.src = imagenUrl;
+    return () => {
+      vigente = false;
+    };
+  }, [imagenUrl]);
+
   // Precarga silenciosa (2026-09-09, pedido explicito del owner): el modal no
   // se monta (ni el fondo oscuro) hasta que la imagen ya esta lista -- nada
   // de spinner mientras carga, aparece directamente completo. Si falla
   // (fallaImagen), ahi si se muestra para no perder el aviso.
   if (!anuncioActual || cargandoImagen) return null;
+  if (imagenUrl && !fallaImagen && !imagenPrecargada) return null;
 
   const esVertical = anuncioActual.imagen_orientacion === 'VERTICAL';
 
