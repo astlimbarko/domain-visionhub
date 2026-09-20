@@ -217,20 +217,26 @@ function KpiChipFiltro({
     <button
       type="button"
       onClick={onClick}
-      style={activo ? { boxShadow: `0 0 0 2px ${color}` } : undefined}
+      style={activo ? { backgroundColor: color } : undefined}
       className={cn(
-        'flex shrink-0 items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-        activo ? 'border-transparent' : 'border-border/60 hover:border-border'
+        'flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+        activo ? 'border-transparent' : 'border-border/60 bg-card hover:border-border'
       )}
     >
       <span
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-        style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
+        style={
+          activo
+            ? { background: 'rgb(255 255 255 / 25%)', color: '#fff' }
+            : { background: `color-mix(in oklab, ${color} 14%, transparent)`, color }
+        }
       >
         {cargando ? <Spinner className="h-3 w-3" /> : <Icon className="h-3 w-3" strokeWidth={2.4} />}
       </span>
-      <span className="text-[13px] leading-none font-bold tabular-nums text-foreground">{children}</span>
-      <span className="text-[11px] leading-none font-medium whitespace-nowrap text-muted-foreground">{label}</span>
+      <span className={cn('text-[13px] leading-none font-bold tabular-nums', activo ? 'text-white' : 'text-foreground')}>{children}</span>
+      <span className={cn('text-[11px] leading-none font-medium whitespace-nowrap', activo ? 'text-white/90' : 'text-muted-foreground')}>
+        {label}
+      </span>
     </button>
   );
 }
