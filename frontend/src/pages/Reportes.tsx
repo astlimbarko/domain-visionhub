@@ -500,11 +500,17 @@ export function Reportes() {
   // tilda solo para que la sección se despliegue y la persona sea visible.
   function agregarAsistenteNuevo(datos: DatosPersonaNueva) {
     const clave = crypto.randomUUID();
-    // Si no dio fecha de nacimiento, se asume que no es menor -- sin esto, el
-    // backend (fn_validar_asistencia) rechaza el reporte entero recién al
-    // enviarlo (ASISTENCIA_EDAD_INDEFINIDA), porque antes el checkbox "es
-    // menor" siempre mandaba un valor definido y ahora la fecha es opcional.
-    const esMenor = datos.fecha_nacimiento ? calcularEdad(datos.fecha_nacimiento) < edadMinima : false;
+    // Si no dio fecha de nacimiento, se usa la edad aproximada (KAN-406) si
+    // la hay -- si tampoco hay edad aproximada, se asume que no es menor. Sin
+    // esto, el backend (fn_validar_asistencia) rechaza el reporte entero
+    // recién al enviarlo (ASISTENCIA_EDAD_INDEFINIDA), porque antes el
+    // checkbox "es menor" siempre mandaba un valor definido y ahora la fecha
+    // es opcional.
+    const esMenor = datos.fecha_nacimiento
+      ? calcularEdad(datos.fecha_nacimiento) < edadMinima
+      : datos.edad_aproximada !== undefined
+        ? datos.edad_aproximada < edadMinima
+        : false;
     setVisitasNuevas((prev) => [
       ...prev,
       {
@@ -516,6 +522,7 @@ export function Reportes() {
         sexo: datos.sexo,
         es_menor: esMenor,
         fecha_nacimiento: datos.fecha_nacimiento,
+        edad_aproximada: datos.edad_aproximada,
         telefono: datos.telefono,
       },
     ]);

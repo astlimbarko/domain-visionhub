@@ -674,6 +674,10 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
             segundo_apellido: visita.segundo_apellido || null,
             sexo: visita.sexo,
             fecha_nacimiento: visita.fecha_nacimiento || null,
+            // KAN-406: edad aproximada cuando no se conoce fecha_nacimiento
+            // -- dato no confirmado, se guarda tal cual (nunca se deriva una
+            // fecha ficticia a partir de esto).
+            edad_aproximada: visita.edad_aproximada ?? null,
             // Visita de reporte: es un lead, no un miembro con membresía
             // completada. Sin este false toma el DEFAULT true y el trigger
             // fn_validar_campos_membresia_persona exige CI (rompía el reporte
@@ -994,6 +998,10 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
           segundo_apellido: visita.segundo_apellido || null,
           sexo: visita.sexo,
           fecha_nacimiento: visita.fecha_nacimiento || null,
+          // KAN-406: edad aproximada cuando no se conoce fecha_nacimiento --
+          // dato no confirmado, se guarda tal cual (nunca se deriva una
+          // fecha ficticia a partir de esto).
+          edad_aproximada: visita.edad_aproximada ?? null,
           membresia_completada: false,
         })
         .select('id')
