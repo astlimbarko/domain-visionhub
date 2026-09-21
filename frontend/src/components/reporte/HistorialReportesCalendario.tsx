@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, Sparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, PartyPopper, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { AZUL, VERDE } from '@/components/dashboard/DashboardUI';
+import { AZUL, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario, useReunionesNoRealizadas } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { rutaReporteEditar } from '@/utils/constants';
@@ -169,6 +169,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
         totalMenores: number;
         totalOfrendas: number;
         totalDiezmos: number;
+        /** KAN-409: reportado como Megafiesta -- indicador morado propio, distinto del verde normal. */
+        esMegafiesta: boolean;
       }
     >();
     for (const r of reportes) {
@@ -180,6 +182,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
         totalMenores: r.total_menores,
         totalOfrendas: r.total_ofrendas,
         totalDiezmos: r.total_diezmos,
+        esMegafiesta: r.es_megafiesta,
       });
     }
     return mapa;
@@ -288,6 +291,13 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CELESTE }} />
                 Reunión no realizada
+              </span>
+              {/* KAN-409: indicador propio para semanas reportadas como
+                  Megafiesta -- "hubo actividad, pero fue Megafiesta", no un
+                  nuevo estado de completitud (sigue siendo "entregado"). */}
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: MORADO }} />
+                Megafiesta
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/25" />
@@ -414,12 +424,19 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                 // mezclaba dos conceptos distintos bajo el mismo color.
                                 style={
                                   enviado
-                                    ? {
-                                        backgroundColor: editable ? VERDE : `color-mix(in oklab, ${VERDE} 55%, var(--muted-foreground))`,
-                                        boxShadow: editable
-                                          ? `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)`
-                                          : undefined,
-                                      }
+                                    ? reporteSemana?.esMegafiesta
+                                      ? {
+                                          backgroundColor: editable ? MORADO : `color-mix(in oklab, ${MORADO} 55%, var(--muted-foreground))`,
+                                          boxShadow: editable
+                                            ? `0 4px 10px -4px color-mix(in oklab, ${MORADO} 60%, transparent)`
+                                            : undefined,
+                                        }
+                                      : {
+                                          backgroundColor: editable ? VERDE : `color-mix(in oklab, ${VERDE} 55%, var(--muted-foreground))`,
+                                          boxShadow: editable
+                                            ? `0 4px 10px -4px color-mix(in oklab, ${VERDE} 60%, transparent)`
+                                            : undefined,
+                                        }
                                     : noRealizada
                                       ? { backgroundColor: CELESTE }
                                       : undefined
@@ -432,6 +449,12 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                               {enviado && reporteSemana ? (
                                 <div className="flex flex-col gap-[3px]">
                                   <p className="font-semibold">{conMayusInicial(fechaLegibleConDia(reporteSemana.fechaReunion))}</p>
+                                  {reporteSemana.esMegafiesta && (
+                                    <p className="flex items-center gap-1.5 font-medium" style={{ color: MORADO }}>
+                                      <PartyPopper className="h-3 w-3 shrink-0" />
+                                      Megafiesta de Casa de Paz
+                                    </p>
+                                  )}
                                   <p className="text-muted-foreground">Reporte cargado: {fechaLegible(aISO(new Date(reporteSemana.fechaCreacion)))}</p>
                                   <p className="text-muted-foreground">Adultos: {reporteSemana.totalMayores}</p>
                                   <p className="text-muted-foreground">Niños: {reporteSemana.totalMenores}</p>

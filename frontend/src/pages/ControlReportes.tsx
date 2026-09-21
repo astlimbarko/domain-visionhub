@@ -1,6 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { ControlReportesVista } from '@/components/reporte/ControlReportesVista';
+import { MegafiestasRedVista } from '@/components/reporte/MegafiestasRedVista';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 
 /**
@@ -29,5 +30,12 @@ export function ControlReportes() {
     );
   }
 
-  return <ControlReportesVista key={redActiva} redId={redActiva} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <ControlReportesVista key={redActiva} redId={redActiva} />
+      {/* KAN-409: consolidado de Megafiestas de la Red -- vive en la misma
+          área de Reportes del Líder de Red, debajo de Control de Reportes. */}
+      <MegafiestasRedVista key={`megafiestas-${redActiva}`} redId={redActiva} />
+    </div>
+  );
 }

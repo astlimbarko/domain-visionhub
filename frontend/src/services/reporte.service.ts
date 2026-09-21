@@ -8,17 +8,24 @@ import type {
   EstadoAsistenciaReunion,
   HistorialAsistencia,
   Libro,
-  MegaFiestaDelDia,
+  MegafiestaDesgloseFila,
+  MegafiestaDetalle,
+  MegafiestaRedResumen,
   MiembroCdp,
   NuevoReporte,
+  NuevoReporteMegafiesta,
   ReporteExistente,
   ReporteRedFila,
   ReporteReciente,
   ResultadoReporte,
+  ResultadoReporteMegafiesta,
   Tema,
   TemaConLibro,
   TestimonioCdp,
 } from '@/types/reporte.types';
+
+/** tipo_evento.codigo = 'MEGA_FIESTA' -- id fijo en la base (seed), confirmado por consulta directa. */
+const TIPO_EVENTO_MEGAFIESTA_ID = '58640324-aa09-4fb2-b581-ddf634c57c12';
 
 /**
  * Convierte la lista de diezmantes del formulario al payload `[{persona_id,
@@ -194,27 +201,250 @@ export async function obtenerCamposObligatorios(iglesiaId: string): Promise<Camp
   return data as CamposObligatoriosReporte;
 }
 
-export async function obtenerMegaFiestaDelDia(casaDePazId: string, fecha: string): Promise<MegaFiestaDelDia | null> {
-  const { data: cdr, error: errorRed } = await supabase
-    .from('casa_de_paz_red')
-    .select('red_id')
-    .eq('casa_de_paz_id', casaDePazId)
-    .is('fecha_fin', null)
-    .maybeSingle();
-  if (errorRed) throw errorRed;
-  if (!cdr) return null;
+/**
+ * KAN-409: reporte reducido de Megafiesta -- solo fecha + asistencia, sin
+ * tema/libro/disertador/evangelismo/finanzas/testimonio (esos se completan
+ * a nivel del consolidado, no por cada CdP -- ver actualizarDetalleMegafiesta).
+ * Busca o crea automáticamente el consolidado (evento tipo MEGA_FIESTA) de
+ * la Red+fecha vía RPC SECURITY DEFINER: el Líder de CdP normalmente no
+ * puede crear eventos de Red (RLS pol_evento_insert exige
+ * fn_es_lider_de_red), pero acá sí puede reportar una Megafiesta sin que el
+ * Líder de Red la haya programado antes (requisito explícito de KAN-409).
+ * El trigger fn_validar_reporte_megafiesta (ya existía) sigue validando
+ * server-side que el evento sea MEGA_FIESTA, de la misma fecha y de la
+ * misma Red que esta CdP -- no se duplica esa validación acá.
+ */
+export async function crearReporteMegafiesta(datos: NuevoReporteMegafiesta): Promise<ResultadoReporteMegafiesta> {
+  const { data: eventoMegafiestaId, error: errorEvento } = await supabase.rpc('fn_megafiesta_obtener_o_crear', {
+    p_casa_de_paz_id: datos.casa_de_paz_id,
+    p_fecha: datos.fecha_reunion,
+  });
+  if (errorEvento) throw errorEvento;
 
-  const { data, error } = await supabase
+  const { data: reporte, error: errorReporte } = await supabase
+    .from('casa_de_paz_reporte')
+    .insert({
+      iglesia_id: datos.iglesia_id,
+      casa_de_paz_id: datos.casa_de_paz_id,
+      fecha_reunion: datos.fecha_reunion,
+      evento_megafiesta_id: eventoMegafiestaId,
+      salio_evangelizar: false,
+    })
+    .select('id')
+    .single();
+  if (errorReporte) throw errorReporte;
+  const reporteId = reporte.id;
+
+  // Mismo patrón de reversión de mejor esfuerzo que crearReporte -- si la
+  // asistencia falla a mitad de camino, no debe quedar un reporte huérfano
+  // visible en Historial/Dashboard.
+  try {
+    const personaIds: { id: string; esMenor?: boolean; esVisita?: boolean }[] = datos.asistentesExistentes.map((a) => ({
+      id: a.personaId,
+      esMenor: a.esMenor,
+      esVisita: a.esVisita,
+    }));
+
+    const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
+    const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+
+    const nuevasPersonas = await Promise.all(
+      datos.visitasNuevas.map(async (visita) => {
+        const { data: persona, error: errorPersona } = await supabase
+          .from('persona')
+          .insert({
+            iglesia_id: datos.iglesia_id,
+            primer_nombre: visita.primer_nombre,
+            segundo_nombre: visita.segundo_nombre || null,
+            primer_apellido: visita.primer_apellido,
+            segundo_apellido: visita.segundo_apellido || null,
+            sexo: visita.sexo,
+            fecha_nacimiento: visita.fecha_nacimiento || null,
+            membresia_completada: false,
+          })
+          .select('id')
+          .single();
+        if (errorPersona) throw errorPersona;
+
+        if (visita.telefono?.trim() && tipoTelefonoId) {
+          await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
+        }
+
+        return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
+      })
+    );
+    personaIds.push(...nuevasPersonas);
+
+    if (personaIds.length > 0) {
+      const { error: errorAsistencia } = await supabase.from('casa_de_paz_asistencia').insert(
+        personaIds.map((p) => ({
+          iglesia_id: datos.iglesia_id,
+          reporte_id: reporteId,
+          persona_id: p.id,
+          es_menor: p.esMenor ?? null,
+          es_visita: p.esVisita ?? false,
+          confirmado_manualmente: true,
+        }))
+      );
+      if (errorAsistencia) throw errorAsistencia;
+    }
+
+    const { data: totales, error: errorTotales } = await supabase
+      .from('v_reporte_totales')
+      .select('total_menores, total_mayores, total_asistentes')
+      .eq('reporte_id', reporteId)
+      .single();
+    if (errorTotales) throw errorTotales;
+
+    try {
+      const { error: errorRecalculo } = await supabase.rpc('fn_recalcular_estados_cdp_reporte', { p_reporte_id: reporteId });
+      if (errorRecalculo) throw errorRecalculo;
+    } catch (e) {
+      console.error('No se pudo recalcular Simpatizante/Creyente', e);
+    }
+
+    return {
+      reporteId,
+      totalMenores: totales.total_menores,
+      totalMayores: totales.total_mayores,
+      totalAsistentes: totales.total_asistentes,
+      visitasNuevasCreadas: nuevasPersonas.map((p) => ({ clave: p.clave, personaId: p.id })),
+      eventoMegafiestaId,
+    };
+  } catch (e) {
+    try {
+      const { error: errorRevertir } = await supabase.rpc('fn_revertir_reporte_cdp', { p_reporte_id: reporteId });
+      if (errorRevertir) console.error('No se pudo revertir el reporte huérfano', errorRevertir);
+    } catch (revertError) {
+      console.error('No se pudo revertir el reporte huérfano', revertError);
+    }
+    throw e;
+  }
+}
+
+/**
+ * KAN-409: consolidados de Megafiesta (evento tipo MEGA_FIESTA) de una Red,
+ * con el total de asistentes ya sumado -- vista "Megafiestas de Casa de
+ * Paz" del Líder de Red. RLS ya limita a lo que el usuario puede ver
+ * (pol_evento_select vía fn_puede_ver_red).
+ */
+export async function obtenerMegafiestasRed(redId: string): Promise<MegafiestaRedResumen[]> {
+  const { data: eventos, error: errorEventos } = await supabase
     .from('evento')
-    .select('id, titulo, tipo_evento:tipo_evento_id(codigo)')
-    .eq('red_id', cdr.red_id)
-    .eq('fecha_inicio', fecha)
+    .select('id, titulo, fecha_inicio')
+    .eq('red_id', redId)
+    .eq('tipo_evento_id', TIPO_EVENTO_MEGAFIESTA_ID)
+    .is('fecha_eliminacion', null)
+    .order('fecha_inicio', { ascending: false });
+  if (errorEventos) throw errorEventos;
+  if (!eventos || eventos.length === 0) return [];
+
+  const eventoIds = eventos.map((e) => e.id);
+  const { data: reportes, error: errorReportes } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('id, evento_megafiesta_id')
+    .in('evento_megafiesta_id', eventoIds)
+    .is('fecha_eliminacion', null);
+  if (errorReportes) throw errorReportes;
+
+  const reporteIds = (reportes ?? []).map((r) => r.id);
+  const totalesPorReporte = new Map<string, number>();
+  if (reporteIds.length > 0) {
+    const { data: totales, error: errorTotales } = await supabase
+      .from('v_reporte_totales')
+      .select('reporte_id, total_asistentes')
+      .in('reporte_id', reporteIds);
+    if (errorTotales) throw errorTotales;
+    for (const t of totales ?? []) totalesPorReporte.set(t.reporte_id, t.total_asistentes);
+  }
+
+  const reportesPorEvento = new Map<string, string[]>();
+  for (const r of reportes ?? []) {
+    if (!r.evento_megafiesta_id) continue;
+    const lista = reportesPorEvento.get(r.evento_megafiesta_id) ?? [];
+    lista.push(r.id);
+    reportesPorEvento.set(r.evento_megafiesta_id, lista);
+  }
+
+  return eventos.map((e) => {
+    const reportesDeEsteEvento = reportesPorEvento.get(e.id) ?? [];
+    const totalAsistentes = reportesDeEsteEvento.reduce((suma, id) => suma + (totalesPorReporte.get(id) ?? 0), 0);
+    return {
+      evento_id: e.id,
+      fecha: e.fecha_inicio,
+      titulo: e.titulo,
+      totalAsistentes,
+      cantidadCdpReportaron: reportesDeEsteEvento.length,
+    };
+  });
+}
+
+/**
+ * KAN-409: desglose por CdP de un consolidado puntual -- "CdP Daniel — 14
+ * personas". RLS ya limita las filas de casa_de_paz_reporte a lo que el
+ * usuario puede ver (fn_puede_ver_cdp), igual que en Control de Reportes.
+ */
+export async function obtenerDesgloseMegafiesta(eventoId: string): Promise<MegafiestaDesgloseFila[]> {
+  const { data: reportes, error: errorReportes } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('id, casa_de_paz_id, casa_de_paz:casa_de_paz_id(nombre)')
+    .eq('evento_megafiesta_id', eventoId)
+    .is('fecha_eliminacion', null);
+  if (errorReportes) throw errorReportes;
+  if (!reportes || reportes.length === 0) return [];
+
+  const reporteIds = reportes.map((r) => r.id);
+  const { data: totales, error: errorTotales } = await supabase
+    .from('v_reporte_totales')
+    .select('reporte_id, total_asistentes')
+    .in('reporte_id', reporteIds);
+  if (errorTotales) throw errorTotales;
+  const totalPorReporte = new Map((totales ?? []).map((t) => [t.reporte_id, t.total_asistentes]));
+
+  return reportes
+    .map((r) => {
+      const cdp = Array.isArray(r.casa_de_paz) ? r.casa_de_paz[0] : r.casa_de_paz;
+      return {
+        reporte_id: r.id,
+        casa_de_paz_id: r.casa_de_paz_id,
+        casa_de_paz_nombre: cdp?.nombre ?? '—',
+        total_asistentes: totalPorReporte.get(r.id) ?? 0,
+      };
+    })
+    .sort((a, b) => b.total_asistentes - a.total_asistentes);
+}
+
+/** KAN-409: datos generales ya guardados de un consolidado (Tema/Finanzas/Testimonio). */
+export async function obtenerDetalleMegafiesta(eventoId: string): Promise<MegafiestaDetalle | null> {
+  const { data, error } = await supabase
+    .from('evento_megafiesta_detalle')
+    .select('evento_id, libro_id, tema_id, tema_especial_txt, total_ofrendas, moneda_id, testimonios')
+    .eq('evento_id', eventoId)
     .maybeSingle();
   if (error) throw error;
-  if (!data) return null;
-  const tipo = Array.isArray(data.tipo_evento) ? data.tipo_evento[0] : data.tipo_evento;
-  if (tipo?.codigo !== 'MEGA_FIESTA') return null;
-  return { evento_id: data.id, titulo: data.titulo };
+  return data;
+}
+
+/**
+ * KAN-409: el Líder de Red completa/actualiza Tema, Finanzas y Testimonio
+ * desde el consolidado (punto 5 del ticket) -- upsert porque la primera vez
+ * no existe la fila. RLS exige fn_es_lider_de_red sobre la Red del evento.
+ */
+export async function actualizarDetalleMegafiesta(
+  eventoId: string,
+  datos: {
+    libro_id?: string | null;
+    tema_id?: string | null;
+    tema_especial_txt?: string | null;
+    total_ofrendas?: number | null;
+    moneda_id?: string | null;
+    testimonios?: string | null;
+  }
+): Promise<void> {
+  // fecha_actualizacion/actualizado_por los pone el trigger
+  // trg_auditoria_evento_megafiesta_detalle, no el cliente.
+  const { error } = await supabase.from('evento_megafiesta_detalle').upsert({ evento_id: eventoId, ...datos });
+  if (error) throw error;
 }
 
 /**
@@ -324,6 +554,8 @@ export interface ReporteCalendarioFila {
   total_menores: number;
   total_ofrendas: number;
   total_diezmos: number;
+  /** KAN-409: true si este reporte se cargó como Megafiesta (evento_megafiesta_id IS NOT NULL) -- indicador morado propio en el calendario. */
+  es_megafiesta: boolean;
 }
 
 /**
@@ -355,12 +587,19 @@ export async function obtenerReportesParaCalendario(
   if (!totales || totales.length === 0) return [];
 
   const reporteIds = totales.map((r) => r.reporte_id);
-  const { data: ingresos, error: errorIngresos } = await supabase
-    .from('finanzas_ingreso')
-    .select('reporte_id, monto, tipo_ingreso:tipo_ingreso_id(codigo)')
-    .in('reporte_id', reporteIds)
-    .is('fecha_eliminacion', null);
+  // KAN-409: evento_megafiesta_id no está en v_reporte_totales -- consulta
+  // aparte, en paralelo con finanzas_ingreso (ambas dependen solo de
+  // reporteIds, independientes entre sí).
+  const [{ data: ingresos, error: errorIngresos }, { data: megafiestas, error: errorMegafiestas }] = await Promise.all([
+    supabase
+      .from('finanzas_ingreso')
+      .select('reporte_id, monto, tipo_ingreso:tipo_ingreso_id(codigo)')
+      .in('reporte_id', reporteIds)
+      .is('fecha_eliminacion', null),
+    supabase.from('casa_de_paz_reporte').select('id, evento_megafiesta_id').in('id', reporteIds),
+  ]);
   if (errorIngresos) throw errorIngresos;
+  if (errorMegafiestas) throw errorMegafiestas;
 
   const ofrendaPorReporte = new Map<string, number>();
   const diezmoPorReporte = new Map<string, number>();
@@ -370,6 +609,7 @@ export async function obtenerReportesParaCalendario(
     const mapa = tipo?.codigo === 'OFRENDA' ? ofrendaPorReporte : tipo?.codigo === 'DIEZMO' ? diezmoPorReporte : null;
     if (mapa) mapa.set(ing.reporte_id, (mapa.get(ing.reporte_id) ?? 0) + Number(ing.monto));
   }
+  const esMegafiestaPorReporte = new Set((megafiestas ?? []).filter((m) => m.evento_megafiesta_id).map((m) => m.id));
 
   return totales.map((r) => ({
     reporte_id: r.reporte_id,
@@ -379,6 +619,7 @@ export async function obtenerReportesParaCalendario(
     total_menores: r.total_menores,
     total_ofrendas: ofrendaPorReporte.get(r.reporte_id) ?? 0,
     total_diezmos: diezmoPorReporte.get(r.reporte_id) ?? 0,
+    es_megafiesta: esMegafiestaPorReporte.has(r.reporte_id),
   }));
 }
 
