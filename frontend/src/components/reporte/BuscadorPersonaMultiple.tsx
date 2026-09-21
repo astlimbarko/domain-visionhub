@@ -5,10 +5,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { normalizarNombre } from '@/utils/normalizarNombre';
+import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
 import { VERDE } from '@/components/dashboard/DashboardUI';
+import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
+import { useDebounce } from '@/hooks/useDebounce';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import type { MiembroCdp } from '@/types/reporte.types';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 /** Datos que pide el mini-formulario de "persona nueva" -- mismos campos que
  * el alta de evangelizados (EvangelismoPendientePanel), para que no haya
@@ -23,10 +28,20 @@ export interface DatosPersonaNueva {
   domicilio?: string;
   telefono?: string;
   fecha_nacimiento?: string;
+  /** KAN-406: cuando no se conoce la fecha exacta (niños, adultos mayores
+   * sin documento a mano, etc.) se permite el alta igual con una edad
+   * aproximada -- nunca se deriva una fecha_nacimiento ficticia a partir de
+   * esto. Solo tiene sentido cuando fecha_nacimiento viene vacío. */
+  edad_aproximada?: number;
 }
 
 interface Props {
   titulo: string;
+  /** KAN-407: requerida solo para chequear "posible duplicado" al confirmar
+   * el mini-formulario de "persona nueva" (fn_buscar_personas_similares) --
+   * si no se pasa, el aviso simplemente no se muestra (el resto del
+   * componente sigue funcionando igual, ver `permitirAgregarNueva`). */
+  iglesiaId?: string;
   miembros: MiembroCdp[];
   seleccionados: string[];
   onToggle: (personaId: string) => void;
@@ -115,6 +130,7 @@ function separarNombreCompleto(texto: string) {
  */
 export function BuscadorPersonaMultiple({
   titulo,
+  iglesiaId,
   miembros,
   seleccionados,
   onToggle,
@@ -160,8 +176,38 @@ export function BuscadorPersonaMultiple({
   const [apellidoMaternoNueva, setApellidoMaternoNueva] = useState('');
   const [sexoNueva, setSexoNueva] = useState<'M' | 'F' | ''>('');
   const [domicilioNueva, setDomicilioNueva] = useState('');
-  const [telefonoNueva, setTelefonoNueva] = useState('');
+  const [telefonoPaisNueva, setTelefonoPaisNueva] = useState('+591');
+  const [telefonoNumeroNueva, setTelefonoNumeroNueva] = useState('');
   const [fechaNacimientoNueva, setFechaNacimientoNueva] = useState('');
+  // KAN-406: checkbox "Se desconoce la fecha de nacimiento" -- no bloquea el
+  // alta rápida cuando no se sabe (niños, mayores sin documento a mano). En
+  // ese caso se pide una edad aproximada en vez de la fecha exacta.
+  const [fechaDesconocidaNueva, setFechaDesconocidaNueva] = useState(false);
+  const [edadAproximadaNueva, setEdadAproximadaNueva] = useState('');
+
+  // KAN-407: mismo mecanismo que EvangelismoPendientePanel -- mientras se
+  // completa "Persona nueva", busca en segundo plano (debounced) si ya
+  // existe alguien con un nombre muy parecido (pg_trgm, tolera errores de
+  // tipeo) antes de dejar confirmar el alta.
+  const nombreNuevaDebounced = useDebounce(nombreNueva);
+  const segundoNombreNuevaDebounced = useDebounce(segundoNombreNueva);
+  const apellidoPaternoNuevaDebounced = useDebounce(apellidoPaternoNueva);
+  const apellidoMaternoNuevaDebounced = useDebounce(apellidoMaternoNueva);
+  const { data: similaresNueva = [] } = useBuscarPersonasSimilares(
+    iglesiaId,
+    {
+      primer_nombre: nombreNuevaDebounced,
+      segundo_nombre: segundoNombreNuevaDebounced,
+      primer_apellido: apellidoPaternoNuevaDebounced,
+      segundo_apellido: apellidoMaternoNuevaDebounced,
+    },
+    mostrarFormNueva
+  );
+  const [mostrarConfirmDuplicado, setMostrarConfirmDuplicado] = useState(false);
+  const [duplicadoDescartado, setDuplicadoDescartado] = useState(false);
+  useEffect(() => {
+    setDuplicadoDescartado(false);
+  }, [nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva]);
 
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
@@ -180,18 +226,22 @@ export function BuscadorPersonaMultiple({
     setAbierto(false);
   }
 
-  function confirmarAgregarNueva() {
+  // KAN-407: punto de entrada real del botón "Agregar" del mini-formulario
+  // -- si `fn_buscar_personas_similares` encontró candidatos sin descartar
+  // todavía, frena y muestra el modal en vez de crear directo.
+  // `confirmarAgregarNueva` (abajo) sigue siendo el alta real.
+  function intentarConfirmarAgregarNueva() {
     if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
-    onAgregarNueva({
-      primer_nombre: nombreNueva.trim(),
-      segundo_nombre: segundoNombreNueva.trim() || undefined,
-      primer_apellido: apellidoPaternoNueva.trim(),
-      segundo_apellido: apellidoMaternoNueva.trim() || undefined,
-      sexo: sexoNueva,
-      domicilio: domicilioNueva.trim() || undefined,
-      telefono: telefonoNueva.trim() || undefined,
-      fecha_nacimiento: fechaNacimientoNueva || undefined,
-    });
+    if (!duplicadoDescartado && similaresNueva.length > 0) {
+      setMostrarConfirmDuplicado(true);
+      return;
+    }
+    confirmarAgregarNueva();
+  }
+
+  function usarPersonaNuevaSimilar(persona: PersonaSimilar) {
+    onSeleccionarGlobal?.(persona);
+    setMostrarConfirmDuplicado(false);
     setTexto('');
     onTextoCambia?.('');
     setNombreNueva('');
@@ -202,6 +252,38 @@ export function BuscadorPersonaMultiple({
     setDomicilioNueva('');
     setTelefonoNueva('');
     setFechaNacimientoNueva('');
+    setMostrarFormNueva(false);
+  }
+
+  function confirmarAgregarNueva() {
+    if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
+    onAgregarNueva({
+      primer_nombre: nombreNueva.trim(),
+      segundo_nombre: segundoNombreNueva.trim() || undefined,
+      primer_apellido: apellidoPaternoNueva.trim(),
+      segundo_apellido: apellidoMaternoNueva.trim() || undefined,
+      sexo: sexoNueva,
+      domicilio: domicilioNueva.trim() || undefined,
+      telefono: componerTelefono(telefonoPaisNueva, telefonoNumeroNueva),
+      // KAN-406: nunca ambos a la vez -- con el checkbox tildado se manda
+      // solo la edad aproximada, sin fecha_nacimiento (evita inventar una
+      // fecha ficticia a partir de la edad).
+      fecha_nacimiento: fechaDesconocidaNueva ? undefined : (fechaNacimientoNueva || undefined),
+      edad_aproximada: fechaDesconocidaNueva && edadAproximadaNueva ? Number(edadAproximadaNueva) : undefined,
+    });
+    setTexto('');
+    onTextoCambia?.('');
+    setNombreNueva('');
+    setSegundoNombreNueva('');
+    setApellidoPaternoNueva('');
+    setApellidoMaternoNueva('');
+    setSexoNueva('');
+    setDomicilioNueva('');
+    setTelefonoPaisNueva('+591');
+    setTelefonoNumeroNueva('');
+    setFechaNacimientoNueva('');
+    setFechaDesconocidaNueva(false);
+    setEdadAproximadaNueva('');
     setMostrarFormNueva(false);
   }
 
@@ -403,18 +485,75 @@ export function BuscadorPersonaMultiple({
               <Label className="text-xs">Domicilio</Label>
               <Input value={domicilioNueva} onChange={(e) => setDomicilioNueva(e.target.value)} />
             </div>
+            {/* Teléfono con código de país -- mismo patrón (Select con
+                bandera + PAISES_TELEFONO, Bolivia +591 por defecto) que
+                CamposMembresiaFields/MembresiaObligatoria, reutilizado tal
+                cual en vez de un Input suelto (pedido KAN-406). */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Teléfono</Label>
-              <Input type="tel" placeholder="Opcional" value={telefonoNueva} onChange={(e) => setTelefonoNueva(e.target.value)} />
+              <div className="flex gap-2">
+                <Select value={telefonoPaisNueva} onValueChange={setTelefonoPaisNueva}>
+                  <SelectTrigger className="w-28 shrink-0 sm:w-32">
+                    <SelectValue>
+                      <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisNueva)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                      {telefonoPaisNueva}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAISES_TELEFONO.map((p) => (
+                      <SelectItem key={p.codigo} value={p.codigo}>
+                        <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                        {p.codigo}
+                        <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Opcional"
+                  className="min-w-0 flex-1"
+                  value={telefonoNumeroNueva}
+                  onChange={(e) => setTelefonoNumeroNueva(e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Fecha de nacimiento</Label>
-              <Input
-                type="date"
-                value={fechaNacimientoNueva}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setFechaNacimientoNueva(e.target.value)}
-              />
+              <Label className="text-xs">{fechaDesconocidaNueva ? 'Edad aproximada' : 'Fecha de nacimiento'}</Label>
+              {fechaDesconocidaNueva ? (
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={120}
+                  placeholder="Ej. 8"
+                  value={edadAproximadaNueva}
+                  onChange={(e) => setEdadAproximadaNueva(e.target.value)}
+                />
+              ) : (
+                <Input
+                  type="date"
+                  value={fechaNacimientoNueva}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setFechaNacimientoNueva(e.target.value)}
+                />
+              )}
+              {/* KAN-406: no impide el alta cuando no se sabe la fecha exacta
+                  -- la edad aproximada queda marcada como dato no confirmado,
+                  a completarse con la fecha real en el proceso de bautismo. */}
+              <label className="flex items-center gap-1.5 pt-0.5 text-[11px] text-muted-foreground">
+                <Checkbox
+                  checked={fechaDesconocidaNueva}
+                  onCheckedChange={(v) => {
+                    const marcado = v === true;
+                    setFechaDesconocidaNueva(marcado);
+                    if (marcado) setFechaNacimientoNueva('');
+                    else setEdadAproximadaNueva('');
+                  }}
+                />
+                Se desconoce la fecha de nacimiento
+              </label>
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -425,7 +564,7 @@ export function BuscadorPersonaMultiple({
               type="button"
               size="sm"
               className="gap-1.5"
-              onClick={confirmarAgregarNueva}
+              onClick={intentarConfirmarAgregarNueva}
               disabled={!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -434,6 +573,19 @@ export function BuscadorPersonaMultiple({
           </div>
         </div>
       )}
+
+      <ConfirmarPosibleDuplicadoDialog
+        open={mostrarConfirmDuplicado}
+        onOpenChange={setMostrarConfirmDuplicado}
+        candidatos={similaresNueva}
+        nombreTentativo={[nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva].filter(Boolean).join(' ')}
+        onUsarExistente={usarPersonaNuevaSimilar}
+        onNoEsLaMisma={() => {
+          setDuplicadoDescartado(true);
+          setMostrarConfirmDuplicado(false);
+          confirmarAgregarNueva();
+        }}
+      />
 
       {!ocultarResultados && seleccionados.length > 0 && (
         <div className="flex flex-wrap gap-1.5">

@@ -1,24 +1,28 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  actualizarDetalleMegafiesta,
   actualizarReporte,
   anularReporte,
   autorizarEdicionReporteFueraVentana,
   crearReporte,
+  crearReporteMegafiesta,
   crearReunionNoRealizada,
   obtenerCamposObligatorios,
   obtenerCdpContextoReporte,
+  obtenerDesgloseMegafiesta,
+  obtenerDetalleMegafiesta,
   obtenerDiasLimiteEdicionReporte,
   obtenerDiasPlazoReporte,
   obtenerEdadMinimaCreyente,
   obtenerFechasReportadas,
   obtenerHistorialAsistencia,
   obtenerHistorialReporte,
+  obtenerMegafiestasRed,
   obtenerPrimeraFechaReunion,
   obtenerReportesParaCalendario,
   obtenerReunionesNoRealizadas,
   obtenerIdsLiderCdp,
   obtenerLibros,
-  obtenerMegaFiestaDelDia,
   obtenerMiembrosCdp,
   obtenerReportePorId,
   obtenerReportesRecientes,
@@ -31,7 +35,7 @@ import {
   puedeEditarReporte,
   puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
-import type { NuevoReporte } from '@/types/reporte.types';
+import type { NuevoReporte, NuevoReporteMegafiesta } from '@/types/reporte.types';
 
 export function useLibros() {
   return useQuery({ queryKey: ['reporte', 'libros'], queryFn: obtenerLibros, staleTime: 1000 * 60 * 60 });
@@ -124,11 +128,60 @@ export function useDiasLimiteEdicionReporte(
   });
 }
 
-export function useMegaFiestaDelDia(casaDePazId: string | undefined, fecha: string) {
+/** KAN-409: reporte reducido de Megafiesta -- mismas invalidaciones que useCrearReporte (asistencia/miembros/dashboard), más 'reporte'/'megafiestas-red' (consolidado del Líder de Red). */
+export function useCrearReporteMegafiesta(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: NuevoReporteMegafiesta) => crearReporteMegafiesta(datos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-asistencia', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'red-rango'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'megafiestas-red'] });
+      queryClient.invalidateQueries({ queryKey: ['calendario'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+/** KAN-409: consolidados de Megafiesta de una Red -- vista "Megafiestas de Casa de Paz" del Líder de Red. */
+export function useMegafiestasRed(redId: string | undefined) {
   return useQuery({
-    queryKey: ['reporte', 'megafiesta', casaDePazId, fecha],
-    queryFn: () => obtenerMegaFiestaDelDia(casaDePazId as string, fecha),
-    enabled: !!casaDePazId && !!fecha,
+    queryKey: ['reporte', 'megafiestas-red', redId],
+    queryFn: () => obtenerMegafiestasRed(redId as string),
+    enabled: !!redId,
+  });
+}
+
+/** KAN-409: desglose por CdP de un consolidado -- se pide recién al expandir esa fila. */
+export function useDesgloseMegafiesta(eventoId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'megafiesta-desglose', eventoId],
+    queryFn: () => obtenerDesgloseMegafiesta(eventoId as string),
+    enabled: habilitado && !!eventoId,
+  });
+}
+
+/** KAN-409: datos generales (Tema/Finanzas/Testimonio) ya guardados de un consolidado. */
+export function useDetalleMegafiesta(eventoId: string | undefined, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['reporte', 'megafiesta-detalle', eventoId],
+    queryFn: () => obtenerDetalleMegafiesta(eventoId as string),
+    enabled: habilitado && !!eventoId,
+  });
+}
+
+/** KAN-409: el Líder de Red completa/actualiza Tema, Finanzas y Testimonio desde el consolidado. */
+export function useActualizarDetalleMegafiesta(eventoId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: Parameters<typeof actualizarDetalleMegafiesta>[1]) => actualizarDetalleMegafiesta(eventoId as string, datos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'megafiesta-detalle', eventoId] });
+    },
   });
 }
 

@@ -783,6 +783,10 @@ export function Evangelismo() {
             crear.mutateAsync({
               casa_de_paz_id: cdpActiva,
               iglesia_id: iglesiaActivaId as string,
+              // KAN-407: si el usuario confirmó "sí, es esta persona" en el
+              // aviso de posible duplicado, viene con persona_id -- vincula
+              // a la persona existente en vez de crear una ficha nueva.
+              persona_id: valores.persona_id,
               fecha: valores.fecha,
               primer_nombre: valores.primer_nombre,
               segundo_nombre: valores.segundo_nombre || undefined,

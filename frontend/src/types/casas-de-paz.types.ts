@@ -38,6 +38,15 @@ export interface PersonaBusqueda {
   casa_de_paz_nombre?: string | null;
 }
 
+/** KAN-407: candidato a "posible duplicado" devuelto por
+ * fn_buscar_personas_similares (pg_trgm) -- se usa solo en el momento de
+ * confirmar un alta "persona nueva", nunca para la búsqueda normal. `score`
+ * es la similitud de trigramas (0 a 1) contra el nombre tentativo, no se
+ * muestra tal cual al usuario, solo ordena/filtra los candidatos. */
+export interface PersonaSimilar extends PersonaBusqueda {
+  score: number;
+}
+
 export type CargoRedCodigo = 'LIDER_RED' | 'SUBLIDER_RED' | 'ENCARGADO_DEPARTAMENTOS_RED' | 'ENCARGADO_MINISTERIO_RED';
 export type CargoCdpCodigo = 'LIDER_CDP' | 'SUBLIDER_CDP' | 'ANFITRION';
 

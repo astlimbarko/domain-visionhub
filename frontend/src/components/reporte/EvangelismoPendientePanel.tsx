@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useBuscarPersonas } from '@/hooks/useCasasDePaz';
+import { useBuscarPersonas, useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import type { EvangelizadoPendiente } from '@/types/reporte.types';
+import type { PersonaSimilar } from '@/types/casas-de-paz.types';
 
 interface Props {
   iglesiaId: string | undefined;
@@ -70,6 +73,35 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
   const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, texto);
   const tipoActual = tipos.find((t) => t.id === tipoEvangelismoId);
 
+  // KAN-407: mientras se completa "Nueva persona evangelizada", busca en
+  // segundo plano (debounced) si ya existe alguien con un nombre muy
+  // parecido -- fn_buscar_personas_similares (pg_trgm) tolera errores de
+  // tipeo, a diferencia de `useBuscarPersonas` (ILIKE) de arriba, que exige
+  // substring exacto.
+  const nombreDebounced = useDebounce(nombre);
+  const segundoNombreDebounced = useDebounce(segundoNombre);
+  const apellidoDebounced = useDebounce(apellido);
+  const segundoApellidoDebounced = useDebounce(segundoApellido);
+  const { data: similares = [] } = useBuscarPersonasSimilares(
+    iglesiaId,
+    {
+      primer_nombre: nombreDebounced,
+      segundo_nombre: segundoNombreDebounced,
+      primer_apellido: apellidoDebounced,
+      segundo_apellido: segundoApellidoDebounced,
+    },
+    mostrarFormNueva
+  );
+  const [mostrarConfirmDuplicado, setMostrarConfirmDuplicado] = useState(false);
+  // Una vez que el usuario confirma "no, es una persona distinta" para el
+  // nombre tal cual está escrito, no hay que volver a molestarlo con el
+  // mismo aviso si aprieta "Agregar" de nuevo sin cambiar nada -- se
+  // resetea apenas vuelve a tocar cualquiera de los 4 campos de nombre.
+  const [duplicadoDescartado, setDuplicadoDescartado] = useState(false);
+  useEffect(() => {
+    setDuplicadoDescartado(false);
+  }, [nombre, segundoNombre, apellido, segundoApellido]);
+
   function agregarExistente(persona: { id: string; nombre_completo: string }) {
     if (tipos.length > 0 && !tipoEvangelismoId) {
       toast.error('Elegí primero el tipo de evangelismo');
@@ -87,12 +119,42 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
     // agregando a otras personas del mismo resultado de búsqueda.
   }
 
-  function agregarNueva() {
+  // KAN-407: punto de entrada real del botón "Agregar" -- si hay
+  // candidatos de `fn_buscar_personas_similares` sin descartar todavía,
+  // frena y muestra el modal en vez de crear directo. `agregarNueva` (abajo)
+  // sigue siendo el alta real, se llama recién después de confirmar.
+  function intentarAgregarNueva() {
     if (!nombre.trim() || !apellido.trim() || !sexo) return;
     if (tipos.length > 0 && !tipoEvangelismoId) {
       toast.error('Elegí primero el tipo de evangelismo');
       return;
     }
+    if (!duplicadoDescartado && similares.length > 0) {
+      setMostrarConfirmDuplicado(true);
+      return;
+    }
+    agregarNueva();
+  }
+
+  function usarPersonaSimilar(persona: PersonaSimilar) {
+    agregarExistente(persona);
+    setMostrarConfirmDuplicado(false);
+    setNombre('');
+    setSegundoNombre('');
+    setApellido('');
+    setSegundoApellido('');
+    setSexo('');
+    setDomicilio('');
+    setTelefono('');
+    setFechaNacimiento('');
+    setMostrarFormNueva(false);
+  }
+
+  function agregarNueva() {
+    // Guarda redundante con la de `intentarAgregarNueva` -- necesaria acá
+    // también porque TS no puede ver a través del límite de función que
+    // `sexo` ya fue validado antes de llegar a este punto.
+    if (!nombre.trim() || !apellido.trim() || !sexo) return;
     onAgregar({
       clave: `n-${Date.now()}`,
       nombre_completo: [nombre.trim(), segundoNombre.trim(), apellido.trim(), segundoApellido.trim()].filter(Boolean).join(' '),
@@ -271,7 +333,7 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
             <Button type="button" variant="outline" size="sm" onClick={() => setMostrarFormNueva(false)}>
               Cancelar
             </Button>
-            <Button type="button" size="sm" className="gap-1.5" onClick={agregarNueva} disabled={!nombre.trim() || !apellido.trim() || !sexo}>
+            <Button type="button" size="sm" className="gap-1.5" onClick={intentarAgregarNueva} disabled={!nombre.trim() || !apellido.trim() || !sexo}>
               <Plus className="h-3.5 w-3.5" />
               Agregar
             </Button>
@@ -280,6 +342,19 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
       )}
       </>
       )}
+
+      <ConfirmarPosibleDuplicadoDialog
+        open={mostrarConfirmDuplicado}
+        onOpenChange={setMostrarConfirmDuplicado}
+        candidatos={similares}
+        nombreTentativo={[nombre, segundoNombre, apellido, segundoApellido].filter(Boolean).join(' ')}
+        onUsarExistente={usarPersonaSimilar}
+        onNoEsLaMisma={() => {
+          setDuplicadoDescartado(true);
+          setMostrarConfirmDuplicado(false);
+          agregarNueva();
+        }}
+      />
 
       {pendientes.length > 0 && (
         <div className="flex flex-col gap-1.5">

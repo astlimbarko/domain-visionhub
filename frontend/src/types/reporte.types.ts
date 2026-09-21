@@ -65,9 +65,61 @@ export interface CamposObligatoriosReporte {
   REPORTE_MOSTRAR_ORIGEN_ASISTENTE: boolean;
 }
 
-export interface MegaFiestaDelDia {
+/**
+ * KAN-409: payload reducido del reporte de Megafiesta -- solo fecha +
+ * asistencia (mismo criterio de asistencia que el reporte normal). El
+ * consolidado (evento tipo MEGA_FIESTA de la Red+fecha) se busca o crea
+ * automaticamente en el backend (fn_megafiesta_obtener_o_crear), nunca lo
+ * decide el cliente.
+ */
+export interface NuevoReporteMegafiesta {
+  casa_de_paz_id: string;
+  iglesia_id: string;
+  fecha_reunion: string;
+  asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
+  visitasNuevas: NuevaVisita[];
+}
+
+export interface ResultadoReporteMegafiesta extends ResultadoReporte {
+  eventoMegafiestaId: string;
+}
+
+/** KAN-409: un consolidado de Megafiesta (evento tipo MEGA_FIESTA) con su
+ * total ya sumado -- fila de la vista "Megafiestas de Casa de Paz" del
+ * Lider de Red. */
+export interface MegafiestaRedResumen {
   evento_id: string;
+  fecha: string;
   titulo: string;
+  totalAsistentes: number;
+  cantidadCdpReportaron: number;
+}
+
+/**
+ * KAN-409: desglose por CdP dentro de un consolidado -- "CdP Daniel — 14
+ * personas". Sin el nombre acá a propósito: `casa_de_paz.nombre` suele
+ * venir vacío (bug real encontrado en verificación en vivo -- la etiqueta
+ * real de una CdP sale de `fn_etiqueta_cdp`, con fallback al nombre del
+ * Líder, igual que el resto de las pantallas de Reportes). El nombre se
+ * resuelve en el componente cruzando con `useCdps` (mismo mapa "etiqueta"
+ * que ya usa ControlReportesVista), no acá.
+ */
+export interface MegafiestaDesgloseFila {
+  reporte_id: string;
+  casa_de_paz_id: string;
+  total_asistentes: number;
+}
+
+/** KAN-409: datos generales que el Lider de Red completa desde el
+ * consolidado (Tema, Finanzas, Testimonio opcional) -- ver evento_megafiesta_detalle. */
+export interface MegafiestaDetalle {
+  evento_id: string;
+  libro_id: string | null;
+  tema_id: string | null;
+  tema_especial_txt: string | null;
+  total_ofrendas: number | null;
+  moneda_id: string | null;
+  testimonios: string | null;
 }
 
 export interface NuevaVisita {
@@ -86,6 +138,10 @@ export interface NuevaVisita {
   /** Mismo campo que el formulario de Evangelismo (en vez de preguntar
    * "es menor" aparte) -- si viene, es_menor se calcula a partir de esto. */
   fecha_nacimiento?: string;
+  /** KAN-406: edad aproximada cuando no se conoce fecha_nacimiento -- dato no
+   * confirmado, nunca se deriva una fecha ficticia a partir de esto. Solo
+   * tiene sentido cuando fecha_nacimiento viene vacío. */
+  edad_aproximada?: number;
 }
 
 /**

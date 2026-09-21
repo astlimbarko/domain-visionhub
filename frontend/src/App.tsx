@@ -18,6 +18,7 @@ import { SeleccionarRol } from '@/pages/SeleccionarRol';
 import { AuthCallback } from '@/pages/AuthCallback';
 import { Dashboard } from '@/pages/Dashboard';
 import { Cuenta } from '@/pages/Cuenta';
+import { MiMembresia } from '@/pages/MiMembresia';
 import { PrivateLayout } from '@/components/layout/PrivateLayout';
 import { RequiereRol } from '@/components/layout/RequiereRol';
 import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
@@ -55,6 +56,10 @@ const AfirmacionFormulario = lazy(() => import('@/pages/AfirmacionFormulario').t
 const AfirmacionUrls = lazy(() => import('@/pages/AfirmacionUrls').then((m) => ({ default: m.AfirmacionUrls })));
 const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').then((m) => ({ default: m.AfirmacionCasasDePaz })));
 const AfirmacionPersonas = lazy(() => import('@/pages/AfirmacionPersonas').then((m) => ({ default: m.AfirmacionPersonas })));
+const AfirmacionColaboradores = lazy(() => import('@/pages/AfirmacionColaboradores').then((m) => ({ default: m.AfirmacionColaboradores })));
+// KAN-405: accesible para CUALQUIER rol (no pasa por RutaAfirmacion) -- ver
+// ROUTES.COLABORAR en constants.ts y puedeAccederRuta en paneles-contexto.ts.
+const Colaborar = lazy(() => import('@/pages/Colaborar').then((m) => ({ default: m.Colaborar })));
 const Jovenes = lazy(() => import('@/pages/Jovenes').then((m) => ({ default: m.Jovenes })));
 const Matrimonios = lazy(() => import('@/pages/Matrimonios').then((m) => ({ default: m.Matrimonios })));
 const Anuncios = lazy(() => import('@/pages/Anuncios').then((m) => ({ default: m.Anuncios })));
@@ -175,12 +180,28 @@ function App() {
             </Suspense>
           } />
 
+          {/* KAN-405 seguimiento (2026-09-21, pedido explícito del owner en
+              vivo): "Colaborar" es una pantalla PROPIA, sin el panel/sidebar
+              del rol normal de la persona mientras está colaborando -- mismo
+              criterio que EstructuraOrganizacional (fuera de PrivateLayout,
+              se autoprotege con isAuthenticated adentro de Colaborar.tsx).
+              Accesible para cualquier rol; el gate real de qué puede hacer
+              vive en el backend según el código canjeado. */}
+          <Route path={ROUTES.COLABORAR} element={
+            <Suspense fallback={<CargandoPagina />}>
+              <Colaborar />
+            </Suspense>
+          } />
+
           <Route element={<PrivateLayout />}>
             {/* Dashboard: accesible para todos los roles */}
             <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
 
             {/* Cuenta: accesible para todos */}
             <Route path={ROUTES.CUENTA} element={<Cuenta />} />
+            {/* KAN-408: página completa (no modal) para ver/editar la
+                membresía propia -- accesible para todos, igual que Cuenta. */}
+            <Route path={ROUTES.CUENTA_MEMBRESIA} element={<MiMembresia />} />
 
             {/* KAN-388: acceso solo por URL directa -- a propósito no está en
                 CATALOGO_NAV/sidebar. Cualquier rol de sistema puede entrar
@@ -303,6 +324,7 @@ function App() {
             <Route path={ROUTES.AFIRMACION_URLS} element={<RutaAfirmacion><AfirmacionUrls /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_CASAS_DE_PAZ} element={<RutaAfirmacion><AfirmacionCasasDePaz /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_PERSONAS} element={<RutaAfirmacion><AfirmacionPersonas /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_COLABORADORES} element={<RutaAfirmacion><AfirmacionColaboradores /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 

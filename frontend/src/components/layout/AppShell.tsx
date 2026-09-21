@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,33 @@ import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import { ROUTES } from '@/utils/constants';
+import { ColaboradorAvisoVencimiento } from '@/components/colaborador/ColaboradorAvisoVencimiento';
 
 interface Sombrero { key: string; label: string; contexto: ContextoActivo; }
 
 const CORREO_SOPORTE = 'soporte@somoscdv.com';
+
+// KAN-405: "Colaborar" -- ítem fijo abajo del todo del menú lateral, mismo
+// lugar/estilo que SoporteFooter, antes del botón de salir. Accesible para
+// CUALQUIER rol (Link interno, no mailto) -- no depende de navItems del
+// panel activo.
+function ColaborarFooter({ onClick, className, oscuro }: { onClick?: () => void; className?: string; oscuro?: boolean }) {
+  return (
+    <Link
+      to={ROUTES.COLABORAR}
+      onClick={onClick}
+      title="Colaborar con otra área usando un código"
+      className={cn(
+        'flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] font-medium transition-colors',
+        oscuro ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
+        className
+      )}
+    >
+      <Handshake className="h-4 w-4 shrink-0" />
+      <span className="truncate">Colaborar</span>
+    </Link>
+  );
+}
 
 // Bloque discreto de soporte institucional, al pie del menú lateral (15-gestion-
 // administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
@@ -53,6 +76,74 @@ function SoporteFooter({ href, correo, onClick, className, oscuro }: { href: str
   );
 }
 
+type EntradaNav = { tipo: 'item'; item: NavItem } | { tipo: 'grupo'; nombre: string; items: NavItem[] };
+
+/** KAN-411: ítems consecutivos con el mismo `NavItem.grupo` (ej.
+ * "Evangelismo", "Afirmación") se colapsan en un solo acordeón -- alcanza
+ * con adyacencia simple porque ya vienen contiguos en su arreglo de origen
+ * (`CATALOGO_NAV`), sin necesidad de reordenar. Un grupo que termina con 1
+ * solo ítem (ej. Líder de Red, que solo ve "Evangelismo" suelto sin
+ * "Personas evangelizadas" al lado) se aplana de vuelta a link normal --
+ * evita una carpeta redundante de 1 elemento. */
+function agruparNavItems(items: NavItem[]): EntradaNav[] {
+  const agrupado: EntradaNav[] = [];
+  for (const item of items) {
+    const ultimo = agrupado[agrupado.length - 1];
+    if (item.grupo && ultimo?.tipo === 'grupo' && ultimo.nombre === item.grupo) {
+      ultimo.items.push(item);
+    } else if (item.grupo) {
+      agrupado.push({ tipo: 'grupo', nombre: item.grupo, items: [item] });
+    } else {
+      agrupado.push({ tipo: 'item', item });
+    }
+  }
+  return agrupado.flatMap((entrada) => (entrada.tipo === 'grupo' && entrada.items.length === 1 ? [{ tipo: 'item' as const, item: entrada.items[0] }] : [entrada]));
+}
+
+/** Header colapsable de un grupo -- mismo estilo que ya usaba el header fijo
+ * de Dashboard con varios roles/sombreros (`text-[13px] font-semibold`), acá
+ * además clickeable. Arranca abierto solo si la ruta activa está adentro del
+ * grupo (para no esconder dónde está parado el usuario sin querer); después
+ * de eso, el toggle manual del usuario manda. */
+function GrupoNavAcordeon({
+  nombre,
+  items,
+  oscuro,
+  activo,
+  renderItem,
+}: {
+  nombre: string;
+  items: NavItem[];
+  oscuro?: boolean;
+  activo: boolean;
+  renderItem: (item: NavItem) => ReactNode;
+}) {
+  const [abierto, setAbierto] = useState(activo);
+  const Icono = items[0].icon;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        className={cn(
+          'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-colors',
+          oscuro ? 'text-white hover:bg-white/10' : 'text-foreground hover:bg-sidebar-accent'
+        )}
+      >
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: `color-mix(in oklab, ${items[0].color} 13%, transparent)` }}
+        >
+          <Icono className="h-[16px] w-[16px]" style={{ color: items[0].color }} />
+        </span>
+        <span className="flex-1 truncate text-left">{nombre}</span>
+        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform', abierto && 'rotate-180', oscuro ? 'text-white/50' : 'text-muted-foreground')} />
+      </button>
+      {abierto && <div className="flex flex-col gap-0.5 pl-[30px]">{items.map(renderItem)}</div>}
+    </div>
+  );
+}
+
 function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -68,65 +159,71 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
     precargarRuta(path, queryClient, personaId, iglesiaActivaId);
   }
 
+  function renderItem({ icon: Icon, label, path, color }: NavItem) {
+    const activo = location.pathname === path || location.pathname.startsWith(`${path}/`);
+
+    // Chip de color vivo por sección: el ícono en su color sobre una pastilla
+    // teñida. Se satura un poco más cuando la sección está activa.
+    const iconoChip = (
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+        style={{ backgroundColor: `color-mix(in oklab, ${color} ${activo ? 22 : 13}%, transparent)` }}
+      >
+        <Icon className="h-[16px] w-[16px]" style={{ color }} />
+      </span>
+    );
+
+    if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
+      return (
+        <div key={path} className="flex flex-col gap-0.5">
+          <div className={cn('flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold', oscuro ? 'text-white' : 'text-foreground')}>
+            {iconoChip}{label}
+          </div>
+          {sombreros.map((s) => {
+            const activoSombrero = activo && contextoActivo?.clave === s.contexto.clave;
+            return (
+              <Link
+                key={s.key}
+                to={path}
+                onClick={() => {
+                  setContextoActivo(s.contexto);
+                  onNavigate?.();
+                }}
+                onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
+                className={cn(
+                  'truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] transition-all',
+                  oscuro
+                    ? cn('text-white/60 hover:bg-white/10 hover:text-white', activoSombrero && 'bg-white/10 font-medium text-white')
+                    : cn('text-muted-foreground hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-foreground')
+                )}>
+                {s.label}
+              </Link>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <Link key={path} to={path} onClick={onNavigate}
+        onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
+        className={cn(
+          'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all',
+          oscuro
+            ? cn('hover:bg-white/10', activo ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white')
+            : cn('hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')
+        )}>
+        {iconoChip}<span className="truncate">{label}</span>
+      </Link>
+    );
+  }
+
   return (
     <nav className="flex flex-1 flex-col gap-0.5">
-      {navItems.map(({ icon: Icon, label, path, color }) => {
-        const activo = location.pathname === path || location.pathname.startsWith(`${path}/`);
-
-        // Chip de color vivo por sección: el ícono en su color sobre una pastilla
-        // teñida. Se satura un poco más cuando la sección está activa.
-        const iconoChip = (
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
-            style={{ backgroundColor: `color-mix(in oklab, ${color} ${activo ? 22 : 13}%, transparent)` }}
-          >
-            <Icon className="h-[16px] w-[16px]" style={{ color }} />
-          </span>
-        );
-
-        if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
-          return (
-            <div key={path} className="flex flex-col gap-0.5">
-              <div className={cn('flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold', oscuro ? 'text-white' : 'text-foreground')}>
-                {iconoChip}{label}
-              </div>
-              {sombreros.map((s) => {
-                const activoSombrero = activo && contextoActivo?.clave === s.contexto.clave;
-                return (
-                  <Link
-                    key={s.key}
-                    to={path}
-                    onClick={() => {
-                      setContextoActivo(s.contexto);
-                      onNavigate?.();
-                    }}
-                    onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-                    className={cn(
-                      'truncate rounded-xl py-2 pr-3 pl-[44px] text-[13px] transition-all',
-                      oscuro
-                        ? cn('text-white/60 hover:bg-white/10 hover:text-white', activoSombrero && 'bg-white/10 font-medium text-white')
-                        : cn('text-muted-foreground hover:bg-sidebar-accent hover:text-foreground', activoSombrero && 'bg-sidebar-accent font-medium text-foreground')
-                    )}>
-                    {s.label}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        }
-
-        return (
-          <Link key={path} to={path} onClick={onNavigate}
-            onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
-            className={cn(
-              'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all',
-              oscuro
-                ? cn('hover:bg-white/10', activo ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white')
-                : cn('hover:bg-sidebar-accent', activo ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:text-foreground')
-            )}>
-            {iconoChip}<span className="truncate">{label}</span>
-          </Link>
-        );
+      {agruparNavItems(navItems).map((entrada) => {
+        if (entrada.tipo === 'item') return renderItem(entrada.item);
+        const activoGrupo = entrada.items.some((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+        return <GrupoNavAcordeon key={entrada.nombre} nombre={entrada.nombre} items={entrada.items} oscuro={oscuro} activo={activoGrupo} renderItem={renderItem} />;
       })}
     </nav>
   );
@@ -284,7 +381,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background sm:flex-row">
+    <div className="flex min-h-svh flex-col bg-background">
+      {/* KAN-405: visible en TODA la app mientras el permiso de Colaborador
+          esté por vencer -- no solo en /colaborar (ver ese componente). */}
+      <ColaboradorAvisoVencimiento />
+      <div className="flex flex-1 flex-col bg-background sm:flex-row">
       {volviendoAlConstructor && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
           <Spinner className="h-8 w-8" />
@@ -324,12 +425,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <div className={cn('flex flex-1 flex-col', colorNavbarRol && 'p-4')} style={colorNavbarRol ? estiloSidebarColor : undefined}>
           <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
-          <SoporteFooter
-            href={mailtoSoporte}
-            correo={CORREO_SOPORTE}
-            oscuro={esOscuro}
-            className={cn('mt-2 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}
-          />
+          <div className={cn('mt-2 flex flex-col gap-0.5 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <ColaborarFooter oscuro={esOscuro} />
+            <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />
+          </div>
         </div>
       </aside>
 
@@ -433,7 +532,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
-          <div className={cn('border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+          <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
             <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
           </div>
           <SheetFooter className="gap-1 p-3">
@@ -602,6 +702,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-5 sm:p-8">{children}</main>
+      </div>
       </div>
     </div>
   );

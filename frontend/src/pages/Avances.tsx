@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AMBAR, AZUL, VERDE } from '@/components/dashboard/DashboardUI';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAvancesVisibles } from '@/hooks/useAvance';
+import { obtenerVersionApp } from '@/utils/app-version';
 import type { Avance, AvanceTipo } from '@/types/avance.types';
 
 /** KAN-388 (2026-09-17, ticket del owner): vista de solo lectura, sin menú
@@ -78,7 +79,12 @@ export function Avances() {
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-1 px-1 py-2">
-      <h1 className="text-xl font-bold tracking-tight">Avances de VisionHub</h1>
+      <div className="flex items-baseline justify-between gap-2">
+        <h1 className="text-xl font-bold tracking-tight">Avances de VisionHub</h1>
+        {/* KAN-412: acá sí debe ser claramente identificable (a diferencia
+            del Login, discreto a propósito). */}
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">Versión {obtenerVersionApp()}</span>
+      </div>
       <p className="mb-3 text-sm text-muted-foreground">Conocé las nuevas funcionalidades y mejoras que estamos incorporando.</p>
 
       {isLoading ? (
