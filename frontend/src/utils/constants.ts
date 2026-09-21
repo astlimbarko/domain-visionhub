@@ -44,6 +44,9 @@ export const ROUTES = {
   DEPARTAMENTOS: '/departamentos',
   GESTION_REDES: '/gestion-redes',
   CUENTA: '/cuenta',
+  // KAN-408 (2026-09-21, pedido explícito del owner): página completa
+  // propia, no un modal -- el dueño de la cuenta ve/edita su membresía acá.
+  CUENTA_MEMBRESIA: '/cuenta/membresia',
   ADMINISTRACION: '/administracion',
   // KAN-101: gestion de anuncios (Supervisor de la Vision en Accion /
   // Pastor / Encargado de Anuncios / Lider de Red / Supervisor de Red). Sin

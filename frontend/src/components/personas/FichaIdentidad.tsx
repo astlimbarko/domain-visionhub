@@ -22,6 +22,13 @@ interface Props {
   personaId: string;
   ficha: PersonaFicha;
   puedeEditar: boolean;
+  /** KAN-408 (2026-09-21, pedido explícito del owner): nombre completo, sexo
+   * y fecha de nacimiento quedan bloqueados incluso cuando la persona edita
+   * SU PROPIA ficha desde "Mi cuenta" -- solo Supervisor/Pastor o Líder de
+   * Afirmación pueden tocar estos 3 campos, desde la herramienta de edición
+   * de siempre (Afirmación/CdP/Supervisión). Default = `puedeEditar` (el
+   * comportamiento de siempre) para no romper ningún llamador existente. */
+  puedeEditarIdentidadBasica?: boolean;
 }
 
 /** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaEditorSheet
@@ -32,7 +39,10 @@ export interface FichaIdentidadHandle {
   guardar: () => Promise<void>;
 }
 
-export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function FichaIdentidad({ personaId, ficha, puedeEditar }, ref) {
+export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function FichaIdentidad(
+  { personaId, ficha, puedeEditar, puedeEditarIdentidadBasica = puedeEditar },
+  ref
+) {
   const [form, setForm] = useState(() => construirForm(ficha));
   useEffect(() => setForm(construirForm(ficha)), [ficha]);
 
@@ -79,7 +89,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Primer nombre *">
           <Input
             value={form.primerNombre}
-            disabled={!puedeEditar}
+            disabled={!puedeEditarIdentidadBasica}
             onChange={(e) => setForm((f) => ({ ...f, primerNombre: e.target.value }))}
             onBlur={(e) => setForm((f) => ({ ...f, primerNombre: normalizarNombre(e.target.value, true) }))}
           />
@@ -87,7 +97,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Segundo nombre">
           <Input
             value={form.segundoNombre}
-            disabled={!puedeEditar}
+            disabled={!puedeEditarIdentidadBasica}
             onChange={(e) => setForm((f) => ({ ...f, segundoNombre: e.target.value }))}
             onBlur={(e) => setForm((f) => ({ ...f, segundoNombre: normalizarNombre(e.target.value) }))}
           />
@@ -95,7 +105,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Primer apellido *">
           <Input
             value={form.primerApellido}
-            disabled={!puedeEditar}
+            disabled={!puedeEditarIdentidadBasica}
             onChange={(e) => setForm((f) => ({ ...f, primerApellido: e.target.value }))}
             onBlur={(e) => setForm((f) => ({ ...f, primerApellido: normalizarNombre(e.target.value) }))}
           />
@@ -103,13 +113,13 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
         <Campo label="Segundo apellido">
           <Input
             value={form.segundoApellido}
-            disabled={!puedeEditar}
+            disabled={!puedeEditarIdentidadBasica}
             onChange={(e) => setForm((f) => ({ ...f, segundoApellido: e.target.value }))}
             onBlur={(e) => setForm((f) => ({ ...f, segundoApellido: normalizarNombre(e.target.value) }))}
           />
         </Campo>
         <Campo label="Sexo *">
-          <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditar}>
+          <Select value={form.sexo} onValueChange={(v) => setForm((f) => ({ ...f, sexo: v as Sexo }))} disabled={!puedeEditarIdentidadBasica}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -124,7 +134,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
             type="date"
             value={form.fechaNacimiento}
             max={new Date().toISOString().slice(0, 10)}
-            disabled={!puedeEditar}
+            disabled={!puedeEditarIdentidadBasica}
             onChange={(e) => setForm((f) => ({ ...f, fechaNacimiento: e.target.value }))}
           />
         </Campo>

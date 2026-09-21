@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { CheckCircle2, Circle, Lock, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, IdCard, Lock, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { EditorFotoPerfilDialog } from '@/components/shared/EditorFotoPerfilDialog';
-import { AZUL } from '@/components/dashboard/DashboardUI';
+import { AZUL, MORADO } from '@/components/dashboard/DashboardUI';
 import { establecerContrasena, mensajeErrorContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useEliminarFotoPerfil, useFotoPerfilPath, useUrlFotoPerfil } from '@/hooks/usePersonaFoto';
+import { ROUTES } from '@/utils/constants';
 
 const REQUISITOS_CONTRASENA = [
   { clave: 'longitud', texto: 'Mínimo 8 caracteres', test: (v: string) => v.length >= 8 },
@@ -129,6 +131,22 @@ export function Cuenta() {
           onSubida={() => setArchivoParaRecortar(null)}
         />
       )}
+
+      {/* KAN-408 (pedido explícito del owner, 2026-09-21): el dueño de la
+          cuenta ve/edita sus propios datos de membresía como página
+          completa (MiMembresia.tsx, no un modal) -- un solo botón que lleva
+          directo a "editar", no "ver" + un botón Editar adentro. */}
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <TarjetaHeader icon={IdCard} color={MORADO} titulo="Membresía" descripcion="Tus datos personales, censo y familia" />
+        <div className="p-5">
+          <Button asChild disabled={!personaId} className="w-full gap-1.5 sm:w-fit">
+            <Link to={ROUTES.CUENTA_MEMBRESIA}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar membresía
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={Lock} color={AZUL} titulo="Cambiar contraseña" descripcion="Usá una contraseña que no repitas en otro lado" />

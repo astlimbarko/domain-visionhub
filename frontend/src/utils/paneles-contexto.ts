@@ -137,7 +137,9 @@ export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
     colorNavbar,
     textoNavbarClaro,
     temaOscuro,
-    puedeAccederRuta: (ruta) => ruta === ROUTES.CUENTA || puedeAcceder(contexto.rolUI, ruta),
+    // KAN-408: misma excepción universal que ROUTES.CUENTA -- la página de
+    // membresía propia también es "accesible para todos", sin importar rol.
+    puedeAccederRuta: (ruta) => ruta === ROUTES.CUENTA || ruta === ROUTES.CUENTA_MEMBRESIA || puedeAcceder(contexto.rolUI, ruta),
   };
 }
 

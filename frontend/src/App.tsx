@@ -18,6 +18,7 @@ import { SeleccionarRol } from '@/pages/SeleccionarRol';
 import { AuthCallback } from '@/pages/AuthCallback';
 import { Dashboard } from '@/pages/Dashboard';
 import { Cuenta } from '@/pages/Cuenta';
+import { MiMembresia } from '@/pages/MiMembresia';
 import { PrivateLayout } from '@/components/layout/PrivateLayout';
 import { RequiereRol } from '@/components/layout/RequiereRol';
 import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
@@ -181,6 +182,9 @@ function App() {
 
             {/* Cuenta: accesible para todos */}
             <Route path={ROUTES.CUENTA} element={<Cuenta />} />
+            {/* KAN-408: página completa (no modal) para ver/editar la
+                membresía propia -- accesible para todos, igual que Cuenta. */}
+            <Route path={ROUTES.CUENTA_MEMBRESIA} element={<MiMembresia />} />
 
             {/* KAN-388: acceso solo por URL directa -- a propósito no está en
                 CATALOGO_NAV/sidebar. Cualquier rol de sistema puede entrar
