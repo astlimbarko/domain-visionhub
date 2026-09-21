@@ -14,5 +14,9 @@
 - [x] Corregido bug de codificación (mojibake) en una entrada de `/avances` aplicada antes vía PowerShell sin UTF-8 + agregada la entrada de `/avances` que faltaba para el fix del anuncio
 - [x] KAN-402 seguimiento: probado con login real desde cero (logout+login+rol) -- encontrada una segunda causa real del desfase del anuncio: el fondo (`DialogOverlay`) animaba en 200ms pero la imagen (`Content`) no tenía duración explícita (150ms por defecto). Sincronizados ambos en 200ms
 - [x] KAN-264 seguimiento: auditoría completa del frontend por pedido del owner -- 6 lugares reales capturaban nombres sin normalizar (2 de Evangelismo, Admin, Personas, Familia, y el componente compartido de Membresía extendida que cubre 3 formularios a la vez). Los 6 corregidos con el mismo patrón ya establecido, verificado en vivo en Evangelismo
-- [ ] Lanzado en paralelo (fork, sin bloquear el resto): definición de una funcionalidad nueva ("personas de apoyo temporal" para eventos masivos como bautismos) -- el fork le hace preguntas al owner y arma el ticket, todavía en curso al cierre de este bloque
-- [ ] Sin desplegar a producción todavía (KAN-401/403/404 completos, incluido lo de hoy)
+- [x] KAN-405 creado (fork en paralelo + preguntas al owner): spec completa de "Colaboradores" temporales por código para eventos masivos en Afirmación -- nombres/alcance/vencimiento/auditoría ya definidos, sin implementar
+- [x] KAN-407 creado: aviso de posible duplicado al registrar persona (Evangelismo y Casas de Paz), tolerante a errores de tipeo comunes (s/z, m/n, b/v) -- enlazado a KAN-371, que ya tocaba el tema de refilón solo para CdP
+- [x] KAN-408 creado: sección "Membresía" en Mi cuenta para que el usuario dueño de la cuenta vea/edite sus propios datos (reutilizando el patrón paginado de KAN-403) -- Mi cuenta ya tenía foto y contraseña, faltaba esto
+- [x] Identificado KAN-265 (corrección de mayúsculas ya existentes en la base, distinto del fix de hoy que solo cubre datos nuevos) -- ya existía, En curso. Nota: se solapa con KAN-382, revisar unificación en otra sesión
+- [x] PR #89 confirmado al día (36 commits, se actualiza solo al pushear a la misma rama) -- no hizo falta crear uno nuevo
+- [ ] Sin desplegar a producción todavía (KAN-401/403/404/405/407/408 completos o en definición, nada en producción)
