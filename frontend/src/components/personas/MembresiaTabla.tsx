@@ -458,9 +458,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // elegido) para no ocultar de entrada a la mayoría de las personas --
   // recién filtra cuando el usuario elige Día/Semana/Mes a propósito.
   const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | undefined>(undefined);
-  // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
-  // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
-  const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  // KAN-401 seguimiento (2026-09-20): el tooltip del ícono de torta es
+  // controlado en todos los dispositivos (antes solo en táctil) -- así el
+  // clic también lo abre/cierra en PC, además del hover que ya andaba bien.
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
   // KAN-401 seguimiento (2026-09-20): las categorías de filtro arrancan
   // colapsadas en celular (pedido explícito del owner), siempre abiertas
@@ -923,14 +923,29 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           }
         />
         <div className="flex flex-col gap-4 p-5">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className={cn('pl-8', CAMPO_ESTILO)}
-              placeholder="Buscar por nombre, CI o correo..."
-              value={textoInput}
-              onChange={(e) => setTextoInput(e.target.value)}
-            />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className={cn('pl-8', CAMPO_ESTILO)}
+                placeholder="Buscar por nombre, CI o correo..."
+                value={textoInput}
+                onChange={(e) => setTextoInput(e.target.value)}
+              />
+            </div>
+
+            {/* Pedido explícito del owner (2026-09-20): conteo de resultados
+                pegado a la barra de búsqueda (misma fila en desktop, se cae
+                debajo en mobile) -- para que se note de un vistazo cuántas
+                personas coinciden con los filtros aplicados. Solo después de
+                la primera carga (isLoading) -- mientras carga se ve el
+                Skeleton, no un "0 personas encontradas" engañoso. */}
+            {!isLoading && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground tabular-nums">{total}</span>{' '}
+                {total === 1 ? 'persona encontrada' : 'personas encontradas'}
+              </p>
+            )}
           </div>
 
           {isLoading ? (
@@ -1107,16 +1122,20 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
                             if (!fechaCumple) return null;
                             return (
+                              // KAN-401 seguimiento (2026-09-20, pedido explícito del
+                              // owner): antes el clic solo abría/cerraba en táctil (sin
+                              // hover) -- ahora también funciona en PC, además del hover
+                              // que ya andaba bien, sin duración especial: se abre/cierra
+                              // igual que ya lo hacía el hover o el tap.
                               <Tooltip
-                                {...(esTactil
-                                  ? { open: tortaAbiertaId === p.id, onOpenChange: (abierto: boolean) => setTortaAbiertaId(abierto ? p.id : null) }
-                                  : {})}
+                                open={tortaAbiertaId === p.id}
+                                onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
                               >
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
                                     className="inline-flex h-6 w-6 items-center justify-center"
-                                    onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
+                                    onClick={() => setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
                                     {/* Mismo ícono que el badge de cumpleaños del calendario de
@@ -1126,7 +1145,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                     <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
+                                {/* Fecha en 2 líneas (pedido explícito del owner, 2026-09-20). */}
+                                <TooltipContent side="top" className="flex flex-col items-center text-center">
+                                  <span>Cumple años el</span>
+                                  <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
+                                </TooltipContent>
                               </Tooltip>
                             );
                           })()}
