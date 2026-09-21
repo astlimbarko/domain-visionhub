@@ -137,6 +137,9 @@ export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
     colorNavbar,
     textoNavbarClaro,
     temaOscuro,
+    // KAN-405 seguimiento: "Colaborar" quedó fuera de PrivateLayout (ver
+    // App.tsx) -- pantalla propia, sin panel/sidebar. Ya no pasa por este
+    // guard, no hace falta la excepción acá.
     puedeAccederRuta: (ruta) => ruta === ROUTES.CUENTA || puedeAcceder(contexto.rolUI, ruta),
   };
 }

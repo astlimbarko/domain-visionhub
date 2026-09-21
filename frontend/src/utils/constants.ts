@@ -44,6 +44,12 @@ export const ROUTES = {
   DEPARTAMENTOS: '/departamentos',
   GESTION_REDES: '/gestion-redes',
   CUENTA: '/cuenta',
+  // KAN-405: "Colaborar" -- accesible para TODOS los roles. Pantalla propia
+  // fuera de PrivateLayout/AppShell (ver App.tsx, mismo patron que
+  // ESTRUCTURA_ORGANIZACIONAL) -- mientras colabora, la persona NO ve el
+  // panel/sidebar de su rol normal. No depende de RolUI ni de
+  // iglesiaActivaId -- el codigo define la iglesia/area de la colaboracion.
+  COLABORAR: '/colaborar',
   ADMINISTRACION: '/administracion',
   // KAN-101: gestion de anuncios (Supervisor de la Vision en Accion /
   // Pastor / Encargado de Anuncios / Lider de Red / Supervisor de Red). Sin
@@ -73,6 +79,9 @@ export const ROUTES = {
   // Plan panel Afirmación 2026-08-20, punto 3/4: tabla de todas las personas
   // de la iglesia con KPIs, ordenable/filtrable.
   AFIRMACION_PERSONAS: '/afirmacion-personas',
+  // KAN-405: gestion de codigos/Colaboradores temporales -- generar codigo,
+  // ver activos, extender/pausar/finalizar, auditoria por Colaborador.
+  AFIRMACION_COLABORADORES: '/afirmacion-colaboradores',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',
