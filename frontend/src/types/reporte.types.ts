@@ -95,11 +95,18 @@ export interface MegafiestaRedResumen {
   cantidadCdpReportaron: number;
 }
 
-/** KAN-409: desglose por CdP dentro de un consolidado -- "CdP Daniel — 14 personas". */
+/**
+ * KAN-409: desglose por CdP dentro de un consolidado -- "CdP Daniel — 14
+ * personas". Sin el nombre acá a propósito: `casa_de_paz.nombre` suele
+ * venir vacío (bug real encontrado en verificación en vivo -- la etiqueta
+ * real de una CdP sale de `fn_etiqueta_cdp`, con fallback al nombre del
+ * Líder, igual que el resto de las pantallas de Reportes). El nombre se
+ * resuelve en el componente cruzando con `useCdps` (mismo mapa "etiqueta"
+ * que ya usa ControlReportesVista), no acá.
+ */
 export interface MegafiestaDesgloseFila {
   reporte_id: string;
   casa_de_paz_id: string;
-  casa_de_paz_nombre: string;
   total_asistentes: number;
 }
 

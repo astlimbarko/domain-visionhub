@@ -383,11 +383,13 @@ export async function obtenerMegafiestasRed(redId: string): Promise<MegafiestaRe
  * KAN-409: desglose por CdP de un consolidado puntual -- "CdP Daniel — 14
  * personas". RLS ya limita las filas de casa_de_paz_reporte a lo que el
  * usuario puede ver (fn_puede_ver_cdp), igual que en Control de Reportes.
+ * No trae el nombre de la CdP acá (ver comentario en MegafiestaDesgloseFila) --
+ * el componente lo cruza con useCdps.
  */
 export async function obtenerDesgloseMegafiesta(eventoId: string): Promise<MegafiestaDesgloseFila[]> {
   const { data: reportes, error: errorReportes } = await supabase
     .from('casa_de_paz_reporte')
-    .select('id, casa_de_paz_id, casa_de_paz:casa_de_paz_id(nombre)')
+    .select('id, casa_de_paz_id')
     .eq('evento_megafiesta_id', eventoId)
     .is('fecha_eliminacion', null);
   if (errorReportes) throw errorReportes;
@@ -402,15 +404,11 @@ export async function obtenerDesgloseMegafiesta(eventoId: string): Promise<Megaf
   const totalPorReporte = new Map((totales ?? []).map((t) => [t.reporte_id, t.total_asistentes]));
 
   return reportes
-    .map((r) => {
-      const cdp = Array.isArray(r.casa_de_paz) ? r.casa_de_paz[0] : r.casa_de_paz;
-      return {
-        reporte_id: r.id,
-        casa_de_paz_id: r.casa_de_paz_id,
-        casa_de_paz_nombre: cdp?.nombre ?? '—',
-        total_asistentes: totalPorReporte.get(r.id) ?? 0,
-      };
-    })
+    .map((r) => ({
+      reporte_id: r.id,
+      casa_de_paz_id: r.casa_de_paz_id,
+      total_asistentes: totalPorReporte.get(r.id) ?? 0,
+    }))
     .sort((a, b) => b.total_asistentes - a.total_asistentes);
 }
 

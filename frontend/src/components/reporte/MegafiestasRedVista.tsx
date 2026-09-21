@@ -11,6 +11,7 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { useMonedasActivas } from '@/hooks/usePanelSupervisor';
+import { useCdps } from '@/hooks/useCasasDePaz';
 import {
   useActualizarDetalleMegafiesta,
   useDesgloseMegafiesta,
@@ -103,9 +104,16 @@ function conMayusInicial(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-function MegafiestaDetalleExpandido({ eventoId, redId: _redId }: { eventoId: string; redId: string }) {
+function MegafiestaDetalleExpandido({ eventoId, redId }: { eventoId: string; redId: string }) {
   const navigate = useNavigate();
+  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const { data: desglose = [], isLoading: cargandoDesglose } = useDesgloseMegafiesta(eventoId, true);
+  // KAN-409 (bug real encontrado en verificación en vivo): `casa_de_paz.nombre`
+  // suele venir vacío -- la etiqueta real (con fallback al nombre del Líder)
+  // sale de fn_etiqueta_cdp, expuesta acá vía el mismo `useCdps` que ya usa
+  // ControlReportesVista para la columna "Casa de Paz" de la matriz de arriba.
+  const { data: cdps = [] } = useCdps(iglesiaActivaId, redId);
+  const etiquetaPorCdp = new Map(cdps.map((c) => [c.id, c.etiqueta]));
   const total = desglose.reduce((suma, d) => suma + d.total_asistentes, 0);
 
   return (
@@ -129,7 +137,7 @@ function MegafiestaDetalleExpandido({ eventoId, redId: _redId }: { eventoId: str
                 className="flex items-center justify-between gap-2 rounded-lg bg-card px-3 py-2 text-sm hover:bg-muted/50"
                 title="Ver lista de asistentes de este reporte"
               >
-                <span className="truncate font-medium">{d.casa_de_paz_nombre}</span>
+                <span className="truncate font-medium">{etiquetaPorCdp.get(d.casa_de_paz_id) ?? 'Casa de Paz'}</span>
                 <span className="shrink-0 text-muted-foreground">{d.total_asistentes} persona{d.total_asistentes === 1 ? '' : 's'}</span>
               </button>
             ))}
