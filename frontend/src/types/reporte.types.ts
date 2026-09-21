@@ -86,6 +86,10 @@ export interface NuevaVisita {
   /** Mismo campo que el formulario de Evangelismo (en vez de preguntar
    * "es menor" aparte) -- si viene, es_menor se calcula a partir de esto. */
   fecha_nacimiento?: string;
+  /** KAN-406: edad aproximada cuando no se conoce fecha_nacimiento -- dato no
+   * confirmado, nunca se deriva una fecha ficticia a partir de esto. Solo
+   * tiene sentido cuando fecha_nacimiento viene vacío. */
+  edad_aproximada?: number;
 }
 
 /**

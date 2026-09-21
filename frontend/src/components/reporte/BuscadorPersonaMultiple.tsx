@@ -5,7 +5,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { normalizarNombre } from '@/utils/normalizarNombre';
+import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
 import { VERDE } from '@/components/dashboard/DashboardUI';
 import type { MiembroCdp } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -23,6 +25,11 @@ export interface DatosPersonaNueva {
   domicilio?: string;
   telefono?: string;
   fecha_nacimiento?: string;
+  /** KAN-406: cuando no se conoce la fecha exacta (niños, adultos mayores
+   * sin documento a mano, etc.) se permite el alta igual con una edad
+   * aproximada -- nunca se deriva una fecha_nacimiento ficticia a partir de
+   * esto. Solo tiene sentido cuando fecha_nacimiento viene vacío. */
+  edad_aproximada?: number;
 }
 
 interface Props {
@@ -160,8 +167,14 @@ export function BuscadorPersonaMultiple({
   const [apellidoMaternoNueva, setApellidoMaternoNueva] = useState('');
   const [sexoNueva, setSexoNueva] = useState<'M' | 'F' | ''>('');
   const [domicilioNueva, setDomicilioNueva] = useState('');
-  const [telefonoNueva, setTelefonoNueva] = useState('');
+  const [telefonoPaisNueva, setTelefonoPaisNueva] = useState('+591');
+  const [telefonoNumeroNueva, setTelefonoNumeroNueva] = useState('');
   const [fechaNacimientoNueva, setFechaNacimientoNueva] = useState('');
+  // KAN-406: checkbox "Se desconoce la fecha de nacimiento" -- no bloquea el
+  // alta rápida cuando no se sabe (niños, mayores sin documento a mano). En
+  // ese caso se pide una edad aproximada en vez de la fecha exacta.
+  const [fechaDesconocidaNueva, setFechaDesconocidaNueva] = useState(false);
+  const [edadAproximadaNueva, setEdadAproximadaNueva] = useState('');
 
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
@@ -189,8 +202,12 @@ export function BuscadorPersonaMultiple({
       segundo_apellido: apellidoMaternoNueva.trim() || undefined,
       sexo: sexoNueva,
       domicilio: domicilioNueva.trim() || undefined,
-      telefono: telefonoNueva.trim() || undefined,
-      fecha_nacimiento: fechaNacimientoNueva || undefined,
+      telefono: componerTelefono(telefonoPaisNueva, telefonoNumeroNueva),
+      // KAN-406: nunca ambos a la vez -- con el checkbox tildado se manda
+      // solo la edad aproximada, sin fecha_nacimiento (evita inventar una
+      // fecha ficticia a partir de la edad).
+      fecha_nacimiento: fechaDesconocidaNueva ? undefined : (fechaNacimientoNueva || undefined),
+      edad_aproximada: fechaDesconocidaNueva && edadAproximadaNueva ? Number(edadAproximadaNueva) : undefined,
     });
     setTexto('');
     onTextoCambia?.('');
@@ -200,8 +217,11 @@ export function BuscadorPersonaMultiple({
     setApellidoMaternoNueva('');
     setSexoNueva('');
     setDomicilioNueva('');
-    setTelefonoNueva('');
+    setTelefonoPaisNueva('+591');
+    setTelefonoNumeroNueva('');
     setFechaNacimientoNueva('');
+    setFechaDesconocidaNueva(false);
+    setEdadAproximadaNueva('');
     setMostrarFormNueva(false);
   }
 
@@ -403,18 +423,75 @@ export function BuscadorPersonaMultiple({
               <Label className="text-xs">Domicilio</Label>
               <Input value={domicilioNueva} onChange={(e) => setDomicilioNueva(e.target.value)} />
             </div>
+            {/* Teléfono con código de país -- mismo patrón (Select con
+                bandera + PAISES_TELEFONO, Bolivia +591 por defecto) que
+                CamposMembresiaFields/MembresiaObligatoria, reutilizado tal
+                cual en vez de un Input suelto (pedido KAN-406). */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Teléfono</Label>
-              <Input type="tel" placeholder="Opcional" value={telefonoNueva} onChange={(e) => setTelefonoNueva(e.target.value)} />
+              <div className="flex gap-2">
+                <Select value={telefonoPaisNueva} onValueChange={setTelefonoPaisNueva}>
+                  <SelectTrigger className="w-28 shrink-0 sm:w-32">
+                    <SelectValue>
+                      <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisNueva)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                      {telefonoPaisNueva}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAISES_TELEFONO.map((p) => (
+                      <SelectItem key={p.codigo} value={p.codigo}>
+                        <span className={cn('fi', `fi-${p.iso}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                        {p.codigo}
+                        <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Opcional"
+                  className="min-w-0 flex-1"
+                  value={telefonoNumeroNueva}
+                  onChange={(e) => setTelefonoNumeroNueva(e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Fecha de nacimiento</Label>
-              <Input
-                type="date"
-                value={fechaNacimientoNueva}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setFechaNacimientoNueva(e.target.value)}
-              />
+              <Label className="text-xs">{fechaDesconocidaNueva ? 'Edad aproximada' : 'Fecha de nacimiento'}</Label>
+              {fechaDesconocidaNueva ? (
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={120}
+                  placeholder="Ej. 8"
+                  value={edadAproximadaNueva}
+                  onChange={(e) => setEdadAproximadaNueva(e.target.value)}
+                />
+              ) : (
+                <Input
+                  type="date"
+                  value={fechaNacimientoNueva}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setFechaNacimientoNueva(e.target.value)}
+                />
+              )}
+              {/* KAN-406: no impide el alta cuando no se sabe la fecha exacta
+                  -- la edad aproximada queda marcada como dato no confirmado,
+                  a completarse con la fecha real en el proceso de bautismo. */}
+              <label className="flex items-center gap-1.5 pt-0.5 text-[11px] text-muted-foreground">
+                <Checkbox
+                  checked={fechaDesconocidaNueva}
+                  onCheckedChange={(v) => {
+                    const marcado = v === true;
+                    setFechaDesconocidaNueva(marcado);
+                    if (marcado) setFechaNacimientoNueva('');
+                    else setEdadAproximadaNueva('');
+                  }}
+                />
+                Se desconoce la fecha de nacimiento
+              </label>
             </div>
           </div>
           <div className="flex justify-end gap-2">
