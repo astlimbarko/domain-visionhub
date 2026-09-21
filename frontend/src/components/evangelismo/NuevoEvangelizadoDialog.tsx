@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,11 +24,14 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useTiposEvangelismo } from '@/hooks/useEvangelismo';
+import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
+import { useDebounce } from '@/hooks/useDebounce';
 import { SelectorTipoEvangelismo } from './SelectorTipoEvangelismo';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { cn } from '@/lib/utils';
 import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 /** Codigo estable de 44_tipo_evangelismo.sql / seed_01_catalogos_globales.sql -- no depender del nombre, que puede editarse. */
 const CODIGO_SEMILLA = 'SEMILLA';
@@ -68,8 +71,15 @@ const FORM_VACIO = {
 
 /** Lo que sale del diálogo hacia afuera: país+número ya combinados en un solo
  * `telefono` (mismo formato que espera fn_registrar_evangelizado), no los 2
- * campos separados que usa el formulario internamente. */
-export type ValoresEvangelizado = Omit<FormValues, 'telefono_pais' | 'telefono_numero'> & { telefono?: string; evangelizado_por_id?: string };
+ * campos separados que usa el formulario internamente. `persona_id` (KAN-407)
+ * viene poblado cuando el usuario confirmó "sí, es esta persona" en el aviso
+ * de posible duplicado -- fn_registrar_evangelizado ya soporta vincular un
+ * persona_id existente en vez de crear una fila nueva (ver p_datos.persona_id). */
+export type ValoresEvangelizado = Omit<FormValues, 'telefono_pais' | 'telefono_numero'> & {
+  telefono?: string;
+  evangelizado_por_id?: string;
+  persona_id?: string;
+};
 
 interface Props {
   open: boolean;
@@ -117,18 +127,73 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
   const esSemilla = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_SEMILLA;
   const esElite = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_ELITE;
 
-  async function onSubmit(valores: FormValues) {
+  // KAN-407: mientras se completa el formulario, busca en segundo plano
+  // (debounced) si ya existe alguien con un nombre muy parecido -- Semilla
+  // no pide nombre, así que la búsqueda se desactiva en ese modo.
+  const primerNombreActual = watch('primer_nombre');
+  const segundoNombreActual = watch('segundo_nombre');
+  const primerApellidoActual = watch('primer_apellido');
+  const segundoApellidoActual = watch('segundo_apellido');
+  const primerNombreDebounced = useDebounce(primerNombreActual);
+  const segundoNombreDebounced = useDebounce(segundoNombreActual);
+  const primerApellidoDebounced = useDebounce(primerApellidoActual);
+  const segundoApellidoDebounced = useDebounce(segundoApellidoActual);
+  const { data: similares = [] } = useBuscarPersonasSimilares(
+    iglesiaId,
+    {
+      primer_nombre: primerNombreDebounced ?? '',
+      segundo_nombre: segundoNombreDebounced,
+      primer_apellido: primerApellidoDebounced ?? '',
+      segundo_apellido: segundoApellidoDebounced,
+    },
+    open && !esSemilla
+  );
+  const [mostrarConfirmDuplicado, setMostrarConfirmDuplicado] = useState(false);
+  // Igual criterio que EvangelismoPendientePanel/BuscadorPersonaMultiple: una
+  // vez descartado el aviso para el nombre tal cual está escrito, no se
+  // vuelve a molestar hasta que se toque alguno de los 4 campos de nombre.
+  const [duplicadoDescartado, setDuplicadoDescartado] = useState(false);
+  const [valoresPendientes, setValoresPendientes] = useState<FormValues | null>(null);
+  useEffect(() => {
+    setDuplicadoDescartado(false);
+  }, [primerNombreActual, segundoNombreActual, primerApellidoActual, segundoApellidoActual]);
+
+  async function registrar(valores: FormValues, personaIdExistente?: string) {
     const { telefono_pais, telefono_numero, ...resto } = valores;
     try {
-      await onCrear({ ...resto, telefono: componerTelefono(telefono_pais, telefono_numero), evangelizado_por_id: evangelizadoPor?.id });
+      await onCrear({
+        ...resto,
+        telefono: componerTelefono(telefono_pais, telefono_numero),
+        evangelizado_por_id: evangelizadoPor?.id,
+        persona_id: personaIdExistente,
+      });
       toast.success('Evangelizado registrado');
       setRegistrados((n) => n + 1);
       // Se conserva la fecha y el tipo elegidos: lo más común es cargar a
       // varias personas de la misma salida y el mismo tipo de evangelismo.
       reset({ ...FORM_VACIO, fecha: valores.fecha, tipo_evangelismo_id: valores.tipo_evangelismo_id });
+      setDuplicadoDescartado(false);
     } catch {
       toast.error('No se pudo registrar');
     }
+  }
+
+  // KAN-407: lo que dispara `handleSubmit` -- si hay candidatos de
+  // `fn_buscar_personas_similares` sin descartar todavía, frena y muestra el
+  // modal en vez de registrar directo. `registrar` (arriba) es el alta real.
+  function interceptarSubmit(valores: FormValues) {
+    if (!duplicadoDescartado && similares.length > 0) {
+      setValoresPendientes(valores);
+      setMostrarConfirmDuplicado(true);
+      return;
+    }
+    registrar(valores);
+  }
+
+  function usarPersonaSimilar(persona: PersonaSimilar) {
+    if (valoresPendientes) registrar(valoresPendientes, persona.id);
+    setMostrarConfirmDuplicado(false);
+    setValoresPendientes(null);
   }
 
   async function handleRegistrarSemilla() {
@@ -159,10 +224,14 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
     setRegistrados(0);
     setCantidadSemilla('1');
     setEvangelizadoPor(null);
+    setDuplicadoDescartado(false);
+    setValoresPendientes(null);
+    setMostrarConfirmDuplicado(false);
     onOpenChange(false);
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : manejarCerrar())}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -225,7 +294,7 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
               </DialogFooter>
             </div>
           ) : (
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit(interceptarSubmit)} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="primer_nombre">Nombre *</Label>
@@ -343,5 +412,20 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmarPosibleDuplicadoDialog
+      open={mostrarConfirmDuplicado}
+      onOpenChange={setMostrarConfirmDuplicado}
+      candidatos={similares}
+      nombreTentativo={[primerNombreActual, segundoNombreActual, primerApellidoActual, segundoApellidoActual].filter(Boolean).join(' ')}
+      onUsarExistente={usarPersonaSimilar}
+      onNoEsLaMisma={() => {
+        setDuplicadoDescartado(true);
+        setMostrarConfirmDuplicado(false);
+        if (valoresPendientes) registrar(valoresPendientes);
+        setValoresPendientes(null);
+      }}
+    />
+    </>
   );
 }
