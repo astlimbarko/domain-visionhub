@@ -54,6 +54,14 @@ export interface NavItem {
   color: string;
   /** Label alternativo por rol (ej. "Gestión de Sublíder" en vez de "Casas de Paz") */
   labelPorRol?: Partial<Record<RolUI, string>>;
+  /** KAN-411: nombre del Departamento al que pertenece (ej. "Evangelismo",
+   * "Afirmación") -- ítems consecutivos con el mismo `grupo` se colapsan en
+   * un solo acordeón en el nav (ver `NavLinks` en `AppShell.tsx`). Sin este
+   * campo, el ítem se muestra suelto como siempre. Sin tag a propósito en
+   * `NAV_ITEMS_AFIRMACION`/`NAV_ITEM_EVANGELISMO*` -- esos son los que ve el
+   * propio Líder de Departamento, donde agrupar no suma nada (todo el menú
+   * ya es ese departamento). */
+  grupo?: string;
 }
 
 // ─── Configuración de rutas por rol ──────────────────────────────────────────
@@ -272,22 +280,22 @@ const CATALOGO_NAV: NavItem[] = [
   // SKILL.md) -- pedido del owner (2026-08-02) para que la sección se
   // reconozca a simple vista, en vez del rosa (#ff2d55) que no tenía relación
   // con ningún otro color del sistema.
-  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color },
+  { icon: HeartHandshake, label: 'Evangelismo', path: ROUTES.EVANGELISMO, color: DEPARTAMENTO_META.EVANGELISMO.color, grupo: 'Evangelismo' },
   // KAN-302: roster completo de evangelizados (filtros + paginación + CSV),
   // mismo nivel que "Evangelismo" -- pedido explícito del owner, mismo patrón
   // que "Personas" de Afirmación.
-  { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color },
+  { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color, grupo: 'Evangelismo' },
   // KAN-339 (2026-09-09): mismo patrón que los 2 ítems de Evangelismo de
   // arriba -- Pastor/Supervisor ahora tienen control total en Afirmación,
   // así que necesitan su propia entrada de nav (antes solo la veía el Líder
   // de Departamento vía NAV_ITEMS_AFIRMACION, ortogonal a este catálogo).
-  { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
+  { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color, grupo: 'Afirmación' },
+  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Afirmación' },
   // #32ade6 (systemCyan): antes compartía #5e5ce6 con "Gestión de Redes"
   // (regla de un color por sección, 2026-09-10).
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
-  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
-  { icon: Users, label: 'Membresía (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Afirmación' },
+  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Afirmación' },
+  { icon: Users, label: 'Membresía (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6', grupo: 'Afirmación' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
