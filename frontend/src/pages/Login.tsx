@@ -15,6 +15,7 @@ import { iniciarSesion, iniciarSesionConGoogle } from '@/services/auth.service';
 import { construirSesionDesdeAuth } from '@/services/sesion.service';
 import { useAuthStore } from '@/store/auth.store';
 import { GOOGLE_AUTH_HABILITADO, ROUTES } from '@/utils/constants';
+import { obtenerVersionApp } from '@/utils/app-version';
 
 const esquema = z.object({ correo: z.string().email(), contrasena: z.string().min(1) });
 type FormLogin = z.infer<typeof esquema>;
@@ -65,6 +66,12 @@ export function Login() {
       {/* Fondo con un toque de color, bien sutil -- pedido del owner, 2026-08-03 ("solo un poco"). */}
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-[0.12] blur-3xl" style={{ background: 'var(--chart-1)' }} aria-hidden="true" />
       <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full opacity-[0.10] blur-3xl" style={{ background: 'var(--chart-4)' }} aria-hidden="true" />
+
+      {/* KAN-412: version discreta, no debe competir con el resto de la
+          pantalla -- texto muy chico, bajo contraste, abajo al centro. */}
+      <p className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 text-[10px] text-muted-foreground/40">
+        v{obtenerVersionApp()}
+      </p>
 
       <div className="relative z-10 w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
         <div className="mb-8 flex flex-col items-center gap-4">
