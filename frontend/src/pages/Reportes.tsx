@@ -53,13 +53,13 @@ import {
   useCamposObligatoriosReporte,
   useCdpContextoReporte,
   useCrearReporte,
+  useCrearReporteMegafiesta,
   useCrearReunionNoRealizada,
   useEdadMinimaCreyente,
   useIdsLiderCdp,
   useLibros,
   useDiasLimiteEdicionReporte,
   useHistorialReporte,
-  useMegaFiestaDelDia,
   useMiembrosCdp,
   usePuedeAnularReporte,
   usePuedeEditarReporte,
@@ -330,7 +330,6 @@ export function Reportes() {
   // reporte original -- reabrirlo lo duplicaría). Solo se corrige el
   // conteo que queda guardado en el reporte.
   const [evangelizadosDeclaradosEdicion, setEvangelizadosDeclaradosEdicion] = useState<number | undefined>(undefined);
-  const [esMegaFiesta, setEsMegaFiesta] = useState(false);
   const [disertadorNombre, setDisertadorNombre] = useState('');
   // KAN-392 (2026-09-17, pedido del owner): "esta semana no se realizó la
   // reunión" -- solo tiene sentido al cargar un reporte nuevo, no editando
@@ -341,6 +340,13 @@ export function Reportes() {
   // (crearReunionNoRealizada), no por onSubmit.
   const [reunionNoRealizada, setReunionNoRealizada] = useState(false);
   const [motivoNoRealizada, setMotivoNoRealizada] = useState('');
+  // KAN-409: "esta reunión es una Megafiesta de Casa de Paz" -- reemplaza el
+  // formulario por uno reducido (fecha + asistencia), igual que
+  // reunionNoRealizada, y va por un camino de guardado propio
+  // (crearReporteMegafiesta/onSubmitMegafiesta), no por onSubmit. Solo tiene
+  // sentido al cargar un reporte nuevo (mismo criterio que reunionNoRealizada
+  // -- el checkbox solo se muestra si `!modoEdicion`).
+  const [esMegafiestaForm, setEsMegafiestaForm] = useState(false);
 
   const {
     register,
@@ -363,7 +369,7 @@ export function Reportes() {
 
   const { data: temas = [] } = useTemas(libroId, iglesiaActivaId);
   const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
-  const { data: megaFiesta } = useMegaFiestaDelDia(cdpActiva, fechaReunion);
+  const crearMegafiesta = useCrearReporteMegafiesta(cdpActiva);
   const temaActual = useMemo(() => temas.find((t) => t.id === temaId), [temas, temaId]);
   // KAN-367 (2026-09-17): el buscador de temas cambia libro_id y tema_id
   // juntos, pero `temas` (useTemas, filtrado por libro_id) recién empieza a
@@ -894,7 +900,10 @@ export function Reportes() {
         tema_id: valores.tema_id === TEMA_ESPECIAL_SENTINEL ? undefined : valores.tema_id,
         tema_especial_txt: esTemaEspecial ? valores.tema_especial_txt : undefined,
         disertador_id: valores.disertador_id,
-        evento_megafiesta_id: esMegaFiesta && megaFiesta ? megaFiesta.evento_id : undefined,
+        // KAN-409: el reporte normal ya no se vincula a una Megafiesta acá --
+        // ese vínculo ahora solo lo crea el formulario reducido
+        // (crearReporteMegafiesta/onSubmitMegafiesta), evolución del checkbox
+        // viejo "Fue la Mega Fiesta de Casas de Paz" que se retiró.
         salio_evangelizar: valores.salio_evangelizar,
         evangelizados_declarados: valores.salio_evangelizar
           ? modoEdicion
@@ -1002,7 +1011,6 @@ export function Reportes() {
       setTextoBuscadorDiezmante('');
       setEvangelizadosPendientes([]);
       setReconciliadosPorPersona({});
-      setEsMegaFiesta(false);
       setDisertadorNombre('');
     } catch (e) {
       const error = e as { code?: string; message?: string } | null;
@@ -1032,363 +1040,85 @@ export function Reportes() {
     }
   }
 
-  if (modoEdicion) {
-    if (cargandoReporteExistente || cargandoPuedeEditar || !formPrecargado) {
-      return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          <Skeleton className="h-20 w-full rounded-3xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-        </div>
+  /**
+   * KAN-409: envío del formulario reducido de Megafiesta -- solo fecha +
+   * asistencia. Camino de guardado totalmente aparte de onSubmit (mismo
+   * patrón que enviarReunionNoRealizada): no pasa por react-hook-form/zod
+   * (el schema exige total_ofrendas/moneda_id, campos que este modo ni
+   * muestra), llama directo a crearReporteMegafiesta. El backend busca o
+   * crea el consolidado (evento tipo MEGA_FIESTA de la Red+fecha) solo --
+   * el Líder de CdP puede enviarla sin que el Líder de Red la haya
+   * programado antes.
+   */
+  async function onSubmitMegafiesta() {
+    if (!cdpActiva || !iglesiaActivaId) return;
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
+    if (totalAsistentesActual === 0) {
+      toast.error('Marcá al menos una persona antes de enviar el reporte');
+      return;
+    }
+    if (pendientesEsMenor.length > 0) {
+      const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
+      toast.error(
+        pendientesEsMenor.length === 1
+          ? `${nombres} no tiene fecha de nacimiento registrada: indicá arriba si es menor de ${edadMinima} años`
+          : `${nombres} no tienen fecha de nacimiento registrada: indicá arriba si son menores de ${edadMinima} años`
       );
+      return;
     }
-    if (errorReporteExistente || !reporteExistente) {
-      return <ProximamentePlaceholder titulo="Editar reporte" descripcion="No se pudo cargar este reporte." />;
-    }
-    if (!puedeEditar) {
-      if (cargandoPuedeSolicitar) {
-        return (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-            <Skeleton className="h-20 w-full rounded-3xl" />
-            <Skeleton className="h-40 w-full rounded-2xl" />
-          </div>
-        );
+    for (const v of visitasNuevas) {
+      if (v.es_menor === undefined) {
+        toast.error(`Indicá si ${v.primer_nombre} ${v.primer_apellido} es menor`);
+        return;
       }
-      if (!puedeSolicitarFueraVentana) {
-        return (
-          <ProximamentePlaceholder
-            titulo="Ya no se puede editar"
-            descripcion="Este reporte ya pasó tu ventana de edición, o no tenés permiso sobre esta Casa de Paz. Pedile al Líder de Red, Pastor o Supervisor de la Visión en Acción que lo corrija -- ellos tienen más margen y pueden autorizar la edición fuera de ventana."
-          />
-        );
+    }
+
+    try {
+      const resultado = await crearMegafiesta.mutateAsync({
+        casa_de_paz_id: cdpActiva,
+        iglesia_id: iglesiaActivaId,
+        fecha_reunion: fechaReunion,
+        asistentesExistentes: Array.from(asistentes.entries()).map(([id, v]) => ({ personaId: id, esMenor: v.esMenor, esVisita: v.esVisita })),
+        visitasNuevas,
+      });
+      toast.success(
+        `Megafiesta enviada: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
+      );
+      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
+      setAsistentes(new Map());
+      setVisitasNuevas([]);
+      setAsistentesNuevosExistentes([]);
+      setTextoAsistenteNuevo('');
+      setEsMegafiestaForm(false);
+    } catch (e) {
+      const error = e as { code?: string; message?: string } | null;
+      const mensaje = typeof error?.message === 'string' ? error.message : '';
+      if (error?.code === '23514' && mensaje.includes('chk_reporte_fecha')) {
+        toast.error('La fecha de la reunión no puede ser en el futuro');
+      } else if (error?.code === '23505' && mensaje.includes('uq_reporte_cdp_fecha')) {
+        toast.error('Ya existe un reporte para esa fecha en esta Casa de Paz. Editá el existente en vez de crear otro.');
+      } else if (mensaje.includes('ASISTENCIA_EDAD_INDEFINIDA')) {
+        toast.error('Falta indicar si algún asistente sin fecha de nacimiento es menor de edad');
+      } else if (mensaje.includes('MEGAFIESTA_SIN_RED')) {
+        toast.error('Tu Casa de Paz no pertenece a ninguna Red activa -- no se puede reportar una Megafiesta');
+      } else {
+        toast.error('No se pudo enviar el reporte de la Megafiesta');
       }
-      // KAN-367: Pastor / Supervisor de la Visión en Acción -- pueden pedir
-      // autorización puntual (justificación + OTP) para editar igual.
-      return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          <DashboardHero
-            icon={ClipboardList}
-            eyebrow="Editar reporte"
-            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
-            color={colorRed ?? undefined}
-          />
-          <section className={CARD_SECCION}>
-            <div className="flex flex-col gap-4 p-5">
-              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-                <div className="flex flex-col gap-1 text-sm">
-                  <p className="font-medium">Este reporte ya pasó la ventana normal de edición</p>
-                  <p className="text-muted-foreground">
-                    Podés editarlo igual, pero necesitamos un motivo y confirmación por código -- queda registrado quién lo autorizó y por qué.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="justificacion_fuera_ventana">Motivo *</Label>
-                <Textarea
-                  id="justificacion_fuera_ventana"
-                  value={justificacionFueraVentana}
-                  onChange={(e) => setJustificacionFueraVentana(e.target.value)}
-                  placeholder="Por qué hace falta editar este reporte fuera de la ventana normal"
-                />
-              </div>
-              <CampoOtp value={pinFueraVentana} onChange={setPinFueraVentana} />
-              <Button
-                type="button"
-                className="gap-2 self-start"
-                disabled={autorizarFueraVentana.isPending || !justificacionFueraVentana.trim() || pinFueraVentana.length !== 6}
-                onClick={solicitarAutorizacionFueraVentana}
-              >
-                <Pencil className="h-4 w-4" /> Autorizar y modificar
-              </Button>
-            </div>
-          </section>
-        </div>
-      );
     }
-    if (!activado) {
-      return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          <DashboardHero
-            icon={ClipboardList}
-            eyebrow="Editar reporte"
-            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
-            color={colorRed ?? undefined}
-          />
-          <section className={CARD_SECCION}>
-            <div className="flex flex-col gap-4 p-5">
-              {esCdpAjena && cdpContexto && (
-                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
-                  <p className="font-medium">{cdpContexto.etiqueta}</p>
-                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                    <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
-                  </p>
-                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                    <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
-                  </p>
-                </div>
-              )}
-              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-                <div className="flex flex-col gap-1 text-sm">
-                  <p className="font-medium">Vas a modificar un reporte ya enviado</p>
-                  <p className="text-muted-foreground">
-                    Puede afectar estadísticas ya calculadas.
-                    {diasLimiteEdicionCdp !== undefined &&
-                      ` Tenés hasta ${diasLimiteEdicionCdp} día${diasLimiteEdicionCdp === 1 ? '' : 's'} desde que se cargó (configurable en Supervisión).`}
-                  </p>
-                </div>
-              </div>
-              <Button type="button" variant="destructive" className="gap-2 self-start" onClick={() => setActivado(true)}>
-                <Pencil className="h-4 w-4" /> Modificar este reporte
-              </Button>
-            </div>
-          </section>
-        </div>
-      );
-    }
-  } else if (!contextoCdp) {
-    return (
-      <ProximamentePlaceholder
-        titulo="Reporte de Casa de Paz"
-        descripcion="Todavía no tenés una Casa de Paz asignada como líder o sublíder, así que no hay reporte que llenar."
-      />
-    );
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <DashboardHero
-        icon={ClipboardList}
-        eyebrow={modoEdicion ? 'Editar reporte' : 'Reporte semanal'}
-        title={modoEdicion ? `Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}` : 'Reporte de la reunión'}
-        color={colorRed ?? undefined}
-      />
-
-      {/* KAN-367 (pedido del owner, 2026-09-17): explica qué significa el
-          rojo -- sin esto no queda claro que es "esto ya está guardado", no
-          un error. */}
-      {modoEdicion && (
-        <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-destructive/40" />
-          Los campos en rojo tienen el dato ya guardado. Al escribir en uno, pasa a blanco para mostrar que lo estás modificando.
-        </p>
-      )}
-
-      {esCdpAjena && cdpContexto && (
-        <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
-          <p className="font-medium">{cdpContexto.etiqueta}</p>
-          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-            <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
-          </p>
-          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-            <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
-          </p>
-        </div>
-      )}
-
-      {/* KAN-392 (2026-09-17, pedido del owner): solo tiene sentido al cargar
-          un reporte nuevo -- no se ofrece editando uno ya existente. */}
-      {!modoEdicion && (
-        <label
-          className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-sm"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Checkbox
-            className="mt-0.5"
-            checked={reunionNoRealizada}
-            onCheckedChange={(v) => {
-              setReunionNoRealizada(v === true);
-              if (v !== true) setMotivoNoRealizada('');
-            }}
-          />
-          <span className="flex flex-col gap-0.5">
-            <span className="font-medium">Esta semana no se realizó la reunión de Casa de Paz</span>
-            <span className="text-[12px] text-muted-foreground">
-              No cuenta como reporte no presentado, pero tampoco como reunión realizada -- queda como semana justificada.
-            </span>
-          </span>
-        </label>
-      )}
-
-      {reunionNoRealizada ? (
-        <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fecha_reunion_no_realizada">Fecha de la reunión *</Label>
-            <Input
-              id="fecha_reunion_no_realizada"
-              type="date"
-              max={hoy}
-              className={CAMPO_ESTILO}
-              value={fechaReunion}
-              onChange={(e) => setValue('fecha_reunion', e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="motivo_no_realizada">Motivo por el que no se realizó la reunión *</Label>
-            <Textarea
-              id="motivo_no_realizada"
-              className={CAMPO_ESTILO}
-              value={motivoNoRealizada}
-              onChange={(e) => setMotivoNoRealizada(e.target.value)}
-              placeholder="Ej: se suspendió por una actividad general de la iglesia"
-            />
-          </div>
-          <Button
-            type="button"
-            className="h-11 gap-2 self-start rounded-xl"
-            disabled={!motivoNoRealizada.trim() || crearNoRealizada.isPending}
-            onClick={enviarReunionNoRealizada}
-          >
-            {crearNoRealizada.isPending ? 'Guardando...' : 'Guardar semana sin reunión'}
-          </Button>
-        </div>
-      ) : (
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className={cn('flex flex-col gap-6', modoEdicion && '-mx-4 rounded-3xl p-4 sm:-mx-5 sm:p-5')}
-        // KAN-367 (pedido del owner, 2026-09-17): tinte rojo sutil solo en
-        // modo edición, para que se note a simple vista que se está
-        // modificando un dato ya guardado -- mismo patrón de color-mix que
-        // ya usan TarjetaHeader/franjas de sección, no un color plano nuevo.
-        style={modoEdicion ? { backgroundColor: `color-mix(in oklab, ${ROJO} 4%, transparent)` } : undefined}
-      >
-        {/* Información General */}
-        <section className={CARD_SECCION_CON_DESPLEGABLE}>
-          <div className="overflow-hidden rounded-t-2xl">
-            <TarjetaHeader
-              icon={CalendarDays}
-              color={AZUL}
-              titulo="Información general"
-              descripcion="Cuándo fue la reunión y quién enseñó"
-            />
-          </div>
-          <div className="p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input
-                      id="fecha_reunion"
-                      type="date"
-                      max={hoy}
-                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
-                      {...register('fecha_reunion')}
-                    />
-                  </div>
-
-                  {/* KAN-367 (2026-09-17): Disertador sube acá, al lado de la
-                      fecha -- antes quedaba al final y ese espacio de al lado
-                      de la fecha quedaba vacío en desktop. */}
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
-                    <BuscadorPersonaCampo
-                      iglesiaId={iglesiaActivaId}
-                      valor={disertadorNombre}
-                      seleccionado={!!disertadorId}
-                      onCambiarTexto={cambiarTextoDisertador}
-                      onSeleccionar={seleccionarDisertador}
-                      placeholder="Buscar por nombre..."
-                      edadMinima={edadMinima}
-                    />
-                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
-                  </div>
-
-                  {megaFiesta && (
-                    <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                      <Checkbox checked={esMegaFiesta} onCheckedChange={(v) => setEsMegaFiesta(v === true)} />
-                      <PartyPopper className="h-4 w-4 text-primary" />
-                      Fue la Mega Fiesta de Casas de Paz
-                    </label>
-                  )}
-
-                  {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
-                      tema pero no el libro -- busca en los 13 a la vez y
-                      completa Libro+Tema solos. Los selects de abajo siguen
-                      funcionando igual para quien sí sabe el libro. */}
-                  <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <Label>Buscar tema</Label>
-                    <BuscadorTemaCampo
-                      iglesiaId={iglesiaActivaId}
-                      onSeleccionar={(nuevoLibroId, nuevoTemaId) => {
-                        setValue('libro_id', nuevoLibroId, { shouldDirty: true });
-                        // tema_id se aplica solo (ver useEffect de temaIdPendiente)
-                        // recién cuando useTemas ya trajo los temas de este libro.
-                        setTemaIdPendiente(nuevoTemaId);
-                      }}
-                    />
-                    <p className="text-[11px] text-muted-foreground">Si sabés el libro, también podés elegirlo directo abajo.</p>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Libro {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select
-                      value={libroId ?? ''}
-                      onValueChange={(v) => {
-                        setValue('libro_id', v, { shouldDirty: true });
-                        // Si había un tema pendiente de una selección previa
-                        // por el buscador (de otro libro), un cambio manual
-                        // de libro lo invalida -- si no, podría aplicarse
-                        // tarde y de sorpresa si se vuelve a ese libro después.
-                        setTemaIdPendiente(undefined);
-                      }}
-                    >
-                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.libro_id))}>
-                        <SelectValue placeholder="—" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {libros.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            Libro {l.numero} — {l.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Tema {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
-                    <Select
-                      value={temaId ?? ''}
-                      onValueChange={(v) => {
-                        setValue('tema_id', v, { shouldDirty: true });
-                        // Elección manual gana sobre cualquier tema pendiente
-                        // del buscador que todavía no se haya aplicado.
-                        setTemaIdPendiente(undefined);
-                      }}
-                      disabled={!libroId}
-                    >
-                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.tema_id))}>
-                        <SelectValue placeholder={libroId ? '—' : 'Elegí primero un libro'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {temas.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.es_especial ? 'Especial: ' : `${t.numero}. `}
-                            {t.nombre}
-                          </SelectItem>
-                        ))}
-                        {/* KAN-373: disponible en cualquier libro, no depende
-                            de que el catálogo tenga una fila es_especial
-                            para el libro elegido (hoy solo 2 de 13 la tienen). */}
-                        <SelectItem value={TEMA_ESPECIAL_SENTINEL}>Especial: tema fuera del libro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {esTemaEspecial && (
-                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label htmlFor="tema_especial_txt">Descripción del tema especial</Label>
-                      <Input
-                        id="tema_especial_txt"
-                        className={claseCampoEdicion(modoEdicion, !!dirtyFields.tema_especial_txt)}
-                        {...register('tema_especial_txt')}
-                      />
-                    </div>
-                  )}
-                </div>
-          </div>
-        </section>
-
-        {/* Asistencia */}
+  /**
+   * KAN-409: sección "Asistencia" extraída a una función local (no un
+   * componente separado -- se invoca como `{renderAsistenciaSection()}`,
+   * nunca como `<RenderAsistenciaSection/>`, para no crear un nuevo tipo de
+   * componente en cada render, que forzaría un remount completo -- incluido
+   * el foco del buscador -- en cada tecla escrita). Se reusa tal cual entre
+   * el formulario completo y el formulario reducido de Megafiesta (mismo
+   * criterio de asistencia en los dos).
+   */
+  function renderAsistenciaSection() {
+    return (
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
             <TarjetaHeader
@@ -1667,6 +1397,429 @@ export function Reportes() {
                 )}
           </div>
         </section>
+    );
+  }
+
+  if (modoEdicion) {
+    if (cargandoReporteExistente || cargandoPuedeEditar || !formPrecargado) {
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <Skeleton className="h-20 w-full rounded-3xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
+      );
+    }
+    if (errorReporteExistente || !reporteExistente) {
+      return <ProximamentePlaceholder titulo="Editar reporte" descripcion="No se pudo cargar este reporte." />;
+    }
+    if (!puedeEditar) {
+      if (cargandoPuedeSolicitar) {
+        return (
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+            <Skeleton className="h-20 w-full rounded-3xl" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          </div>
+        );
+      }
+      if (!puedeSolicitarFueraVentana) {
+        return (
+          <ProximamentePlaceholder
+            titulo="Ya no se puede editar"
+            descripcion="Este reporte ya pasó tu ventana de edición, o no tenés permiso sobre esta Casa de Paz. Pedile al Líder de Red, Pastor o Supervisor de la Visión en Acción que lo corrija -- ellos tienen más margen y pueden autorizar la edición fuera de ventana."
+          />
+        );
+      }
+      // KAN-367: Pastor / Supervisor de la Visión en Acción -- pueden pedir
+      // autorización puntual (justificación + OTP) para editar igual.
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <DashboardHero
+            icon={ClipboardList}
+            eyebrow="Editar reporte"
+            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
+            color={colorRed ?? undefined}
+          />
+          <section className={CARD_SECCION}>
+            <div className="flex flex-col gap-4 p-5">
+              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="flex flex-col gap-1 text-sm">
+                  <p className="font-medium">Este reporte ya pasó la ventana normal de edición</p>
+                  <p className="text-muted-foreground">
+                    Podés editarlo igual, pero necesitamos un motivo y confirmación por código -- queda registrado quién lo autorizó y por qué.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="justificacion_fuera_ventana">Motivo *</Label>
+                <Textarea
+                  id="justificacion_fuera_ventana"
+                  value={justificacionFueraVentana}
+                  onChange={(e) => setJustificacionFueraVentana(e.target.value)}
+                  placeholder="Por qué hace falta editar este reporte fuera de la ventana normal"
+                />
+              </div>
+              <CampoOtp value={pinFueraVentana} onChange={setPinFueraVentana} />
+              <Button
+                type="button"
+                className="gap-2 self-start"
+                disabled={autorizarFueraVentana.isPending || !justificacionFueraVentana.trim() || pinFueraVentana.length !== 6}
+                onClick={solicitarAutorizacionFueraVentana}
+              >
+                <Pencil className="h-4 w-4" /> Autorizar y modificar
+              </Button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+    if (!activado) {
+      return (
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <DashboardHero
+            icon={ClipboardList}
+            eyebrow="Editar reporte"
+            title={`Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}`}
+            color={colorRed ?? undefined}
+          />
+          <section className={CARD_SECCION}>
+            <div className="flex flex-col gap-4 p-5">
+              {esCdpAjena && cdpContexto && (
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">{cdpContexto.etiqueta}</p>
+                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
+                  </p>
+                  <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
+                  </p>
+                </div>
+              )}
+              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="flex flex-col gap-1 text-sm">
+                  <p className="font-medium">Vas a modificar un reporte ya enviado</p>
+                  <p className="text-muted-foreground">
+                    Puede afectar estadísticas ya calculadas.
+                    {diasLimiteEdicionCdp !== undefined &&
+                      ` Tenés hasta ${diasLimiteEdicionCdp} día${diasLimiteEdicionCdp === 1 ? '' : 's'} desde que se cargó (configurable en Supervisión).`}
+                  </p>
+                </div>
+              </div>
+              <Button type="button" variant="destructive" className="gap-2 self-start" onClick={() => setActivado(true)}>
+                <Pencil className="h-4 w-4" /> Modificar este reporte
+              </Button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+  } else if (!contextoCdp) {
+    return (
+      <ProximamentePlaceholder
+        titulo="Reporte de Casa de Paz"
+        descripcion="Todavía no tenés una Casa de Paz asignada como líder o sublíder, así que no hay reporte que llenar."
+      />
+    );
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <DashboardHero
+        icon={ClipboardList}
+        eyebrow={modoEdicion ? 'Editar reporte' : 'Reporte semanal'}
+        title={modoEdicion ? `Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}` : 'Reporte de la reunión'}
+        color={colorRed ?? undefined}
+      />
+
+      {/* KAN-367 (pedido del owner, 2026-09-17): explica qué significa el
+          rojo -- sin esto no queda claro que es "esto ya está guardado", no
+          un error. */}
+      {modoEdicion && (
+        <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-destructive/40" />
+          Los campos en rojo tienen el dato ya guardado. Al escribir en uno, pasa a blanco para mostrar que lo estás modificando.
+        </p>
+      )}
+
+      {esCdpAjena && cdpContexto && (
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+          <p className="font-medium">{cdpContexto.etiqueta}</p>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <UserRound className="h-3 w-3" /> Anfitrión: {cdpContexto.anfitrion_nombre || '—'}
+          </p>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <MapPin className="h-3 w-3" /> {[cdpContexto.direccion, cdpContexto.ciudad].filter(Boolean).join(', ') || '—'}
+          </p>
+        </div>
+      )}
+
+      {/* KAN-392 (2026-09-17, pedido del owner): solo tiene sentido al cargar
+          un reporte nuevo -- no se ofrece editando uno ya existente.
+          KAN-409 (pedido explícito del owner, 2026-09-21): este checkbox y el
+          de Megafiesta van lado a lado, mismo tamaño -- grid de 2 columnas en
+          desktop, apilados en mobile. Texto de ayuda acortado a pedido del
+          owner ("Queda como semana justificada.", nada más). */}
+      {!modoEdicion && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label
+            className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              className="mt-0.5"
+              checked={reunionNoRealizada}
+              onCheckedChange={(v) => {
+                setReunionNoRealizada(v === true);
+                if (v !== true) setMotivoNoRealizada('');
+                if (v === true) setEsMegafiestaForm(false);
+              }}
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="font-medium">Esta semana no se realizó la reunión de Casa de Paz</span>
+              <span className="text-[12px] text-muted-foreground">Queda como semana justificada.</span>
+            </span>
+          </label>
+
+          {/* KAN-409: reemplaza el formulario por uno reducido (fecha +
+              asistencia) -- el resto (tema/libro, disertador, evangelismo,
+              finanzas, testimonio) se completa a nivel del consolidado, no
+              acá. El Líder de CdP puede marcar y enviar una Megafiesta aunque
+              el Líder de Red no la haya programado antes (se busca o crea sola). */}
+          <label
+            className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              className="mt-0.5"
+              checked={esMegafiestaForm}
+              onCheckedChange={(v) => {
+                setEsMegafiestaForm(v === true);
+                if (v === true) {
+                  setReunionNoRealizada(false);
+                  setMotivoNoRealizada('');
+                }
+              }}
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 font-medium">
+                <PartyPopper className="h-4 w-4 text-primary" />
+                Esta reunión es una Megafiesta de Casa de Paz
+              </span>
+              <span className="text-[12px] text-muted-foreground">
+                Solo pedimos la fecha y la asistencia -- lo demás lo completa el Líder de Red desde el consolidado.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
+
+      {reunionNoRealizada ? (
+        <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fecha_reunion_no_realizada">Fecha de la reunión *</Label>
+            <Input
+              id="fecha_reunion_no_realizada"
+              type="date"
+              max={hoy}
+              className={CAMPO_ESTILO}
+              value={fechaReunion}
+              onChange={(e) => setValue('fecha_reunion', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="motivo_no_realizada">Motivo por el que no se realizó la reunión *</Label>
+            <Textarea
+              id="motivo_no_realizada"
+              className={CAMPO_ESTILO}
+              value={motivoNoRealizada}
+              onChange={(e) => setMotivoNoRealizada(e.target.value)}
+              placeholder="Ej: se suspendió por una actividad general de la iglesia"
+            />
+          </div>
+          <Button
+            type="button"
+            className="h-11 gap-2 self-start rounded-xl"
+            disabled={!motivoNoRealizada.trim() || crearNoRealizada.isPending}
+            onClick={enviarReunionNoRealizada}
+          >
+            {crearNoRealizada.isPending ? 'Guardando...' : 'Guardar semana sin reunión'}
+          </Button>
+        </div>
+      ) : esMegafiestaForm ? (
+        <div className="flex flex-col gap-6">
+          {/* Información general reducida: solo la fecha -- tema/libro/
+              disertador no aplican a una Megafiesta (se completan una sola
+              vez a nivel del consolidado, no por cada CdP). */}
+          <section className={CARD_SECCION_CON_DESPLEGABLE}>
+            <div className="overflow-hidden rounded-t-2xl">
+              <TarjetaHeader icon={CalendarDays} color={AZUL} titulo="Información general" descripcion="Fecha de la Megafiesta" />
+            </div>
+            <div className="p-5">
+              <div className="flex max-w-xs flex-col gap-1.5">
+                <Label htmlFor="fecha_reunion_megafiesta">Fecha de la reunión *</Label>
+                <Input
+                  id="fecha_reunion_megafiesta"
+                  type="date"
+                  max={hoy}
+                  className={CAMPO_ESTILO}
+                  value={fechaReunion}
+                  onChange={(e) => setValue('fecha_reunion', e.target.value)}
+                />
+              </div>
+            </div>
+          </section>
+
+          {renderAsistenciaSection()}
+
+          <Button
+            type="button"
+            className="h-11 gap-2 self-start rounded-xl"
+            disabled={crearMegafiesta.isPending}
+            onClick={onSubmitMegafiesta}
+          >
+            {crearMegafiesta.isPending ? 'Enviando...' : 'Enviar reporte de Megafiesta'}
+          </Button>
+        </div>
+      ) : (
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={cn('flex flex-col gap-6', modoEdicion && '-mx-4 rounded-3xl p-4 sm:-mx-5 sm:p-5')}
+        // KAN-367 (pedido del owner, 2026-09-17): tinte rojo sutil solo en
+        // modo edición, para que se note a simple vista que se está
+        // modificando un dato ya guardado -- mismo patrón de color-mix que
+        // ya usan TarjetaHeader/franjas de sección, no un color plano nuevo.
+        style={modoEdicion ? { backgroundColor: `color-mix(in oklab, ${ROJO} 4%, transparent)` } : undefined}
+      >
+        {/* Información General */}
+        <section className={CARD_SECCION_CON_DESPLEGABLE}>
+          <div className="overflow-hidden rounded-t-2xl">
+            <TarjetaHeader
+              icon={CalendarDays}
+              color={AZUL}
+              titulo="Información general"
+              descripcion="Cuándo fue la reunión y quién enseñó"
+            />
+          </div>
+          <div className="p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
+                    <Input
+                      id="fecha_reunion"
+                      type="date"
+                      max={hoy}
+                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
+                      {...register('fecha_reunion')}
+                    />
+                  </div>
+
+                  {/* KAN-367 (2026-09-17): Disertador sube acá, al lado de la
+                      fecha -- antes quedaba al final y ese espacio de al lado
+                      de la fecha quedaba vacío en desktop. */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
+                    <BuscadorPersonaCampo
+                      iglesiaId={iglesiaActivaId}
+                      valor={disertadorNombre}
+                      seleccionado={!!disertadorId}
+                      onCambiarTexto={cambiarTextoDisertador}
+                      onSeleccionar={seleccionarDisertador}
+                      placeholder="Buscar por nombre..."
+                      edadMinima={edadMinima}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
+                  </div>
+
+                  {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
+                      tema pero no el libro -- busca en los 13 a la vez y
+                      completa Libro+Tema solos. Los selects de abajo siguen
+                      funcionando igual para quien sí sabe el libro. */}
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label>Buscar tema</Label>
+                    <BuscadorTemaCampo
+                      iglesiaId={iglesiaActivaId}
+                      onSeleccionar={(nuevoLibroId, nuevoTemaId) => {
+                        setValue('libro_id', nuevoLibroId, { shouldDirty: true });
+                        // tema_id se aplica solo (ver useEffect de temaIdPendiente)
+                        // recién cuando useTemas ya trajo los temas de este libro.
+                        setTemaIdPendiente(nuevoTemaId);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Si sabés el libro, también podés elegirlo directo abajo.</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Libro {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
+                    <Select
+                      value={libroId ?? ''}
+                      onValueChange={(v) => {
+                        setValue('libro_id', v, { shouldDirty: true });
+                        // Si había un tema pendiente de una selección previa
+                        // por el buscador (de otro libro), un cambio manual
+                        // de libro lo invalida -- si no, podría aplicarse
+                        // tarde y de sorpresa si se vuelve a ese libro después.
+                        setTemaIdPendiente(undefined);
+                      }}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.libro_id))}>
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {libros.map((l) => (
+                          <SelectItem key={l.id} value={l.id}>
+                            Libro {l.numero} — {l.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Tema {campos?.REPORTE_TEMA_OBLIGATORIO && '*'}</Label>
+                    <Select
+                      value={temaId ?? ''}
+                      onValueChange={(v) => {
+                        setValue('tema_id', v, { shouldDirty: true });
+                        // Elección manual gana sobre cualquier tema pendiente
+                        // del buscador que todavía no se haya aplicado.
+                        setTemaIdPendiente(undefined);
+                      }}
+                      disabled={!libroId}
+                    >
+                      <SelectTrigger className={cn('w-full', claseCampoEdicion(modoEdicion, !!dirtyFields.tema_id))}>
+                        <SelectValue placeholder={libroId ? '—' : 'Elegí primero un libro'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {temas.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.es_especial ? 'Especial: ' : `${t.numero}. `}
+                            {t.nombre}
+                          </SelectItem>
+                        ))}
+                        {/* KAN-373: disponible en cualquier libro, no depende
+                            de que el catálogo tenga una fila es_especial
+                            para el libro elegido (hoy solo 2 de 13 la tienen). */}
+                        <SelectItem value={TEMA_ESPECIAL_SENTINEL}>Especial: tema fuera del libro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {esTemaEspecial && (
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <Label htmlFor="tema_especial_txt">Descripción del tema especial</Label>
+                      <Input
+                        id="tema_especial_txt"
+                        className={claseCampoEdicion(modoEdicion, !!dirtyFields.tema_especial_txt)}
+                        {...register('tema_especial_txt')}
+                      />
+                    </div>
+                  )}
+                </div>
+          </div>
+        </section>
+
+        {renderAsistenciaSection()}
 
         {/* Evangelismo */}
         {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
