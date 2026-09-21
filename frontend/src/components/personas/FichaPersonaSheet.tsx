@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/auth.store';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
 import { FichaPersonaExtendida } from './FichaPersonaExtendida';
 import { FichaPersonaEditorSheet } from './FichaPersonaEditorSheet';
@@ -87,6 +88,12 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const miPersonaId = useAuthStore((s) => s.personaId);
   const esUnoMismo = !!ficha && ficha.persona.id === miPersonaId;
   const puedeEditar = esOperativo || esLiderDeSuRed || esUnoMismo;
+  // KAN-408 (pedido explícito del owner): nombre completo, sexo y fecha de
+  // nacimiento son un permiso MÁS ANGOSTO que el resto -- ni esUnoMismo ni
+  // esLiderDeSuRed alcanzan para tocarlos, solo operativos (Pastor/
+  // Supervisor) o Líder de Afirmación.
+  const esLiderAfirmacion = useEsLiderAfirmacion();
+  const puedeEditarIdentidadBasica = esOperativo || esLiderAfirmacion;
 
   // Cargos vigentes que quedan atados a la Red/Casa de Paz que la persona
   // deja si se traslada -- no se "llevan" a la Red nueva (ver fn_mover_persona_red).
@@ -188,7 +195,13 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
             onCambiarRed={ficha.casa_de_paz ? () => setMostrarMoverRed(true) : undefined}
           />
 
-          <FichaPersonaEditorSheet ficha={ficha} puedeEditar={puedeEditar} open={editorAbierto} onOpenChange={setEditorAbierto} />
+          <FichaPersonaEditorSheet
+            ficha={ficha}
+            puedeEditar={puedeEditar}
+            puedeEditarIdentidadBasica={puedeEditarIdentidadBasica}
+            open={editorAbierto}
+            onOpenChange={setEditorAbierto}
+          />
 
           <MoverPersonaRedDialog
             open={mostrarMoverRed}

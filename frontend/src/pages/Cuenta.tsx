@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { CheckCircle2, ChevronRight, Circle, IdCard, Lock, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, IdCard, Lock, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,7 @@ import { AZUL, MORADO } from '@/components/dashboard/DashboardUI';
 import { establecerContrasena, mensajeErrorContrasena, obtenerCorreoActual } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useEliminarFotoPerfil, useFotoPerfilPath, useUrlFotoPerfil } from '@/hooks/usePersonaFoto';
-import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { ROUTES } from '@/utils/constants';
 
 const REQUISITOS_CONTRASENA = [
   { clave: 'longitud', texto: 'Mínimo 8 caracteres', test: (v: string) => v.length >= 8 },
@@ -52,11 +53,6 @@ export function Cuenta() {
   const eliminarFoto = useEliminarFotoPerfil();
   const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
-  // KAN-408: reusa la misma ficha paginada de KAN-403 (ver "puedeEditar" en
-  // FichaPersonaSheet.tsx, que ahora también deja editar si la ficha es la
-  // propia) -- acá solo se controla CUÁNDO mostrarla, apuntando siempre a la
-  // persona del usuario logueado, nunca a una elegida de una tabla.
-  const [membresiaAbierta, setMembresiaAbierta] = useState(false);
 
   useEffect(() => { obtenerCorreoActual().then(setCorreo); }, []);
 
@@ -137,22 +133,18 @@ export function Cuenta() {
       )}
 
       {/* KAN-408 (pedido explícito del owner, 2026-09-21): el dueño de la
-          cuenta puede ver y editar sus propios datos de membresía, sin
-          depender de que un líder/operativo lo haga por él. Reusa entera la
-          ficha paginada de KAN-403 -- ver "esUnoMismo" en
-          FichaPersonaSheet.tsx para el permiso de edición. */}
+          cuenta ve/edita sus propios datos de membresía como página
+          completa (MiMembresia.tsx, no un modal) -- un solo botón que lleva
+          directo a "editar", no "ver" + un botón Editar adentro. */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         <TarjetaHeader icon={IdCard} color={MORADO} titulo="Membresía" descripcion="Tus datos personales, censo y familia" />
-        <div className="p-3">
-          <button
-            type="button"
-            onClick={() => setMembresiaAbierta(true)}
-            disabled={!personaId}
-            className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span className="font-medium text-foreground">Ver mi ficha de membresía</span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
+        <div className="p-5">
+          <Button asChild disabled={!personaId} className="w-full gap-1.5 sm:w-fit">
+            <Link to={ROUTES.CUENTA_MEMBRESIA}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar membresía
+            </Link>
+          </Button>
         </div>
       </section>
 
@@ -183,11 +175,6 @@ export function Cuenta() {
           <Button type="submit" disabled={enviandoContrasena} className="mt-1 self-start rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90">{enviandoContrasena ? 'Guardando...' : 'Guardar'}</Button>
         </form>
       </section>
-
-      <FichaPersonaSheet
-        personaId={membresiaAbierta ? (personaId ?? undefined) : undefined}
-        onOpenChange={(open) => setMembresiaAbierta(open)}
-      />
     </div>
   );
 }

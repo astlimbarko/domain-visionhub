@@ -17,6 +17,8 @@ import type { PersonaFicha } from '@/types/persona.types';
 interface Props {
   ficha: PersonaFicha;
   puedeEditar: boolean;
+  /** KAN-408: ver mismo prop en FichaIdentidad.tsx -- default `puedeEditar`. */
+  puedeEditarIdentidadBasica?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -28,7 +30,7 @@ interface Props {
  * censo, el resto de las secciones guardan cada acción al toque) vive en un
  * pie fijo abajo con confirmación, en vez de aparecer en medio de la hoja.
  */
-export function FichaPersonaEditorSheet({ ficha, puedeEditar, open, onOpenChange }: Props) {
+export function FichaPersonaEditorSheet({ ficha, puedeEditar, puedeEditarIdentidadBasica = puedeEditar, open, onOpenChange }: Props) {
   const identidadRef = useRef<FichaIdentidadHandle>(null);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -83,7 +85,13 @@ export function FichaPersonaEditorSheet({ ficha, puedeEditar, open, onOpenChange
                 <CardTitle className="text-base">Identidad y censo</CardTitle>
               </CardHeader>
               <CardContent>
-                <FichaIdentidad ref={identidadRef} personaId={ficha.persona.id} ficha={ficha} puedeEditar={puedeEditar} />
+                <FichaIdentidad
+                  ref={identidadRef}
+                  personaId={ficha.persona.id}
+                  ficha={ficha}
+                  puedeEditar={puedeEditar}
+                  puedeEditarIdentidadBasica={puedeEditarIdentidadBasica}
+                />
               </CardContent>
             </Card>
 
