@@ -34,6 +34,7 @@ const ImagenAnuncioZoom = lazy(() =>
 );
 import { useAnunciosPendientes } from '@/hooks/useAnunciosPendientes';
 import { useUrlAnuncio } from '@/hooks/useAnuncios';
+import { useTamanioNatural } from '@/hooks/useTamanioNaturalImagen';
 
 const MAX_ALTO_RATIO = 0.78;
 const MAX_ALTO_CAP_PX = 720;
@@ -52,7 +53,23 @@ export function ModalAnuncios() {
   // se monta (ni el fondo oscuro) hasta que la imagen ya esta lista -- nada
   // de spinner mientras carga, aparece directamente completo. Si falla
   // (fallaImagen), ahi si se muestra para no perder el aviso.
-  if (!anuncioActual || cargandoImagen) return null;
+  //
+  // Fix "cajita gris" (2026-09-21, KAN-anuncio-parpadeo): hasta aca la
+  // condicion de arriba solo esperaba a que la URL FIRMADA estuviera
+  // resuelta (cargandoImagen), no a que la imagen real ya estuviera
+  // descargada/decodificada en el navegador -- esa segunda espera quedaba
+  // delegada a ImagenAnuncioZoom (via su propio useTamanioNatural), que la
+  // mostraba con SU spinner propio DESPUES de que el Dialog (y el fondo
+  // oscuro) ya estaban montados. Resultado: 2 fases de carga visibles en
+  // vez de 1 sola espera invisible. Ahora ModalAnuncios precarga la imagen
+  // el mismo (mismo hook que usa ImagenAnuncioZoom, reusado desde
+  // useTamanioNaturalImagen.ts para no duplicar la logica ni forzar la
+  // carga eager de react-zoom-pan-pinch) y pasa el resultado ya resuelto
+  // hacia abajo -- asi ImagenAnuncioZoom no lo vuelve a calcular ni
+  // redescarga la imagen.
+  const estadoImagen = useTamanioNatural(imagenUrl ?? undefined);
+  const esperandoImagenReal = !fallaImagen && !!imagenUrl && estadoImagen.status === 'cargando';
+  if (!anuncioActual || cargandoImagen || esperandoImagenReal) return null;
 
   const esVertical = anuncioActual.imagen_orientacion === 'VERTICAL';
 
@@ -81,7 +98,13 @@ export function ModalAnuncios() {
               <p className="text-xs text-muted-foreground">No se pudo cargar la imagen</p>
             </div>
           ) : (
-            <Suspense fallback={<div className="h-48 w-64 max-w-full animate-pulse bg-muted" />}>
+            // Fallback SIN bg-muted/animate-pulse (2026-09-21, KAN-402): este
+            // Suspense cubre la carga del CHUNK de JS de ImagenAnuncioZoom (trae
+            // react-zoom-pan-pinch), no la imagen -- la imagen ya esta precargada
+            // arriba. Con color de fondo se veia la misma "cajita gris" que el
+            // resto de este fix elimina; transparente y del mismo tamaño evita el
+            // salto de layout sin mostrar ningun bloque solido de por medio.
+            <Suspense fallback={<div className="h-48 w-64 max-w-full" />}>
               <ImagenAnuncioZoom
                 src={imagenUrl}
                 alt={anuncioActual.titulo}
@@ -89,6 +112,7 @@ export function ModalAnuncios() {
                 maxHeightRatio={MAX_ALTO_RATIO}
                 maxHeightCapPx={MAX_ALTO_CAP_PX}
                 className="overflow-hidden bg-muted shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-black/10"
+                estadoPrecargado={estadoImagen}
               />
             </Suspense>
           )}

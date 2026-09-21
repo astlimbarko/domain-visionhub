@@ -15,41 +15,7 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
-
-type EstadoImagen =
-  | { status: 'cargando' }
-  | { status: 'error' }
-  | { status: 'listo'; width: number; height: number };
-
-/** Si el servidor/archivo falla algun dia (imagen borrada, Storage caido,
- * red del usuario), `img.onload` nunca dispara -- sin `onerror` el visor se
- * quedaba con el spinner girando para siempre, sin avisar nada (hallazgo
- * real del owner 2026-08-16). Con el estado "error" explicito, el llamador
- * muestra un aviso corto en vez de una espera infinita -- nunca bloquea el
- * resto de la app (el boton de cerrar del modal es independiente de esto,
- * siempre queda disponible), solo evita la confusion de un spinner sin fin. */
-function useTamanioNatural(src: string | undefined) {
-  const [estado, setEstado] = useState<EstadoImagen>({ status: 'cargando' });
-
-  useEffect(() => {
-    setEstado({ status: 'cargando' });
-    if (!src) return;
-    let vigente = true;
-    const img = new Image();
-    img.onload = () => {
-      if (vigente) setEstado({ status: 'listo', width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.onerror = () => {
-      if (vigente) setEstado({ status: 'error' });
-    };
-    img.src = src;
-    return () => {
-      vigente = false;
-    };
-  }, [src]);
-
-  return estado;
-}
+import { useTamanioNatural, type EstadoImagen } from '@/hooks/useTamanioNaturalImagen';
 
 /** Limites disponibles para la imagen, en px reales -- replica en JS los
  * mismos limites que ya expresa el CSS del modal contenedor (ancho maximo +
@@ -80,6 +46,7 @@ export function ImagenAnuncioZoom({
   maxHeightRatio,
   maxHeightCapPx,
   className,
+  estadoPrecargado,
 }: {
   src: string;
   alt: string;
@@ -87,9 +54,18 @@ export function ImagenAnuncioZoom({
   maxHeightRatio: number;
   maxHeightCapPx: number;
   className?: string;
+  /** Cuando el llamador ya precargo la imagen (ej. ModalAnuncios, para
+   * gatear el momento en que se muestra el fondo oscuro -- ver KAN-anuncio-
+   * parpadeo 2026-09-21) pasa aca el resultado ya resuelto en vez de que
+   * este componente vuelva a hacer su propio `new Image()` sobre el mismo
+   * `src` (misma URL -- el navegador lo serviria de cache, pero es
+   * innecesario repetirlo). Si no se pasa, el componente calcula el tamaño
+   * el solo (comportamiento original, usado por Anuncios.tsx). */
+  estadoPrecargado?: EstadoImagen;
 }) {
   const { maxWidth, maxHeight } = useLimitesImagen(maxWidthCss, maxHeightRatio, maxHeightCapPx);
-  const estado = useTamanioNatural(src);
+  const estadoCalculado = useTamanioNatural(estadoPrecargado ? undefined : src);
+  const estado = estadoPrecargado ?? estadoCalculado;
 
   if (estado.status === 'cargando') {
     return (
