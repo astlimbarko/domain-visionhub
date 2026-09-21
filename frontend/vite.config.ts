@@ -1,11 +1,38 @@
 import path from 'node:path'
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// KAN-412: version = 1.0.<numero de PR>, calculada en build-time a partir
+// del ultimo commit de merge real alcanzable desde HEAD ("Merge pull
+// request #NN from ...", convencion ya usada en todo el historial del
+// repo). No hay CI/CD (deploy manual, ver harness/DEPLOY.md) -- por eso se
+// calcula aca en vez de en un paso de pipeline: cualquier build local
+// (`npm run build`) refleja automaticamente el ultimo PR mergeado en el
+// checkout que se esta compilando, sin que nadie tenga que actualizar un
+// numero a mano. Si no hay ningun merge alcanzable (ej. checkout
+// superficial, o corriendo sin git), cae a '1.0.dev' en vez de inventar un
+// numero de PR falso.
+function obtenerVersionApp(): string {
+  try {
+    const mensaje = execSync('git log --merges -1 --format=%s', { cwd: __dirname, encoding: 'utf-8' }).trim()
+    const match = mensaje.match(/Merge pull request #(\d+)/)
+    if (match) return `1.0.${match[1]}`
+  } catch {
+    // sin git disponible o sin historial de merges -- queda el fallback de abajo
+  }
+  return '1.0.dev'
+}
+
+const APP_VERSION = obtenerVersionApp()
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(APP_VERSION),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
