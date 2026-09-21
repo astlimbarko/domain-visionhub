@@ -80,7 +80,13 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   const esOperativo = ficha ? (iglesias.find((i) => i.id === ficha.persona.iglesia_id)?.es_operativo ?? false) : false;
   const esLiderDeSuRed =
     !!ficha?.casa_de_paz?.red_id && (misRoles?.redes_lider ?? []).some((r) => r.id === ficha.casa_de_paz?.red_id);
-  const puedeEditar = esOperativo || esLiderDeSuRed;
+  // KAN-408 (2026-09-21): "Mi cuenta" reusa esta misma ficha para que
+  // CUALQUIER usuario (no solo operativos/líderes) pueda editar su PROPIA
+  // persona -- sin esto, un miembro sin cargo que abriera su propia ficha
+  // veía todo de solo lectura, sin poder tocar nada.
+  const miPersonaId = useAuthStore((s) => s.personaId);
+  const esUnoMismo = !!ficha && ficha.persona.id === miPersonaId;
+  const puedeEditar = esOperativo || esLiderDeSuRed || esUnoMismo;
 
   // Cargos vigentes que quedan atados a la Red/Casa de Paz que la persona
   // deja si se traslada -- no se "llevan" a la Red nueva (ver fn_mover_persona_red).
