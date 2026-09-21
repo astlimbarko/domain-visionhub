@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,33 @@ import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import { ROUTES } from '@/utils/constants';
+import { ColaboradorAvisoVencimiento } from '@/components/colaborador/ColaboradorAvisoVencimiento';
 
 interface Sombrero { key: string; label: string; contexto: ContextoActivo; }
 
 const CORREO_SOPORTE = 'soporte@somoscdv.com';
+
+// KAN-405: "Colaborar" -- ítem fijo abajo del todo del menú lateral, mismo
+// lugar/estilo que SoporteFooter, antes del botón de salir. Accesible para
+// CUALQUIER rol (Link interno, no mailto) -- no depende de navItems del
+// panel activo.
+function ColaborarFooter({ onClick, className, oscuro }: { onClick?: () => void; className?: string; oscuro?: boolean }) {
+  return (
+    <Link
+      to={ROUTES.COLABORAR}
+      onClick={onClick}
+      title="Colaborar con otra área usando un código"
+      className={cn(
+        'flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] font-medium transition-colors',
+        oscuro ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
+        className
+      )}
+    >
+      <Handshake className="h-4 w-4 shrink-0" />
+      <span className="truncate">Colaborar</span>
+    </Link>
+  );
+}
 
 // Bloque discreto de soporte institucional, al pie del menú lateral (15-gestion-
 // administrativa, REQ-UI-1). Abre el cliente de correo con asunto/cuerpo
@@ -358,7 +381,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background sm:flex-row">
+    <div className="flex min-h-svh flex-col bg-background">
+      {/* KAN-405: visible en TODA la app mientras el permiso de Colaborador
+          esté por vencer -- no solo en /colaborar (ver ese componente). */}
+      <ColaboradorAvisoVencimiento />
+      <div className="flex flex-1 flex-col bg-background sm:flex-row">
       {volviendoAlConstructor && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
           <Spinner className="h-8 w-8" />
@@ -398,12 +425,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <div className={cn('flex flex-1 flex-col', colorNavbarRol && 'p-4')} style={colorNavbarRol ? estiloSidebarColor : undefined}>
           <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
-          <SoporteFooter
-            href={mailtoSoporte}
-            correo={CORREO_SOPORTE}
-            oscuro={esOscuro}
-            className={cn('mt-2 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}
-          />
+          <div className={cn('mt-2 flex flex-col gap-0.5 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <ColaborarFooter oscuro={esOscuro} />
+            <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />
+          </div>
         </div>
       </aside>
 
@@ -507,7 +532,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
-          <div className={cn('border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+          <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
             <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
           </div>
           <SheetFooter className="gap-1 p-3">
@@ -676,6 +702,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-5 sm:p-8">{children}</main>
+      </div>
       </div>
     </div>
   );

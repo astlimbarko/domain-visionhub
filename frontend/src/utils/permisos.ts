@@ -23,6 +23,7 @@ import {
   Network,
   Heart,
   Megaphone,
+  KeyRound,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -222,6 +223,11 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_URLS,
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
   ROUTES.AFIRMACION_PERSONAS,
+  // KAN-405: gestión de Colaboradores temporales (generar código, extender/
+  // pausar/finalizar, auditoría). Sin esto, el guard de PrivateLayout
+  // rebotaba la navegación directa de vuelta a ROUTES.AFIRMACION -- bug real
+  // encontrado en vivo verificando este mismo ticket.
+  ROUTES.AFIRMACION_COLABORADORES,
   ROUTES.EVANGELISMO,
   ROUTES.EVANGELISMO_PERSONAS,
   ROUTES.EVANGELISMO_REDES,
@@ -328,6 +334,8 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
   // Plan panel Afirmación 2026-08-20, punto 3/4.
   { icon: Users, label: 'Membresía', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
+  // KAN-405: generar codigos y gestionar Colaboradores temporales.
+  { icon: KeyRound, label: 'Colaboradores', path: ROUTES.AFIRMACION_COLABORADORES, color: '#ff9f0a' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,

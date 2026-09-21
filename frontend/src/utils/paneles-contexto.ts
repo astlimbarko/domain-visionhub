@@ -138,8 +138,15 @@ export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
     textoNavbarClaro,
     temaOscuro,
     // KAN-408: misma excepción universal que ROUTES.CUENTA -- la página de
-    // membresía propia también es "accesible para todos", sin importar rol.
-    puedeAccederRuta: (ruta) => ruta === ROUTES.CUENTA || ruta === ROUTES.CUENTA_MEMBRESIA || puedeAcceder(contexto.rolUI, ruta),
+    // membresía propia y la de cambiar contraseña también son "accesibles
+    // para todos", sin importar rol. KAN-405 ("Colaborar") quedó fuera de
+    // PrivateLayout (ver App.tsx) -- pantalla propia, sin panel/sidebar, no
+    // pasa por este guard, no hace falta agregarla acá.
+    puedeAccederRuta: (ruta) =>
+      ruta === ROUTES.CUENTA ||
+      ruta === ROUTES.CUENTA_MEMBRESIA ||
+      ruta === ROUTES.CUENTA_CONTRASENA ||
+      puedeAcceder(contexto.rolUI, ruta),
   };
 }
 
