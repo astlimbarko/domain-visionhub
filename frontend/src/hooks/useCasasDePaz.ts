@@ -4,6 +4,7 @@ import {
   asignarCargoCdp,
   asignarCargoRed,
   buscarPersonas,
+  buscarPersonasSimilares,
   crearCdp,
   crearRed,
   eliminarCdp,
@@ -21,6 +22,7 @@ import {
   quitarCargoRed,
   toggleActivoCdp,
   toggleActivoRed,
+  type DatosNombreBusquedaSimilitud,
 } from '@/services/casas-de-paz.service';
 import type { CargoCdpCodigo, CargoRedCodigo, DatosDomicilioCdp, DatosNuevaCdp } from '@/types/casas-de-paz.types';
 
@@ -61,6 +63,38 @@ export function useBuscarPersonas(iglesiaId: string | undefined, texto: string, 
     queryKey: ['estructura', 'buscar-personas', iglesiaId, texto, edadMinima, cdpId],
     queryFn: () => buscarPersonas(iglesiaId as string, texto, edadMinima, cdpId),
     enabled: !!iglesiaId && texto.trim().length >= 2,
+  });
+}
+
+/**
+ * KAN-407: candidatos a "posible duplicado" para el mini-formulario de
+ * "persona nueva" (Evangelismo, Casas de Paz) -- `activo` lo controla el
+ * llamador (solo tiene sentido mientras ese formulario está abierto, no en
+ * cada tecla del buscador normal de arriba). Requiere nombre + apellido con
+ * al menos 2 letras cada uno, igual que `useBuscarPersonas`.
+ */
+export function useBuscarPersonasSimilares(
+  iglesiaId: string | undefined,
+  datos: DatosNombreBusquedaSimilitud,
+  activo: boolean
+) {
+  return useQuery({
+    queryKey: [
+      'estructura',
+      'buscar-personas-similares',
+      iglesiaId,
+      datos.primer_nombre,
+      datos.segundo_nombre,
+      datos.primer_apellido,
+      datos.segundo_apellido,
+    ],
+    queryFn: () => buscarPersonasSimilares(iglesiaId as string, datos),
+    enabled:
+      activo &&
+      !!iglesiaId &&
+      datos.primer_nombre.trim().length >= 2 &&
+      datos.primer_apellido.trim().length >= 2,
+    staleTime: 30_000,
   });
 }
 

@@ -13,6 +13,7 @@ import type {
   DatosNuevaCdp,
   DomicilioCdp,
   PersonaBusqueda,
+  PersonaSimilar,
   RedResumen,
 } from '@/types/casas-de-paz.types';
 
@@ -276,6 +277,39 @@ export async function buscarPersonas(iglesiaId: string, texto: string, edadMinim
   // no es de la CdP activa -- vía RPC aparte (ver enriquecerConOrigenCdp),
   // no con un `.select()` anidado (la RLS de `casa_de_paz` lo bloquea).
   return enriquecerConOrigenCdp(filtrarYMapearPersonas(data ?? [], tokens, edadMinima));
+}
+
+export interface DatosNombreBusquedaSimilitud {
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+}
+
+/**
+ * KAN-407: antes de dar de alta una persona "nueva" (Evangelismo, Casas de
+ * Paz), busca coincidencias tolerantes a errores de tipeo (pg_trgm) contra
+ * las personas ya cargadas en la misma iglesia -- `buscarPersonas` de arriba
+ * (ILIKE) exige un substring literal y no detecta a la misma persona escrita
+ * distinto ("Alberto Peres" vs "Alberto Pérez"), lo que terminaba en fichas
+ * duplicadas de la misma persona real.
+ */
+export async function buscarPersonasSimilares(
+  iglesiaId: string,
+  datos: DatosNombreBusquedaSimilitud
+): Promise<PersonaSimilar[]> {
+  if (!datos.primer_nombre.trim() || !datos.primer_apellido.trim()) return [];
+  const { data, error } = await supabase.rpc('fn_buscar_personas_similares', {
+    p_iglesia_id: iglesiaId,
+    p_primer_nombre: datos.primer_nombre.trim(),
+    p_primer_apellido: datos.primer_apellido.trim(),
+    p_segundo_nombre: datos.segundo_nombre?.trim() || null,
+    p_segundo_apellido: datos.segundo_apellido?.trim() || null,
+  });
+  if (error) throw error;
+  // Mismo motivo que enriquecerConOrigenCdp: el cliente de Supabase no está
+  // tipado con el schema, `data` llega como `any[]`.
+  return (data ?? []) as PersonaSimilar[];
 }
 
 // KAN-205: RPC en vez de consulta directa -- persona.correo (campo de

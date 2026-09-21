@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizarNombre } from '@/utils/normalizarNombre';
 import { VERDE } from '@/components/dashboard/DashboardUI';
+import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
+import { useDebounce } from '@/hooks/useDebounce';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import type { MiembroCdp } from '@/types/reporte.types';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 /** Datos que pide el mini-formulario de "persona nueva" -- mismos campos que
  * el alta de evangelizados (EvangelismoPendientePanel), para que no haya
@@ -27,6 +30,11 @@ export interface DatosPersonaNueva {
 
 interface Props {
   titulo: string;
+  /** KAN-407: requerida solo para chequear "posible duplicado" al confirmar
+   * el mini-formulario de "persona nueva" (fn_buscar_personas_similares) --
+   * si no se pasa, el aviso simplemente no se muestra (el resto del
+   * componente sigue funcionando igual, ver `permitirAgregarNueva`). */
+  iglesiaId?: string;
   miembros: MiembroCdp[];
   seleccionados: string[];
   onToggle: (personaId: string) => void;
@@ -115,6 +123,7 @@ function separarNombreCompleto(texto: string) {
  */
 export function BuscadorPersonaMultiple({
   titulo,
+  iglesiaId,
   miembros,
   seleccionados,
   onToggle,
@@ -163,6 +172,30 @@ export function BuscadorPersonaMultiple({
   const [telefonoNueva, setTelefonoNueva] = useState('');
   const [fechaNacimientoNueva, setFechaNacimientoNueva] = useState('');
 
+  // KAN-407: mismo mecanismo que EvangelismoPendientePanel -- mientras se
+  // completa "Persona nueva", busca en segundo plano (debounced) si ya
+  // existe alguien con un nombre muy parecido (pg_trgm, tolera errores de
+  // tipeo) antes de dejar confirmar el alta.
+  const nombreNuevaDebounced = useDebounce(nombreNueva);
+  const segundoNombreNuevaDebounced = useDebounce(segundoNombreNueva);
+  const apellidoPaternoNuevaDebounced = useDebounce(apellidoPaternoNueva);
+  const apellidoMaternoNuevaDebounced = useDebounce(apellidoMaternoNueva);
+  const { data: similaresNueva = [] } = useBuscarPersonasSimilares(
+    iglesiaId,
+    {
+      primer_nombre: nombreNuevaDebounced,
+      segundo_nombre: segundoNombreNuevaDebounced,
+      primer_apellido: apellidoPaternoNuevaDebounced,
+      segundo_apellido: apellidoMaternoNuevaDebounced,
+    },
+    mostrarFormNueva
+  );
+  const [mostrarConfirmDuplicado, setMostrarConfirmDuplicado] = useState(false);
+  const [duplicadoDescartado, setDuplicadoDescartado] = useState(false);
+  useEffect(() => {
+    setDuplicadoDescartado(false);
+  }, [nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva]);
+
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
     : miembros;
@@ -178,6 +211,35 @@ export function BuscadorPersonaMultiple({
     setApellidoMaternoNueva(apellidoMaterno);
     setMostrarFormNueva(true);
     setAbierto(false);
+  }
+
+  // KAN-407: punto de entrada real del botón "Agregar" del mini-formulario
+  // -- si `fn_buscar_personas_similares` encontró candidatos sin descartar
+  // todavía, frena y muestra el modal en vez de crear directo.
+  // `confirmarAgregarNueva` (abajo) sigue siendo el alta real.
+  function intentarConfirmarAgregarNueva() {
+    if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
+    if (!duplicadoDescartado && similaresNueva.length > 0) {
+      setMostrarConfirmDuplicado(true);
+      return;
+    }
+    confirmarAgregarNueva();
+  }
+
+  function usarPersonaNuevaSimilar(persona: PersonaSimilar) {
+    onSeleccionarGlobal?.(persona);
+    setMostrarConfirmDuplicado(false);
+    setTexto('');
+    onTextoCambia?.('');
+    setNombreNueva('');
+    setSegundoNombreNueva('');
+    setApellidoPaternoNueva('');
+    setApellidoMaternoNueva('');
+    setSexoNueva('');
+    setDomicilioNueva('');
+    setTelefonoNueva('');
+    setFechaNacimientoNueva('');
+    setMostrarFormNueva(false);
   }
 
   function confirmarAgregarNueva() {
@@ -425,7 +487,7 @@ export function BuscadorPersonaMultiple({
               type="button"
               size="sm"
               className="gap-1.5"
-              onClick={confirmarAgregarNueva}
+              onClick={intentarConfirmarAgregarNueva}
               disabled={!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -434,6 +496,19 @@ export function BuscadorPersonaMultiple({
           </div>
         </div>
       )}
+
+      <ConfirmarPosibleDuplicadoDialog
+        open={mostrarConfirmDuplicado}
+        onOpenChange={setMostrarConfirmDuplicado}
+        candidatos={similaresNueva}
+        nombreTentativo={[nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva].filter(Boolean).join(' ')}
+        onUsarExistente={usarPersonaNuevaSimilar}
+        onNoEsLaMisma={() => {
+          setDuplicadoDescartado(true);
+          setMostrarConfirmDuplicado(false);
+          confirmarAgregarNueva();
+        }}
+      />
 
       {!ocultarResultados && seleccionados.length > 0 && (
         <div className="flex flex-wrap gap-1.5">

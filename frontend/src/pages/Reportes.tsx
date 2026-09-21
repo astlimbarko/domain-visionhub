@@ -1413,6 +1413,7 @@ export function Reportes() {
                           propias del componente, se arman a mano por grupo). */}
                       <BuscadorPersonaMultiple
                         titulo="Buscar persona"
+                        iglesiaId={iglesiaActivaId}
                         miembros={poolAsistenciaUnico}
                         seleccionados={idsSinVisita}
                         onToggle={(id) => toggleAsistente(id, false)}
