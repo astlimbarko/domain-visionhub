@@ -250,8 +250,11 @@ export function BuscadorPersonaMultiple({
     setApellidoMaternoNueva('');
     setSexoNueva('');
     setDomicilioNueva('');
-    setTelefonoNueva('');
+    setTelefonoPaisNueva('+591');
+    setTelefonoNumeroNueva('');
     setFechaNacimientoNueva('');
+    setFechaDesconocidaNueva(false);
+    setEdadAproximadaNueva('');
     setMostrarFormNueva(false);
   }
 
