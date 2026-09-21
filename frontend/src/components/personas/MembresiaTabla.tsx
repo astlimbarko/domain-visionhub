@@ -460,8 +460,14 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | undefined>(undefined);
   // KAN-401 seguimiento (2026-09-20): el tooltip del ícono de torta es
   // controlado en todos los dispositivos (antes solo en táctil) -- así el
-  // clic también lo abre/cierra en PC, además del hover que ya andaba bien.
+  // clic también lo abre en PC, además del hover que ya andaba bien.
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
+  // Bug real encontrado al verificar en vivo (2026-09-20): un clic de mouse
+  // real siempre dispara hover ANTES que el click -- si el onClick alterna
+  // (toggle), el hover ya lo había abierto, y el click lo cerraba de
+  // inmediato (el ícono "parpadeaba" en vez de quedarse abierto). En
+  // táctil no hay hover, ahí el tap sigue alternando como siempre.
+  const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
   // KAN-401 seguimiento (2026-09-20): las categorías de filtro arrancan
   // colapsadas en celular (pedido explícito del owner), siempre abiertas
   // desde tablet -- mismo umbral md (768px) que ya usa el resto del layout.
@@ -1135,7 +1141,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                   <button
                                     type="button"
                                     className="inline-flex h-6 w-6 items-center justify-center"
-                                    onClick={() => setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
+                                    onClick={() => setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
                                     {/* Mismo ícono que el badge de cumpleaños del calendario de
