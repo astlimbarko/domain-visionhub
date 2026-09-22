@@ -778,6 +778,7 @@ export function Evangelismo() {
           open={dialogoAbierto}
           onOpenChange={setDialogoAbierto}
           iglesiaId={iglesiaActivaId}
+          cdpId={cdpActiva}
           fechaInicial={aISO(hoy)}
           onCrear={(valores) =>
             crear.mutateAsync({

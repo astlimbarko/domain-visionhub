@@ -1721,6 +1721,7 @@ export function Reportes() {
                     <Label>Disertador {campos?.REPORTE_DISERTADOR_OBLIGATORIO && '*'}</Label>
                     <BuscadorPersonaCampo
                       iglesiaId={iglesiaActivaId}
+                      cdpId={cdpActiva}
                       valor={disertadorNombre}
                       seleccionado={!!disertadorId}
                       onCambiarTexto={cambiarTextoDisertador}
@@ -1728,7 +1729,10 @@ export function Reportes() {
                       placeholder="Buscar por nombre..."
                       edadMinima={edadMinima}
                     />
-                    <p className="text-[11px] text-muted-foreground">Buscá en toda la iglesia, no solo entre los miembros de tu Casa de Paz.</p>
+                    {/* KAN-419 (2026-09-22): busca primero en tu Casa de Paz
+                        y, si ahí no aparece, en toda la iglesia -- mismo
+                        patrón ya usado por el buscador de diezmante. */}
+                    <p className="text-[11px] text-muted-foreground">Busca primero en tu Casa de Paz; si no aparece, en toda la iglesia.</p>
                   </div>
 
                   {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
