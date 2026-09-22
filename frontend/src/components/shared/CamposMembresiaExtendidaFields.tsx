@@ -43,6 +43,7 @@ import {
   type PrecisionFecha,
   type RangoMiembro,
 } from '@/types/membresia-extendida.types';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 
 interface MinisterioOpcion {
   id: string;
@@ -331,6 +332,7 @@ export function SeccionMentorBautismoMembresia({ value, onChange }: SeccionProps
                 className={CAMPO_ESTILO}
                 value={value.mentor_nombre_txt ?? ''}
                 onChange={(e) => actualizarValor(value, onChange, 'mentor_nombre_txt', e.target.value)}
+                onBlur={(e) => actualizarValor(value, onChange, 'mentor_nombre_txt', normalizarNombre(e.target.value, true))}
               />
             </div>
             <label className="flex items-center gap-2 pb-1.5 text-sm">
@@ -553,6 +555,7 @@ function FilaFamiliar({
           className={CAMPO_ESTILO}
           value={familiar.nombre_familiar}
           onChange={(e) => onChange({ ...familiar, nombre_familiar: e.target.value })}
+          onBlur={(e) => onChange({ ...familiar, nombre_familiar: normalizarNombre(e.target.value, true) })}
         />
       </div>
       <label className="flex items-center gap-2 pb-1.5 text-sm">

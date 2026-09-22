@@ -31,6 +31,7 @@ import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { cn } from '@/lib/utils';
 import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 /** Codigo estable de 44_tipo_evangelismo.sql / seed_01_catalogos_globales.sql -- no depender del nombre, que puede editarse. */
@@ -298,21 +299,41 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="primer_nombre">Nombre *</Label>
-                  <Input id="primer_nombre" {...register('primer_nombre')} />
+                  <Input
+                    id="primer_nombre"
+                    {...register('primer_nombre', {
+                      onBlur: (e) => setValue('primer_nombre', normalizarNombre(e.target.value, true), { shouldValidate: true }),
+                    })}
+                  />
                   {errors.primer_nombre && <p className="text-sm text-destructive">Requerido</p>}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="segundo_nombre">Segundo nombre</Label>
-                  <Input id="segundo_nombre" {...register('segundo_nombre')} />
+                  <Input
+                    id="segundo_nombre"
+                    {...register('segundo_nombre', {
+                      onBlur: (e) => setValue('segundo_nombre', normalizarNombre(e.target.value)),
+                    })}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="primer_apellido">Apellido *</Label>
-                  <Input id="primer_apellido" {...register('primer_apellido')} />
+                  <Input
+                    id="primer_apellido"
+                    {...register('primer_apellido', {
+                      onBlur: (e) => setValue('primer_apellido', normalizarNombre(e.target.value), { shouldValidate: true }),
+                    })}
+                  />
                   {errors.primer_apellido && <p className="text-sm text-destructive">Requerido</p>}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="segundo_apellido">Segundo apellido</Label>
-                  <Input id="segundo_apellido" {...register('segundo_apellido')} />
+                  <Input
+                    id="segundo_apellido"
+                    {...register('segundo_apellido', {
+                      onBlur: (e) => setValue('segundo_apellido', normalizarNombre(e.target.value)),
+                    })}
+                  />
                 </div>
               </div>
 

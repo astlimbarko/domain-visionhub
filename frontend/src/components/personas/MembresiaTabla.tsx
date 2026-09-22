@@ -13,27 +13,39 @@
 // - Con `casaDePazId` (Líder/Sublíder de CdP, vía MembresiaCdp): todo eso se
 //   oculta (redundante o no soportado a nivel CdP), el filtro queda fijo a
 //   esa CdP.
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  Armchair,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Baby,
+  BookOpen,
   Briefcase,
-  CakeSlice,
+  Cake,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
   CircleCheck,
+  Compass,
   Download,
+  Eye,
   FileText,
+  GraduationCap,
   Heart,
   type LucideIcon,
   Maximize2,
+  Megaphone,
   Minimize2,
-  QrCode,
   Search,
+  Shield,
+  Sparkles,
+  Star,
   User,
   Users,
+  UserCheck,
+  Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -43,16 +55,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AZUL, TEAL, VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
+import { AZUL, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { useRedes, useCdpsIglesia } from '@/hooks/useCasasDePaz';
-import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion, useEstadisticasRegistroAfirmacion } from '@/hooks/useAfirmacion';
-import { buscarMembresiaAfirmacion, type CumpleanosPeriodo, type FiltrosMembresiaAfirmacion } from '@/services/afirmacion.service';
+import { useBuscarMembresiaAfirmacion, useEstados, useEstadisticasPersonasAfirmacion } from '@/hooks/useAfirmacion';
+import {
+  buscarMembresiaAfirmacion,
+  type CargoCensoFiltro,
+  type CumpleanosPeriodo,
+  type EfesioTipoFiltro,
+  type FiltrosMembresiaAfirmacion,
+  type RangoEdadFiltro,
+} from '@/services/afirmacion.service';
 import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
+import { obtenerFicha } from '@/services/persona.service';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
 import { OPCIONES_EFESIO, OPCIONES_RANGO_MIEMBRO } from '@/types/membresia-extendida.types';
 import type { MembresiaResultadoBusqueda } from '@/types/persona.types';
@@ -63,10 +83,17 @@ const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_ESTADOS = '__todos__';
-const TODOS_LOS_CUMPLEANOS = '__todos__';
 
 const SELECT_ENCABEZADO =
   'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
+
+// KAN-404 seguimiento (2026-09-19, pedido explícito del owner): la columna
+// Cumpleaños pasa a 2 filas -- "Cumpleaños" fijo arriba (como el resto de
+// encabezados) y el período (Día/Semana/Mes/Todos) abajo, con estilo
+// distinto a propósito para que se note que la 2da fila es el filtro
+// interactivo y la 1ra es solo el nombre de columna.
+const SELECT_ENCABEZADO_PERIODO =
+  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-xs font-medium normal-case text-foreground shadow-none hover:text-primary focus-visible:ring-0 data-[state=open]:text-primary [&>span]:truncate';
 
 type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
@@ -78,14 +105,57 @@ const VIA_REGISTRO_LABEL: Record<'URL' | 'FORMULARIO', string> = {
 
 const RANGO_MIEMBRO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_RANGO_MIEMBRO.map((o) => [o.value, o.label]));
 
+// KAN-403 seguimiento (2026-09-19, aclaración explícita del owner): de los
+// 4 estados SSVA solo Simpatizante y Creyente son de Afirmación -- Nuevo
+// Convertido y Reconciliado son etapas del embudo de Evangelismo, no van acá
+// como chip (siguen filtrables desde el select "Estado" del encabezado de
+// la tabla, que sí lista los 4).
 const ESTADO_LABEL: Record<string, string> = {
   SIM: 'Simpatizantes',
-  NC: 'Nuevos Convertidos',
   CRE: 'Creyentes',
-  RE: 'Reconciliados',
 };
 
 const EFESIO_LABEL: Record<string, string> = Object.fromEntries(OPCIONES_EFESIO.map((o) => [o.value, o.label]));
+
+// KAN-401 seguimiento (2026-09-20, pedido explícito del owner): Efesios,
+// Ministerios, Cargos de censo (Ministro/Anciano/Diácono -- NO los cargos
+// operativos de CdP/Red, esos ya tienen su propio filtro) y rango de Edad,
+// mismos 5 cortes que ya usa ComposicionEdadChart.tsx en el dashboard.
+const EFESIO_ICONO: Record<EfesioTipoFiltro, LucideIcon> = {
+  APOSTOL: Compass,
+  PROFETA: Eye,
+  PASTOR: Shield,
+  EVANGELISTA: Megaphone,
+  MAESTRO: BookOpen,
+};
+
+const CARGO_CENSO_LABEL: Record<CargoCensoFiltro, string> = {
+  MINISTRO: 'Ministro',
+  ANCIANO: 'Anciano',
+  DIACONO: 'Diácono',
+};
+
+const CARGO_CENSO_ICONO: Record<CargoCensoFiltro, LucideIcon> = {
+  MINISTRO: Star,
+  ANCIANO: UserCheck,
+  DIACONO: Wrench,
+};
+
+const RANGO_EDAD_LABEL: Record<RangoEdadFiltro, string> = {
+  NINOS: 'Niños',
+  ADOLESCENTES: 'Adolescentes',
+  JOVENES: 'Jóvenes',
+  ADULTOS: 'Adultos',
+  MAYORES: 'Adultos mayores',
+};
+
+const RANGO_EDAD_ICONO: Record<RangoEdadFiltro, LucideIcon> = {
+  NINOS: Baby,
+  ADOLESCENTES: GraduationCap,
+  JOVENES: Briefcase,
+  ADULTOS: Users,
+  MAYORES: Armchair,
+};
 
 const CUMPLEANOS_LABEL: Record<CumpleanosPeriodo, string> = {
   DIA: 'Cumpleaños de hoy',
@@ -122,6 +192,10 @@ function formatFechaNacimiento(fecha: string | null): string {
   return `${dd}/${mm}/${aa}`;
 }
 
+// KAN-401 seguimiento (2026-09-20, pedido explícito del owner): chip
+// compacto de una sola línea -- antes eran 2 líneas (número arriba, label
+// abajo) y con 26 chips en total (8 categorías) esa altura ya no entraba.
+// Mismo patrón de color/estado activo, solo el layout cambia.
 function KpiChipFiltro({
   icon: Icon,
   label,
@@ -143,23 +217,51 @@ function KpiChipFiltro({
     <button
       type="button"
       onClick={onClick}
-      style={activo ? { boxShadow: `0 0 0 2px ${color}` } : undefined}
+      style={activo ? { backgroundColor: color } : undefined}
       className={cn(
-        'flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-        activo ? 'border-transparent' : 'border-border/60 hover:border-border'
+        'flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+        activo ? 'border-transparent' : 'border-border/60 bg-card hover:border-border'
       )}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-        style={{ background: `color-mix(in oklab, ${color} ${activo ? '28%' : '14%'}, transparent)`, color }}
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+        style={
+          activo
+            ? { background: 'rgb(255 255 255 / 25%)', color: '#fff' }
+            : { background: `color-mix(in oklab, ${color} 14%, transparent)`, color }
+        }
       >
-        {cargando ? <Spinner className="h-4 w-4" /> : <Icon className="h-4 w-4" strokeWidth={2.2} />}
+        {cargando ? <Spinner className="h-3 w-3" /> : <Icon className="h-3 w-3" strokeWidth={2.4} />}
       </span>
-      <div className="min-w-0">
-        <div className="text-base leading-none font-bold tracking-tight tabular-nums text-foreground">{children}</div>
-        <p className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">{label}</p>
-      </div>
+      <span className={cn('text-[13px] leading-none font-bold tabular-nums', activo ? 'text-white' : 'text-foreground')}>{children}</span>
+      <span className={cn('text-[11px] leading-none font-medium whitespace-nowrap', activo ? 'text-white/90' : 'text-muted-foreground')}>
+        {label}
+      </span>
     </button>
+  );
+}
+
+// KAN-401 seguimiento (2026-09-20): fila de chips agrupada por categoría,
+// con su nombre chico arriba (mismo estilo que un encabezado de columna). En
+// desktop/tablet siempre visible (el owner lo eligió así -- "todo siempre
+// visible, por filas con etiqueta"); en celular arranca colapsada (el owner
+// eligió esta opción para no ocupar toda la pantalla con 8 categorías) y se
+// abre con un toque. `md:flex` en el wrapper garantiza que desde tablet para
+// arriba quede visible aunque `abierta` esté en false por cualquier motivo.
+function CategoriaFiltros({ titulo, defaultAbierta, children }: { titulo: string; defaultAbierta: boolean; children: ReactNode }) {
+  const [abierta, setAbierta] = useState(defaultAbierta);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setAbierta((a) => !a)}
+        className="flex shrink-0 items-center gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground md:cursor-default"
+      >
+        <ChevronRight className={cn('h-3 w-3 transition-transform md:hidden', abierta && 'rotate-90')} />
+        {titulo}
+      </button>
+      <div className={abierta ? 'flex flex-wrap gap-2' : 'hidden md:flex md:flex-wrap md:gap-2'}>{children}</div>
+    </div>
   );
 }
 
@@ -326,16 +428,22 @@ interface Props {
 
 export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, iglesiaNombre, titulo = 'Membresía', descripcion }: Props) {
   const scoped = !!casaDePazId;
+  const queryClient = useQueryClient();
   const [textoInput, setTextoInput] = useState('');
   const [texto, setTexto] = useState('');
   const [redId, setRedId] = useState<string>(TODAS_LAS_REDES);
   const [casaDePazIdFiltroUi, setCasaDePazIdFiltroUi] = useState<string>(TODAS_LAS_CDP);
   const [estadoId, setEstadoId] = useState<string>(TODOS_LOS_ESTADOS);
   const [sexoFiltro, setSexoFiltro] = useState<'M' | 'F'>();
-  const [viaFiltro, setViaFiltro] = useState<'URL' | 'FORMULARIO'>();
   const [conProfesionFiltro, setConProfesionFiltro] = useState<boolean>();
   const [estadoCivilFiltro, setEstadoCivilFiltro] = useState<EstadoCivil>();
   const [bautizadoFiltro, setBautizadoFiltro] = useState<boolean>();
+  // KAN-401 seguimiento (2026-09-20, pedido explícito del owner): categorías
+  // nuevas de filtro (Efesios, Ministerios, Cargos, Edad).
+  const [efesioFiltro, setEfesioFiltro] = useState<EfesioTipoFiltro>();
+  const [conMinisterioFiltro, setConMinisterioFiltro] = useState<boolean>();
+  const [cargoCensoFiltro, setCargoCensoFiltro] = useState<CargoCensoFiltro>();
+  const [rangoEdadFiltro, setRangoEdadFiltro] = useState<RangoEdadFiltro>();
   const [pagina, setPagina] = useState(1);
   const [orden, setOrden] = useState<{ columna: ColumnaOrden; direccion: DireccionOrden } | null>(null);
   const [personaSeleccionadaId, setPersonaSeleccionadaId] = useState<string>();
@@ -343,15 +451,50 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
-  // KAN-401: arranca en SEMANA por defecto (pedido explícito del owner) --
-  // a diferencia de Red/CdP/Estado, el valor inicial no es "todos". Igual
-  // se puede volver a "todos" desde el propio select (mismo patrón que las
-  // otras columnas), por si alguien quiere ver a todo el mundo de nuevo.
-  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS>('SEMANA');
-  // KAN-401 (mismo patrón que HistorialReportesCalendario): en táctil no hay
-  // hover, el tooltip del ícono de torta se abre/cierra a mano con tap.
-  const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  // KAN-401 seguimiento (2026-09-19, pedido explícito del owner): a
+  // diferencia de Red/CdP/Estado, este filtro NO tiene una opción "todos"
+  // en la lista -- "cumpleaños de todo el año" no tiene sentido como
+  // filtro útil acá. Pero sí arranca SIN filtrar (undefined, sin período
+  // elegido) para no ocultar de entrada a la mayoría de las personas --
+  // recién filtra cuando el usuario elige Día/Semana/Mes a propósito.
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | undefined>(undefined);
+  // KAN-401 seguimiento (2026-09-20): el tooltip del ícono de torta es
+  // controlado en todos los dispositivos (antes solo en táctil) -- así el
+  // clic también lo abre en PC, además del hover que ya andaba bien.
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
+  // Bug real encontrado al verificar en vivo (2026-09-20): un clic de mouse
+  // real siempre dispara hover ANTES que el click -- si el onClick alterna
+  // (toggle), el hover ya lo había abierto, y el click lo cerraba de
+  // inmediato (el ícono "parpadeaba" en vez de quedarse abierto). En
+  // táctil no hay hover, ahí el tap sigue alternando como siempre.
+  const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+  // KAN-401 seguimiento (2026-09-20): las categorías de filtro arrancan
+  // colapsadas en celular (pedido explícito del owner), siempre abiertas
+  // desde tablet -- mismo umbral md (768px) que ya usa el resto del layout.
+  const [esMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+
+  // KAN-404 (pedido explícito del owner, 2026-09-19): la tabla es ancha y
+  // antes solo tenía el scroll horizontal nativo al fondo -- para
+  // scrollear había que bajar hasta el final. Esta barra fina de arriba
+  // (mismo ancho que la tabla real) se sincroniza en las 2 direcciones con
+  // el scroll real de la tabla, así se puede mover desde arriba sin bajar.
+  const scrollArribaRef = useRef<HTMLDivElement>(null);
+  const scrollTablaRef = useRef<HTMLDivElement>(null);
+  const sincronizandoScroll = useRef(false);
+
+  function sincronizarDesdeArriba() {
+    if (sincronizandoScroll.current || !scrollArribaRef.current || !scrollTablaRef.current) return;
+    sincronizandoScroll.current = true;
+    scrollTablaRef.current.scrollLeft = scrollArribaRef.current.scrollLeft;
+    sincronizandoScroll.current = false;
+  }
+
+  function sincronizarDesdeTabla() {
+    if (sincronizandoScroll.current || !scrollArribaRef.current || !scrollTablaRef.current) return;
+    sincronizandoScroll.current = true;
+    scrollArribaRef.current.scrollLeft = scrollTablaRef.current.scrollLeft;
+    sincronizandoScroll.current = false;
+  }
 
   const { data: redes = [] } = useRedes(scoped ? undefined : iglesiaId);
   const { data: cdps = [] } = useCdpsIglesia(scoped ? undefined : iglesiaId);
@@ -363,7 +506,21 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   }, [textoInput]);
   useEffect(
     () => setPagina(1),
-    [texto, redId, casaDePazIdFiltroUi, estadoId, sexoFiltro, viaFiltro, conProfesionFiltro, estadoCivilFiltro, bautizadoFiltro, cumpleanosFiltro]
+    [
+      texto,
+      redId,
+      casaDePazIdFiltroUi,
+      estadoId,
+      sexoFiltro,
+      conProfesionFiltro,
+      estadoCivilFiltro,
+      bautizadoFiltro,
+      cumpleanosFiltro,
+      efesioFiltro,
+      conMinisterioFiltro,
+      cargoCensoFiltro,
+      rangoEdadFiltro,
+    ]
   );
 
   const redIdFiltro = scoped ? undefined : redId === TODAS_LAS_REDES ? undefined : redId;
@@ -376,23 +533,28 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       casaDePazId: casaDePazIdFiltro,
       estadoId: estadoIdFiltro,
       sexo: sexoFiltro,
-      viaRegistro: scoped ? undefined : viaFiltro,
       conProfesion: conProfesionFiltro,
       estadoCivil: estadoCivilFiltro,
       bautizado: bautizadoFiltro,
-      cumpleanosPeriodo: cumpleanosFiltro === TODOS_LOS_CUMPLEANOS ? undefined : cumpleanosFiltro,
+      cumpleanosPeriodo: cumpleanosFiltro,
+      efesioTipo: efesioFiltro,
+      conMinisterio: conMinisterioFiltro,
+      cargoCenso: cargoCensoFiltro,
+      rangoEdad: rangoEdadFiltro,
     }),
     [
       redIdFiltro,
       casaDePazIdFiltro,
       estadoIdFiltro,
       sexoFiltro,
-      viaFiltro,
       conProfesionFiltro,
       estadoCivilFiltro,
       bautizadoFiltro,
-      scoped,
       cumpleanosFiltro,
+      efesioFiltro,
+      conMinisterioFiltro,
+      cargoCensoFiltro,
+      rangoEdadFiltro,
     ]
   );
 
@@ -401,22 +563,28 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     (scoped || !casaDePazIdFiltro) &&
     !estadoIdFiltro &&
     !sexoFiltro &&
-    !viaFiltro &&
     !conProfesionFiltro &&
     !estadoCivilFiltro &&
-    cumpleanosFiltro === TODOS_LOS_CUMPLEANOS &&
-    !bautizadoFiltro;
+    !bautizadoFiltro &&
+    !cumpleanosFiltro &&
+    !efesioFiltro &&
+    !conMinisterioFiltro &&
+    !cargoCensoFiltro &&
+    !rangoEdadFiltro;
 
   function limpiarFiltros() {
     setRedId(TODAS_LAS_REDES);
     setCasaDePazIdFiltroUi(TODAS_LAS_CDP);
     setEstadoId(TODOS_LOS_ESTADOS);
     setSexoFiltro(undefined);
-    setViaFiltro(undefined);
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
-    setCumpleanosFiltro(TODOS_LOS_CUMPLEANOS);
+    setCumpleanosFiltro(undefined);
+    setEfesioFiltro(undefined);
+    setConMinisterioFiltro(undefined);
+    setCargoCensoFiltro(undefined);
+    setRangoEdadFiltro(undefined);
   }
 
   function alternarEstadoPorSigla(sigla: string) {
@@ -426,10 +594,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   }
 
   const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId);
-  // fn_afirmacion_estadisticas_registro no soporta filtro de CdP -- en modo
-  // scoped ni se pide (enabled:false vía iglesiaId undefined), mostraría
-  // datos de toda la iglesia si se llamara igual.
-  const { data: estadisticasRegistro, isLoading: cargandoRegistro } = useEstadisticasRegistroAfirmacion(scoped ? undefined : iglesiaId);
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaId, texto, pagina, POR_PAGINA, filtros);
 
   useEffect(() => {
@@ -451,6 +615,18 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       if (actual?.columna !== columna) return { columna, direccion: 'asc' };
       return { columna, direccion: actual.direccion === 'asc' ? 'desc' : 'asc' };
     });
+  }
+
+  // KAN-403: el modal de ficha ya está montado siempre (React Query lo
+  // muestra desde caché al instante en reaperturas) -- la demora real que
+  // sentía el owner es el PRIMER fetch de cada persona nueva (un round-trip
+  // real de red, no optimizable de raíz). Precargar el modal vacío al
+  // cargar la página no ayuda porque no se sabe a quién van a abrir; en
+  // cambio, adelantar el fetch apenas el mouse entra a la fila (antes del
+  // clic real) hace que el dato ya esté en caché cuando de verdad hacen
+  // clic, sin tocar el mecanismo de carga del modal.
+  function precargarFicha(personaId: string) {
+    void queryClient.prefetchQuery({ queryKey: ['personas', 'ficha', personaId], queryFn: () => obtenerFicha(personaId) });
   }
 
   async function exportarCsv() {
@@ -479,11 +655,14 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !scoped && casaDePazIdFiltro && cdps.find((c) => c.id === casaDePazIdFiltro)?.etiqueta,
     estadoIdFiltro && estados.find((e) => e.id === estadoIdFiltro)?.nombre,
     sexoFiltro && (sexoFiltro === 'M' ? 'Hombres' : 'Mujeres'),
-    !scoped && viaFiltro && VIA_REGISTRO_LABEL[viaFiltro],
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
-    cumpleanosFiltro !== TODOS_LOS_CUMPLEANOS && CUMPLEANOS_LABEL[cumpleanosFiltro],
+    cumpleanosFiltro && CUMPLEANOS_LABEL[cumpleanosFiltro],
+    efesioFiltro && EFESIO_LABEL[efesioFiltro],
+    conMinisterioFiltro && 'Con ministerio',
+    cargoCensoFiltro && CARGO_CENSO_LABEL[cargoCensoFiltro],
+    rangoEdadFiltro && RANGO_EDAD_LABEL[rangoEdadFiltro],
   ]
     .filter(Boolean)
     .join(' · ');
@@ -506,144 +685,218 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
 
   const porEstado = estadisticas?.por_estado ?? {};
   const porEstadoCivil = estadisticas?.por_estado_civil ?? {};
+  const porEfesio = estadisticas?.por_efesio ?? {};
+  const porEdad = estadisticas?.por_edad ?? {};
+
+  // KAN-404: mismo ancho para la tabla real y la barra de scroll fantasma
+  // de arriba -- si difirieran, el scroll superior no llegaría al mismo
+  // punto final que el de abajo.
+  const anchoTabla = vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]';
 
   return (
     <div className="flex flex-col gap-6">
-      {cargandoEstadisticas || (!scoped && cargandoRegistro) ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {Array.from({ length: scoped ? 10 : 15 }).map((_, i) => (
-            <Skeleton key={i} className="h-[54px] w-full rounded-xl" />
+      {/* KAN-401 seguimiento (2026-09-20, pedido explícito del owner):
+          8 categorías de filtro en filas compactas -- se sacó "Por
+          URL"/"Por formulario" (ya no hacían falta) y se sumaron Efesios,
+          Ministerios, Cargos de censo y Edad. Chips de una sola línea
+          (antes 2) para que entren las 26 en total sin ocupar demasiado. */}
+      {cargandoEstadisticas ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: scoped ? 5 : 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <KpiChipFiltro
-            icon={Users}
-            label="Total"
-            color={AZUL}
-            activo={sinFiltros}
-            cargando={filtroEnCurso === 'total' && isFetching}
-            onClick={() => {
-              setFiltroEnCurso('total');
-              limpiarFiltros();
-            }}
-          >
-            {estadisticas?.total ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
-            icon={User}
-            label="Hombres"
-            color={AZUL}
-            activo={sexoFiltro === 'M'}
-            cargando={filtroEnCurso === 'hombres' && isFetching}
-            onClick={() => {
-              setFiltroEnCurso('hombres');
-              setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
-            }}
-          >
-            {estadisticas?.hombres ?? 0}
-          </KpiChipFiltro>
-          <KpiChipFiltro
-            icon={User}
-            label="Mujeres"
-            color={TEAL}
-            activo={sexoFiltro === 'F'}
-            cargando={filtroEnCurso === 'mujeres' && isFetching}
-            onClick={() => {
-              setFiltroEnCurso('mujeres');
-              setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
-            }}
-          >
-            {estadisticas?.mujeres ?? 0}
-          </KpiChipFiltro>
-          {!scoped && (
-            <>
-              <KpiChipFiltro
-                icon={QrCode}
-                label="Por URL"
-                color={AZUL}
-                activo={viaFiltro === 'URL'}
-                cargando={filtroEnCurso === 'via-url' && isFetching}
-                onClick={() => {
-                  setFiltroEnCurso('via-url');
-                  setViaFiltro((actual) => (actual === 'URL' ? undefined : 'URL'));
-                }}
-              >
-                {estadisticasRegistro?.por_url ?? 0}
-              </KpiChipFiltro>
-              <KpiChipFiltro
-                icon={FileText}
-                label="Por formulario"
-                color={TEAL}
-                activo={viaFiltro === 'FORMULARIO'}
-                cargando={filtroEnCurso === 'via-formulario' && isFetching}
-                onClick={() => {
-                  setFiltroEnCurso('via-formulario');
-                  setViaFiltro((actual) => (actual === 'FORMULARIO' ? undefined : 'FORMULARIO'));
-                }}
-              >
-                {estadisticasRegistro?.por_formulario ?? 0}
-              </KpiChipFiltro>
-            </>
-          )}
-          {(['SIM', 'NC', 'CRE', 'RE'] as const).map((sigla) => (
+        <div className="flex flex-col gap-3">
+          <CategoriaFiltros titulo="General" defaultAbierta={!esMobile}>
             <KpiChipFiltro
-              key={sigla}
               icon={Users}
-              label={ESTADO_LABEL[sigla]}
+              label="Total"
               color={AZUL}
-              activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
-              cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
+              activo={sinFiltros}
+              cargando={filtroEnCurso === 'total' && isFetching}
               onClick={() => {
-                setFiltroEnCurso(`estado-${sigla}`);
-                alternarEstadoPorSigla(sigla);
+                setFiltroEnCurso('total');
+                limpiarFiltros();
               }}
             >
-              {porEstado[sigla] ?? 0}
+              {estadisticas?.total ?? 0}
             </KpiChipFiltro>
-          ))}
-          <KpiChipFiltro
-            icon={Briefcase}
-            label="Con profesión"
-            color={TEAL}
-            activo={conProfesionFiltro === true}
-            cargando={filtroEnCurso === 'con-profesion' && isFetching}
-            onClick={() => {
-              setFiltroEnCurso('con-profesion');
-              setConProfesionFiltro((actual) => (actual ? undefined : true));
-            }}
-          >
-            {estadisticas?.con_profesion ?? 0}
-          </KpiChipFiltro>
-          {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
             <KpiChipFiltro
-              key={codigo}
-              icon={Heart}
-              label={ESTADO_CIVIL_LABELS[codigo]}
+              icon={User}
+              label="Hombres"
               color={AZUL}
-              activo={estadoCivilFiltro === codigo}
-              cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
+              activo={sexoFiltro === 'M'}
+              cargando={filtroEnCurso === 'hombres' && isFetching}
               onClick={() => {
-                setFiltroEnCurso(`estado-civil-${codigo}`);
-                setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
+                setFiltroEnCurso('hombres');
+                setSexoFiltro((actual) => (actual === 'M' ? undefined : 'M'));
               }}
             >
-              {porEstadoCivil[codigo] ?? 0}
+              {estadisticas?.hombres ?? 0}
             </KpiChipFiltro>
-          ))}
-          <KpiChipFiltro
-            icon={CircleCheck}
-            label="Bautizados"
-            color={VERDE}
-            activo={bautizadoFiltro === true}
-            cargando={filtroEnCurso === 'bautizados' && isFetching}
-            onClick={() => {
-              setFiltroEnCurso('bautizados');
-              setBautizadoFiltro((actual) => (actual ? undefined : true));
-            }}
-          >
-            {estadisticas?.bautizados ?? 0}
-          </KpiChipFiltro>
+            <KpiChipFiltro
+              icon={User}
+              label="Mujeres"
+              color={TEAL}
+              activo={sexoFiltro === 'F'}
+              cargando={filtroEnCurso === 'mujeres' && isFetching}
+              onClick={() => {
+                setFiltroEnCurso('mujeres');
+                setSexoFiltro((actual) => (actual === 'F' ? undefined : 'F'));
+              }}
+            >
+              {estadisticas?.mujeres ?? 0}
+            </KpiChipFiltro>
+          </CategoriaFiltros>
+
+          {/* KAN-403 seguimiento 2026-09-19: solo SIM y CRE -- NC y RE son
+              de Evangelismo, no de Afirmación (aclaración explícita del
+              owner). Siguen filtrables desde el select "Estado" del
+              encabezado de la tabla si hace falta. */}
+          <CategoriaFiltros titulo="Estado espiritual" defaultAbierta={!esMobile}>
+            {(['SIM', 'CRE'] as const).map((sigla) => (
+              <KpiChipFiltro
+                key={sigla}
+                icon={Users}
+                label={ESTADO_LABEL[sigla]}
+                color={AZUL}
+                activo={estadoIdFiltro === estados.find((e) => e.sigla === sigla)?.id}
+                cargando={filtroEnCurso === `estado-${sigla}` && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso(`estado-${sigla}`);
+                  alternarEstadoPorSigla(sigla);
+                }}
+              >
+                {porEstado[sigla] ?? 0}
+              </KpiChipFiltro>
+            ))}
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Estado civil" defaultAbierta={!esMobile}>
+            {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
+              <KpiChipFiltro
+                key={codigo}
+                icon={Heart}
+                label={ESTADO_CIVIL_LABELS[codigo]}
+                color={AZUL}
+                activo={estadoCivilFiltro === codigo}
+                cargando={filtroEnCurso === `estado-civil-${codigo}` && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso(`estado-civil-${codigo}`);
+                  setEstadoCivilFiltro((actual) => (actual === codigo ? undefined : codigo));
+                }}
+              >
+                {porEstadoCivil[codigo] ?? 0}
+              </KpiChipFiltro>
+            ))}
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Datos personales" defaultAbierta={!esMobile}>
+            <KpiChipFiltro
+              icon={Briefcase}
+              label="Con profesión"
+              color={TEAL}
+              activo={conProfesionFiltro === true}
+              cargando={filtroEnCurso === 'con-profesion' && isFetching}
+              onClick={() => {
+                setFiltroEnCurso('con-profesion');
+                setConProfesionFiltro((actual) => (actual ? undefined : true));
+              }}
+            >
+              {estadisticas?.con_profesion ?? 0}
+            </KpiChipFiltro>
+            <KpiChipFiltro
+              icon={CircleCheck}
+              label="Bautizados"
+              color={VERDE}
+              activo={bautizadoFiltro === true}
+              cargando={filtroEnCurso === 'bautizados' && isFetching}
+              onClick={() => {
+                setFiltroEnCurso('bautizados');
+                setBautizadoFiltro((actual) => (actual ? undefined : true));
+              }}
+            >
+              {estadisticas?.bautizados ?? 0}
+            </KpiChipFiltro>
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Efesios" defaultAbierta={!esMobile}>
+            {OPCIONES_EFESIO.map(({ value, label }) => (
+              <KpiChipFiltro
+                key={value}
+                icon={EFESIO_ICONO[value as EfesioTipoFiltro]}
+                label={label}
+                color={MORADO}
+                activo={efesioFiltro === value}
+                cargando={filtroEnCurso === `efesio-${value}` && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso(`efesio-${value}`);
+                  setEfesioFiltro((actual) => (actual === value ? undefined : (value as EfesioTipoFiltro)));
+                }}
+              >
+                {porEfesio[value] ?? 0}
+              </KpiChipFiltro>
+            ))}
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Ministerios" defaultAbierta={!esMobile}>
+            <KpiChipFiltro
+              icon={Sparkles}
+              label="Con ministerio"
+              color={MORADO}
+              activo={conMinisterioFiltro === true}
+              cargando={filtroEnCurso === 'con-ministerio' && isFetching}
+              onClick={() => {
+                setFiltroEnCurso('con-ministerio');
+                setConMinisterioFiltro((actual) => (actual ? undefined : true));
+              }}
+            >
+              {estadisticas?.con_ministerio ?? 0}
+            </KpiChipFiltro>
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Cargos" defaultAbierta={!esMobile}>
+            {(['MINISTRO', 'ANCIANO', 'DIACONO'] as const).map((codigo) => (
+              <KpiChipFiltro
+                key={codigo}
+                icon={CARGO_CENSO_ICONO[codigo]}
+                label={CARGO_CENSO_LABEL[codigo]}
+                color={TEAL}
+                activo={cargoCensoFiltro === codigo}
+                cargando={filtroEnCurso === `cargo-${codigo}` && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso(`cargo-${codigo}`);
+                  setCargoCensoFiltro((actual) => (actual === codigo ? undefined : codigo));
+                }}
+              >
+                {codigo === 'MINISTRO'
+                  ? (estadisticas?.cargo_ministro ?? 0)
+                  : codigo === 'ANCIANO'
+                    ? (estadisticas?.cargo_anciano ?? 0)
+                    : (estadisticas?.cargo_diacono ?? 0)}
+              </KpiChipFiltro>
+            ))}
+          </CategoriaFiltros>
+
+          <CategoriaFiltros titulo="Edad" defaultAbierta={!esMobile}>
+            {(['NINOS', 'ADOLESCENTES', 'JOVENES', 'ADULTOS', 'MAYORES'] as const).map((rango) => (
+              <KpiChipFiltro
+                key={rango}
+                icon={RANGO_EDAD_ICONO[rango]}
+                label={RANGO_EDAD_LABEL[rango]}
+                color={VERDE}
+                activo={rangoEdadFiltro === rango}
+                cargando={filtroEnCurso === `edad-${rango}` && isFetching}
+                onClick={() => {
+                  setFiltroEnCurso(`edad-${rango}`);
+                  setRangoEdadFiltro((actual) => (actual === rango ? undefined : rango));
+                }}
+              >
+                {porEdad[rango] ?? 0}
+              </KpiChipFiltro>
+            ))}
+          </CategoriaFiltros>
         </div>
       )}
 
@@ -676,14 +929,29 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           }
         />
         <div className="flex flex-col gap-4 p-5">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className={cn('pl-8', CAMPO_ESTILO)}
-              placeholder="Buscar por nombre, CI o correo..."
-              value={textoInput}
-              onChange={(e) => setTextoInput(e.target.value)}
-            />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className={cn('pl-8', CAMPO_ESTILO)}
+                placeholder="Buscar por nombre, CI o correo..."
+                value={textoInput}
+                onChange={(e) => setTextoInput(e.target.value)}
+              />
+            </div>
+
+            {/* Pedido explícito del owner (2026-09-20): conteo de resultados
+                pegado a la barra de búsqueda (misma fila en desktop, se cae
+                debajo en mobile) -- para que se note de un vistazo cuántas
+                personas coinciden con los filtros aplicados. Solo después de
+                la primera carga (isLoading) -- mientras carga se ve el
+                Skeleton, no un "0 personas encontradas" engañoso. */}
+            {!isLoading && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground tabular-nums">{total}</span>{' '}
+                {total === 1 ? 'persona encontrada' : 'personas encontradas'}
+              </p>
+            )}
           </div>
 
           {isLoading ? (
@@ -694,10 +962,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                 {texto.trim()
                   ? 'Sin resultados para esa búsqueda.'
                   : !sinFiltros
-                    ? // KAN-401: con el filtro de cumpleaños activo por defecto (Semana),
-                      // "0 resultados" pasó de ser un caso raro a uno común -- el mensaje
-                      // de "todavía no tiene miembros" quedaba engañoso (la CdP/iglesia sí
-                      // tiene gente, solo que ninguno cumple años en el período elegido).
+                    ? // KAN-401: cualquier combinación de filtros (incluido el de
+                      // cumpleaños) puede dar 0 resultados -- el mensaje de "todavía
+                      // no tiene miembros" quedaba engañoso en ese caso (la CdP/
+                      // iglesia sí tiene gente, ninguno coincide con lo filtrado).
                       'Nadie coincide con los filtros aplicados.'
                     : scoped
                       ? 'Esta Casa de Paz todavía no tiene miembros registrados.'
@@ -714,13 +982,16 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               )}
             </div>
           ) : (
-            <div className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}>
-              <table
-                className={cn(
-                  'w-full border-collapse text-sm',
-                  vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]'
-                )}
+            <>
+              <div ref={scrollArribaRef} onScroll={sincronizarDesdeArriba} className="overflow-x-auto">
+                <div className={cn('h-px', anchoTabla)} />
+              </div>
+              <div
+                ref={scrollTablaRef}
+                onScroll={sincronizarDesdeTabla}
+                className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}
               >
+              <table className={cn('w-full border-collapse text-sm', anchoTabla)}>
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
@@ -734,17 +1005,22 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       Edad
                     </EncabezadoOrdenable>
                     <th className="px-2 py-2">
-                      <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo | typeof TODOS_LOS_CUMPLEANOS)}>
-                        <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                          <SelectValue placeholder="Cumpleaños" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TODOS_LOS_CUMPLEANOS}>Cumpleaños</SelectItem>
-                          <SelectItem value="DIA">Día</SelectItem>
-                          <SelectItem value="SEMANA">Semana</SelectItem>
-                          <SelectItem value="MES">Mes</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
+                        <Select
+                          value={cumpleanosFiltro ?? ''}
+                          onValueChange={(v) => setCumpleanosFiltro(v ? (v as CumpleanosPeriodo) : undefined)}
+                        >
+                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-center')}>
+                            <SelectValue placeholder="Período" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DIA">Día</SelectItem>
+                            <SelectItem value="SEMANA">Semana</SelectItem>
+                            <SelectItem value="MES">Mes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
                     {scoped ? (
@@ -837,6 +1113,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       <tr
                         key={p.id}
                         onClick={() => setPersonaSeleccionadaId(p.id)}
+                        onMouseEnter={() => precargarFicha(p.id)}
                         className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
                       >
                         <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
@@ -851,23 +1128,34 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
                             if (!fechaCumple) return null;
                             return (
+                              // KAN-401 seguimiento (2026-09-20, pedido explícito del
+                              // owner): antes el clic solo abría/cerraba en táctil (sin
+                              // hover) -- ahora también funciona en PC, además del hover
+                              // que ya andaba bien, sin duración especial: se abre/cierra
+                              // igual que ya lo hacía el hover o el tap.
                               <Tooltip
-                                {...(esTactil
-                                  ? { open: tortaAbiertaId === p.id, onOpenChange: (abierto: boolean) => setTortaAbiertaId(abierto ? p.id : null) }
-                                  : {})}
+                                open={tortaAbiertaId === p.id}
+                                onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
                               >
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                                    style={{ backgroundColor: `color-mix(in oklab, ${AMBAR} 16%, transparent)` }}
-                                    onClick={() => esTactil && setTortaAbiertaId((actual) => (actual === p.id ? null : p.id))}
+                                    className="inline-flex h-6 w-6 items-center justify-center"
+                                    onClick={() => setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id))}
                                     aria-label="Cumple años esta semana"
                                   >
-                                    <CakeSlice className="h-3.5 w-3.5" style={{ color: AMBAR }} />
+                                    {/* Mismo ícono que el badge de cumpleaños del calendario de
+                                        Casas de Paz (CalendarioGrid.tsx). Sin círculo ni relleno
+                                        (pedido explícito del owner, 2026-09-19): solo el dibujo en
+                                        líneas moradas, no un badge sólido. */}
+                                    <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">Cumple años el {fechaLegibleConDia(fechaCumple)}</TooltipContent>
+                                {/* Fecha en 2 líneas (pedido explícito del owner, 2026-09-20). */}
+                                <TooltipContent side="top" className="flex flex-col items-center text-center">
+                                  <span>Cumple años el</span>
+                                  <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
+                                </TooltipContent>
                               </Tooltip>
                             );
                           })()}
@@ -948,7 +1236,8 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
 
           {!isLoading && filasOrdenadas.length > 0 && totalPaginas > 1 && (
