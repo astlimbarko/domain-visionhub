@@ -68,8 +68,11 @@ export function ImagenAnuncioZoom({
   const estado = estadoPrecargado ?? estadoCalculado;
 
   if (estado.status === 'cargando') {
+    // KAN-402: sin bg-muted/sombra/ring acá a propósito -- ModalAnuncios
+    // pasa esas clases pensadas para la imagen ya cargada; heredarlas acá
+    // dejaba ver un cuadro gris sólido saltando antes del difuminado real.
     return (
-      <div className={cn('flex h-48 w-48 items-center justify-center', className)}>
+      <div className="flex h-48 w-48 items-center justify-center">
         <Spinner className="h-6 w-6 text-muted-foreground" />
       </div>
     );

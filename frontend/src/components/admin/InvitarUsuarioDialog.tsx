@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { CampoOtp } from '@/components/shared/CampoOtp';
 import { cn } from '@/lib/utils';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import { useAuthStore } from '@/store/auth.store';
 import { useBuscarCuentas } from '@/hooks/useAdmin';
 import type { RolSistema } from '@/types/auth.types';
@@ -263,11 +264,21 @@ export function InvitarUsuarioDialog({
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="persona_nombre">Nombre</Label>
-                      <Input id="persona_nombre" value={primerNombre} onChange={(e) => setPrimerNombre(e.target.value)} />
+                      <Input
+                        id="persona_nombre"
+                        value={primerNombre}
+                        onChange={(e) => setPrimerNombre(e.target.value)}
+                        onBlur={(e) => setPrimerNombre(normalizarNombre(e.target.value, true))}
+                      />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="persona_apellido">Apellido</Label>
-                      <Input id="persona_apellido" value={primerApellido} onChange={(e) => setPrimerApellido(e.target.value)} />
+                      <Input
+                        id="persona_apellido"
+                        value={primerApellido}
+                        onChange={(e) => setPrimerApellido(e.target.value)}
+                        onBlur={(e) => setPrimerApellido(normalizarNombre(e.target.value))}
+                      />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">

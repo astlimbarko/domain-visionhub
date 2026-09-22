@@ -76,12 +76,19 @@ export function ModalAnuncios() {
   return (
     <Dialog open onOpenChange={(open) => !open && cerrarAnuncioActual()}>
       <DialogPortal>
+        {/* Bug real (2026-09-20): DialogOverlay ya anima en duration-200
+            (base dialog.tsx), pero este Content no tenia duracion
+            explicita -- usaba el default del plugin (150ms). El fondo
+            terminaba de oscurecerse en un tiempo distinto al de la
+            imagen, un desfase real ademas de la precarga de arriba. Se
+            le agrega el mismo duration-200 al Content para que queden
+            sincronizados de verdad. */}
         <DialogOverlay className="z-[60] bg-black/60" />
         <DialogPrimitive.Content
           data-slot="dialog-content"
           onEscapeKeyDown={cerrarAnuncioActual}
           onPointerDownOutside={cerrarAnuncioActual}
-          className="fixed top-1/2 left-1/2 z-[60] flex w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          className="fixed top-1/2 left-1/2 z-[60] flex w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 outline-none duration-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
           style={{ maxWidth: esVertical ? '460px' : '580px' }}
         >
           <DialogPrimitive.Title className="sr-only">{anuncioActual.titulo}</DialogPrimitive.Title>

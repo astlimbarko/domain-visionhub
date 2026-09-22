@@ -111,6 +111,10 @@ export async function listarEstados(): Promise<EstadoCatalogo[]> {
  * ilegible y fácil de desordenar por accidente. */
 export type CumpleanosPeriodo = 'DIA' | 'SEMANA' | 'MES';
 
+export type EfesioTipoFiltro = 'APOSTOL' | 'PROFETA' | 'PASTOR' | 'EVANGELISTA' | 'MAESTRO';
+export type CargoCensoFiltro = 'MINISTRO' | 'ANCIANO' | 'DIACONO';
+export type RangoEdadFiltro = 'NINOS' | 'ADOLESCENTES' | 'JOVENES' | 'ADULTOS' | 'MAYORES';
+
 export interface FiltrosMembresiaAfirmacion {
   redId?: string;
   casaDePazId?: string;
@@ -122,6 +126,11 @@ export interface FiltrosMembresiaAfirmacion {
   bautizado?: boolean;
   /** KAN-401: filtra contra fecha_nacimiento ignorando el año (día/semana/mes actual). */
   cumpleanosPeriodo?: CumpleanosPeriodo;
+  /** KAN-401 seguimiento (2026-09-20): categorías nuevas de filtro. */
+  efesioTipo?: EfesioTipoFiltro;
+  conMinisterio?: boolean;
+  cargoCenso?: CargoCensoFiltro;
+  rangoEdad?: RangoEdadFiltro;
 }
 
 export async function buscarMembresiaAfirmacion(
@@ -145,6 +154,10 @@ export async function buscarMembresiaAfirmacion(
     p_estado_civil: filtros.estadoCivil ?? null,
     p_bautizado: filtros.bautizado ?? null,
     p_cumpleanos_periodo: filtros.cumpleanosPeriodo ?? null,
+    p_efesio_tipo: filtros.efesioTipo ?? null,
+    p_con_ministerio: filtros.conMinisterio ?? null,
+    p_cargo_censo: filtros.cargoCenso ?? null,
+    p_rango_edad: filtros.rangoEdad ?? null,
   });
   if (error) throw error;
   const resultados = data ?? [];
