@@ -25,6 +25,10 @@ export interface MiembroCdp {
   nombre_completo: string;
   tiene_fecha_nacimiento: boolean;
   edad: number | null;
+  /** KAN-420 (2026-09-22): sigla del estado SSVA vigente (SIM/NC/CRE/RE) --
+   * solo viene informado para "visitas" (fn_visitas_cdp); los miembros
+   * formales de la CdP no lo traen todavía. */
+  estado_sigla?: string | null;
 }
 
 export interface EvangelizadoPendiente {

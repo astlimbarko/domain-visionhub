@@ -1273,6 +1273,9 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
+                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
+                                    falta escribir "Nuevo Convertido" completo. */}
+                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
                                 {!persona.tiene_fecha_nacimiento && (
                                   <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
                                     <Checkbox
@@ -1329,6 +1332,9 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
+                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
+                                    falta escribir "Nuevo Convertido" completo. */}
+                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
                                 <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
                                   <Checkbox
                                     className="h-3 w-3"
