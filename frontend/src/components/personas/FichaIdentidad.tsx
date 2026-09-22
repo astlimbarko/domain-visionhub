@@ -36,8 +36,12 @@ interface Props {
    * 2 = censo eclesiástico. El form/estado es uno solo -- separar la
    * sección en 2 <FichaIdentidad> con la misma key haría perder lo tipeado
    * al pasar de página, así que esto solo cambia qué mitad de los mismos
-   * campos se muestra, no remonta nada. */
-  pagina: 1 | 2;
+   * campos se muestra, no remonta nada. Opcional (2026-09-21, merge
+   * KAN-408): MiMembresia.tsx no está paginado -- muestra "Identidad y
+   * censo" como una sola tarjeta con scroll, no como asistente de pasos --
+   * así que ahí no se pasa esta prop y se omite el filtro, mostrando las 2
+   * mitades juntas en la misma instancia. */
+  pagina?: 1 | 2;
 }
 
 /** El botón "Guardar cambios" vive en el pie fijo de FichaPersonaSheet
@@ -94,7 +98,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
 
   return (
     <div className="flex flex-col gap-4">
-      {pagina === 1 && (
+      {(pagina === undefined || pagina === 1) && (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Primer nombre *">
           <Input
@@ -177,7 +181,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
       </div>
       )}
 
-      {pagina === 2 && (
+      {(pagina === undefined || pagina === 2) && (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo label="Ciudad de nacimiento">
           <Input
@@ -275,7 +279,7 @@ export const FichaIdentidad = forwardRef<FichaIdentidadHandle, Props>(function F
       </div>
       )}
 
-      {pagina === 2 && form.estadoCivil === 'CASADO' && (
+      {(pagina === undefined || pagina === 2) && form.estadoCivil === 'CASADO' && (
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <Campo label="Apellido de casada">
             <div className="flex gap-2">
