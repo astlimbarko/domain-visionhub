@@ -83,7 +83,7 @@ import { aISO, fechaLegible } from '@/utils/calendario-fechas';
 import { calcularEdad } from '@/utils/edad';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
-import type { DiezmoLinea, EvangelizadoPendiente, NuevaVisita } from '@/types/reporte.types';
+import type { CategoriaTestimonio, DiezmoLinea, EvangelizadoPendiente, NuevaVisita, TestimonioLinea } from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 const esquema = z.object({
@@ -359,6 +359,48 @@ export function Reportes() {
   // monto y celular opcional. El total es la suma. El campo único "Total
   // diezmos" se reemplazó por esta lista.
   const [diezmos, setDiezmos] = useState<DiezmoLinea[]>([]);
+  // KAN-423 (2026-09-22, pedido explícito del owner): testimonios personales
+  // aparte de la narración general de la reunión (campo "testimonios" de
+  // siempre, renombrado en la UI a "¿Qué se desató en la CdP?"). Se pueden
+  // cargar varios, cada uno con su categoría.
+  function nuevoTestimonioVacio(): TestimonioLinea {
+    return { clave: crypto.randomUUID(), categoria: '', texto: '', nombrePersona: '', esExterno: false };
+  }
+  // Seguimiento KAN-423 (2026-09-22, pedido explícito del owner en vivo): la
+  // primera fila de testimonio siempre está visible (no hace falta tocar
+  // "+" para verla) -- por eso el estado nunca queda en un array vacío, ni
+  // al arrancar ni después de quitar la última fila.
+  const [testimoniosCategorizados, setTestimoniosCategorizados] = useState<TestimonioLinea[]>(() => [nuevoTestimonioVacio()]);
+  function agregarTestimonioCategorizado() {
+    setTestimoniosCategorizados((prev) => [...prev, nuevoTestimonioVacio()]);
+  }
+  function cambiarCategoriaTestimonio(clave: string, categoria: CategoriaTestimonio) {
+    setTestimoniosCategorizados((prev) => prev.map((t) => (t.clave === clave ? { ...t, categoria } : t)));
+  }
+  function cambiarTextoTestimonioCategorizado(clave: string, texto: string) {
+    setTestimoniosCategorizados((prev) => prev.map((t) => (t.clave === clave ? { ...t, texto } : t)));
+  }
+  function cambiarNombrePersonaTestimonio(clave: string, texto: string) {
+    setTestimoniosCategorizados((prev) =>
+      prev.map((t) => (t.clave === clave ? { ...t, nombrePersona: texto, personaId: undefined } : t))
+    );
+  }
+  function seleccionarPersonaTestimonio(clave: string, persona: PersonaBusqueda) {
+    setTestimoniosCategorizados((prev) =>
+      prev.map((t) => (t.clave === clave ? { ...t, nombrePersona: persona.nombre_completo, personaId: persona.id } : t))
+    );
+  }
+  function toggleEsExternoTestimonio(clave: string, esExterno: boolean) {
+    setTestimoniosCategorizados((prev) =>
+      prev.map((t) => (t.clave === clave ? { ...t, esExterno, nombrePersona: '', personaId: undefined } : t))
+    );
+  }
+  function quitarTestimonioCategorizado(clave: string) {
+    setTestimoniosCategorizados((prev) => {
+      const restantes = prev.filter((t) => t.clave !== clave);
+      return restantes.length > 0 ? restantes : [nuevoTestimonioVacio()];
+    });
+  }
   const [textoBuscadorDiezmante, setTextoBuscadorDiezmante] = useState('');
   const [mostrarFormDiezmante, setMostrarFormDiezmante] = useState(false);
   const [nombreDiezmante, setNombreDiezmante] = useState('');
@@ -475,6 +517,9 @@ export function Reportes() {
       moneda_id: reporteExistente.monedaId ?? undefined,
     });
     setDiezmos(reporteExistente.diezmos);
+    setTestimoniosCategorizados(
+      reporteExistente.testimoniosCategorizados.length > 0 ? reporteExistente.testimoniosCategorizados : [nuevoTestimonioVacio()]
+    );
     setDisertadorNombre(reporteExistente.disertador_nombre ?? '');
     setEvangelizadosDeclaradosEdicion(reporteExistente.evangelizados_declarados ?? undefined);
     setAsistentes(new Map(reporteExistente.asistentes.map((a) => [a.personaId, { esVisita: a.esVisita, esMenor: a.esMenor }])));
@@ -923,6 +968,17 @@ export function Reportes() {
       return;
     }
 
+    // KAN-423: una línea de testimonio a medias (categoría sin texto, o
+    // texto sin categoría elegida) no se guarda silenciosamente -- se avisa
+    // para que la complete o la quite antes de enviar.
+    const testimonioAMedias = testimoniosCategorizados.find((t) => !!t.categoria !== !!t.texto.trim());
+    if (testimonioAMedias) {
+      toast.error(
+        testimonioAMedias.categoria ? 'Falta el texto de uno de los testimonios' : 'Elegí la categoría de uno de los testimonios'
+      );
+      return;
+    }
+
     // El backend exige estos campos según la configuración de la iglesia
     // (trigger fn_validar_campos_reporte) pero el formulario no lo mostraba
     // antes de intentar enviar -- se valida acá con el mismo criterio para
@@ -969,6 +1025,7 @@ export function Reportes() {
             : evangelizadosPendientes.length
           : undefined,
         testimonios: valores.testimonios,
+        testimoniosCategorizados,
         asistentesExistentes: Array.from(asistentes.entries()).map(([id, v]) => ({
           personaId: id,
           esMenor: v.esMenor,
@@ -1060,13 +1117,14 @@ export function Reportes() {
       toast.success(
         `Reporte enviado: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
       );
-      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
+      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id, testimonios: '' });
       setAsistentes(new Map());
       setVisitasNuevas([]);
       setAsistentesNuevosExistentes([]);
       setTextoAsistenteNuevo('');
       setDiezmos([]);
       setTextoBuscadorDiezmante('');
+      setTestimoniosCategorizados([nuevoTestimonioVacio()]);
       setEvangelizadosPendientes([]);
       setReconciliadosPorPersona({});
       setDisertadorNombre('');
@@ -2154,18 +2212,87 @@ export function Reportes() {
           </div>
         </section>
 
-        {/* Testimonio -- KAN-367 (2026-09-17, pedido del owner): antes era
-            "Narración" con 2 campos (Testimonios + Comentarios). Se unifica
-            en un solo campo -- lo que se pide es que se cuente como
-            testimonio lo que Dios hizo en la reunión, no un dato suelto. */}
+        {/* Testimonios -- KAN-423 (2026-09-22, pedido explícito del owner):
+            se separa en 2 cosas. Testimonios personales (categoría + texto,
+            se pueden cargar varios) más abajo la narración general de la
+            reunión ("¿Qué se desató en la CdP?", mismo campo `testimonios`
+            de siempre -- antes se llamaba "Comentarios"/"Testimonio", solo
+            cambia la etiqueta). */}
         <section className={CARD_SECCION}>
-          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonio" descripcion="Lo que Dios hizo en esta reunión" />
-          <div className="p-5">
+          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonios" descripcion="Lo que Dios hizo en esta reunión" />
+          <div className="flex flex-col gap-4 p-5">
+            <div className="flex flex-col gap-2">
+              {testimoniosCategorizados.map((t) => (
+                <div key={t.clave} className="flex flex-col gap-2 rounded-xl border border-border/60 p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                    <Select value={t.categoria} onValueChange={(v) => cambiarCategoriaTestimonio(t.clave, v as CategoriaTestimonio)}>
+                      <SelectTrigger className={cn('w-full sm:w-44 sm:shrink-0', CAMPO_ESTILO)}>
+                        <SelectValue placeholder="Categoría..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FINANZAS">Finanzas</SelectItem>
+                        <SelectItem value="SANIDAD">Sanidad</SelectItem>
+                        <SelectItem value="RESTAURACION">Restauración</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      {t.esExterno ? (
+                        <Input
+                          className={CAMPO_ESTILO}
+                          placeholder="Nombre de quién lo contó"
+                          value={t.nombrePersona}
+                          onChange={(e) => cambiarNombrePersonaTestimonio(t.clave, e.target.value)}
+                        />
+                      ) : (
+                        <BuscadorPersonaCampo
+                          iglesiaId={iglesiaActivaId}
+                          cdpId={cdpActiva}
+                          valor={t.nombrePersona}
+                          seleccionado={!!t.personaId}
+                          onCambiarTexto={(texto) => cambiarNombrePersonaTestimonio(t.clave, texto)}
+                          onSeleccionar={(p) => seleccionarPersonaTestimonio(t.clave, p)}
+                          placeholder="Quién lo contó (opcional)..."
+                        />
+                      )}
+                      <label className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground">
+                        <Checkbox
+                          className="h-3.5 w-3.5"
+                          checked={t.esExterno}
+                          onCheckedChange={(v) => toggleEsExternoTestimonio(t.clave, v === true)}
+                        />
+                        No es de la iglesia
+                      </label>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => quitarTestimonioCategorizado(t.clave)}
+                      className="shrink-0 self-start rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <Textarea
+                    placeholder="Contá el testimonio..."
+                    rows={3}
+                    className={CAMPO_ESTILO}
+                    value={t.texto}
+                    onChange={(e) => cambiarTextoTestimonioCategorizado(t.clave, e.target.value)}
+                  />
+                </div>
+              ))}
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={agregarTestimonioCategorizado}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar testimonio
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="testimonios">Testimonio {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
+              <Label htmlFor="testimonios">¿Qué se desató en la CdP? {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
               <Textarea
                 id="testimonios"
-                placeholder="Contá como testimonio lo que Dios hizo durante esta reunión de Casa de Paz"
+                placeholder="Contá qué pasó en general durante esta reunión de Casa de Paz"
                 rows={4}
                 className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
                 {...register('testimonios')}
