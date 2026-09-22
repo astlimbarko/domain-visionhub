@@ -199,41 +199,30 @@ async function enriquecerConOrigenCdp(personas: PersonaBusqueda[]): Promise<Pers
 }
 
 /**
- * Q-MR-12 (2026-08-15, decisión del owner): busca prioritariamente entre los
- * miembros de la propia Casa de Paz (`cdpId`) y, solo si ahí no aparece
- * nadie, cae a toda la iglesia -- puede visitar la CdP alguien de otra y hay
- * que poder anotarlo igual. Sin `cdpId` (ej. cargos de Red/Departamento),
- * busca en toda la iglesia directamente, como siempre.
- */
-/**
+ * Q-MR-12 (2026-08-15) + KAN-419 seguimiento (2026-09-22, pedido explícito
+ * del owner): con `cdpId`, prioriza 3 niveles EN ORDEN -- la propia Casa de
+ * Paz, si ahí no aparece nadie entonces toda su Red, y recién si tampoco hay
+ * resultado ahí, toda la iglesia (puede visitar la CdP alguien de otra
+ * parte y hay que poder anotarlo igual). Sin `cdpId` (ej. cargos de Red/
+ * Departamento), busca en toda la iglesia directamente, como siempre. Los 3
+ * niveles se resuelven en un solo viaje a `fn_buscar_personas_reporte`
+ * (SQL, con `RETURN` anticipado apenas un nivel tiene resultados).
+ *
  * KAN-418: el filtro que exige que TODAS las palabras buscadas aparezcan en
  * el nombre completo ("Juan Perez" encuentra a alguien buscado por nombre y
- * apellido a la vez) vive en `fn_buscar_personas_reporte` (SQL), no en JS --
- * antes se traía un lote de hasta 30 filas que matcheaban CUALQUIER palabra
- * y se filtraba en el cliente, así que con nombres comunes la persona
- * buscada podía quedar fuera de esas 30 filas antes de llegar al filtro.
+ * apellido a la vez) también vive en esa función (SQL), no en JS -- antes
+ * se traía un lote de hasta 30 filas que matcheaban CUALQUIER palabra y se
+ * filtraba en el cliente, así que con nombres comunes la persona buscada
+ * podía quedar fuera de esas 30 filas antes de llegar al filtro.
  */
 export async function buscarPersonas(iglesiaId: string, texto: string, edadMinima?: number, cdpId?: string): Promise<PersonaBusqueda[]> {
   if (!texto.trim()) return [];
-
-  if (cdpId) {
-    const { data: propios, error: errorPropios } = await supabase.rpc('fn_buscar_personas_reporte', {
-      p_iglesia_id: iglesiaId,
-      p_texto: texto,
-      p_edad_minima: edadMinima ?? null,
-      p_cdp_id: cdpId,
-      p_limite: 10,
-    });
-    if (errorPropios) throw errorPropios;
-    const resultadosPropios = (propios ?? []) as PersonaBusqueda[];
-    if (resultadosPropios.length > 0) return resultadosPropios;
-  }
 
   const { data, error } = await supabase.rpc('fn_buscar_personas_reporte', {
     p_iglesia_id: iglesiaId,
     p_texto: texto,
     p_edad_minima: edadMinima ?? null,
-    p_cdp_id: null,
+    p_cdp_id: cdpId ?? null,
     p_limite: 10,
   });
   if (error) throw error;

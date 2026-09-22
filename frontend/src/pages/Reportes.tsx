@@ -1729,10 +1729,10 @@ export function Reportes() {
                       placeholder="Buscar por nombre..."
                       edadMinima={edadMinima}
                     />
-                    {/* KAN-419 (2026-09-22): busca primero en tu Casa de Paz
-                        y, si ahí no aparece, en toda la iglesia -- mismo
-                        patrón ya usado por el buscador de diezmante. */}
-                    <p className="text-[11px] text-muted-foreground">Busca primero en tu Casa de Paz; si no aparece, en toda la iglesia.</p>
+                    {/* KAN-419 (2026-09-22): busca primero en tu Casa de Paz,
+                        luego en toda tu Red y recién si ahí tampoco aparece,
+                        en toda la iglesia. */}
+                    <p className="text-[11px] text-muted-foreground">Busca primero en tu Casa de Paz, luego en tu Red, y si no aparece, en toda la iglesia.</p>
                   </div>
 
                   {/* KAN-367 (2026-09-17): atajo para quien sabe el nombre del
