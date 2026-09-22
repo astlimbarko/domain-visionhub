@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type {
+  CensoFicha,
   DatosCensales,
   DatosIdentidad,
   MilagroCategoria,
@@ -11,6 +12,7 @@ import type {
   ResultadoBusquedaPersonas,
   TipoRelacion,
   TipoTelefono,
+  ValorFechaPrecision,
 } from '@/types/persona.types';
 
 const PERSONAS_POR_PAGINA = 20;
@@ -358,5 +360,83 @@ export async function quitarMilagro(milagroId: string) {
     .from('persona_milagro')
     .update({ fecha_eliminacion: new Date().toISOString() })
     .eq('id', milagroId);
+  if (error) throw error;
+}
+
+// ---- KAN-408: Discipulados / Seminario / Universidad / Mentor / Censo ----
+// Mismo patrón add/remove (o update-si-existe/insert-si-no) que Milagros y
+// Referencias familiares arriba -- a propósito NO se reusa
+// fn_guardar_membresia_extendida (RPC de onboarding, INSERTa siempre sin
+// chequear duplicados, ver comentario en fn_persona_ficha) porque acá se
+// edita un perfil YA completo, potencialmente muchas veces.
+
+export async function agregarDiscipulado(personaId: string, tipoDiscipuladoId: string, fecha: ValorFechaPrecision) {
+  const { error } = await supabase
+    .from('persona_discipulado')
+    .insert({ persona_id: personaId, tipo_discipulado_id: tipoDiscipuladoId, ...fecha });
+  if (error) throw error;
+}
+
+export async function quitarDiscipulado(discipuladoId: string) {
+  const { error } = await supabase
+    .from('persona_discipulado')
+    .update({ fecha_eliminacion: new Date().toISOString() })
+    .eq('id', discipuladoId);
+  if (error) throw error;
+}
+
+export async function guardarSeminario(personaId: string, idExistente: string | null, fecha: ValorFechaPrecision) {
+  if (idExistente) {
+    const { error } = await supabase.from('persona_seminario').update(fecha).eq('id', idExistente);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('persona_seminario').insert({ persona_id: personaId, ...fecha });
+    if (error) throw error;
+  }
+}
+
+export async function quitarSeminario(id: string) {
+  const { error } = await supabase.from('persona_seminario').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function guardarUniversidad(personaId: string, idExistente: string | null, fecha: ValorFechaPrecision) {
+  if (idExistente) {
+    const { error } = await supabase.from('persona_universidad_rey_jesus').update(fecha).eq('id', idExistente);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('persona_universidad_rey_jesus').insert({ persona_id: personaId, ...fecha });
+    if (error) throw error;
+  }
+}
+
+export async function quitarUniversidad(id: string) {
+  const { error } = await supabase.from('persona_universidad_rey_jesus').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function guardarMentor(
+  personaId: string,
+  idExistente: string | null,
+  datos: { mentor_nombre_txt: string; mentor_es_miembro: boolean },
+) {
+  if (idExistente) {
+    const { error } = await supabase.from('persona_mentor').update(datos).eq('id', idExistente);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('persona_mentor').insert({ persona_id: personaId, ...datos });
+    if (error) throw error;
+  }
+}
+
+export async function quitarMentor(id: string) {
+  const { error } = await supabase.from('persona_mentor').update({ fecha_eliminacion: new Date().toISOString() }).eq('id', id);
+  if (error) throw error;
+}
+
+// persona_censo_membresia tiene UNIQUE (persona_id) real (no partial) --
+// upsert directo por esa columna, sin necesitar saber si ya existe la fila.
+export async function guardarCenso(personaId: string, datos: CensoFicha) {
+  const { error } = await supabase.from('persona_censo_membresia').upsert({ persona_id: personaId, ...datos }, { onConflict: 'persona_id' });
   if (error) throw error;
 }
