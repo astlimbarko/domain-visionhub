@@ -19,6 +19,7 @@ import { AuthCallback } from '@/pages/AuthCallback';
 import { Dashboard } from '@/pages/Dashboard';
 import { Cuenta } from '@/pages/Cuenta';
 import { MiMembresia } from '@/pages/MiMembresia';
+import { CambiarContrasena } from '@/pages/CambiarContrasena';
 import { PrivateLayout } from '@/components/layout/PrivateLayout';
 import { RequiereRol } from '@/components/layout/RequiereRol';
 import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
@@ -202,6 +203,9 @@ function App() {
             {/* KAN-408: página completa (no modal) para ver/editar la
                 membresía propia -- accesible para todos, igual que Cuenta. */}
             <Route path={ROUTES.CUENTA_MEMBRESIA} element={<MiMembresia />} />
+            {/* KAN-408 seguimiento: "Cambiar contraseña" pasó a página propia,
+                misma excepción de acceso universal que Cuenta/CuentaMembresia. */}
+            <Route path={ROUTES.CUENTA_CONTRASENA} element={<CambiarContrasena />} />
 
             {/* KAN-388: acceso solo por URL directa -- a propósito no está en
                 CATALOGO_NAV/sidebar. Cualquier rol de sistema puede entrar

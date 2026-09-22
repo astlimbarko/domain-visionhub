@@ -47,8 +47,9 @@ export const ROUTES = {
   // KAN-408 (2026-09-21, pedido explícito del owner): página completa
   // propia, no un modal -- el dueño de la cuenta ve/edita su membresía acá.
   CUENTA_MEMBRESIA: '/cuenta/membresia',
-  // KAN-408 seguimiento: "Cambiar contraseña" pasó a página propia, misma
-  // excepción de acceso universal que Cuenta/CuentaMembresia.
+  // KAN-408 seguimiento (2026-09-21, pedido explícito del owner): "Mi cuenta"
+  // pasó a ser 2 botones lado a lado (Membresía | Cambiar contraseña), cada
+  // uno a su propia página completa -- "modal es lento" (cita textual).
   CUENTA_CONTRASENA: '/cuenta/contrasena',
   // KAN-405: "Colaborar" -- accesible para TODOS los roles. Pantalla propia
   // fuera de PrivateLayout/AppShell (ver App.tsx, mismo patron que
