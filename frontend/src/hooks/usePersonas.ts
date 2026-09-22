@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as personaService from '@/services/persona.service';
-import type { DatosCensales, DatosIdentidad, MilagroCategoria, NuevaPersona } from '@/types/persona.types';
+import type { CensoFicha, DatosCensales, DatosIdentidad, MilagroCategoria, NuevaPersona, ValorFechaPrecision } from '@/types/persona.types';
 import type { DatosDireccion } from '@/services/persona.service';
 
 export function useBuscarPersonas(
@@ -268,6 +268,89 @@ export function useQuitarMilagro(personaId: string) {
   const invalidarFicha = useInvalidarFicha(personaId);
   return useMutation({
     mutationFn: (milagroId: string) => personaService.quitarMilagro(milagroId),
+    onSuccess: invalidarFicha,
+  });
+}
+
+// ---- KAN-408: Discipulados / Seminario / Universidad / Mentor / Censo ----
+
+export function useAgregarDiscipulado(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: ({ tipoDiscipuladoId, fecha }: { tipoDiscipuladoId: string; fecha: ValorFechaPrecision }) =>
+      personaService.agregarDiscipulado(personaId, tipoDiscipuladoId, fecha),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useQuitarDiscipulado(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (discipuladoId: string) => personaService.quitarDiscipulado(discipuladoId),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useGuardarSeminario(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: ({ idExistente, fecha }: { idExistente: string | null; fecha: ValorFechaPrecision }) =>
+      personaService.guardarSeminario(personaId, idExistente, fecha),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useQuitarSeminario(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (id: string) => personaService.quitarSeminario(id),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useGuardarUniversidad(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: ({ idExistente, fecha }: { idExistente: string | null; fecha: ValorFechaPrecision }) =>
+      personaService.guardarUniversidad(personaId, idExistente, fecha),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useQuitarUniversidad(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (id: string) => personaService.quitarUniversidad(id),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useGuardarMentor(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: ({
+      idExistente,
+      datos,
+    }: {
+      idExistente: string | null;
+      datos: { mentor_nombre_txt: string; mentor_es_miembro: boolean };
+    }) => personaService.guardarMentor(personaId, idExistente, datos),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useQuitarMentor(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (id: string) => personaService.quitarMentor(id),
+    onSuccess: invalidarFicha,
+  });
+}
+
+export function useGuardarCenso(personaId: string) {
+  const invalidarFicha = useInvalidarFicha(personaId);
+  return useMutation({
+    mutationFn: (datos: CensoFicha) => personaService.guardarCenso(personaId, datos),
     onSuccess: invalidarFicha,
   });
 }

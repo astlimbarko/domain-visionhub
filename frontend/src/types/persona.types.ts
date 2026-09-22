@@ -1,4 +1,4 @@
-import type { RangoMiembro } from './membresia-extendida.types';
+import type { EfesioTipo, PrecisionFecha, RangoMiembro } from './membresia-extendida.types';
 
 export type Sexo = 'M' | 'F';
 export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'VIUDO' | 'DIVORCIADO' | 'CONCUBINATO';
@@ -362,6 +362,54 @@ export interface MilagroFicha {
   fecha: string;
 }
 
+// KAN-408 (2026-09-21): los 4 grupos que le faltaban a fn_persona_ficha
+// para poder mostrar las mismas secciones que el formulario de 10 pasos
+// (MembresiaObligatoria.tsx) desde "Mi cuenta" -- ver
+// 20260921093123_kan408_fn_persona_ficha_censo_extendido.sql.
+export interface ValorFechaPrecision {
+  anio: number | null;
+  mes: number | null;
+  dia: number | null;
+  precision_fecha: PrecisionFecha | null;
+}
+
+export interface DiscipuladoFicha {
+  id: string;
+  tipo_discipulado_id: string;
+  tipo_discipulado_nombre: string;
+  anio: number | null;
+  mes: number | null;
+  dia: number | null;
+  precision_fecha: PrecisionFecha | null;
+}
+
+export interface SeminarioUniversidadFicha {
+  id: string;
+  anio: number | null;
+  mes: number | null;
+  dia: number | null;
+  precision_fecha: PrecisionFecha | null;
+}
+
+export interface MentorFicha {
+  id: string;
+  mentor_nombre_txt: string | null;
+  mentor_es_miembro: boolean;
+}
+
+export interface CensoFicha {
+  efesio_tipo: EfesioTipo | null;
+  rango_miembro: RangoMiembro | null;
+  cargo_ministro: boolean;
+  cargo_anciano: boolean;
+  cargo_diacono: boolean;
+  cargo_mentor: boolean;
+  cargo_sub_mentor: boolean;
+  cargo_lider_cdp: boolean;
+  cargo_sublider_cdp: boolean;
+  cargo_lider_ministerio: boolean;
+}
+
 export interface PersonaFicha {
   persona: {
     id: string;
@@ -393,6 +441,13 @@ export interface PersonaFicha {
   ministerios: MinisterioDePersona[];
   evangelismo: EvangelismoDeOrigen | null;
   milagros: MilagroFicha[];
+  // KAN-408 (2026-09-21): mismos grupos que el formulario de 10 pasos, para
+  // poder mostrarlos/editarlos también desde "Mi cuenta > Membresía".
+  discipulados: DiscipuladoFicha[];
+  seminario: SeminarioUniversidadFicha | null;
+  universidad: SeminarioUniversidadFicha | null;
+  mentor: MentorFicha | null;
+  censo: CensoFicha | null;
 }
 
 export interface TipoRelacion {

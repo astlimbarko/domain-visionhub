@@ -32,6 +32,10 @@ import { FichaFamilia } from '@/components/personas/FichaFamilia';
 import { FichaEvangelismo } from '@/components/personas/FichaEvangelismo';
 import { FichaMinisterios } from '@/components/personas/FichaMinisterios';
 import { FichaMilagros } from '@/components/personas/FichaMilagros';
+import { FichaDiscipulados } from '@/components/personas/FichaDiscipulados';
+import { FichaSeminarioUniversidad } from '@/components/personas/FichaSeminarioUniversidad';
+import { FichaMentor } from '@/components/personas/FichaMentor';
+import { FichaCensoMembresia } from '@/components/personas/FichaCensoMembresia';
 import { ROUTES } from '@/utils/constants';
 
 // Botón rojo fuerte (mismo criterio puntual que KAN-403, ver comentario
@@ -132,6 +136,42 @@ export function MiMembresia() {
                 puedeEditar={editando}
                 puedeEditarIdentidadBasica={false}
               />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Discipulados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FichaDiscipulados personaId={ficha.persona.id} discipulados={ficha.discipulados} puedeEditar={editando} />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Seminario y Universidad</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FichaSeminarioUniversidad personaId={ficha.persona.id} seminario={ficha.seminario} universidad={ficha.universidad} puedeEditar={editando} />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Mentor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FichaMentor personaId={ficha.persona.id} mentor={ficha.mentor} puedeEditar={editando} />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Cargo y posición</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FichaCensoMembresia personaId={ficha.persona.id} censo={ficha.censo} puedeEditar={editando} />
             </CardContent>
           </Card>
 
