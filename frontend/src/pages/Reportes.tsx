@@ -75,6 +75,8 @@ import { CampoOtp } from '@/components/shared/CampoOtp';
 import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo';
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { BuscadorTemaCampo } from '@/components/reporte/BuscadorTemaCampo';
+import { ModalFechaNacimientoFaltante } from '@/components/reporte/ModalFechaNacimientoFaltante';
+import { useActualizarFechaNacimientoBasica } from '@/hooks/usePersonas';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible } from '@/utils/calendario-fechas';
@@ -308,6 +310,47 @@ export function Reportes() {
   // búsqueda global). No aplica a `visitasNuevas` (persona recién creada,
   // no hay de qué "volver"). Se registra como evento de Evangelismo al
   // enviar -- no toca persona_estado.
+  // KAN-422 (2026-09-22, pedido explícito del owner): completado progresivo
+  // -- al agregar a alguien SIN fecha de nacimiento (nuevo en esta selección,
+  // no al precargar un reporte existente), se encola para preguntarle en un
+  // modal, uno por vez. "Saltar" deja el flujo de siempre (checkbox "es
+  // menor" en la pastilla) como respaldo.
+  const [colaFechaNacimiento, setColaFechaNacimiento] = useState<{ id: string; nombre: string }[]>([]);
+  const actualizarFechaNacimiento = useActualizarFechaNacimientoBasica();
+
+  function encolarSiFaltaFecha(personaId: string, nombreCompleto: string, tieneFecha: boolean) {
+    if (tieneFecha) return;
+    setColaFechaNacimiento((prev) => (prev.some((p) => p.id === personaId) ? prev : [...prev, { id: personaId, nombre: nombreCompleto }]));
+  }
+
+  function quitarDeColaFechaNacimiento(personaId: string) {
+    setColaFechaNacimiento((prev) => prev.filter((p) => p.id !== personaId));
+  }
+
+  async function guardarFechaNacimientoPendiente(fechaNacimiento: string) {
+    const pendiente = colaFechaNacimiento[0];
+    if (!pendiente) return;
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId: pendiente.id, datos: { fecha_nacimiento: fechaNacimiento } });
+      cambiarEsMenorAsistente(pendiente.id, calcularEdad(fechaNacimiento) < edadMinima);
+      quitarDeColaFechaNacimiento(pendiente.id);
+    } catch {
+      toast.error('No se pudo guardar la fecha de nacimiento');
+    }
+  }
+
+  async function guardarEdadAproximadaPendiente(edad: number) {
+    const pendiente = colaFechaNacimiento[0];
+    if (!pendiente) return;
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId: pendiente.id, datos: { edad_aproximada: edad } });
+      cambiarEsMenorAsistente(pendiente.id, edad < edadMinima);
+      quitarDeColaFechaNacimiento(pendiente.id);
+    } catch {
+      toast.error('No se pudo guardar la edad aproximada');
+    }
+  }
+
   const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
   function cambiarReconciliacion(personaId: string, valor: boolean) {
     setReconciliadosPorPersona((prev) => ({ ...prev, [personaId]: valor }));
@@ -463,16 +506,25 @@ export function Reportes() {
   }
 
   function toggleAsistente(personaId: string, esVisita: boolean) {
+    const actual = asistentes.get(personaId);
+    const seQuita = actual && actual.esVisita === esVisita;
     setAsistentes((prev) => {
       const next = new Map(prev);
-      const actual = next.get(personaId);
-      if (actual && actual.esVisita === esVisita) {
+      if (seQuita) {
         next.delete(personaId);
       } else {
-        next.set(personaId, { esVisita, esMenor: actual?.esMenor });
+        next.set(personaId, { esVisita, esMenor: prev.get(personaId)?.esMenor });
       }
       return next;
     });
+    if (seQuita) {
+      quitarDeColaFechaNacimiento(personaId);
+    } else {
+      // KAN-422: se agrega (no se quita) a alguien sin fecha de nacimiento
+      // -- se encola para preguntarle en el modal.
+      const persona = poolAsistenciaUnico.find((m) => m.persona_id === personaId);
+      if (persona) encolarSiFaltaFecha(personaId, persona.nombre_completo, persona.tiene_fecha_nacimiento);
+    }
   }
 
   function cambiarEsMenorAsistente(personaId: string, esMenor: boolean) {
@@ -573,6 +625,9 @@ export function Reportes() {
     });
     setAsistentesNuevosExistentes((prev) => [...prev, persona]);
     setTextoAsistenteNuevo('');
+    // KAN-422: este buscador nunca trae fecha de nacimiento -- se encola
+    // igual que un miembro sin fecha registrada.
+    encolarSiFaltaFecha(persona.id, persona.nombre_completo, false);
   }
 
   function quitarAsistenteExistente(personaId: string) {
@@ -582,6 +637,7 @@ export function Reportes() {
       return next;
     });
     setAsistentesNuevosExistentes((prev) => prev.filter((p) => p.id !== personaId));
+    quitarDeColaFechaNacimiento(personaId);
   }
 
   // Pedido del owner (2026-09-03): agregar a alguien en Evangelismo pregunta
@@ -2314,6 +2370,16 @@ export function Reportes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ModalFechaNacimientoFaltante
+        open={colaFechaNacimiento.length > 0}
+        onOpenChange={(v) => !v && colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
+        nombrePersona={colaFechaNacimiento[0]?.nombre ?? ''}
+        guardando={actualizarFechaNacimiento.isPending}
+        onGuardarFecha={guardarFechaNacimientoPendiente}
+        onGuardarEdadAproximada={guardarEdadAproximadaPendiente}
+        onSaltar={() => colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
+      />
     </div>
   );
 }

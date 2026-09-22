@@ -132,6 +132,22 @@ export async function actualizarIdentidad(personaId: string, datos: Partial<Dato
   if (error) throw error;
 }
 
+/**
+ * KAN-422: completar la fecha de nacimiento de alguien que ya está en el
+ * sistema, desde el Reporte de Casa de Paz (no desde la ficha completa de
+ * Afirmación). Si todavía no se sabe la fecha real, se guarda solo
+ * `edad_aproximada` (KAN-406) para estadísticas rápidas -- `fecha_nacimiento`
+ * queda en null a propósito, así la próxima vez que esta persona aparezca en
+ * un reporte se le vuelve a preguntar (completado progresivo, ver KAN-417).
+ */
+export async function actualizarFechaNacimientoBasica(
+  personaId: string,
+  datos: { fecha_nacimiento: string } | { edad_aproximada: number }
+) {
+  const { error } = await supabase.from('persona').update(datos).eq('id', personaId);
+  if (error) throw error;
+}
+
 export async function guardarDetalle(personaId: string, datos: Partial<DatosCensales>) {
   const { error } = await supabase
     .from('persona_detalle')
