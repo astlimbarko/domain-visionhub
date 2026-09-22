@@ -1,0 +1,22 @@
+# Gonzalo — 2026-09-20
+
+- [x] KAN-401 seguimiento: bug real corregido -- al abrir cualquier filtro de columna (Cumpleaños/Red/CdP/Estado) el ancho de la página se corría ~10px (Radix compensaba una scrollbar que en este proyecto vive en `<html>`, no en `<body>`), anulado en `index.css`
+- [x] KAN-401 seguimiento: filtro Cumpleaños sin opción "Todos" (no tenía sentido conceptual), arranca sin filtrar (no oculta a nadie por defecto), encabezado de columna centrado, ícono de torta ~10% más grande
+- [x] KAN-401 seguimiento: 4 categorías de filtro nuevas en Membresía -- Efesios, Ministerios, Cargos (Ministro/Anciano/Diácono), Edad (mismos rangos que ya usa el dashboard) -- 26 chips en total, reorganizados en 8 categorías compactas
+- [x] Backend: `fn_afirmacion_buscar_membresia` y `fn_afirmacion_estadisticas_personas` extendidas para soportar los filtros nuevos, migración aplicada a la base real
+- [x] Se sacaron los chips "Por URL"/"Por formulario" a pedido del owner
+- [x] Diseño compacto: título de categoría en la misma línea que sus chips, categorías colapsadas por defecto en celular (toque para abrir), siempre visibles en tablet/desktop -- verificado en vivo en ambos tamaños
+- [x] KAN-401 seguimiento: chips de filtro activos con color sólido y texto blanco (antes solo un anillo) -- se sienta más claro cuál filtro está prendido
+- [x] Fix real corregido: el difuminado de fondo del anuncio de inicio de sesión aparecía unas milésimas antes que la imagen -- se precarga la imagen real antes de montar el modal, ahora aparecen juntos
+- [x] Conteo "X personas encontradas" pegado a la barra de búsqueda (antes suelto en su propia línea) + tooltip del ícono de cumpleaños con la fecha en 2 líneas, y ahora también se abre con clic en PC (antes solo hover)
+- [x] Verificado que el combo Mujeres+Con profesión (mostraba 1 persona) es matemáticamente correcto, no un bug -- solo 1 de las 3 personas con profesión es mujer
+- [x] Playwright reconectado, verificado en vivo lo que había quedado pendiente -- bug real encontrado y corregido: el clic en el ícono de cumpleaños cerraba el tooltip en vez de abrirlo en PC (el hover ya lo abría, el clic alternaba y lo cerraba de inmediato). Corregido: en PC el clic siempre deja abierto, en táctil sigue alternando con el tap
+- [x] Corregido bug de codificación (mojibake) en una entrada de `/avances` aplicada antes vía PowerShell sin UTF-8 + agregada la entrada de `/avances` que faltaba para el fix del anuncio
+- [x] KAN-402 seguimiento: probado con login real desde cero (logout+login+rol) -- encontrada una segunda causa real del desfase del anuncio: el fondo (`DialogOverlay`) animaba en 200ms pero la imagen (`Content`) no tenía duración explícita (150ms por defecto). Sincronizados ambos en 200ms
+- [x] KAN-264 seguimiento: auditoría completa del frontend por pedido del owner -- 6 lugares reales capturaban nombres sin normalizar (2 de Evangelismo, Admin, Personas, Familia, y el componente compartido de Membresía extendida que cubre 3 formularios a la vez). Los 6 corregidos con el mismo patrón ya establecido, verificado en vivo en Evangelismo
+- [x] KAN-405 creado (fork en paralelo + preguntas al owner): spec completa de "Colaboradores" temporales por código para eventos masivos en Afirmación -- nombres/alcance/vencimiento/auditoría ya definidos, sin implementar
+- [x] KAN-407 creado: aviso de posible duplicado al registrar persona (Evangelismo y Casas de Paz), tolerante a errores de tipeo comunes (s/z, m/n, b/v) -- enlazado a KAN-371, que ya tocaba el tema de refilón solo para CdP
+- [x] KAN-408 creado: sección "Membresía" en Mi cuenta para que el usuario dueño de la cuenta vea/edite sus propios datos (reutilizando el patrón paginado de KAN-403) -- Mi cuenta ya tenía foto y contraseña, faltaba esto
+- [x] Identificado KAN-265 (corrección de mayúsculas ya existentes en la base, distinto del fix de hoy que solo cubre datos nuevos) -- ya existía, En curso. Nota: se solapa con KAN-382, revisar unificación en otra sesión
+- [x] PR #89 confirmado al día (36 commits, se actualiza solo al pushear a la misma rama) -- no hizo falta crear uno nuevo
+- [ ] Sin desplegar a producción todavía (KAN-401/403/404/405/407/408 completos o en definición, nada en producción)

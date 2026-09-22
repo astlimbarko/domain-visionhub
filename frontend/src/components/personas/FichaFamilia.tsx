@@ -13,6 +13,7 @@ import {
   useQuitarRelacionFamiliar,
   useTiposRelacion,
 } from '@/hooks/usePersonas';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 import type { PersonaFicha } from '@/types/persona.types';
 
 interface Props {
@@ -160,7 +161,12 @@ export function FichaFamilia({ personaId, iglesiaId, ficha, puedeEditar }: Props
           <div className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-end">
             <div className="flex flex-1 flex-col gap-1">
               <Label className="text-xs">Nombre</Label>
-              <Input value={nombreRef} onChange={(e) => setNombreRef(e.target.value)} placeholder="Ej. Juan Pérez" />
+              <Input
+                value={nombreRef}
+                onChange={(e) => setNombreRef(e.target.value)}
+                onBlur={(e) => setNombreRef(normalizarNombre(e.target.value, true))}
+                placeholder="Ej. Juan Pérez"
+              />
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <Label className="text-xs">Parentesco</Label>

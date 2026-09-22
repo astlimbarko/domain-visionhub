@@ -99,4 +99,14 @@ export interface EstadisticasPersonasAfirmacion {
   con_profesion: number;
   por_estado_civil: Record<string, number>;
   bautizados: number;
+  // KAN-401 seguimiento (2026-09-20). Claves de por_efesio: EfesioTipo
+  // (APOSTOL/PROFETA/PASTOR/EVANGELISTA/MAESTRO). Claves de por_edad:
+  // NINOS/ADOLESCENTES/JOVENES/ADULTOS/MAYORES (mismos cortes que
+  // ComposicionEdadChart).
+  por_efesio: Record<string, number>;
+  con_ministerio: number;
+  cargo_ministro: number;
+  cargo_anciano: number;
+  cargo_diacono: number;
+  por_edad: Record<string, number>;
 }

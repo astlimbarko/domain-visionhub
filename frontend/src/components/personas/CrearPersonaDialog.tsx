@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCrearPersona, useCrearPersonaCdp } from '@/hooks/usePersonas';
 import { useAgregarParticipante, useMinisterios } from '@/hooks/useMinisterios';
 import type { Sexo } from '@/types/persona.types';
+import { normalizarNombre } from '@/utils/normalizarNombre';
 
 interface Props {
   open: boolean;
@@ -94,6 +95,7 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada, ca
               id="primer_nombre"
               value={form.primerNombre}
               onChange={(e) => setForm((f) => ({ ...f, primerNombre: e.target.value }))}
+              onBlur={(e) => setForm((f) => ({ ...f, primerNombre: normalizarNombre(e.target.value, true) }))}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -102,6 +104,7 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada, ca
               id="segundo_nombre"
               value={form.segundoNombre}
               onChange={(e) => setForm((f) => ({ ...f, segundoNombre: e.target.value }))}
+              onBlur={(e) => setForm((f) => ({ ...f, segundoNombre: normalizarNombre(e.target.value) }))}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -110,6 +113,7 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada, ca
               id="primer_apellido"
               value={form.primerApellido}
               onChange={(e) => setForm((f) => ({ ...f, primerApellido: e.target.value }))}
+              onBlur={(e) => setForm((f) => ({ ...f, primerApellido: normalizarNombre(e.target.value) }))}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -118,6 +122,7 @@ export function CrearPersonaDialog({ open, onOpenChange, iglesiaId, onCreada, ca
               id="segundo_apellido"
               value={form.segundoApellido}
               onChange={(e) => setForm((f) => ({ ...f, segundoApellido: e.target.value }))}
+              onBlur={(e) => setForm((f) => ({ ...f, segundoApellido: normalizarNombre(e.target.value) }))}
             />
           </div>
           <div className="flex flex-col gap-1.5">
