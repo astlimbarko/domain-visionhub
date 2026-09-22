@@ -113,6 +113,25 @@ export function useActualizarIdentidad(personaId: string) {
   });
 }
 
+/**
+ * KAN-422: completar fecha de nacimiento (o edad aproximada, KAN-406) desde
+ * el Reporte de Casa de Paz -- a diferencia de useActualizarIdentidad, el
+ * personaId varía en cada llamada (se usa para completar a distintas
+ * personas dentro del mismo reporte, no una ficha fija).
+ */
+export function useActualizarFechaNacimientoBasica() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, datos }: { personaId: string; datos: { fecha_nacimiento: string } | { edad_aproximada: number } }) =>
+      personaService.actualizarFechaNacimientoBasica(personaId, datos),
+    onSuccess: (_data, { personaId }) => {
+      qc.invalidateQueries({ queryKey: ['personas', 'buscar'] });
+      qc.invalidateQueries({ queryKey: ['personas', 'ficha', personaId] });
+      qc.invalidateQueries({ queryKey: ['reporte', 'miembros'] });
+    },
+  });
+}
+
 export function useGuardarDetalle(personaId: string) {
   const invalidarFicha = useInvalidarFicha(personaId);
   return useMutation({
