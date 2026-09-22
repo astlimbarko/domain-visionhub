@@ -86,6 +86,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   iglesiaId: string | undefined;
+  /** KAN-419 (2026-09-22): "Evangelizado por" busca primero entre los
+   * miembros de esta Casa de Paz antes de caer a toda la iglesia -- mismo
+   * patrón ya usado por el buscador de Disertador/diezmante. */
+  cdpId?: string;
   fechaInicial: string;
   onCrear: (valores: ValoresEvangelizado) => Promise<void>;
 }
@@ -101,7 +105,7 @@ interface Props {
  * onCrear una vez por unidad con datos de relleno -- el backend no cambia y
  * las métricas que cuentan filas de `evangelismo` siguen funcionando igual.
  */
-export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaInicial, onCrear }: Props) {
+export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, cdpId, fechaInicial, onCrear }: Props) {
   const { data: tipos = [] } = useTiposEvangelismo(iglesiaId);
   const [registrados, setRegistrados] = useState(0);
   const [cantidadSemilla, setCantidadSemilla] = useState('1');
@@ -387,7 +391,7 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, fechaIn
                     </button>
                   </div>
                 ) : (
-                  <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={setEvangelizadoPor} />
+                  <BuscadorPersona iglesiaId={iglesiaId} cdpId={cdpId} onSeleccionar={setEvangelizadoPor} />
                 )}
               </div>
 
