@@ -4,6 +4,7 @@ import { calcularEdad } from '@/utils/edad';
 import { fechasReunionDelMes } from '@/utils/calendario-fechas';
 import type {
   CamposObligatoriosReporte,
+  CategoriaTestimonio,
   DiezmoLinea,
   EstadoAsistenciaReunion,
   HistorialAsistencia,
@@ -22,6 +23,7 @@ import type {
   Tema,
   TemaConLibro,
   TestimonioCdp,
+  TestimonioLinea,
 } from '@/types/reporte.types';
 
 /** tipo_evento.codigo = 'MEGA_FIESTA' -- id fijo en la base (seed), confirmado por consulta directa. */
@@ -860,6 +862,38 @@ export async function obtenerReunionesNoRealizadas(
   return (data ?? []).map((r) => ({ fecha_reunion: r.fecha_reunion, motivo: r.motivo_no_realizada }));
 }
 
+/**
+ * KAN-423: reemplaza por completo los testimonios personales de un reporte
+ * -- da de baja (soft-delete) los que ya estaban y crea de nuevo la lista
+ * actual. Más simple que diffear altas/bajas/cambios (lista chica, sin
+ * historial de auditoría fila por fila que preservar) y sigue el mismo
+ * patrón append-only del resto del proyecto (fecha_eliminacion, no DELETE).
+ * Ignora líneas sin categoría o sin texto -- el formulario ya filtra esto
+ * antes de enviar, pero queda protegido igual ante datos a medio completar.
+ */
+async function reemplazarTestimoniosCategorizados(reporteId: string, testimonios: TestimonioLinea[]) {
+  const { error: errorBaja } = await supabase
+    .from('casa_de_paz_reporte_testimonio')
+    .update({ fecha_eliminacion: new Date().toISOString() })
+    .eq('reporte_id', reporteId)
+    .is('fecha_eliminacion', null);
+  if (errorBaja) throw errorBaja;
+
+  const validos = testimonios.filter((t) => t.categoria && t.texto.trim());
+  if (validos.length === 0) return;
+
+  const { error: errorAlta } = await supabase.from('casa_de_paz_reporte_testimonio').insert(
+    validos.map((t) => ({
+      reporte_id: reporteId,
+      categoria: t.categoria,
+      texto: t.texto.trim(),
+      persona_id: t.personaId ?? null,
+      nombre_persona: t.nombrePersona.trim() || null,
+    }))
+  );
+  if (errorAlta) throw errorAlta;
+}
+
 export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReporte> {
   const { data: reporte, error: errorReporte } = await supabase
     .from('casa_de_paz_reporte')
@@ -971,6 +1005,11 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
       p_moneda_id: datos.monedaId,
     });
     if (errorDiezmos) throw errorDiezmos;
+
+    // KAN-423: testimonios personales por categoría, aparte de la narración
+    // general (testimonios/"¿Qué se desató en la CdP?", ya guardada arriba
+    // en la columna de casa_de_paz_reporte).
+    await reemplazarTestimoniosCategorizados(reporteId, datos.testimoniosCategorizados);
 
     const { data: totales, error: errorTotales } = await supabase
       .from('v_reporte_totales')
@@ -1117,8 +1156,12 @@ export async function autorizarEdicionReporteFueraVentana(reporteId: string, jus
  * acá solo se lee).
  */
 export async function obtenerReportePorId(reporteId: string): Promise<ReporteExistente> {
-  const [{ data: reporte, error: errorReporte }, { data: asistencia, error: errorAsistencia }, { data: ingresos, error: errorIngresos }] =
-    await Promise.all([
+  const [
+    { data: reporte, error: errorReporte },
+    { data: asistencia, error: errorAsistencia },
+    { data: ingresos, error: errorIngresos },
+    { data: testimoniosCategorizados, error: errorTestimonios },
+  ] = await Promise.all([
       supabase
         .from('casa_de_paz_reporte')
         .select(
@@ -1136,10 +1179,17 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
         .select('monto, moneda_id, persona_id, tipo_ingreso:tipo_ingreso_id(codigo), persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido)')
         .eq('reporte_id', reporteId)
         .is('fecha_eliminacion', null),
+      // KAN-423
+      supabase
+        .from('casa_de_paz_reporte_testimonio')
+        .select('id, categoria, texto, persona_id, nombre_persona')
+        .eq('reporte_id', reporteId)
+        .is('fecha_eliminacion', null),
     ]);
   if (errorReporte) throw errorReporte;
   if (errorAsistencia) throw errorAsistencia;
   if (errorIngresos) throw errorIngresos;
+  if (errorTestimonios) throw errorTestimonios;
 
   const disertador = Array.isArray(reporte.disertador) ? reporte.disertador[0] : reporte.disertador;
   const disertadorNombre = disertador
@@ -1174,6 +1224,15 @@ export async function obtenerReportePorId(reporteId: string): Promise<ReporteExi
     evangelizados_declarados: reporte.evangelizados_declarados,
     testimonios: reporte.testimonios,
     comentarios: reporte.comentarios,
+    testimoniosCategorizados: (testimoniosCategorizados ?? []).map((t) => ({
+      clave: t.id,
+      id: t.id,
+      categoria: t.categoria as CategoriaTestimonio,
+      texto: t.texto,
+      personaId: t.persona_id ?? undefined,
+      nombrePersona: t.nombre_persona ?? '',
+      esExterno: !t.persona_id && !!t.nombre_persona,
+    })),
     totalOfrendas,
     diezmos,
     monedaId,
@@ -1319,6 +1378,9 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
     p_moneda_id: datos.monedaId,
   });
   if (errorDiezmos) throw errorDiezmos;
+
+  // KAN-423: mismo reemplazo completo que en crearReporte.
+  await reemplazarTestimoniosCategorizados(reporteId, datos.testimoniosCategorizados);
 
   const { data: totales, error: errorTotales } = await supabase
     .from('v_reporte_totales')

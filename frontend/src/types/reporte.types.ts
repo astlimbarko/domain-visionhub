@@ -169,6 +169,30 @@ export interface DiezmoLinea {
   monto: number;
 }
 
+/** KAN-423: categorías de testimonio personal (finanzas/sanidad/restauración). */
+export type CategoriaTestimonio = 'FINANZAS' | 'SANIDAD' | 'RESTAURACION';
+
+/**
+ * KAN-423: un testimonio personal dentro del reporte -- distinto del campo
+ * "¿Qué se desató en la CdP?" (narración general, sigue siendo el campo
+ * `testimonios` de NuevoReporte/ReporteExistente). Se pueden cargar varios
+ * por reporte, cada uno con su propia categoría.
+ */
+export interface TestimonioLinea {
+  /** id temporal del lado del cliente, solo para la key de React y quitarlo de la lista. */
+  clave: string;
+  /** Presente si ya existe en la BD (modo edición, testimonio ya guardado). */
+  id?: string;
+  categoria: CategoriaTestimonio | '';
+  texto: string;
+  /** Presente si quien lo contó ya es una persona de la iglesia (elegida del buscador). */
+  personaId?: string;
+  /** Nombre de quien contó el testimonio: de la persona encontrada, o texto libre si es externo. Opcional. */
+  nombrePersona: string;
+  /** true = nombrePersona es un nombre libre (no es de la iglesia), nunca hay personaId en ese caso. */
+  esExterno: boolean;
+}
+
 export interface NuevoReporte {
   casa_de_paz_id: string;
   iglesia_id: string;
@@ -180,7 +204,10 @@ export interface NuevoReporte {
   evento_megafiesta_id?: string;
   salio_evangelizar: boolean;
   evangelizados_declarados?: number;
+  /** KAN-423: narración general de la reunión -- "¿Qué se desató en la CdP?" en la UI. */
   testimonios?: string;
+  /** KAN-423: testimonios personales por categoría, aparte de la narración general. */
+  testimoniosCategorizados: TestimonioLinea[];
   asistentesExistentes: { personaId: string; esMenor?: boolean; esVisita?: boolean }[];
   visitasNuevas: NuevaVisita[];
   totalOfrendas: number;
@@ -226,6 +253,8 @@ export interface ReporteExistente {
    * unificó en `testimonios`) -- se sigue leyendo solo para mostrarlo dentro
    * del campo Testimonio al editar un reporte que lo tenía. */
   comentarios: string | null;
+  /** KAN-423: testimonios personales ya guardados (categoría + texto), para precargar al editar. */
+  testimoniosCategorizados: TestimonioLinea[];
   totalOfrendas: number;
   /** Diezmos por persona ya guardados (siempre con personaId + nombre). */
   diezmos: DiezmoLinea[];
