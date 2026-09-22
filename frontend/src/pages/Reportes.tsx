@@ -15,6 +15,7 @@ import {
   HeartHandshake,
   MapPin,
   MessageSquare,
+  MoreVertical,
   PartyPopper,
   Pencil,
   Plus,
@@ -28,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1225,15 +1227,23 @@ export function Reportes() {
                               {esMenorPorPersona[p.id] && <span className="text-[10px] opacity-80">(menor)</span>}
                               {/* KAN-390: encontrada por búsqueda global -- es
                                   justo el caso típico de "volvió después de
-                                  mucho tiempo", se puede marcar como RE. */}
-                              <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                <Checkbox
-                                  className="h-3 w-3"
-                                  checked={reconciliadosPorPersona[p.id] ?? false}
-                                  onCheckedChange={(v) => cambiarReconciliacion(p.id, v === true)}
-                                />
-                                se reconcilió
-                              </label>
+                                  mucho tiempo", se puede marcar como RE.
+                                  KAN-421 (2026-09-22): toggle compacto en vez
+                                  de checkbox+texto largo. */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cambiarReconciliacion(p.id, !(reconciliadosPorPersona[p.id] ?? false));
+                                }}
+                                title="Se reconcilió"
+                                className={cn(
+                                  'ml-1 rounded px-1 text-[10px] font-semibold',
+                                  reconciliadosPorPersona[p.id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                )}
+                              >
+                                RE
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => quitarAsistenteExistente(p.id)}
@@ -1286,22 +1296,45 @@ export function Reportes() {
                                     es menor
                                   </label>
                                 )}
-                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    className="h-3 w-3"
-                                    checked={asisteCdpPorPersona[id] ?? true}
-                                    onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                  />
-                                  Asiste a esta CDP
-                                </label>
-                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    className="h-3 w-3"
-                                    checked={reconciliadosPorPersona[id] ?? false}
-                                    onCheckedChange={(v) => cambiarReconciliacion(id, v === true)}
-                                  />
-                                  se reconcilió
-                                </label>
+                                {/* KAN-421 (2026-09-22): antes 2 checkboxes con texto largo
+                                    ("Asiste a esta CDP" / "se reconcilió") por pastilla, se
+                                    sentía recargado. RE queda como toggle compacto (el caso
+                                    frecuente), "Asiste a esta CDP" pasa a un menú aparte
+                                    (caso raro: visita de otra CdP). */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
+                                  }}
+                                  title="Se reconcilió"
+                                  className={cn(
+                                    'ml-1 rounded px-1 text-[10px] font-semibold',
+                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                  )}
+                                >
+                                  RE
+                                </button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="rounded-full p-0.5 hover:bg-black/10"
+                                      title="Más opciones"
+                                    >
+                                      <MoreVertical className="h-3 w-3" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuCheckboxItem
+                                      checked={asisteCdpPorPersona[id] ?? true}
+                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
+                                    >
+                                      Asiste a esta CDP
+                                    </DropdownMenuCheckboxItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                                 <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
                                   <X className="h-3 w-3" />
                                 </button>
@@ -1335,22 +1368,40 @@ export function Reportes() {
                                 {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
                                     falta escribir "Nuevo Convertido" completo. */}
                                 {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
-                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    className="h-3 w-3"
-                                    checked={asisteCdpPorPersona[id] ?? true}
-                                    onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                  />
-                                  Asiste a esta CDP
-                                </label>
-                                <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    className="h-3 w-3"
-                                    checked={reconciliadosPorPersona[id] ?? false}
-                                    onCheckedChange={(v) => cambiarReconciliacion(id, v === true)}
-                                  />
-                                  se reconcilió
-                                </label>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
+                                  }}
+                                  title="Se reconcilió"
+                                  className={cn(
+                                    'ml-1 rounded px-1 text-[10px] font-semibold',
+                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                  )}
+                                >
+                                  RE
+                                </button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="rounded-full p-0.5 hover:bg-black/10"
+                                      title="Más opciones"
+                                    >
+                                      <MoreVertical className="h-3 w-3" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuCheckboxItem
+                                      checked={asisteCdpPorPersona[id] ?? true}
+                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
+                                    >
+                                      Asiste a esta CDP
+                                    </DropdownMenuCheckboxItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                                 <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
                                   <X className="h-3 w-3" />
                                 </button>
