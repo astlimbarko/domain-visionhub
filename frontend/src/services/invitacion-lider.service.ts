@@ -44,7 +44,7 @@ export async function invitarLider(
    * confirmada en vez de mandar el correo de invitación. */
   contrasena?: string,
   datosPersona?: DatosPersonaAltaDirecta
-): Promise<{ id: string; correo: string; yaExistia?: boolean }> {
+): Promise<{ id: string; correo: string; cuentaHuerfanaReparada?: boolean }> {
   const { data, error } = await supabase.functions.invoke('invitar-lider', {
     body: {
       accion: 'invitar',

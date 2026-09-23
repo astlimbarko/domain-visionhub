@@ -168,10 +168,14 @@ export function GestionRedVista() {
   async function manejarInvitarCdp(correo: string) {
     if (!dialogoCdp) return;
     try {
-      await invitarLider.mutateAsync(
+      const resultado = await invitarLider.mutateAsync(
         { correo, rol: dialogoCdp.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: dialogoCdp.cdpId },
       );
-      toast.success(`Invitación enviada a ${correo}`);
+      toast.success(
+        resultado?.cuentaHuerfanaReparada
+          ? `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+          : `Invitación enviada a ${correo}`
+      );
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
       if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };

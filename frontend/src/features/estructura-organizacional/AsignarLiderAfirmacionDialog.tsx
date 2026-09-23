@@ -74,8 +74,12 @@ export function AsignarLiderAfirmacionDialog({ open, onOpenChange, departamentoI
   // de asignar en silencio.
   async function handleInvitar(correo: string) {
     try {
-      await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin });
-      toast.success(`Invitación enviada a ${correo}`);
+      const resultado = await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId, pin });
+      toast.success(
+        resultado?.cuentaHuerfanaReparada
+          ? `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+          : `Invitación enviada a ${correo}`
+      );
       setPin('');
       void invalidarEstructura();
     } catch (e) {

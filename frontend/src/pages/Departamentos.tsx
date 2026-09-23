@@ -71,8 +71,12 @@ function DepartamentoCard({ departamento, funcional, iglesiaActivaId, invitacion
   // de asignar en silencio.
   async function handleInvitar(correo: string) {
     try {
-      await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id, pin });
-      toast.success(`Invitación enviada a ${correo}`);
+      const resultado = await invitarLider.mutateAsync({ correo, rol: null, redId: null, casaDePazId: null, departamentoId: departamento.id, pin });
+      toast.success(
+        resultado?.cuentaHuerfanaReparada
+          ? `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+          : `Invitación enviada a ${correo}`
+      );
       setPin('');
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
