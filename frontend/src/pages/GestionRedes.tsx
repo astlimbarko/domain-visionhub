@@ -71,8 +71,12 @@ export function GestionRedes() {
     invitarLider.mutate(
       { correo, rol: 'LIDER_RED', redId: redLiderDialogo.id, casaDePazId: null, pin: pinLider },
       {
-        onSuccess: () => {
-          toast.success(`Invitación enviada a ${correo}`);
+        onSuccess: (resultado) => {
+          toast.success(
+            resultado?.cuentaHuerfanaReparada
+              ? `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+              : `Invitación enviada a ${correo}`
+          );
           setPinLider('');
           setRedLiderDialogo(null);
         },

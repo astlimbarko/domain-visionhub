@@ -278,6 +278,18 @@ export default {
           data: { ...dataCorreo, invitado_por_admin: true },
         });
 
+    let usuarioId: string;
+    let usuarioCorreo: string;
+    // KAN-425 (2026-09-23, pedido explicito del owner): si el correo ya
+    // tenia cuenta pero SIN Persona vinculada (huerfana -- quedo a medias
+    // de un alta anterior, o su invitacion se cancelo despues de que
+    // confirmo), antes esto era un callejon sin salida ("avisale al equipo
+    // tecnico"). Ahora se recupera sola: se reusa el usuario_id existente
+    // (no se puede crear una cuenta duplicada para el mismo correo) y se le
+    // arma una invitacion pendiente nueva, igual que si fuera un alta
+    // recien creada. Caso real que lo disparo: juannylp@gmail.com.
+    let cuentaHuerfanaReparada = false;
+
     if (error) {
       if (error.status === 409 || error.code === "email_exists") {
         // Bug real 2026-08-02: si la cuenta existe pero nunca se le vinculo
@@ -299,24 +311,66 @@ export default {
         const { data: filas } = await ctx.supabase.rpc("fn_persona_por_correo_cuenta", { p_correo: correo });
         const persona = filas?.[0] as { id: string; nombre: string } | undefined;
 
-        return Response.json(
-          persona
-            ? {
-                // persona.nombre puede venir vacio ("") si esa Persona
-                // todavia no completo el formulario de Membresia (KAN-179,
-                // guardado progresivo) -- antes eso dejaba el mensaje como
-                // "asociada a ." (bug real 2026-08-11).
-                error: `Ya existe una cuenta con ese correo, asociada a ${persona.nombre?.trim() || correo}.`,
-                personaId: persona.id,
-                personaNombre: persona.nombre,
-              }
-            : {
-                error: "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
-              },
-          { status: 409 }
-        );
+        if (persona) {
+          return Response.json(
+            {
+              // persona.nombre puede venir vacio ("") si esa Persona
+              // todavia no completo el formulario de Membresia (KAN-179,
+              // guardado progresivo) -- antes eso dejaba el mensaje como
+              // "asociada a ." (bug real 2026-08-11).
+              error: `Ya existe una cuenta con ese correo, asociada a ${persona.nombre?.trim() || correo}.`,
+              personaId: persona.id,
+              personaNombre: persona.nombre,
+            },
+            { status: 409 }
+          );
+        }
+
+        const { data: usuarioHuerfanoId } = await ctx.supabase.rpc("fn_usuario_huerfano_por_correo", { p_correo: correo });
+        if (!usuarioHuerfanoId) {
+          // No deberia pasar (el 409 fue justo porque el correo existe),
+          // pero queda el mensaje anterior como red de seguridad.
+          return Response.json(
+            {
+              error: "Ya existe una cuenta con ese correo, pero sin una Persona vinculada en el sistema (quedo a medias de un alta anterior). No se le puede asignar un cargo hasta que un Super Admin la vincule manualmente -- avisale al equipo tecnico.",
+            },
+            { status: 409 }
+          );
+        }
+
+        if (contrasenaDirecta) {
+          // El admin ya eligio "contrasena directa" -- se la asignamos a la
+          // cuenta existente en vez de mandar ningun correo (mismo criterio
+          // que establecer-contrasena-temporal, KAN-278).
+          const { data: usuarioActual } = await ctx.supabaseAdmin.auth.admin.getUserById(usuarioHuerfanoId);
+          const { error: errorPass } = await ctx.supabaseAdmin.auth.admin.updateUserById(usuarioHuerfanoId, {
+            password: contrasenaDirecta,
+            email_confirm: true,
+            ban_duration: "none",
+            app_metadata: { ...usuarioActual?.user?.app_metadata, debe_cambiar_contrasena: true },
+          });
+          if (errorPass) {
+            return Response.json({ error: errorPass.message }, { status: 500 });
+          }
+        } else {
+          // Sin contrasena directa: no se puede mandar un nuevo correo de
+          // "invitacion" (Supabase Auth ya rechazo el alta duplicada), pero
+          // SI se puede mandar un correo de "restablecer contrasena" --
+          // llega igual, ella entra con una contrasena propia y el sistema
+          // la lleva al wizard de membresia (fn_completar_membresia ya
+          // encuentra la invitacion pendiente que se crea mas abajo).
+          await ctx.supabaseAdmin.auth.resetPasswordForEmail(correo, { redirectTo: body.redirectTo });
+        }
+
+        usuarioId = usuarioHuerfanoId;
+        usuarioCorreo = correo;
+        cuentaHuerfanaReparada = true;
+      } else {
+        return Response.json({ error: error.message }, { status: 500 });
       }
-      return Response.json({ error: error.message }, { status: 500 });
+    } else {
+      usuarioId = data.user.id;
+      usuarioCorreo = data.user.email!;
     }
 
     // KAN-376 seguimiento (2026-09-14): con datosPersonaValidados, se crea
@@ -325,8 +379,8 @@ export default {
     // siempre (fn_invitar_lider/fn_estructura_invitar_supervisor_red).
     const { error: errorInvitar } = datosPersonaValidados
       ? await ctx.supabase.rpc("fn_alta_directa_lider_cdp", {
-          p_usuario_id: data.user.id,
-          p_correo: correo,
+          p_usuario_id: usuarioId,
+          p_correo: usuarioCorreo,
           p_rol: rol,
           p_casa_de_paz_id: casaDePazId,
           p_primer_nombre: datosPersonaValidados.primerNombre,
@@ -337,13 +391,13 @@ export default {
         })
       : rol === "SUPERVISOR_RED"
         ? await ctx.supabase.rpc("fn_estructura_invitar_supervisor_red", {
-            p_usuario_id: data.user.id,
-            p_correo: correo,
+            p_usuario_id: usuarioId,
+            p_correo: usuarioCorreo,
             p_red_id: redId,
           })
         : await ctx.supabase.rpc("fn_invitar_lider", {
-            p_usuario_id: data.user.id,
-            p_correo: correo,
+            p_usuario_id: usuarioId,
+            p_correo: usuarioCorreo,
             p_rol: rol,
             p_red_id: redId,
             p_casa_de_paz_id: casaDePazId,
@@ -353,6 +407,6 @@ export default {
       return Response.json({ error: errorInvitar.message }, { status: 500 });
     }
 
-    return Response.json({ id: data.user.id, correo: data.user.email });
+    return Response.json({ id: usuarioId, correo: usuarioCorreo, cuentaHuerfanaReparada });
   }),
 };

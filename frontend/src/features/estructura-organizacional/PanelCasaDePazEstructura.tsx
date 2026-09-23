@@ -209,15 +209,19 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   async function handleInvitar(correo: string, contrasena?: string, datosPersona?: DatosPersonaDirecta) {
     if (!dialogoCargo) return;
     try {
-      await invitarLider.mutateAsync(
+      const resultado = await invitarLider.mutateAsync(
         { correo, rol: dialogoCargo.codigo as 'LIDER_CDP' | 'SUBLIDER_CDP', redId: null, casaDePazId: casaDePaz.id, contrasena, datosPersona },
       );
       toast.success(
-        datosPersona
-          ? `${datosPersona.primerNombre} ${datosPersona.primerApellido} agregado/a con rol asignado`
-          : contrasena
-            ? `Cuenta creada para ${correo}`
-            : `Invitación enviada a ${correo}`
+        resultado?.cuentaHuerfanaReparada
+          ? contrasena
+            ? `${correo} ya tenía una cuenta -- se le asignó la contraseña nueva`
+            : `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+          : datosPersona
+            ? `${datosPersona.primerNombre} ${datosPersona.primerApellido} agregado/a con rol asignado`
+            : contrasena
+              ? `Cuenta creada para ${correo}`
+              : `Invitación enviada a ${correo}`
       );
       void invalidarEstructura();
     } catch (e) {

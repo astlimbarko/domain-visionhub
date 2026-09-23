@@ -144,10 +144,14 @@ export function GestionSubliderVista() {
   async function manejarInvitar(correo: string) {
     if (!cdpActiva) return;
     try {
-      await invitarLider.mutateAsync(
+      const resultado = await invitarLider.mutateAsync(
         { correo, rol: 'SUBLIDER_CDP', redId: null, casaDePazId: cdpActiva },
       );
-      toast.success(`Invitación enviada a ${correo}`);
+      toast.success(
+        resultado?.cuentaHuerfanaReparada
+          ? `${correo} ya tenía una cuenta -- le mandamos un correo para restablecer su contraseña`
+          : `Invitación enviada a ${correo}`
+      );
     } catch (e) {
       const { personaId, personaNombre } = e as { personaId?: string; personaNombre?: string };
       if (personaId && personaNombre) return { personaExistente: { id: personaId, nombre: personaNombre } };
