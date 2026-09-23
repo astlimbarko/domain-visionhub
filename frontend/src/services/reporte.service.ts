@@ -30,6 +30,38 @@ import type {
 const TIPO_EVENTO_MEGAFIESTA_ID = '58640324-aa09-4fb2-b581-ddf634c57c12';
 
 /**
+ * KAN-435: si el líder marcó "¿Aceptó a Cristo?" al dar de alta una
+ * persona nueva, se busca el id de NC una sola vez (no por persona, mismo
+ * criterio que ya usa `obtenerTiposTelefono` acá arriba) -- undefined si
+ * ninguna de las visitas de este reporte lo tildó.
+ */
+async function obtenerEstadoNcIdSiHaceFalta(visitasNuevas: { acepto_a_cristo?: boolean }[]): Promise<string | undefined> {
+  if (!visitasNuevas.some((v) => v.acepto_a_cristo)) return undefined;
+  const { data, error } = await supabase.from('estado').select('id').eq('sigla', 'NC').is('fecha_eliminacion', null).single();
+  if (error) throw error;
+  return data.id;
+}
+
+/**
+ * NC puesto a mano en el momento del alta -- una decisión humana, no debe
+ * depender del conteo automático de visitas (mismo criterio que RE, ver
+ * migración 20260923050000). Sin esto, la persona entra como siempre
+ * (SIM) y el motor decide después si llega a NC por conteo.
+ */
+async function marcarNuevoConvertidoSiCorresponde(iglesiaId: string, personaId: string, estadoNcId: string | undefined, aceptoACristo: boolean | undefined) {
+  if (!estadoNcId || !aceptoACristo) return;
+  const { error } = await supabase.from('persona_estado').insert({
+    iglesia_id: iglesiaId,
+    persona_id: personaId,
+    estado_id: estadoNcId,
+    fecha_inicio: new Date().toISOString().slice(0, 10),
+    es_automatico: false,
+    motivo: 'Aceptó a Cristo al ser registrado/a en el reporte',
+  });
+  if (error) throw error;
+}
+
+/**
  * Convierte la lista de diezmantes del formulario al payload `[{persona_id,
  * monto}]` que espera fn_registrar_diezmos_reporte. Cada diezmante existente usa
  * su personaId; cada diezmante nuevo (tecleado a mano) se crea como persona
@@ -249,6 +281,7 @@ export async function crearReporteMegafiesta(datos: NuevoReporteMegafiesta): Pro
 
     const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
     const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+    const estadoNcId = await obtenerEstadoNcIdSiHaceFalta(datos.visitasNuevas);
 
     const nuevasPersonas = await Promise.all(
       datos.visitasNuevas.map(async (visita) => {
@@ -271,6 +304,7 @@ export async function crearReporteMegafiesta(datos: NuevoReporteMegafiesta): Pro
         if (visita.telefono?.trim() && tipoTelefonoId) {
           await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
         }
+        await marcarNuevoConvertidoSiCorresponde(datos.iglesia_id, persona.id, estadoNcId, visita.acepto_a_cristo);
 
         return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
       })
@@ -934,6 +968,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
     // hasta ~3 round-trips en serie por visita, ahora todas concurrentes.
     const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
     const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+    const estadoNcId = await obtenerEstadoNcIdSiHaceFalta(datos.visitasNuevas);
 
     const nuevasPersonas = await Promise.all(
       datos.visitasNuevas.map(async (visita) => {
@@ -964,6 +999,7 @@ export async function crearReporte(datos: NuevoReporte): Promise<ResultadoReport
         if (visita.telefono?.trim() && tipoTelefonoId) {
           await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
         }
+        await marcarNuevoConvertidoSiCorresponde(datos.iglesia_id, persona.id, estadoNcId, visita.acepto_a_cristo);
 
         return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
       })
@@ -1281,6 +1317,7 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
 
   const tieneAlgunTelefono = datos.visitasNuevas.some((v) => v.telefono?.trim());
   const tipoTelefonoId = tieneAlgunTelefono ? (await obtenerTiposTelefono())[0]?.id : undefined;
+  const estadoNcId = await obtenerEstadoNcIdSiHaceFalta(datos.visitasNuevas);
 
   const nuevasPersonas = await Promise.all(
     datos.visitasNuevas.map(async (visita) => {
@@ -1309,6 +1346,7 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
       if (visita.telefono?.trim() && tipoTelefonoId) {
         await agregarTelefono(datos.iglesia_id, persona.id, tipoTelefonoId, visita.telefono.trim(), null, true);
       }
+      await marcarNuevoConvertidoSiCorresponde(datos.iglesia_id, persona.id, estadoNcId, visita.acepto_a_cristo);
 
       return { id: persona.id, esMenor: visita.es_menor, esVisita: true, clave: visita.clave };
     })

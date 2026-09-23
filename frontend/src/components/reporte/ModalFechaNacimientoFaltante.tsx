@@ -14,9 +14,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   nombrePersona: string;
   guardando: boolean;
+  edadMinima: number;
   onGuardarFecha: (fechaNacimiento: string) => void;
   onGuardarEdadAproximada: (edad: number) => void;
-  onSaltar: () => void;
+  onResolverEsMenor: (esMenor: boolean) => void;
 }
 
 /**
@@ -27,15 +28,24 @@ interface Props {
  * estadísticas rápidas -- a propósito no cuenta como "ya completo": la
  * próxima vez que esta persona aparezca en un reporte se le vuelve a
  * preguntar, porque `fecha_nacimiento` sigue en null.
+ *
+ * KAN-435 (2026-09-23, pedido explícito del owner): el modal ya no se puede
+ * "saltar" dejando la pregunta pendiente para una alerta aparte en la
+ * página -- eso se sentía como un error, no como parte del flujo. Si ni
+ * siquiera se sabe la edad aproximada, la última salida es una sola
+ * pregunta binaria (¿es menor de la edad mínima?) que resuelve la
+ * clasificación de este reporte sin guardar nada en la ficha -- todo queda
+ * resuelto acá, nunca en la página.
  */
 export function ModalFechaNacimientoFaltante({
   open,
   onOpenChange,
   nombrePersona,
   guardando,
+  edadMinima,
   onGuardarFecha,
   onGuardarEdadAproximada,
-  onSaltar,
+  onResolverEsMenor,
 }: Props) {
   const [fecha, setFecha] = useState('');
   const [seDesconoce, setSeDesconoce] = useState(false);
@@ -63,7 +73,12 @@ export function ModalFechaNacimientoFaltante({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && limpiarYCerrar(() => onOpenChange(false))}>
-      <DialogContent className="max-w-sm">
+      <DialogContent
+        className="max-w-sm"
+        showCloseButton={false}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="sr-only">Falta la fecha de nacimiento</DialogTitle>
           <SeccionIconHeader icon={Cake} color={MORADO} titulo="¿Cuándo nació?" />
@@ -109,15 +124,40 @@ export function ModalFechaNacimientoFaltante({
               <p className="text-[11px] text-muted-foreground">
                 La próxima vez que aparezca en un reporte, se le va a volver a pedir la fecha real.
               </p>
+
+              <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+                <p className="text-xs text-muted-foreground">
+                  ¿Tampoco sabés la edad aproximada? Al menos decinos si es menor de {edadMinima} años:
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => limpiarYCerrar(() => onResolverEsMenor(true))}
+                    disabled={guardando}
+                  >
+                    Sí, es menor
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => limpiarYCerrar(() => onResolverEsMenor(false))}
+                    disabled={guardando}
+                  >
+                    No
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button type="button" variant="ghost" onClick={() => limpiarYCerrar(onSaltar)} disabled={guardando}>
-            Saltar por ahora
-          </Button>
-          <Button type="button" onClick={confirmar} disabled={!puedeConfirmar || guardando}>
+          <Button type="button" onClick={confirmar} disabled={!puedeConfirmar || guardando} className="w-full sm:w-auto">
             Guardar
           </Button>
         </DialogFooter>

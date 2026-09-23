@@ -15,7 +15,6 @@ import {
   HeartHandshake,
   MapPin,
   MessageSquare,
-  MoreVertical,
   PartyPopper,
   Pencil,
   Plus,
@@ -29,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,6 +74,8 @@ import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo'
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { BuscadorTemaCampo } from '@/components/reporte/BuscadorTemaCampo';
 import { ModalFechaNacimientoFaltante } from '@/components/reporte/ModalFechaNacimientoFaltante';
+import { FichaRapidaAsistente } from '@/components/reporte/FichaRapidaAsistente';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useActualizarFechaNacimientoBasica } from '@/hooks/usePersonas';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
@@ -313,8 +313,9 @@ export function Reportes() {
   // KAN-422 (2026-09-22, pedido explícito del owner): completado progresivo
   // -- al agregar a alguien SIN fecha de nacimiento (nuevo en esta selección,
   // no al precargar un reporte existente), se encola para preguntarle en un
-  // modal, uno por vez. "Saltar" deja el flujo de siempre (checkbox "es
-  // menor" en la pastilla) como respaldo.
+  // modal, uno por vez. KAN-435: el modal siempre termina resuelto (fecha,
+  // edad aproximada, o al menos "¿es menor?") -- no hay forma de dejarlo
+  // pendiente para después.
   const [colaFechaNacimiento, setColaFechaNacimiento] = useState<{ id: string; nombre: string }[]>([]);
   const actualizarFechaNacimiento = useActualizarFechaNacimientoBasica();
 
@@ -351,9 +352,57 @@ export function Reportes() {
     }
   }
 
+  // KAN-435: última salida del modal cuando ni la fecha ni la edad
+  // aproximada se saben -- resuelve solo la clasificación de este reporte
+  // (no se guarda nada en la ficha de la persona), así el modal siempre
+  // termina resuelto y nunca hace falta una alerta aparte en la página.
+  function resolverEsMenorPendiente(esMenor: boolean) {
+    const pendiente = colaFechaNacimiento[0];
+    if (!pendiente) return;
+    cambiarEsMenorAsistente(pendiente.id, esMenor);
+    quitarDeColaFechaNacimiento(pendiente.id);
+  }
+
   const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
   function cambiarReconciliacion(personaId: string, valor: boolean) {
     setReconciliadosPorPersona((prev) => ({ ...prev, [personaId]: valor }));
+  }
+
+  // KAN-435 (2026-09-23, pedido explícito del owner): "ficha rápida" -- un
+  // solo panel con todos los controles de una persona (antes sueltos encima
+  // de cada pastilla: checkbox "es menor", toggle RE, menú "más opciones",
+  // botón quitar). `fichaCompletaId` abre el FichaPersonaSheet real desde
+  // ahí, para lo que la ficha rápida no resuelve (ej. corregir una fecha de
+  // nacimiento ya cargada pero mal cargada).
+  const [fichaRapidaId, setFichaRapidaId] = useState<string | null>(null);
+  const [fichaCompletaId, setFichaCompletaId] = useState<string | undefined>(undefined);
+
+  async function guardarFechaNacimientoFichaRapida(personaId: string, fechaNacimiento: string) {
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId, datos: { fecha_nacimiento: fechaNacimiento } });
+      cambiarEsMenorAsistente(personaId, calcularEdad(fechaNacimiento) < edadMinima);
+    } catch {
+      toast.error('No se pudo guardar la fecha de nacimiento');
+    }
+  }
+
+  async function guardarEdadAproximadaFichaRapida(personaId: string, edad: number) {
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId, datos: { edad_aproximada: edad } });
+      cambiarEsMenorAsistente(personaId, edad < edadMinima);
+    } catch {
+      toast.error('No se pudo guardar la edad aproximada');
+    }
+  }
+
+  // Quitar del reporte: mismo criterio que el botón "X" de siempre, según de
+  // qué lista venga la persona (miembro del pool vs. encontrada por búsqueda global).
+  function quitarDelReporte(personaId: string) {
+    if (asistentesNuevosExistentes.some((p) => p.id === personaId)) {
+      quitarAsistenteExistente(personaId);
+    } else {
+      toggleAsistente(personaId, false);
+    }
   }
   // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
   // monto y celular opcional. El total es la suma. El campo único "Total
@@ -629,6 +678,7 @@ export function Reportes() {
         fecha_nacimiento: datos.fecha_nacimiento,
         edad_aproximada: datos.edad_aproximada,
         telefono: datos.telefono,
+        acepto_a_cristo: datos.acepto_a_cristo,
       },
     ]);
     setEvangelizadosPendientes((prev) => [
@@ -659,9 +709,8 @@ export function Reportes() {
   // Persona ya existente en el sistema (encontrada por la búsqueda global de
   // "Asistentes nuevos") que asiste como visita -- no se crea una persona
   // nueva, se reutiliza su persona_id. No se sabe su fecha de nacimiento
-  // desde este buscador (PersonaBusqueda no la trae), así que esMenor queda
-  // sin definir a propósito: el aviso "¿es menor?" (pendientesEsMenor) se
-  // encarga de preguntarlo antes de poder enviar el reporte.
+  // desde este buscador (PersonaBusqueda no la trae), así que se encola de
+  // una para el modal ModalFechaNacimientoFaltante (ver KAN-422/KAN-435).
   function agregarAsistenteExistente(persona: PersonaBusqueda) {
     setAsistentes((prev) => {
       const next = new Map(prev);
@@ -709,8 +758,8 @@ export function Reportes() {
 
     if (p.persona_id) {
       // esMenor: false de una -- sin esto, alguien sin fecha de nacimiento
-      // cargada dispararía el aviso de "¿es menor?" (pendientesEsMenor) para
-      // una persona que ya existía en el sistema, no una recién creada; el
+      // cargada dispararía el modal ModalFechaNacimientoFaltante para una
+      // persona que ya existía en el sistema, no una recién creada; el
       // owner pidió que en este flujo se guarde directo sin preguntar.
       setAsistentes((prev) => {
         const next = new Map(prev);
@@ -877,29 +926,6 @@ export function Reportes() {
     (p) => !miembros.some((m) => m.persona_id === p.id) && !asistentes.has(p.id)
   );
 
-  // Sin fecha de nacimiento no hay forma de saber la edad: se les pide que
-  // digan a mano si son menores, en vez de asumirlo y arriesgar un dato mal
-  // cargado. Se muestran todos juntos acá para que no haya que enviar el
-  // formulario una vez por persona para enterarse de a uno.
-  //
-  // Se controla a CUALQUIER asistente ya registrado sin fecha de nacimiento,
-  // sin importar en qué lista esté seleccionado (nuevos, regulares o niños).
-  // Antes solo se miraba la lista de "regulares": elegir a alguien sin fecha
-  // como "asistente nuevo" pasaba este control y recién explotaba con un 400
-  // del backend (fn_validar_asistencia rechaza es_menor nulo sin fecha de
-  // nacimiento), dejando además un reporte huérfano.
-  // Las personas encontradas por la búsqueda global de "Asistentes nuevos"
-  // (PersonaBusqueda) no traen fecha de nacimiento -- se tratan igual que un
-  // miembro sin fecha registrada, mismo aviso "¿es menor?" antes de enviar.
-  const pendientesEsMenor = [
-    ...Array.from(asistentes.keys())
-      .map((id) => miembros.find((mm) => mm.persona_id === id))
-      .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined),
-    ...asistentesNuevosExistentes
-      .filter((p) => asistentes.has(p.id) && esMenorPorPersona[p.id] === undefined)
-      .map((p) => ({ persona_id: p.id, nombre_completo: p.nombre_completo, tiene_fecha_nacimiento: false, edad: null })),
-  ];
-
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
 
@@ -942,16 +968,6 @@ export function Reportes() {
 
     if (totalAsistentesActual === 0) {
       toast.error('Marcá al menos una persona antes de enviar el reporte');
-      return;
-    }
-
-    if (pendientesEsMenor.length > 0) {
-      const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
-      toast.error(
-        pendientesEsMenor.length === 1
-          ? `${nombres} no tiene fecha de nacimiento registrada: indicá arriba si es menor de ${edadMinima} años`
-          : `${nombres} no tienen fecha de nacimiento registrada: indicá arriba si son menores de ${edadMinima} años`
-      );
       return;
     }
 
@@ -1139,9 +1155,9 @@ export function Reportes() {
         // a editar el existente en vez de generar otro.
         toast.error('Ya existe un reporte para esa fecha en esta Casa de Paz. Editá el existente en vez de crear otro.');
       } else if (mensaje.includes('ASISTENCIA_EDAD_INDEFINIDA')) {
-        // Red de seguridad: el formulario ya obliga a declarar si cada persona
-        // sin fecha de nacimiento es menor (ver pendientesEsMenor), pero por si
-        // acaso llega a pasar, el mensaje es claro en vez del genérico.
+        // Red de seguridad: el modal ModalFechaNacimientoFaltante ya obliga a
+        // declarar si cada persona sin fecha de nacimiento es menor, pero por
+        // si acaso llega a pasar, el mensaje es claro en vez del genérico.
         toast.error('Falta indicar si algún asistente sin fecha de nacimiento es menor de edad');
       } else if (mensaje.includes('REPORTE_OFRENDAS_OBLIGATORIO')) {
         toast.error('El total de ofrendas es obligatorio, aunque sea 0');
@@ -1172,15 +1188,6 @@ export function Reportes() {
 
     if (totalAsistentesActual === 0) {
       toast.error('Marcá al menos una persona antes de enviar el reporte');
-      return;
-    }
-    if (pendientesEsMenor.length > 0) {
-      const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
-      toast.error(
-        pendientesEsMenor.length === 1
-          ? `${nombres} no tiene fecha de nacimiento registrada: indicá arriba si es menor de ${edadMinima} años`
-          : `${nombres} no tienen fecha de nacimiento registrada: indicá arriba si son menores de ${edadMinima} años`
-      );
       return;
     }
     for (const v of visitasNuevas) {
@@ -1234,7 +1241,26 @@ export function Reportes() {
    * criterio de asistencia en los dos).
    */
   function renderAsistenciaSection() {
+    // KAN-435: datos de la persona con la ficha rápida abierta -- busca en
+    // los 3 orígenes posibles (miembros regulares, niños, encontrada por
+    // búsqueda global) porque cada uno trae un shape distinto.
+    const fichaRapidaMiembro = fichaRapidaId
+      ? (poolRegulares.find((m) => m.persona_id === fichaRapidaId) ?? poolNinos.find((m) => m.persona_id === fichaRapidaId))
+      : undefined;
+    const fichaRapidaExistente = !fichaRapidaMiembro && fichaRapidaId ? asistentesNuevosExistentes.find((p) => p.id === fichaRapidaId) : undefined;
+    const fichaRapidaDatos = fichaRapidaMiembro
+      ? {
+          nombreCompleto: fichaRapidaMiembro.nombre_completo,
+          estadoSigla: fichaRapidaMiembro.estado_sigla,
+          edad: fichaRapidaMiembro.edad,
+          tieneFechaNacimiento: fichaRapidaMiembro.tiene_fecha_nacimiento,
+        }
+      : fichaRapidaExistente
+        ? { nombreCompleto: fichaRapidaExistente.nombre_completo, estadoSigla: undefined, edad: null, tieneFechaNacimiento: false }
+        : undefined;
+
     return (
+      <>
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
             <TarjetaHeader
@@ -1331,41 +1357,17 @@ export function Reportes() {
                             // reporte para editar, se ve en rojo suave.
                             const colorPastilla = idsAsistentesOriginales.has(p.id) ? 'var(--destructive)' : VERDE;
                             return (
-                            <span
-                              key={p.id}
-                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                              style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
-                            >
-                              <Check className="h-3 w-3 shrink-0" />
-                              {p.nombre_completo}
-                              {esMenorPorPersona[p.id] && <span className="text-[10px] opacity-80">(menor)</span>}
-                              {/* KAN-390: encontrada por búsqueda global -- es
-                                  justo el caso típico de "volvió después de
-                                  mucho tiempo", se puede marcar como RE.
-                                  KAN-421 (2026-09-22): toggle compacto en vez
-                                  de checkbox+texto largo. */}
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  cambiarReconciliacion(p.id, !(reconciliadosPorPersona[p.id] ?? false));
-                                }}
-                                title="Se reconcilió"
-                                className={cn(
-                                  'ml-1 rounded px-1 text-[10px] font-semibold',
-                                  reconciliadosPorPersona[p.id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
-                                )}
+                                key={p.id}
+                                onClick={() => setFichaRapidaId(p.id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+                                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
-                                RE
+                                <Check className="h-3 w-3 shrink-0" />
+                                {p.nombre_completo}
+                                {reconciliadosPorPersona[p.id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => quitarAsistenteExistente(p.id)}
-                                className="rounded-full p-0.5 hover:bg-black/10"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
                             );
                           })}
                         </div>
@@ -1391,68 +1393,19 @@ export function Reportes() {
                             const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
                             const colorPastilla = esOriginal ? 'var(--destructive)' : AZUL;
                             return (
-                              <span
+                              <button
+                                type="button"
                                 key={id}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                onClick={() => setFichaRapidaId(id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
                                 {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
                                     falta escribir "Nuevo Convertido" completo. */}
                                 {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
-                                {!persona.tiene_fecha_nacimiento && (
-                                  <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                    <Checkbox
-                                      className="h-3 w-3"
-                                      checked={esMenorPorPersona[id] ?? false}
-                                      onCheckedChange={(v) => cambiarEsMenorAsistente(id, v === true)}
-                                    />
-                                    es menor
-                                  </label>
-                                )}
-                                {/* KAN-421 (2026-09-22): antes 2 checkboxes con texto largo
-                                    ("Asiste a esta CDP" / "se reconcilió") por pastilla, se
-                                    sentía recargado. RE queda como toggle compacto (el caso
-                                    frecuente), "Asiste a esta CDP" pasa a un menú aparte
-                                    (caso raro: visita de otra CdP). */}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
-                                  }}
-                                  title="Se reconcilió"
-                                  className={cn(
-                                    'ml-1 rounded px-1 text-[10px] font-semibold',
-                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
-                                  )}
-                                >
-                                  RE
-                                </button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="rounded-full p-0.5 hover:bg-black/10"
-                                      title="Más opciones"
-                                    >
-                                      <MoreVertical className="h-3 w-3" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuCheckboxItem
-                                      checked={asisteCdpPorPersona[id] ?? true}
-                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                    >
-                                      Asiste a esta CDP
-                                    </DropdownMenuCheckboxItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
+                                {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
+                              </button>
                             );
                           })}
                         </div>
@@ -1473,53 +1426,19 @@ export function Reportes() {
                             const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
                             const colorPastilla = esOriginal ? 'var(--destructive)' : AMBAR;
                             return (
-                              <span
+                              <button
+                                type="button"
                                 key={id}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                onClick={() => setFichaRapidaId(id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
                                 {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
                                     falta escribir "Nuevo Convertido" completo. */}
                                 {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
-                                  }}
-                                  title="Se reconcilió"
-                                  className={cn(
-                                    'ml-1 rounded px-1 text-[10px] font-semibold',
-                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
-                                  )}
-                                >
-                                  RE
-                                </button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="rounded-full p-0.5 hover:bg-black/10"
-                                      title="Más opciones"
-                                    >
-                                      <MoreVertical className="h-3 w-3" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuCheckboxItem
-                                      checked={asisteCdpPorPersona[id] ?? true}
-                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                    >
-                                      Asiste a esta CDP
-                                    </DropdownMenuCheckboxItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
+                                {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
+                              </button>
                             );
                           })}
                         </div>
@@ -1527,47 +1446,39 @@ export function Reportes() {
                         <p className="text-xs text-muted-foreground">Nadie todavía.</p>
                       )}
                     </div>
-
-                    {pendientesEsMenor.length > 0 && (
-                      <div className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                          {pendientesEsMenor.length === 1
-                            ? 'Esta persona no tiene fecha de nacimiento registrada. ¿Es menor?'
-                            : 'Estas personas no tienen fecha de nacimiento registrada. ¿Son menores?'}
-                        </p>
-                        <div className="flex flex-col gap-1.5">
-                          {pendientesEsMenor.map((m) => (
-                            <div key={m.persona_id} className="flex items-center justify-between gap-3 rounded-lg bg-background/60 px-3 py-1.5 text-sm">
-                              <span className="truncate font-medium">{m.nombre_completo}</span>
-                              <div className="flex shrink-0 gap-1.5">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs"
-                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, true)}
-                                >
-                                  Sí, es menor
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs"
-                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, false)}
-                                >
-                                  No
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
           </div>
         </section>
+
+        {fichaRapidaId && fichaRapidaDatos && (
+          <FichaRapidaAsistente
+            open
+            onOpenChange={(v) => !v && setFichaRapidaId(null)}
+            personaId={fichaRapidaId}
+            nombreCompleto={fichaRapidaDatos.nombreCompleto}
+            estadoSigla={fichaRapidaDatos.estadoSigla}
+            edad={fichaRapidaDatos.edad}
+            tieneFechaNacimiento={fichaRapidaDatos.tieneFechaNacimiento}
+            esMenor={esMenorPorPersona[fichaRapidaId]}
+            edadMinima={edadMinima}
+            esReconciliado={reconciliadosPorPersona[fichaRapidaId] ?? false}
+            asisteCdp={asisteCdpPorPersona[fichaRapidaId] ?? true}
+            guardandoFecha={actualizarFechaNacimiento.isPending}
+            onGuardarFecha={(fecha) => guardarFechaNacimientoFichaRapida(fichaRapidaId, fecha)}
+            onGuardarEdadAproximada={(edad) => guardarEdadAproximadaFichaRapida(fichaRapidaId, edad)}
+            onCambiarEsMenor={(v) => cambiarEsMenorAsistente(fichaRapidaId, v)}
+            onCambiarReconciliacion={(v) => cambiarReconciliacion(fichaRapidaId, v)}
+            onCambiarAsisteCdp={(v) => cambiarAsisteCdp(fichaRapidaId, v)}
+            onQuitarDelReporte={() => quitarDelReporte(fichaRapidaId)}
+            onAbrirFichaCompleta={() => {
+              setFichaCompletaId(fichaRapidaId);
+              setFichaRapidaId(null);
+            }}
+          />
+        )}
+        <FichaPersonaSheet personaId={fichaCompletaId} onOpenChange={(v) => !v && setFichaCompletaId(undefined)} />
+      </>
     );
   }
 
@@ -2503,9 +2414,10 @@ export function Reportes() {
         onOpenChange={(v) => !v && colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
         nombrePersona={colaFechaNacimiento[0]?.nombre ?? ''}
         guardando={actualizarFechaNacimiento.isPending}
+        edadMinima={edadMinima}
         onGuardarFecha={guardarFechaNacimientoPendiente}
         onGuardarEdadAproximada={guardarEdadAproximadaPendiente}
-        onSaltar={() => colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
+        onResolverEsMenor={resolverEsMenorPendiente}
       />
     </div>
   );

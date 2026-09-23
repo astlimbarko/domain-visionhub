@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { normalizarNombre } from '@/utils/normalizarNombre';
+import { clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
-import { VERDE } from '@/components/dashboard/DashboardUI';
+import { MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
@@ -33,6 +34,13 @@ export interface DatosPersonaNueva {
    * aproximada -- nunca se deriva una fecha_nacimiento ficticia a partir de
    * esto. Solo tiene sentido cuando fecha_nacimiento viene vacío. */
   edad_aproximada?: number;
+  /** KAN-435 (2026-09-23, pedido explícito del owner): si se tilda, la
+   * persona queda como Nuevo Convertido (NC) de una -- es una decisión que
+   * solo puede confirmar el líder que estuvo ahí, no algo que el sistema
+   * deba inferir por conteo de visitas. Sin tildar, sigue el camino de
+   * siempre (entra como Asistente Nuevo, el conteo automático decide
+   * después). */
+  acepto_a_cristo?: boolean;
 }
 
 interface Props {
@@ -184,6 +192,8 @@ export function BuscadorPersonaMultiple({
   // ese caso se pide una edad aproximada en vez de la fecha exacta.
   const [fechaDesconocidaNueva, setFechaDesconocidaNueva] = useState(false);
   const [edadAproximadaNueva, setEdadAproximadaNueva] = useState('');
+  // KAN-435: sin marcar por defecto -- solo NC si el líder lo confirma a propósito.
+  const [aceptoACristoNueva, setAceptoACristoNueva] = useState(false);
 
   // KAN-407: mismo mecanismo que EvangelismoPendientePanel -- mientras se
   // completa "Persona nueva", busca en segundo plano (debounced) si ya
@@ -255,6 +265,7 @@ export function BuscadorPersonaMultiple({
     setFechaNacimientoNueva('');
     setFechaDesconocidaNueva(false);
     setEdadAproximadaNueva('');
+    setAceptoACristoNueva(false);
     setMostrarFormNueva(false);
   }
 
@@ -273,6 +284,7 @@ export function BuscadorPersonaMultiple({
       // fecha ficticia a partir de la edad).
       fecha_nacimiento: fechaDesconocidaNueva ? undefined : (fechaNacimientoNueva || undefined),
       edad_aproximada: fechaDesconocidaNueva && edadAproximadaNueva ? Number(edadAproximadaNueva) : undefined,
+      acepto_a_cristo: aceptoACristoNueva,
     });
     setTexto('');
     onTextoCambia?.('');
@@ -287,6 +299,7 @@ export function BuscadorPersonaMultiple({
     setFechaNacimientoNueva('');
     setFechaDesconocidaNueva(false);
     setEdadAproximadaNueva('');
+    setAceptoACristoNueva(false);
     setMostrarFormNueva(false);
   }
 
@@ -399,7 +412,9 @@ export function BuscadorPersonaMultiple({
                     <Checkbox checked={seleccionadosSet.has(m.persona_id)} onCheckedChange={() => onToggle(m.persona_id)} />
                     <span className="flex-1">
                       {m.nombre_completo}
-                      {m.edad !== null && <span className="ml-1.5 text-xs text-muted-foreground">({m.edad} años)</span>}
+                      {m.edad !== null && (
+                        <span className="ml-1.5 text-xs text-muted-foreground">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(m.edad)]})</span>
+                      )}
                     </span>
                     {seleccionadosSet.has(m.persona_id) && <Check className="h-3.5 w-3.5 text-chart-2" />}
                   </label>
@@ -559,6 +574,27 @@ export function BuscadorPersonaMultiple({
               </label>
             </div>
           </div>
+
+          {/* KAN-435 (2026-09-23, pedido explícito del owner): decisión
+              deliberada, nunca inferida -- por eso va aparte del resto del
+              formulario, con su propio fondo, y no como un checkbox chico
+              más entre los demás campos. */}
+          <label
+            className="flex cursor-pointer items-start gap-2.5 rounded-xl p-3 text-sm"
+            style={{ backgroundColor: `color-mix(in oklab, ${MORADO} 8%, transparent)` }}
+          >
+            <Checkbox
+              checked={aceptoACristoNueva}
+              onCheckedChange={(v) => setAceptoACristoNueva(v === true)}
+            />
+            <span>
+              <span className="font-medium" style={{ color: MORADO }}>¿Aceptó a Cristo?</span>
+              <span className="block text-xs text-muted-foreground">
+                Marcalo solo si de verdad aceptó a Cristo hoy -- queda directo como Nuevo Convertido (NC).
+              </span>
+            </span>
+          </label>
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setMostrarFormNueva(false)}>
               Cancelar
