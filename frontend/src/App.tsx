@@ -49,6 +49,7 @@ const PanelSupervisor = lazy(() => import('@/pages/PanelSupervisor').then((m) =>
 const Departamentos = lazy(() => import('@/pages/Departamentos').then((m) => ({ default: m.Departamentos })));
 const GestionRedes = lazy(() => import('@/pages/GestionRedes').then((m) => ({ default: m.GestionRedes })));
 const Administracion = lazy(() => import('@/pages/Administracion').then((m) => ({ default: m.Administracion })));
+const CuentasHuerfanas = lazy(() => import('@/pages/CuentasHuerfanas').then((m) => ({ default: m.CuentasHuerfanas })));
 const PastorGestion = lazy(() => import('@/pages/PastorGestion').then((m) => ({ default: m.PastorGestion })));
 const EstructuraOrganizacional = lazy(() => import('@/pages/EstructuraOrganizacional').then((m) => ({ default: m.EstructuraOrganizacional })));
 const ConstructorResumen = lazy(() => import('@/pages/ConstructorResumen').then((m) => ({ default: m.ConstructorResumen })));
@@ -316,6 +317,11 @@ function App() {
             <Route path={ROUTES.ADMINISTRACION} element={
               <Suspense fallback={<CargandoPagina />}>
                 <RequiereRol permitidos={rolesPermitidosPara(ROUTES.ADMINISTRACION)}><Administracion /></RequiereRol>
+              </Suspense>
+            } />
+            <Route path={ROUTES.CUENTAS_HUERFANAS} element={
+              <Suspense fallback={<CargandoPagina />}>
+                <RequiereRol permitidos={rolesPermitidosPara(ROUTES.CUENTAS_HUERFANAS)}><CuentasHuerfanas /></RequiereRol>
               </Suspense>
             } />
             <Route path={ROUTES.CONSTRUCTOR_RESUMEN} element={

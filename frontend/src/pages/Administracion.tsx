@@ -284,7 +284,25 @@ export function Administracion() {
               del owner (2026-08-03) -- no se necesitaban acá. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-              <TarjetaHeader oscuro icon={UserCog} color={TEAL} titulo="Cuentas por rol" descripcion={`${panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.`} />
+              <TarjetaHeader
+                oscuro
+                icon={UserCog}
+                color={TEAL}
+                titulo="Cuentas por rol"
+                descripcion={`${panorama.cuentas.sin_persona_vinculada} sin persona vinculada todavía.`}
+                accion={
+                  panorama.cuentas.sin_persona_vinculada > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                      onClick={() => navigate(ROUTES.CUENTAS_HUERFANAS)}
+                    >
+                      Ver
+                    </Button>
+                  )
+                }
+              />
               <div className="flex flex-col gap-1.5 p-5">
                 {panorama.cuentas.por_rol.map((r) => (
                   <div key={r.rol} className="flex items-center justify-between text-sm">

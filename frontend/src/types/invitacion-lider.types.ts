@@ -23,6 +23,25 @@ export interface InvitacionDepartamento {
   fecha_creacion: string;
 }
 
+/** KAN-424: cuenta de auth.users sin ninguna Persona vinculada (quedó a
+ * medias de un alta anterior, o su invitación se canceló después de
+ * confirmar). `ultimo_*` viene de la invitación más reciente que tuvo esa
+ * cuenta, aunque ya esté cancelada -- `null` si nunca tuvo ninguna. */
+export interface CuentaHuerfana {
+  usuario_id: string;
+  correo: string;
+  fecha_creacion: string;
+  confirmada: boolean;
+  ultimo_rol: string | null;
+  ultima_iglesia_id: string | null;
+  ultima_iglesia_nombre: string | null;
+  ultimo_red_id: string | null;
+  ultimo_casa_de_paz_id: string | null;
+  ultimo_departamento_id: string | null;
+  ultimo_destino_nombre: string | null;
+  ultima_invitacion_cancelada_en: string | null;
+}
+
 export interface InvitacionPendiente {
   id: string;
   rol: RolInvitable | null;
