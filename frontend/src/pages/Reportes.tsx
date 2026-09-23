@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CalendarDays,
@@ -13,11 +14,14 @@ import {
   History,
   DollarSign,
   HeartHandshake,
+  Loader2,
   MapPin,
+  Clock,
   MessageSquare,
   PartyPopper,
   Pencil,
   Plus,
+  Save,
   Trash2,
   UserPlus,
   UserRound,
@@ -33,7 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
+import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonas, useRedes } from '@/hooks/useCasasDePaz';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import {
@@ -50,12 +54,16 @@ import {
   useActualizarReporte,
   useAnularReporte,
   useAutorizarEdicionReporteFueraVentana,
+  useBorradorReporte,
+  useExisteReporteParaFecha,
   useCamposObligatoriosReporte,
   useCdpContextoReporte,
   useCrearReporte,
   useCrearReporteMegafiesta,
   useCrearReunionNoRealizada,
   useEdadMinimaCreyente,
+  useEliminarBorradorReporte,
+  useGuardarBorradorReporte,
   useIdsLiderCdp,
   useLibros,
   useDiasLimiteEdicionReporte,
@@ -79,11 +87,19 @@ import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useActualizarFechaNacimientoBasica } from '@/hooks/usePersonas';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { aISO, fechaLegible } from '@/utils/calendario-fechas';
-import { calcularEdad } from '@/utils/edad';
+import { aISO, fechaLegible, fechaLegibleConDia } from '@/utils/calendario-fechas';
+import { rutaReporteEditar } from '@/utils/constants';
+import { calcularEdad, clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
-import type { CategoriaTestimonio, DiezmoLinea, EvangelizadoPendiente, NuevaVisita, TestimonioLinea } from '@/types/reporte.types';
+import type {
+  BorradorReportePayload,
+  CategoriaTestimonio,
+  DiezmoLinea,
+  EvangelizadoPendiente,
+  NuevaVisita,
+  TestimonioLinea,
+} from '@/types/reporte.types';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
 const esquema = z.object({
@@ -137,10 +153,15 @@ const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-car
  * puntual (solo 2 de 13 libros la tienen). No es un `tema_id` real. */
 const TEMA_ESPECIAL_SENTINEL = '__tema_especial__';
 
+/** KAN-435 (pedido explícito del owner): color por estado SSVA para las
+ * pastillas de asistencia -- mismo criterio de color que FichaRapidaAsistente. */
+const COLOR_ESTADO_SSVA: Record<string, string> = { SIM: AMBAR, NC: MORADO, CRE: VERDE, RE: AZUL };
+
 export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
   const modoEdicion = !!reporteId;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { contextoActivo } = useContextoActivo();
   const contextoCdp = contextoActivo?.alcance === 'CDP' ? contextoActivo : null;
   // KAN-391: Líder de Red y Supervisor (y por encima) siempre ven de qué CdP
@@ -231,6 +252,13 @@ export function Reportes() {
   const colorRed = colorRedInfo && colorRedInfo.toUpperCase() !== '#FFFFFF' ? colorRedInfo : null;
 
   const hoy = aISO(new Date());
+  // KAN-435 (pedido del owner): desde el círculo rojo "no entregado" del
+  // calendario se llega acá con ?fecha=YYYY-MM-DD -- precarga esa fecha en
+  // vez de hoy, para no obligarlo a escribir a mano la fecha de la semana
+  // que faltó. Solo aplica al crear (nunca pisa la fecha de un reporte que
+  // ya se está editando).
+  const fechaQueryParam = searchParams.get('fecha');
+  const fechaInicial = !modoEdicion && fechaQueryParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaQueryParam) ? fechaQueryParam : hoy;
 
   const { data: libros = [] } = useLibros();
   const { data: miembrosCrudo = [], isLoading: cargandoMiembros } = useMiembrosCdp(cdpActiva);
@@ -363,6 +391,16 @@ export function Reportes() {
     quitarDeColaFechaNacimiento(pendiente.id);
   }
 
+  // KAN-435 (pedido explícito del owner): la X del modal deshace la
+  // selección -- saca del todo a la persona de la asistencia (no solo la
+  // pregunta pendiente), para el caso de haberla elegido por error.
+  // quitarDelReporte ya limpia la cola de paso.
+  function cancelarColaFechaNacimiento() {
+    const pendiente = colaFechaNacimiento[0];
+    if (!pendiente) return;
+    quitarDelReporte(pendiente.id);
+  }
+
   const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
   function cambiarReconciliacion(personaId: string, valor: boolean) {
     setReconciliadosPorPersona((prev) => ({ ...prev, [personaId]: valor }));
@@ -493,15 +531,221 @@ export function Reportes() {
     formState: { errors, isSubmitting, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(esquema),
-    defaultValues: { fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id },
+    defaultValues: { fecha_reunion: fechaInicial, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id },
   });
 
   const fechaReunion = watch('fecha_reunion');
   const libroId = watch('libro_id');
   const temaId = watch('tema_id');
+  const temaEspecialTxt = watch('tema_especial_txt');
   const disertadorId = watch('disertador_id');
   const salioEvangelizar = watch('salio_evangelizar');
   const monedaId = watch('moneda_id');
+  const totalOfrendasTexto = watch('total_ofrendas');
+  const testimoniosTexto = watch('testimonios');
+
+  // KAN-435 (2026-09-23, pedido explícito del owner): autoguardado -- solo
+  // tiene sentido al cargar un reporte NUEVO (nunca en modo edición, ni en
+  // "reunión no realizada"/Megafiesta -- esos son formularios chicos e
+  // instantáneos, con bajo riesgo real de perder trabajo). El borrador se
+  // identifica por CdP+fecha (fechaInicial, la que tenía el formulario al
+  // montar) para no pisarse con otro borrador de otra semana de la misma CdP.
+  const borradorAplica = !modoEdicion;
+  const { data: borrador, isLoading: cargandoBorrador } = useBorradorReporte(
+    borradorAplica ? cdpActiva : undefined,
+    borradorAplica ? fechaInicial : undefined
+  );
+  // KAN-435 (pedido explícito del owner): antes de restaurar un borrador,
+  // chequear si alguien ya envió el reporte REAL de esa fecha mientras
+  // tanto (ej. desde otra sesión/cuenta) -- si pasó, restaurar el
+  // borrador como si nada sería mostrarle datos que ya no sirven.
+  const { data: reporteExistenteId, isLoading: cargandoConflictoFecha } = useExisteReporteParaFecha(
+    borradorAplica ? cdpActiva : undefined,
+    borradorAplica ? fechaInicial : undefined
+  );
+  const guardarBorrador = useGuardarBorradorReporte();
+  const eliminarBorrador = useEliminarBorradorReporte();
+  const [borradorId, setBorradorId] = useState<string | null>(null);
+  const [estadoBorrador, setEstadoBorrador] = useState<'inactivo' | 'guardando' | 'guardado' | 'error'>('inactivo');
+  // Destello flotante (pedido explícito del owner): visible mientras
+  // guarda, y un ratito después de confirmado -- después se apaga solo.
+  const [mostrarIndicadorBorrador, setMostrarIndicadorBorrador] = useState(false);
+  // Punto 2 (pedido explícito del owner): "ya se envió el reporte real de
+  // esta fecha, este borrador quedó viejo" -- id del reporte real en
+  // conflicto, o null si no hay conflicto.
+  const [reporteConflictoId, setReporteConflictoId] = useState<string | null>(null);
+  const [confirmandoDescartarBorrador, setConfirmandoDescartarBorrador] = useState(false);
+  const borradorHidratado = useRef(false);
+  const debounceBorradorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ocultarIndicadorBorradorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bug real encontrado en vivo (2 vueltas): descartarBorrador() resetea
+  // asistentes/visitasNuevas/testimoniosCategorizados/etc. a valores
+  // "vacíos" nuevos (nueva referencia de Map/array aunque el contenido
+  // sea igual) -- eso por sí solo dispara de nuevo el efecto de
+  // autoguardado. Una bandera de "un solo uso" no alcanzaba: react-hook-
+  // form's reset() propaga sus propios cambios en un re-render aparte
+  // (fechaReunion/libroId/etc. via watch), que llegaba DESPUÉS de que la
+  // bandera ya se hubiera consumido en el primer disparo -- terminaba
+  // guardando igual, recreando el borrador que se acababa de borrar. Se
+  // apaga sola por tiempo (ver el setTimeout en descartarBorrador), no al
+  // primer uso, para cubrir todos los re-renders en cascada del reset.
+  const saltarProximoAutoguardado = useRef(false);
+  const reactivarAutoguardadoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restaura el formulario con lo que había guardado, una sola vez al montar.
+  useEffect(() => {
+    if (!borradorAplica || cargandoBorrador || cargandoConflictoFecha || borradorHidratado.current) return;
+    borradorHidratado.current = true;
+    if (!borrador) return;
+    // Punto 2: si ya existe el reporte real de esta fecha, no restauramos
+    // el borrador (quedó obsoleto) -- se avisa aparte y se deja elegir.
+    if (reporteExistenteId) {
+      setReporteConflictoId(reporteExistenteId);
+      setBorradorId(borrador.id);
+      return;
+    }
+    const p = borrador.payload;
+    reset({
+      fecha_reunion: p.fecha_reunion,
+      libro_id: p.libro_id,
+      tema_id: p.tema_id,
+      tema_especial_txt: p.tema_especial_txt,
+      disertador_id: p.disertador_id,
+      salio_evangelizar: p.salio_evangelizar,
+      moneda_id: p.monedaId ?? monedas[0]?.moneda_id,
+      testimonios: p.testimonios,
+      total_ofrendas: String(p.totalOfrendas ?? ''),
+    });
+    setDisertadorNombre(p.disertador_nombre ?? '');
+    setAsistentes(new Map(p.asistentes));
+    setVisitasNuevas(p.visitasNuevas);
+    setAsistentesNuevosExistentes(p.asistentesNuevosExistentes);
+    setDiezmos(p.diezmos);
+    setTestimoniosCategorizados(p.testimoniosCategorizados.length > 0 ? p.testimoniosCategorizados : [nuevoTestimonioVacio()]);
+    setReconciliadosPorPersona(Object.fromEntries(p.reconciliados.map((id) => [id, true])));
+    setBorradorId(borrador.id);
+    setEstadoBorrador('guardado');
+    toast.info('Se restauró tu borrador sin enviar.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [borradorAplica, cargandoBorrador, cargandoConflictoFecha, borrador, reporteExistenteId]);
+
+  // Punto 1 (pedido explícito del owner): descartar el borrador a mano y
+  // arrancar en blanco -- para el caso de que haya quedado obsoleto (ver
+  // reporteConflictoId) o simplemente porque el líder quiere empezar de
+  // nuevo. Nunca toca un reporte ya enviado, solo el borrador.
+  function descartarBorrador() {
+    // Bug real encontrado en vivo: si quedaba un autoguardado con debounce
+    // pendiente (disparado por la última tecla antes de descartar), podía
+    // terminar de guardarse DESPUÉS del delete y recrear el borrador que
+    // se acababa de borrar -- hay que cancelarlo primero. El reset de
+    // abajo (Map/array nuevos) dispara igual el efecto de autoguardado
+    // apenas re-renderiza -- saltarProximoAutoguardado hace que ese ciclo
+    // puntual no guarde nada.
+    if (debounceBorradorRef.current) clearTimeout(debounceBorradorRef.current);
+    if (ocultarIndicadorBorradorRef.current) clearTimeout(ocultarIndicadorBorradorRef.current);
+    if (reactivarAutoguardadoRef.current) clearTimeout(reactivarAutoguardadoRef.current);
+    saltarProximoAutoguardado.current = true;
+    reactivarAutoguardadoRef.current = setTimeout(() => {
+      saltarProximoAutoguardado.current = false;
+    }, 400);
+    setMostrarIndicadorBorrador(false);
+    if (borradorId) eliminarBorrador.mutate(borradorId);
+    setBorradorId(null);
+    setEstadoBorrador('inactivo');
+    setReporteConflictoId(null);
+    setConfirmandoDescartarBorrador(false);
+    reset({ fecha_reunion: fechaInicial, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id, testimonios: '' });
+    setDisertadorNombre('');
+    setAsistentes(new Map());
+    setVisitasNuevas([]);
+    setAsistentesNuevosExistentes([]);
+    setDiezmos([]);
+    setTestimoniosCategorizados([nuevoTestimonioVacio()]);
+    setReconciliadosPorPersona({});
+    toast.success('Borrador descartado.');
+  }
+
+  // Autoguardado con debounce -- recién arranca después de intentar
+  // restaurar (si no, el primer render con el formulario vacío pisaría un
+  // borrador real antes de siquiera leerlo).
+  useEffect(() => {
+    if (!borradorAplica || !borradorHidratado.current || !cdpActiva || !iglesiaActivaId || reporteConflictoId) return;
+    if (saltarProximoAutoguardado.current) return;
+    setEstadoBorrador('guardando');
+    if (ocultarIndicadorBorradorRef.current) clearTimeout(ocultarIndicadorBorradorRef.current);
+    setMostrarIndicadorBorrador(true);
+    if (debounceBorradorRef.current) clearTimeout(debounceBorradorRef.current);
+    debounceBorradorRef.current = setTimeout(() => {
+      const payload: BorradorReportePayload = {
+        fecha_reunion: fechaReunion,
+        libro_id: libroId,
+        tema_id: temaId,
+        tema_especial_txt: temaEspecialTxt,
+        disertador_id: disertadorId,
+        disertador_nombre: disertadorNombre || undefined,
+        salio_evangelizar: salioEvangelizar,
+        testimonios: testimoniosTexto,
+        testimoniosCategorizados,
+        asistentes: Array.from(asistentes.entries()),
+        visitasNuevas,
+        asistentesNuevosExistentes,
+        reconciliados: Object.entries(reconciliadosPorPersona)
+          .filter(([, v]) => v)
+          .map(([id]) => id),
+        totalOfrendas: Number(totalOfrendasTexto) || 0,
+        monedaId,
+        diezmos,
+      };
+      guardarBorrador.mutate(
+        { borradorId, iglesiaId: iglesiaActivaId, casaDePazId: cdpActiva, payload },
+        {
+          onSuccess: (id) => {
+            setBorradorId(id);
+            setEstadoBorrador('guardado');
+            ocultarIndicadorBorradorRef.current = setTimeout(() => setMostrarIndicadorBorrador(false), 1600);
+          },
+          onError: () => {
+            setEstadoBorrador('error');
+            setMostrarIndicadorBorrador(false);
+            toast.error('No se pudo guardar el progreso automático. Se reintenta con el próximo cambio.');
+          },
+        }
+      );
+    }, 1500);
+    return () => {
+      if (debounceBorradorRef.current) clearTimeout(debounceBorradorRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    fechaReunion,
+    libroId,
+    temaId,
+    temaEspecialTxt,
+    disertadorId,
+    disertadorNombre,
+    salioEvangelizar,
+    testimoniosTexto,
+    testimoniosCategorizados,
+    asistentes,
+    visitasNuevas,
+    asistentesNuevosExistentes,
+    reconciliadosPorPersona,
+    monedaId,
+    totalOfrendasTexto,
+    diezmos,
+  ]);
+
+  // Al enviar el reporte real con éxito, el borrador ya no representa nada
+  // pendiente -- se borra para no ofrecerlo de nuevo la próxima vez.
+  // `borradorHidratado` queda en true (no se resetea): ya no hay nada que
+  // restaurar, así que el autoguardado puede seguir de largo para lo que
+  // el líder tipee después (otro reporte, en la misma sesión), sin volver
+  // a esperar una consulta de "¿hay borrador?" que ya no aplica.
+  function limpiarBorradorEnviado() {
+    if (borradorId) eliminarBorrador.mutate(borradorId);
+    setBorradorId(null);
+    setEstadoBorrador('inactivo');
+  }
 
   const { data: temas = [] } = useTemas(libroId, iglesiaActivaId);
   const { data: tiposEvangelismo = [] } = useTiposEvangelismo(iglesiaActivaId);
@@ -1133,6 +1377,7 @@ export function Reportes() {
       toast.success(
         `Reporte enviado: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
       );
+      limpiarBorradorEnviado();
       reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id, testimonios: '' });
       setAsistentes(new Map());
       setVisitasNuevas([]);
@@ -1401,9 +1646,21 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
-                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
-                                    falta escribir "Nuevo Convertido" completo. */}
-                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
+                                {/* KAN-435 (pedido explícito del owner): edad por clasificación
+                                    entre paréntesis, y el estado SSVA vigente (SIM/NC/CRE/RE)
+                                    -- todo asistente ya registrado tiene uno al llegar a la
+                                    iglesia, no solo cuando es NC. */}
+                                {persona.edad !== null && (
+                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
+                                )}
+                                {persona.estado_sigla && (
+                                  <span
+                                    className="rounded-full px-1 text-[10px] font-semibold"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
+                                  >
+                                    {persona.estado_sigla}
+                                  </span>
+                                )}
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1434,9 +1691,17 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
-                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
-                                    falta escribir "Nuevo Convertido" completo. */}
-                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
+                                {persona.edad !== null && (
+                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
+                                )}
+                                {persona.estado_sigla && (
+                                  <span
+                                    className="rounded-full px-1 text-[10px] font-semibold"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
+                                  >
+                                    {persona.estado_sigla}
+                                  </span>
+                                )}
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1613,6 +1878,139 @@ export function Reportes() {
         title={modoEdicion ? `Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}` : 'Reporte de la reunión'}
         color={colorRed ?? undefined}
       />
+
+      {/* KAN-435 (pedido explícito del owner): distintivo, no una advertencia
+          estricta -- solo para orientar de que este reporte en blanco
+          corresponde a una semana atrasada (se llegó acá desde el círculo
+          rojo del calendario, ?fecha=), no a la reunión de hoy. Se oculta
+          si hay conflicto (ver abajo) -- ya no aplica "atrasado" si
+          alguien más ya lo envió. */}
+      {borradorAplica && fechaQueryParam && !reporteConflictoId && (
+        <div
+          className="-mt-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] font-medium"
+          style={{
+            borderColor: `color-mix(in oklab, ${AMBAR} 35%, transparent)`,
+            backgroundColor: `color-mix(in oklab, ${AMBAR} 10%, transparent)`,
+            color: AMBAR,
+          }}
+        >
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          Reporte atrasado: semana sin enviar.
+        </div>
+      )}
+
+      {/* Punto 2 (pedido explícito del owner, 2026-09-23): el borrador que
+          se iba a restaurar quedó obsoleto -- alguien ya envió el reporte
+          real de esta misma fecha mientras tanto (ej. desde otra
+          sesión/cuenta). No se restauran los datos viejos: se ofrece ir a
+          editar el reporte real, o descartar este borrador. El caso grave
+          (mandar el mismo reporte dos veces) ya lo bloquea el backend
+          (uq_reporte_cdp_fecha) -- esto es solo para no hacer descubrir
+          el choque recién al final, después de volver a cargar todo. */}
+      {reporteConflictoId && (
+        <div
+          className="-mt-2 flex flex-col gap-2 rounded-xl border px-3 py-2.5 text-[12px] sm:flex-row sm:items-center sm:justify-between"
+          style={{
+            borderColor: `color-mix(in oklab, ${AZUL} 35%, transparent)`,
+            backgroundColor: `color-mix(in oklab, ${AZUL} 8%, transparent)`,
+          }}
+        >
+          <span className="flex items-center gap-2 font-medium" style={{ color: AZUL }}>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Ya se envió el reporte de esta fecha. Tu borrador quedó desactualizado.
+          </span>
+          <span className="flex shrink-0 gap-2">
+            <Button type="button" size="sm" className="h-7 rounded-lg text-xs" onClick={() => navigate(rutaReporteEditar(reporteConflictoId))}>
+              Editar ese reporte
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 rounded-lg text-xs"
+              onClick={() => setConfirmandoDescartarBorrador(true)}
+            >
+              Descartar borrador
+            </Button>
+          </span>
+        </div>
+      )}
+
+      {/* Punto 1 (pedido explícito del owner, 2026-09-23): escape manual --
+          descartar el borrador y arrancar en blanco, para cuando quedó
+          obsoleto o simplemente no se lo quiere seguir. Siempre visible en
+          un reporte nuevo (no aparece/desaparece de golpe), pero
+          deshabilitado hasta que haya algo real que descartar -- recién
+          se activa cuando el autoguardado creó un borrador de verdad
+          (pedido explícito del owner: "desactivado a menos que se haga
+          una modificación"). */}
+      {borradorAplica && !reporteConflictoId && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!borradorId}
+          className="-mt-4 h-8 self-end gap-1.5 rounded-lg border-destructive/40 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+          onClick={() => setConfirmandoDescartarBorrador(true)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Descartar borrador y empezar de nuevo
+        </Button>
+      )}
+
+      {/* KAN-367 (mismo patrón que "Anular reporte" más abajo): advertencia
+          destacada en rojo, no un diálogo gris neutro -- pedido explícito
+          del owner para que la acción se sienta como lo que es (se pierde
+          progreso), aunque nunca toque un reporte ya enviado. */}
+      <Dialog open={confirmandoDescartarBorrador} onOpenChange={setConfirmandoDescartarBorrador}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <Trash2 className="h-6 w-6 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-destructive">Vas a descartar este borrador</p>
+              <p className="text-sm text-muted-foreground">Se pierde lo que llevás sin enviar. No afecta ningún reporte ya enviado.</p>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmandoDescartarBorrador(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={descartarBorrador}>
+              Sí, empezar de nuevo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* KAN-435 (pedido explícito del owner, versión simplificada tras
+          feedback en vivo: "un mensaje es muy largo... un ícono de disco
+          flotante que no estorbe"): destello flotante, no clickeable,
+          mientras se autoguarda -- aparece con una animación y se
+          desvanece solo a los ~1.6s de confirmado el guardado. Nada de
+          esto cuenta como reporte real hasta tocar "Enviar reporte" (ver
+          limpiarBorradorEnviado); si falla, se avisa con un toast puntual
+          en vez de dejar el ícono pegado en un estado de error. */}
+      <AnimatePresence>
+        {borradorAplica && mostrarIndicadorBorrador && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.25 }}
+            className="pointer-events-none fixed right-5 bottom-5 z-50 flex h-11 w-11 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${TEAL} 22%, transparent)`,
+              boxShadow: `0 0 18px 3px color-mix(in oklab, ${TEAL} 55%, transparent)`,
+            }}
+          >
+            {estadoBorrador === 'guardando' ? (
+              <Loader2 className="h-4.5 w-4.5 animate-spin" style={{ color: TEAL }} />
+            ) : (
+              <Save className="h-4.5 w-4.5" style={{ color: TEAL }} />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* KAN-367 (pedido del owner, 2026-09-17): explica qué significa el
           rojo -- sin esto no queda claro que es "esto ya está guardado", no
@@ -1794,6 +2192,15 @@ export function Reportes() {
                       className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
                       {...register('fecha_reunion')}
                     />
+                    {/* KAN-435 (pedido explícito del owner): el input de fecha nativo
+                        no muestra el día de la semana -- se agrega acá al lado, en
+                        vivo, según lo que se va eligiendo (el input solo muestra
+                        DD/MM/AAAA). */}
+                    {fechaReunion && (
+                      <p className="text-[11px] text-muted-foreground">
+                        {fechaLegibleConDia(fechaReunion).replace(/^./, (c) => c.toUpperCase())}
+                      </p>
+                    )}
                   </div>
 
                   {/* KAN-367 (2026-09-17): Disertador sube acá, al lado de la
@@ -2418,6 +2825,7 @@ export function Reportes() {
         onGuardarFecha={guardarFechaNacimientoPendiente}
         onGuardarEdadAproximada={guardarEdadAproximadaPendiente}
         onResolverEsMenor={resolverEsMenorPendiente}
+        onCancelar={cancelarColaFechaNacimiento}
       />
     </div>
   );

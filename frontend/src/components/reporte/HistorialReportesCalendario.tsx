@@ -8,7 +8,7 @@ import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario, useReunionesNoRealizadas } from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
-import { rutaReporteEditar } from '@/utils/constants';
+import { ROUTES, rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, fechaLegibleConDia, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import { cn } from '@/lib/utils';
 
@@ -343,7 +343,14 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                       <span className="sm:hidden">{NOMBRES_MES[grupo.mes].slice(0, 3)}</span>
                       <span className="hidden sm:inline">{NOMBRES_MES[grupo.mes]}</span>
                     </span>
-                    <div className="flex flex-1 flex-nowrap gap-1 overflow-x-auto sm:gap-1.5">
+                    {/* KAN-435 (2026-09-23, bug real reportado por el owner): `overflow-x-auto`
+                        sin padding vertical hace que el navegador trate también el eje Y como
+                        recortado (regla CSS: un eje con overflow no-visible fuerza el otro a
+                        `auto` si estaba en `visible`) -- el círculo, al crecer con
+                        `hover:scale-110`, quedaba cortado arriba/abajo en vez de verse como una
+                        burbuja completa. `py-1.5` le da lugar al crecimiento sin necesitar
+                        overflow vertical real. */}
+                    <div className="flex flex-1 flex-nowrap gap-1 overflow-x-auto py-1.5 sm:gap-1.5">
                       {grupo.semanas.map((s) => {
                         const enviado = semanasConReporte.has(s.inicio);
                         const semanaVencida = s.fin < hoyISO;
@@ -394,14 +401,20 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   mostrar el resumen sin mouse. */}
                               <button
                                 type="button"
-                                aria-disabled={!editable}
-                                tabIndex={editable ? 0 : -1}
+                                aria-disabled={!editable && !faltante}
+                                tabIndex={editable || faltante ? 0 : -1}
                                 onClick={
                                   editable
                                     ? () => navigate(rutaReporteEditar(reporteSemana.reporteId))
-                                    : esTactil
-                                      ? () => setSemanaAbiertaTactil((actual) => (actual === s.inicio ? null : s.inicio))
-                                      : undefined
+                                    : // KAN-435 (pedido del owner): el círculo rojo "no entregado" no
+                                      // tiene reporte -- abre directo el formulario en blanco con la
+                                      // fecha de esa semana precargada, sin ningún aviso intermedio
+                                      // (mismo criterio que los verdes: el click ya es la acción).
+                                      faltante
+                                      ? () => navigate(`${ROUTES.REPORTES}?fecha=${s.inicio}`)
+                                      : esTactil
+                                        ? () => setSemanaAbiertaTactil((actual) => (actual === s.inicio ? null : s.inicio))
+                                        : undefined
                                 }
                                 className={cn(
                                   // KAN-392: círculo más chico en mobile (h-7/w-7) -- junto con el
@@ -412,7 +425,9 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
                                   noRealizada && 'text-white',
                                   !enviado && !faltante && !noRealizada && 'bg-muted text-muted-foreground/60',
-                                  editable ? 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]' : 'cursor-default'
+                                  editable && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]',
+                                  faltante && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-110',
+                                  !editable && !faltante && 'cursor-default'
                                 )}
                                 // KAN-367 (pedido del owner, 2026-09-17): entregado-editable vs
                                 // entregado-vencido son el mismo estado semántico (verde) pero uno
@@ -479,6 +494,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   <p className="text-muted-foreground">
                                     Fecha supuesta: {fechaLegible(s.inicio)} – {fechaLegible(s.fin)}
                                   </p>
+                                  <p className="mt-0.5 font-medium text-primary">Click para completar este reporte</p>
                                 </div>
                               ) : (
                                 <p>
