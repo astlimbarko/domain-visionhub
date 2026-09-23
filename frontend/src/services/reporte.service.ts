@@ -1511,3 +1511,23 @@ export async function eliminarBorradorReporte(borradorId: string): Promise<void>
   const { error } = await supabase.from('casa_de_paz_reporte_borrador').delete().eq('id', borradorId);
   if (error) throw error;
 }
+
+/**
+ * KAN-435 (pedido explícito del owner): antes de restaurar un borrador,
+ * chequea si YA se envió el reporte real de esa CdP+fecha -- caso real que
+ * preocupaba: alguien retoma un borrador viejo sin saber que el reporte ya
+ * se completó y envió desde otra sesión/cuenta mientras tanto. Devuelve el
+ * id del reporte real si existe, para poder ofrecer "editar ese" en vez de
+ * restaurar datos que ya no sirven.
+ */
+export async function existeReporteParaFecha(casaDePazId: string, fechaReunion: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte')
+    .select('id')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('fecha_reunion', fechaReunion)
+    .is('fecha_eliminacion', null)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}

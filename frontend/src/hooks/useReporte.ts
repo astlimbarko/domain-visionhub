@@ -8,6 +8,7 @@ import {
   crearReporteMegafiesta,
   crearReunionNoRealizada,
   eliminarBorradorReporte,
+  existeReporteParaFecha,
   guardarBorradorReporte,
   obtenerBorradorReporte,
   obtenerCamposObligatorios,
@@ -457,5 +458,15 @@ export function useGuardarBorradorReporte() {
 export function useEliminarBorradorReporte() {
   return useMutation({
     mutationFn: (borradorId: string) => eliminarBorradorReporte(borradorId),
+  });
+}
+
+/** KAN-435: ¿ya se envió el reporte real de esta CdP+fecha? Se chequea antes de restaurar un borrador. */
+export function useExisteReporteParaFecha(casaDePazId: string | undefined, fechaReunion: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'existe-fecha', casaDePazId, fechaReunion],
+    queryFn: () => existeReporteParaFecha(casaDePazId as string, fechaReunion as string),
+    enabled: !!casaDePazId && !!fechaReunion,
+    staleTime: Infinity,
   });
 }

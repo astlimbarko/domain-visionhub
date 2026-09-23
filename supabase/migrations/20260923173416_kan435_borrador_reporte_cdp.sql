@@ -58,3 +58,11 @@ CREATE POLICY pol_reporte_borrador_update ON casa_de_paz_reporte_borrador
 CREATE POLICY pol_reporte_borrador_delete ON casa_de_paz_reporte_borrador
   FOR DELETE
   USING (iglesia_id IN (SELECT fn_mis_iglesias()) AND fn_puede_reportar_cdp(casa_de_paz_id));
+
+-- Bug real encontrado en vivo (2026-09-23): el esquema no otorga DELETE a
+-- `authenticated` por defecto en tablas nuevas -- consistente con la
+-- convención del proyecto de nunca hacer DELETE real (soft-delete en
+-- todos lados). Esta tabla es la excepción deliberada, así que necesita
+-- el GRANT explícito; sin esto, cualquier DELETE devuelve 403 aunque la
+-- policy de arriba esté bien.
+GRANT DELETE ON casa_de_paz_reporte_borrador TO authenticated;

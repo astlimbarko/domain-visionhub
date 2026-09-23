@@ -97,7 +97,7 @@ export function ModalFechaNacimientoFaltante({
             size="icon-sm"
             className="absolute top-2 right-2"
             onClick={() => limpiarYCerrar(onCancelar)}
-            title="No era esta persona -- sacarla de la asistencia"
+            title="No era esta persona, sacarla de la asistencia"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Cancelar, no era esta persona</span>
@@ -177,7 +177,7 @@ export function ModalFechaNacimientoFaltante({
             size="icon-sm"
             className="absolute top-2 right-2"
             onClick={() => limpiarYCerrar(onCancelar)}
-            title="No era esta persona -- sacarla de la asistencia"
+            title="No era esta persona, sacarla de la asistencia"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Cancelar, no era esta persona</span>

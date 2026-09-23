@@ -103,10 +103,7 @@ export function FichaRapidaAsistente({
 
         <div className="flex flex-col gap-4">
           {tieneFechaNacimiento ? (
-            <p className="text-sm text-muted-foreground">
-              {edad !== null ? RANGO_EDAD_LABEL_PERSONA[clasificarEdad(edad)] : 'Edad no disponible'} -- si la fecha de nacimiento está mal cargada, corregila desde
-              "Editar ficha completa".
-            </p>
+            <p className="text-sm text-muted-foreground">{edad !== null ? RANGO_EDAD_LABEL_PERSONA[clasificarEdad(edad)] : 'Edad no disponible'}.</p>
           ) : (
             <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
               <Label htmlFor="ficha-rapida-fecha" className="text-xs">
@@ -149,7 +146,7 @@ export function FichaRapidaAsistente({
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
             <div>
               <p className="text-sm font-medium">Se reconcilió con la fe hoy (RE)</p>
-              <p className="text-xs text-muted-foreground">Solo si lo confirmó ahora -- nunca se marca solo.</p>
+              <p className="text-xs text-muted-foreground">Solo si lo confirmó ahora. Nunca se marca solo.</p>
             </div>
             <Switch checked={esReconciliado} onCheckedChange={onCambiarReconciliacion} />
           </div>
