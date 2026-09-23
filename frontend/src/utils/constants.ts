@@ -58,6 +58,10 @@ export const ROUTES = {
   // iglesiaActivaId -- el codigo define la iglesia/area de la colaboracion.
   COLABORAR: '/colaborar',
   ADMINISTRACION: '/administracion',
+  // KAN-424: panel de Super Admin de cuentas huérfanas -- sin item de nav
+  // propio, se llega desde el link en Administración (mismo criterio que
+  // ANUNCIOS más abajo).
+  CUENTAS_HUERFANAS: '/administracion/cuentas-huerfanas',
   // KAN-101: gestion de anuncios (Supervisor de la Vision en Accion /
   // Pastor / Encargado de Anuncios / Lider de Red / Supervisor de Red). Sin
   // item de nav todavia; se llega por URL directa.

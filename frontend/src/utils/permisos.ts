@@ -206,6 +206,7 @@ const RUTAS_PASTOR: string[] = RUTAS_SUPERVISOR;
 
 const RUTAS_SUPER_ADMIN: string[] = [
   ROUTES.ADMINISTRACION,
+  ROUTES.CUENTAS_HUERFANAS,
 ];
 
 // Líder de Departamento (Afirmación y, desde KAN-281, Evangelismo) -- capacidad

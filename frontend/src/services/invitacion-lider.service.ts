@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { obtenerUrlBase } from '@/utils/app-url';
-import type { InvitacionDepartamento, InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
+import type { CuentaHuerfana, InvitacionDepartamento, InvitacionLider, InvitacionPendiente, RolInvitable } from '@/types/invitacion-lider.types';
 
 export interface ErrorPersonaExistente extends Error {
   personaId?: string;
@@ -116,4 +116,22 @@ export async function completarMembresia(datos: Record<string, unknown>): Promis
   const { data, error } = await supabase.rpc('fn_completar_membresia', { p_datos: datos });
   if (error) throw error;
   return data;
+}
+
+/** KAN-424: panel de Super Admin -- cuentas de auth.users sin Persona
+ * vinculada (quedaron a medias de un alta anterior). */
+export async function listarCuentasHuerfanas(): Promise<CuentaHuerfana[]> {
+  const { data, error } = await supabase.rpc('fn_listar_cuentas_huerfanas');
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** KAN-424: banea la cuenta de forma definitiva (no se puede borrar
+ * físicamente si alguna vez quedó referenciada por un usuario_rol/
+ * invitacion_lider soft-eliminado) para sacarla del listado. */
+export async function descartarCuentaHuerfana(usuarioId: string, pinDescarte?: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('invitar-lider', {
+    body: { accion: 'descartar_huerfana', usuarioId, pinDescarte },
+  });
+  if (error) throw await extraerError(error);
 }

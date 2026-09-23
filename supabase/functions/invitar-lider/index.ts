@@ -66,7 +66,7 @@ async function datosInvitacionParaCorreo(
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
     let body: {
-      accion?: "invitar" | "reenviar" | "cancelar" | "corregir";
+      accion?: "invitar" | "reenviar" | "cancelar" | "corregir" | "descartar_huerfana";
       correo?: string;
       rol?: string;
       redId?: string | null;
@@ -75,6 +75,11 @@ export default {
       invitacionId?: string;
       redirectTo?: string;
       pin?: string;
+      // KAN-424: id de la cuenta huérfana a descartar (accion "descartar_huerfana").
+      usuarioId?: string;
+      // KAN-424: código de confirmación (mismo patrón que fn_exigir_pin usa
+      // para el resto de acciones sensibles de Super Admin).
+      pinDescarte?: string;
       // KAN-376 seguimiento (2026-09-13, pedido explicito del owner): en vez
       // de mandar el correo de invitacion (persona sin tecnologia a mano, o
       // no confia en el correo), permite crear la cuenta ya con esta
@@ -99,6 +104,33 @@ export default {
       body = await req.json();
     } catch {
       return Response.json({ error: "Cuerpo invalido" }, { status: 400 });
+    }
+
+    // KAN-424 (2026-09-23, pedido explicito del owner): panel de Super Admin
+    // para descartar una cuenta huerfana que no se va a usar mas -- se banea
+    // en forma definitiva (no se puede borrar fisicamente si alguna vez
+    // quedo referenciada por un usuario_rol/invitacion_lider soft-eliminado,
+    // por la FK) para que deje de aparecer en el listado y nadie la vuelva a
+    // topar por accidente.
+    if (body.accion === "descartar_huerfana") {
+      if (!body.usuarioId) {
+        return Response.json({ error: "Falta el usuarioId" }, { status: 400 });
+      }
+      const { data: esSuperAdmin, error: errorSuperAdmin } = await ctx.supabase.rpc("fn_es_super_admin");
+      if (errorSuperAdmin || !esSuperAdmin) {
+        return Response.json({ error: "Solo un Super Admin puede descartar cuentas huérfanas" }, { status: 403 });
+      }
+      const { error: errorPin } = await ctx.supabase.rpc("fn_exigir_pin", { p_pin: body.pinDescarte ?? null });
+      if (errorPin) {
+        return Response.json({ error: "El código de confirmación es incorrecto, expiró, o no fue solicitado" }, { status: 403 });
+      }
+      const { error: errorDescartar } = await ctx.supabaseAdmin.auth.admin.updateUserById(body.usuarioId, {
+        ban_duration: "876000h",
+      });
+      if (errorDescartar) {
+        return Response.json({ error: errorDescartar.message }, { status: 500 });
+      }
+      return Response.json({ ok: true });
     }
 
     if (body.accion === "reenviar") {

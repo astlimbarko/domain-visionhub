@@ -303,9 +303,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   // a mano.
   const location = useLocation();
   // El cuerpo (no solo la barra/sidebar) también se oscurece, pero solo en
-  // /administracion -- otras páginas (Afirmación, etc.) siguen viviendo con
-  // el cuerpo claro de siempre aunque el rol activo sea Super Admin.
-  const esPanelAdmin = location.pathname === ROUTES.ADMINISTRACION;
+  // /administracion (y sus subpáginas, ej. /administracion/cuentas-huerfanas
+  // -- KAN-424) -- otras páginas (Afirmación, etc.) siguen viviendo con el
+  // cuerpo claro de siempre aunque el rol activo sea Super Admin.
+  const esPanelAdmin = location.pathname.startsWith(ROUTES.ADMINISTRACION);
   const cuerpoSoporte = [
     'Hola equipo,',
     '',

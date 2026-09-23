@@ -3,7 +3,9 @@ import {
   cancelarInvitacionLider,
   completarMembresia,
   corregirCorreoInvitacionLider,
+  descartarCuentaHuerfana,
   invitarLider,
+  listarCuentasHuerfanas,
   obtenerInvitacionesDepartamento,
   obtenerInvitacionesLider,
   obtenerMiInvitacionPendiente,
@@ -45,6 +47,8 @@ export function useInvitarLider() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-lider'] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });
+      // KAN-424: si esto reparó una cuenta huérfana, sale de ese listado.
+      queryClient.invalidateQueries({ queryKey: ['admin', 'cuentas-huerfanas'] });
     },
   });
 }
@@ -88,4 +92,18 @@ export function useMiInvitacionPendiente() {
 
 export function useCompletarMembresia() {
   return useMutation({ mutationFn: completarMembresia });
+}
+
+/** KAN-424: panel de Super Admin de cuentas huérfanas. */
+export function useCuentasHuerfanas() {
+  return useQuery({ queryKey: ['admin', 'cuentas-huerfanas'], queryFn: listarCuentasHuerfanas });
+}
+
+export function useDescartarCuentaHuerfana() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ usuarioId, pinDescarte }: { usuarioId: string; pinDescarte?: string }) =>
+      descartarCuentaHuerfana(usuarioId, pinDescarte),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'cuentas-huerfanas'] }),
+  });
 }
