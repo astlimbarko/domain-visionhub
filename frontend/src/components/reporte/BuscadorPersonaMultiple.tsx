@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { normalizarNombre } from '@/utils/normalizarNombre';
+import { clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
 import { MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
@@ -411,7 +412,9 @@ export function BuscadorPersonaMultiple({
                     <Checkbox checked={seleccionadosSet.has(m.persona_id)} onCheckedChange={() => onToggle(m.persona_id)} />
                     <span className="flex-1">
                       {m.nombre_completo}
-                      {m.edad !== null && <span className="ml-1.5 text-xs text-muted-foreground">({m.edad} años)</span>}
+                      {m.edad !== null && (
+                        <span className="ml-1.5 text-xs text-muted-foreground">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(m.edad)]})</span>
+                      )}
                     </span>
                     {seleccionadosSet.has(m.persona_id) && <Check className="h-3.5 w-3.5 text-chart-2" />}
                   </label>

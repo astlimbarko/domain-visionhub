@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { SeccionIconHeader } from '@/components/shared/SeccionIconHeader';
 import { AZUL, MORADO, VERDE, AMBAR } from '@/components/dashboard/DashboardUI';
 import { CAMPO_ESTILO } from '@/lib/estilos';
+import { clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 
 const NOMBRE_ESTADO: Record<string, string> = { SIM: 'Simpatizante', NC: 'Nuevo Convertido', CRE: 'Creyente', RE: 'Reconciliado' };
 const COLOR_ESTADO: Record<string, string> = { SIM: AMBAR, NC: MORADO, CRE: VERDE, RE: AZUL };
@@ -103,7 +104,7 @@ export function FichaRapidaAsistente({
         <div className="flex flex-col gap-4">
           {tieneFechaNacimiento ? (
             <p className="text-sm text-muted-foreground">
-              {edad !== null ? `${edad} años` : 'Edad no disponible'} -- si la fecha de nacimiento está mal cargada, corregila desde
+              {edad !== null ? RANGO_EDAD_LABEL_PERSONA[clasificarEdad(edad)] : 'Edad no disponible'} -- si la fecha de nacimiento está mal cargada, corregila desde
               "Editar ficha completa".
             </p>
           ) : (
