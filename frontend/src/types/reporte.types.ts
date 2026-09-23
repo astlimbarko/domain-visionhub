@@ -146,6 +146,10 @@ export interface NuevaVisita {
    * confirmado, nunca se deriva una fecha ficticia a partir de esto. Solo
    * tiene sentido cuando fecha_nacimiento viene vacío. */
   edad_aproximada?: number;
+  /** KAN-435: marcado explícito al dar de alta -- si viene true, se le pone
+   * NC de una en vez de dejarlo al conteo automático de visitas (una
+   * decisión que solo puede confirmar un humano). */
+  acepto_a_cristo?: boolean;
 }
 
 /**

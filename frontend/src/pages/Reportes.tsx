@@ -629,6 +629,7 @@ export function Reportes() {
         fecha_nacimiento: datos.fecha_nacimiento,
         edad_aproximada: datos.edad_aproximada,
         telefono: datos.telefono,
+        acepto_a_cristo: datos.acepto_a_cristo,
       },
     ]);
     setEvangelizadosPendientes((prev) => [
