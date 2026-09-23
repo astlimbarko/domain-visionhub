@@ -3,6 +3,8 @@ import { agregarTelefono, obtenerTiposTelefono } from './persona.service';
 import { calcularEdad } from '@/utils/edad';
 import { fechasReunionDelMes } from '@/utils/calendario-fechas';
 import type {
+  BorradorReporte,
+  BorradorReportePayload,
   CamposObligatoriosReporte,
   CategoriaTestimonio,
   DiezmoLinea,
@@ -1441,4 +1443,71 @@ export async function actualizarReporte(reporteId: string, datos: NuevoReporte):
     totalAsistentes: totales.total_asistentes,
     visitasNuevasCreadas: nuevasPersonas.map((p) => ({ clave: p.clave, personaId: p.id })),
   };
+}
+
+/**
+ * KAN-435 (autoguardado del Reporte de Casa de Paz): un borrador por
+ * (casa_de_paz_id, fecha_reunion) -- mismo criterio de unicidad que el
+ * reporte real. `fechaReunion` identifica CUÁL borrador (el líder puede
+ * tener el de hoy y, aparte, uno de una semana atrasada que está
+ * completando desde el círculo rojo del calendario, sin pisarse).
+ */
+export async function obtenerBorradorReporte(casaDePazId: string, fechaReunion: string): Promise<BorradorReporte | null> {
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte_borrador')
+    .select('id, payload, fecha_actualizacion')
+    .eq('casa_de_paz_id', casaDePazId)
+    .eq('payload->>fecha_reunion', fechaReunion)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return { id: data.id, payload: data.payload as BorradorReportePayload, fechaActualizacion: data.fecha_actualizacion };
+}
+
+/**
+ * `borradorId` viene de un guardado anterior (o de `obtenerBorradorReporte`)
+ * -- si no hay todavía, se crea. Si el insert choca contra el índice único
+ * (otra pestaña lo creó primero para la misma CdP+fecha), se recupera y se
+ * actualiza en vez de fallar -- el autoguardado nunca debería mostrarle un
+ * error al líder por esto.
+ */
+export async function guardarBorradorReporte(
+  borradorId: string | null,
+  iglesiaId: string,
+  casaDePazId: string,
+  payload: BorradorReportePayload
+): Promise<string> {
+  if (borradorId) {
+    const { error } = await supabase
+      .from('casa_de_paz_reporte_borrador')
+      .update({ payload, fecha_actualizacion: new Date().toISOString() })
+      .eq('id', borradorId);
+    if (error) throw error;
+    return borradorId;
+  }
+
+  const { data, error } = await supabase
+    .from('casa_de_paz_reporte_borrador')
+    .insert({ iglesia_id: iglesiaId, casa_de_paz_id: casaDePazId, payload })
+    .select('id')
+    .single();
+  if (!error) return data.id;
+
+  if (error.code === '23505') {
+    const existente = await obtenerBorradorReporte(casaDePazId, payload.fecha_reunion);
+    if (existente) {
+      const { error: errorUpdate } = await supabase
+        .from('casa_de_paz_reporte_borrador')
+        .update({ payload, fecha_actualizacion: new Date().toISOString() })
+        .eq('id', existente.id);
+      if (errorUpdate) throw errorUpdate;
+      return existente.id;
+    }
+  }
+  throw error;
+}
+
+export async function eliminarBorradorReporte(borradorId: string): Promise<void> {
+  const { error } = await supabase.from('casa_de_paz_reporte_borrador').delete().eq('id', borradorId);
+  if (error) throw error;
 }

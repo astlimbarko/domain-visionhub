@@ -7,6 +7,9 @@ import {
   crearReporte,
   crearReporteMegafiesta,
   crearReunionNoRealizada,
+  eliminarBorradorReporte,
+  guardarBorradorReporte,
+  obtenerBorradorReporte,
   obtenerCamposObligatorios,
   obtenerCdpContextoReporte,
   obtenerDesgloseMegafiesta,
@@ -35,7 +38,7 @@ import {
   puedeEditarReporte,
   puedeSolicitarEdicionFueraVentana,
 } from '@/services/reporte.service';
-import type { NuevoReporte, NuevoReporteMegafiesta } from '@/types/reporte.types';
+import type { BorradorReportePayload, NuevoReporte, NuevoReporteMegafiesta } from '@/types/reporte.types';
 
 export function useLibros() {
   return useQuery({ queryKey: ['reporte', 'libros'], queryFn: obtenerLibros, staleTime: 1000 * 60 * 60 });
@@ -416,5 +419,43 @@ export function useActualizarReporte(casaDePazId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['finanzas'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+  });
+}
+
+/**
+ * KAN-435 (autoguardado): borrador de un reporte todavía no enviado, para
+ * esta CdP+fecha puntual. `fechaReunion` tiene que ser la fecha con la que
+ * arrancó el formulario (no la que se va tipeando) -- la búsqueda es una
+ * sola vez al montar, no en cada tecla.
+ */
+export function useBorradorReporte(casaDePazId: string | undefined, fechaReunion: string | undefined) {
+  return useQuery({
+    queryKey: ['reporte', 'borrador', casaDePazId, fechaReunion],
+    queryFn: () => obtenerBorradorReporte(casaDePazId as string, fechaReunion as string),
+    enabled: !!casaDePazId && !!fechaReunion,
+    staleTime: Infinity,
+  });
+}
+
+/** No invalida ninguna query -- un borrador no es un reporte real, no debe tocar calendario/dashboard/etc. */
+export function useGuardarBorradorReporte() {
+  return useMutation({
+    mutationFn: ({
+      borradorId,
+      iglesiaId,
+      casaDePazId,
+      payload,
+    }: {
+      borradorId: string | null;
+      iglesiaId: string;
+      casaDePazId: string;
+      payload: BorradorReportePayload;
+    }) => guardarBorradorReporte(borradorId, iglesiaId, casaDePazId, payload),
+  });
+}
+
+export function useEliminarBorradorReporte() {
+  return useMutation({
+    mutationFn: (borradorId: string) => eliminarBorradorReporte(borradorId),
   });
 }

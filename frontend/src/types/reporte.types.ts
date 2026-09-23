@@ -1,3 +1,5 @@
+import type { PersonaBusqueda } from './casas-de-paz.types';
+
 export interface Libro {
   id: string;
   numero: number;
@@ -218,6 +220,42 @@ export interface NuevoReporte {
   /** Diezmos por persona (nombre + monto + celular opcional). El total es la suma. */
   diezmos: DiezmoLinea[];
   monedaId: string;
+}
+
+/**
+ * KAN-435 (2026-09-23, pedido explícito del owner): autoguardado del
+ * formulario de reporte -- todo lo que hoy vive en estado local de React
+ * en Reportes.tsx mientras se llena, tal cual, para poder reconstruir el
+ * formulario si el dispositivo se apaga o si se retoma desde otro. No
+ * incluye lo ligado a Evangelismo (evangelizadosPendientes) todavía --
+ * ese sub-flujo queda fuera de esta primera versión.
+ */
+export interface BorradorReportePayload {
+  fecha_reunion: string;
+  libro_id?: string;
+  tema_id?: string;
+  tema_especial_txt?: string;
+  disertador_id?: string;
+  /** Texto mostrado en el campo de búsqueda del disertador -- se pierde el nombre si solo se guarda el id. */
+  disertador_nombre?: string;
+  salio_evangelizar: boolean;
+  testimonios?: string;
+  testimoniosCategorizados: TestimonioLinea[];
+  /** Mapa `asistentes` de Reportes.tsx serializado como array de pares. */
+  asistentes: [string, { esVisita: boolean; esMenor?: boolean }][];
+  visitasNuevas: NuevaVisita[];
+  asistentesNuevosExistentes: PersonaBusqueda[];
+  /** Ids marcados como "se reconcilió con la fe hoy" (RE). */
+  reconciliados: string[];
+  totalOfrendas: number;
+  monedaId?: string;
+  diezmos: DiezmoLinea[];
+}
+
+export interface BorradorReporte {
+  id: string;
+  payload: BorradorReportePayload;
+  fechaActualizacion: string;
 }
 
 export interface ResultadoReporte {
