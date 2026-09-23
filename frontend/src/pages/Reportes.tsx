@@ -37,7 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, TEAL } from '@/components/dashboard/DashboardUI';
+import { DashboardHero, AZUL, VERDE, AMBAR, MARINO, MORADO, TEAL } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonas, useRedes } from '@/hooks/useCasasDePaz';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import {
@@ -89,7 +89,7 @@ import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendi
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { rutaReporteEditar } from '@/utils/constants';
-import { calcularEdad } from '@/utils/edad';
+import { calcularEdad, clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import type {
@@ -152,6 +152,10 @@ const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-car
  * catálogo `cdp_tema` tenía una fila `es_especial=true` para ESE libro
  * puntual (solo 2 de 13 libros la tienen). No es un `tema_id` real. */
 const TEMA_ESPECIAL_SENTINEL = '__tema_especial__';
+
+/** KAN-435 (pedido explícito del owner): color por estado SSVA para las
+ * pastillas de asistencia -- mismo criterio de color que FichaRapidaAsistente. */
+const COLOR_ESTADO_SSVA: Record<string, string> = { SIM: AMBAR, NC: MORADO, CRE: VERDE, RE: AZUL };
 
 export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
@@ -1642,9 +1646,21 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
-                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
-                                    falta escribir "Nuevo Convertido" completo. */}
-                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
+                                {/* KAN-435 (pedido explícito del owner): edad por clasificación
+                                    entre paréntesis, y el estado SSVA vigente (SIM/NC/CRE/RE)
+                                    -- todo asistente ya registrado tiene uno al llegar a la
+                                    iglesia, no solo cuando es NC. */}
+                                {persona.edad !== null && (
+                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
+                                )}
+                                {persona.estado_sigla && (
+                                  <span
+                                    className="rounded-full px-1 text-[10px] font-semibold"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
+                                  >
+                                    {persona.estado_sigla}
+                                  </span>
+                                )}
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1675,9 +1691,17 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
-                                {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
-                                    falta escribir "Nuevo Convertido" completo. */}
-                                {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
+                                {persona.edad !== null && (
+                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
+                                )}
+                                {persona.estado_sigla && (
+                                  <span
+                                    className="rounded-full px-1 text-[10px] font-semibold"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
+                                  >
+                                    {persona.estado_sigla}
+                                  </span>
+                                )}
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );

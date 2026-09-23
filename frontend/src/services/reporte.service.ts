@@ -155,7 +155,15 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
   const [{ data, error }, { data: visitas, error: errorVisitas }] = await Promise.all([
     supabase
       .from('casa_de_paz_membresia')
-      .select('persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento)')
+      .select(
+        // KAN-435 (pedido explícito del owner): el estado SSVA (SIM/NC/CRE/RE)
+        // de los miembros formales de la CdP nunca se pedía acá -- solo
+        // `fn_visitas_cdp` (abajo) lo traía, para quien todavía no es
+        // miembro. Mismo criterio de "vigente" que esa función
+        // (fecha_fin/fecha_eliminacion null), filtrado en el map de abajo
+        // porque persona_estado es historial completo (append-only).
+        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)))'
+      )
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
     // KAN-399 (2026-09-17): antes usaba fn_visitas_regulares_cdp, que exige
@@ -176,11 +184,15 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
   const miembros = (data ?? []).map((r) => {
     const p = Array.isArray(r.persona) ? r.persona[0] : r.persona;
     const nombre = [p?.primer_nombre, p?.segundo_nombre, p?.primer_apellido, p?.segundo_apellido].filter(Boolean).join(' ');
+    const historialEstados = (p?.persona_estado ?? []) as { fecha_fin: string | null; fecha_eliminacion: string | null; estado: { sigla: string } | { sigla: string }[] | null }[];
+    const estadoVigente = historialEstados.find((pe) => pe.fecha_fin === null && pe.fecha_eliminacion === null);
+    const estadoObj = Array.isArray(estadoVigente?.estado) ? estadoVigente?.estado[0] : estadoVigente?.estado;
     return {
       persona_id: r.persona_id,
       nombre_completo: nombre,
       tiene_fecha_nacimiento: !!p?.fecha_nacimiento,
       edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+      estado_sigla: estadoObj?.sigla ?? null,
     };
   });
 
