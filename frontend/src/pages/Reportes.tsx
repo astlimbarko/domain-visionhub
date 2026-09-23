@@ -1343,19 +1343,29 @@ export function Reportes() {
                                   justo el caso típico de "volvió después de
                                   mucho tiempo", se puede marcar como RE.
                                   KAN-421 (2026-09-22): toggle compacto en vez
-                                  de checkbox+texto largo. */}
+                                  de checkbox+texto largo. KAN-435
+                                  (2026-09-23): borde + ícono de check en vez
+                                  de solo opacidad -- el owner lo probó en
+                                  vivo y no lo percibía como un botón
+                                  clickeable, solo como una etiqueta ya
+                                  aplicada (bug real de claridad, no de
+                                  datos: el RE automático por tiempo se sacó
+                                  del backend en esta misma migración). */}
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   cambiarReconciliacion(p.id, !(reconciliadosPorPersona[p.id] ?? false));
                                 }}
-                                title="Se reconcilió"
+                                title={reconciliadosPorPersona[p.id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
                                 className={cn(
-                                  'ml-1 rounded px-1 text-[10px] font-semibold',
-                                  reconciliadosPorPersona[p.id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                  'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                                  reconciliadosPorPersona[p.id]
+                                    ? 'border-transparent bg-white text-foreground'
+                                    : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
                                 )}
                               >
+                                {reconciliadosPorPersona[p.id] && <Check className="h-2.5 w-2.5" />}
                                 RE
                               </button>
                               <button
@@ -1414,19 +1424,23 @@ export function Reportes() {
                                     ("Asiste a esta CDP" / "se reconcilió") por pastilla, se
                                     sentía recargado. RE queda como toggle compacto (el caso
                                     frecuente), "Asiste a esta CDP" pasa a un menú aparte
-                                    (caso raro: visita de otra CdP). */}
+                                    (caso raro: visita de otra CdP). KAN-435 (2026-09-23):
+                                    borde + check en vez de solo opacidad, ver nota arriba. */}
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
                                   }}
-                                  title="Se reconcilió"
+                                  title={reconciliadosPorPersona[id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
                                   className={cn(
-                                    'ml-1 rounded px-1 text-[10px] font-semibold',
-                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                    'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                                    reconciliadosPorPersona[id]
+                                      ? 'border-transparent bg-white text-foreground'
+                                      : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
                                   )}
                                 >
+                                  {reconciliadosPorPersona[id] && <Check className="h-2.5 w-2.5" />}
                                   RE
                                 </button>
                                 <DropdownMenu>
@@ -1488,12 +1502,15 @@ export function Reportes() {
                                     e.stopPropagation();
                                     cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
                                   }}
-                                  title="Se reconcilió"
+                                  title={reconciliadosPorPersona[id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
                                   className={cn(
-                                    'ml-1 rounded px-1 text-[10px] font-semibold',
-                                    reconciliadosPorPersona[id] ? 'bg-white/40' : 'opacity-40 hover:opacity-70'
+                                    'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                                    reconciliadosPorPersona[id]
+                                      ? 'border-transparent bg-white text-foreground'
+                                      : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
                                   )}
                                 >
+                                  {reconciliadosPorPersona[id] && <Check className="h-2.5 w-2.5" />}
                                   RE
                                 </button>
                                 <DropdownMenu>

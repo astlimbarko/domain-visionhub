@@ -1,8 +1,23 @@
 # Diseño — Estados SSVA
 
+> **Nota de actualización (KAN-435, 2026-09-23):** este documento describe
+> la arquitectura original (trigger `trg_evaluar_estado` sobre cada
+> `INSERT` de asistencia). La implementación real migró después (KAN-395)
+> a una función que se llama explícitamente tras guardar el reporte
+> completo (`fn_recalcular_estados_cdp_reporte`, en
+> `supabase/migrations/`), no un trigger fila por fila -- este doc nunca
+> se actualizó con ese cambio de arquitectura. Además, **RE dejó de ser
+> automático por tiempo**: un caso real mostró que el sistema confundía
+> "volvió después de mucho tiempo" (medible) con "se reconcilió con la fe"
+> (una decisión espiritual, solo humana). Hoy RE es 100% manual -- el
+> toggle en el reporte de Casa de Paz (`Reportes.tsx`) es el único camino,
+> sin importar cuánto tiempo estuvo ausente. El diagrama y las secciones de
+> abajo quedan como referencia histórica del diseño original; donde diga
+> "RE ... AUTO" o "+3 meses sin asistir", ya no aplica.
+
 ## Resumen
 
-Cuatro estados en el Módulo 1: SIM, NC, CRE, RE. Una sola transición es manual (SIM → NC, porque aceptar a Jesús es un evento que solo el líder conoce); las demás las calcula la base al registrarse la asistencia.
+Cuatro estados en el Módulo 1: SIM, NC, CRE, RE. Una sola transición es manual (SIM → NC, porque aceptar a Jesús es un evento que solo el líder conoce); las demás las calcula la base al registrarse la asistencia. **(Ya no es así para RE -- ver nota de actualización arriba.)**
 
 No hay proceso nocturno. Todas las reglas del Módulo 1 se disparan por asistencia, y la asistencia es un `INSERT`. El disparador evalúa y transiciona en la misma transacción.
 
