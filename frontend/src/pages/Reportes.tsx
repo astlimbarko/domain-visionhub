@@ -313,8 +313,9 @@ export function Reportes() {
   // KAN-422 (2026-09-22, pedido explícito del owner): completado progresivo
   // -- al agregar a alguien SIN fecha de nacimiento (nuevo en esta selección,
   // no al precargar un reporte existente), se encola para preguntarle en un
-  // modal, uno por vez. "Saltar" deja el flujo de siempre (checkbox "es
-  // menor" en la pastilla) como respaldo.
+  // modal, uno por vez. KAN-435: el modal siempre termina resuelto (fecha,
+  // edad aproximada, o al menos "¿es menor?") -- no hay forma de dejarlo
+  // pendiente para después.
   const [colaFechaNacimiento, setColaFechaNacimiento] = useState<{ id: string; nombre: string }[]>([]);
   const actualizarFechaNacimiento = useActualizarFechaNacimientoBasica();
 
@@ -349,6 +350,17 @@ export function Reportes() {
     } catch {
       toast.error('No se pudo guardar la edad aproximada');
     }
+  }
+
+  // KAN-435: última salida del modal cuando ni la fecha ni la edad
+  // aproximada se saben -- resuelve solo la clasificación de este reporte
+  // (no se guarda nada en la ficha de la persona), así el modal siempre
+  // termina resuelto y nunca hace falta una alerta aparte en la página.
+  function resolverEsMenorPendiente(esMenor: boolean) {
+    const pendiente = colaFechaNacimiento[0];
+    if (!pendiente) return;
+    cambiarEsMenorAsistente(pendiente.id, esMenor);
+    quitarDeColaFechaNacimiento(pendiente.id);
   }
 
   const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
@@ -660,9 +672,8 @@ export function Reportes() {
   // Persona ya existente en el sistema (encontrada por la búsqueda global de
   // "Asistentes nuevos") que asiste como visita -- no se crea una persona
   // nueva, se reutiliza su persona_id. No se sabe su fecha de nacimiento
-  // desde este buscador (PersonaBusqueda no la trae), así que esMenor queda
-  // sin definir a propósito: el aviso "¿es menor?" (pendientesEsMenor) se
-  // encarga de preguntarlo antes de poder enviar el reporte.
+  // desde este buscador (PersonaBusqueda no la trae), así que se encola de
+  // una para el modal ModalFechaNacimientoFaltante (ver KAN-422/KAN-435).
   function agregarAsistenteExistente(persona: PersonaBusqueda) {
     setAsistentes((prev) => {
       const next = new Map(prev);
@@ -710,8 +721,8 @@ export function Reportes() {
 
     if (p.persona_id) {
       // esMenor: false de una -- sin esto, alguien sin fecha de nacimiento
-      // cargada dispararía el aviso de "¿es menor?" (pendientesEsMenor) para
-      // una persona que ya existía en el sistema, no una recién creada; el
+      // cargada dispararía el modal ModalFechaNacimientoFaltante para una
+      // persona que ya existía en el sistema, no una recién creada; el
       // owner pidió que en este flujo se guarde directo sin preguntar.
       setAsistentes((prev) => {
         const next = new Map(prev);
@@ -878,29 +889,6 @@ export function Reportes() {
     (p) => !miembros.some((m) => m.persona_id === p.id) && !asistentes.has(p.id)
   );
 
-  // Sin fecha de nacimiento no hay forma de saber la edad: se les pide que
-  // digan a mano si son menores, en vez de asumirlo y arriesgar un dato mal
-  // cargado. Se muestran todos juntos acá para que no haya que enviar el
-  // formulario una vez por persona para enterarse de a uno.
-  //
-  // Se controla a CUALQUIER asistente ya registrado sin fecha de nacimiento,
-  // sin importar en qué lista esté seleccionado (nuevos, regulares o niños).
-  // Antes solo se miraba la lista de "regulares": elegir a alguien sin fecha
-  // como "asistente nuevo" pasaba este control y recién explotaba con un 400
-  // del backend (fn_validar_asistencia rechaza es_menor nulo sin fecha de
-  // nacimiento), dejando además un reporte huérfano.
-  // Las personas encontradas por la búsqueda global de "Asistentes nuevos"
-  // (PersonaBusqueda) no traen fecha de nacimiento -- se tratan igual que un
-  // miembro sin fecha registrada, mismo aviso "¿es menor?" antes de enviar.
-  const pendientesEsMenor = [
-    ...Array.from(asistentes.keys())
-      .map((id) => miembros.find((mm) => mm.persona_id === id))
-      .filter((m): m is (typeof miembros)[number] => !!m && !m.tiene_fecha_nacimiento && esMenorPorPersona[m.persona_id] === undefined),
-    ...asistentesNuevosExistentes
-      .filter((p) => asistentes.has(p.id) && esMenorPorPersona[p.id] === undefined)
-      .map((p) => ({ persona_id: p.id, nombre_completo: p.nombre_completo, tiene_fecha_nacimiento: false, edad: null })),
-  ];
-
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
 
@@ -943,16 +931,6 @@ export function Reportes() {
 
     if (totalAsistentesActual === 0) {
       toast.error('Marcá al menos una persona antes de enviar el reporte');
-      return;
-    }
-
-    if (pendientesEsMenor.length > 0) {
-      const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
-      toast.error(
-        pendientesEsMenor.length === 1
-          ? `${nombres} no tiene fecha de nacimiento registrada: indicá arriba si es menor de ${edadMinima} años`
-          : `${nombres} no tienen fecha de nacimiento registrada: indicá arriba si son menores de ${edadMinima} años`
-      );
       return;
     }
 
@@ -1140,9 +1118,9 @@ export function Reportes() {
         // a editar el existente en vez de generar otro.
         toast.error('Ya existe un reporte para esa fecha en esta Casa de Paz. Editá el existente en vez de crear otro.');
       } else if (mensaje.includes('ASISTENCIA_EDAD_INDEFINIDA')) {
-        // Red de seguridad: el formulario ya obliga a declarar si cada persona
-        // sin fecha de nacimiento es menor (ver pendientesEsMenor), pero por si
-        // acaso llega a pasar, el mensaje es claro en vez del genérico.
+        // Red de seguridad: el modal ModalFechaNacimientoFaltante ya obliga a
+        // declarar si cada persona sin fecha de nacimiento es menor, pero por
+        // si acaso llega a pasar, el mensaje es claro en vez del genérico.
         toast.error('Falta indicar si algún asistente sin fecha de nacimiento es menor de edad');
       } else if (mensaje.includes('REPORTE_OFRENDAS_OBLIGATORIO')) {
         toast.error('El total de ofrendas es obligatorio, aunque sea 0');
@@ -1173,15 +1151,6 @@ export function Reportes() {
 
     if (totalAsistentesActual === 0) {
       toast.error('Marcá al menos una persona antes de enviar el reporte');
-      return;
-    }
-    if (pendientesEsMenor.length > 0) {
-      const nombres = pendientesEsMenor.map((m) => m.nombre_completo).join(', ');
-      toast.error(
-        pendientesEsMenor.length === 1
-          ? `${nombres} no tiene fecha de nacimiento registrada: indicá arriba si es menor de ${edadMinima} años`
-          : `${nombres} no tienen fecha de nacimiento registrada: indicá arriba si son menores de ${edadMinima} años`
-      );
       return;
     }
     for (const v of visitasNuevas) {
@@ -1545,43 +1514,6 @@ export function Reportes() {
                         <p className="text-xs text-muted-foreground">Nadie todavía.</p>
                       )}
                     </div>
-
-                    {pendientesEsMenor.length > 0 && (
-                      <div className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                          {pendientesEsMenor.length === 1
-                            ? 'Esta persona no tiene fecha de nacimiento registrada. ¿Es menor?'
-                            : 'Estas personas no tienen fecha de nacimiento registrada. ¿Son menores?'}
-                        </p>
-                        <div className="flex flex-col gap-1.5">
-                          {pendientesEsMenor.map((m) => (
-                            <div key={m.persona_id} className="flex items-center justify-between gap-3 rounded-lg bg-background/60 px-3 py-1.5 text-sm">
-                              <span className="truncate font-medium">{m.nombre_completo}</span>
-                              <div className="flex shrink-0 gap-1.5">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs"
-                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, true)}
-                                >
-                                  Sí, es menor
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs"
-                                  onClick={() => cambiarEsMenorAsistente(m.persona_id, false)}
-                                >
-                                  No
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
           </div>
@@ -2521,9 +2453,10 @@ export function Reportes() {
         onOpenChange={(v) => !v && colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
         nombrePersona={colaFechaNacimiento[0]?.nombre ?? ''}
         guardando={actualizarFechaNacimiento.isPending}
+        edadMinima={edadMinima}
         onGuardarFecha={guardarFechaNacimientoPendiente}
         onGuardarEdadAproximada={guardarEdadAproximadaPendiente}
-        onSaltar={() => colaFechaNacimiento[0] && quitarDeColaFechaNacimiento(colaFechaNacimiento[0].id)}
+        onResolverEsMenor={resolverEsMenorPendiente}
       />
     </div>
   );
