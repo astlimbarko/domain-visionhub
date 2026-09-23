@@ -15,7 +15,6 @@ import {
   HeartHandshake,
   MapPin,
   MessageSquare,
-  MoreVertical,
   PartyPopper,
   Pencil,
   Plus,
@@ -29,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,6 +74,8 @@ import { BuscadorPersonaCampo } from '@/components/reporte/BuscadorPersonaCampo'
 import { BuscadorPersonaMultiple, type DatosPersonaNueva } from '@/components/reporte/BuscadorPersonaMultiple';
 import { BuscadorTemaCampo } from '@/components/reporte/BuscadorTemaCampo';
 import { ModalFechaNacimientoFaltante } from '@/components/reporte/ModalFechaNacimientoFaltante';
+import { FichaRapidaAsistente } from '@/components/reporte/FichaRapidaAsistente';
+import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useActualizarFechaNacimientoBasica } from '@/hooks/usePersonas';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
@@ -366,6 +366,43 @@ export function Reportes() {
   const [reconciliadosPorPersona, setReconciliadosPorPersona] = useState<Record<string, boolean>>({});
   function cambiarReconciliacion(personaId: string, valor: boolean) {
     setReconciliadosPorPersona((prev) => ({ ...prev, [personaId]: valor }));
+  }
+
+  // KAN-435 (2026-09-23, pedido explícito del owner): "ficha rápida" -- un
+  // solo panel con todos los controles de una persona (antes sueltos encima
+  // de cada pastilla: checkbox "es menor", toggle RE, menú "más opciones",
+  // botón quitar). `fichaCompletaId` abre el FichaPersonaSheet real desde
+  // ahí, para lo que la ficha rápida no resuelve (ej. corregir una fecha de
+  // nacimiento ya cargada pero mal cargada).
+  const [fichaRapidaId, setFichaRapidaId] = useState<string | null>(null);
+  const [fichaCompletaId, setFichaCompletaId] = useState<string | undefined>(undefined);
+
+  async function guardarFechaNacimientoFichaRapida(personaId: string, fechaNacimiento: string) {
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId, datos: { fecha_nacimiento: fechaNacimiento } });
+      cambiarEsMenorAsistente(personaId, calcularEdad(fechaNacimiento) < edadMinima);
+    } catch {
+      toast.error('No se pudo guardar la fecha de nacimiento');
+    }
+  }
+
+  async function guardarEdadAproximadaFichaRapida(personaId: string, edad: number) {
+    try {
+      await actualizarFechaNacimiento.mutateAsync({ personaId, datos: { edad_aproximada: edad } });
+      cambiarEsMenorAsistente(personaId, edad < edadMinima);
+    } catch {
+      toast.error('No se pudo guardar la edad aproximada');
+    }
+  }
+
+  // Quitar del reporte: mismo criterio que el botón "X" de siempre, según de
+  // qué lista venga la persona (miembro del pool vs. encontrada por búsqueda global).
+  function quitarDelReporte(personaId: string) {
+    if (asistentesNuevosExistentes.some((p) => p.id === personaId)) {
+      quitarAsistenteExistente(personaId);
+    } else {
+      toggleAsistente(personaId, false);
+    }
   }
   // Diezmos por persona: cada diezmante (existente o tecleado a mano) con su
   // monto y celular opcional. El total es la suma. El campo único "Total
@@ -1204,7 +1241,26 @@ export function Reportes() {
    * criterio de asistencia en los dos).
    */
   function renderAsistenciaSection() {
+    // KAN-435: datos de la persona con la ficha rápida abierta -- busca en
+    // los 3 orígenes posibles (miembros regulares, niños, encontrada por
+    // búsqueda global) porque cada uno trae un shape distinto.
+    const fichaRapidaMiembro = fichaRapidaId
+      ? (poolRegulares.find((m) => m.persona_id === fichaRapidaId) ?? poolNinos.find((m) => m.persona_id === fichaRapidaId))
+      : undefined;
+    const fichaRapidaExistente = !fichaRapidaMiembro && fichaRapidaId ? asistentesNuevosExistentes.find((p) => p.id === fichaRapidaId) : undefined;
+    const fichaRapidaDatos = fichaRapidaMiembro
+      ? {
+          nombreCompleto: fichaRapidaMiembro.nombre_completo,
+          estadoSigla: fichaRapidaMiembro.estado_sigla,
+          edad: fichaRapidaMiembro.edad,
+          tieneFechaNacimiento: fichaRapidaMiembro.tiene_fecha_nacimiento,
+        }
+      : fichaRapidaExistente
+        ? { nombreCompleto: fichaRapidaExistente.nombre_completo, estadoSigla: undefined, edad: null, tieneFechaNacimiento: false }
+        : undefined;
+
     return (
+      <>
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
             <TarjetaHeader
@@ -1301,51 +1357,17 @@ export function Reportes() {
                             // reporte para editar, se ve en rojo suave.
                             const colorPastilla = idsAsistentesOriginales.has(p.id) ? 'var(--destructive)' : VERDE;
                             return (
-                            <span
-                              key={p.id}
-                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                              style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
-                            >
-                              <Check className="h-3 w-3 shrink-0" />
-                              {p.nombre_completo}
-                              {esMenorPorPersona[p.id] && <span className="text-[10px] opacity-80">(menor)</span>}
-                              {/* KAN-390: encontrada por búsqueda global -- es
-                                  justo el caso típico de "volvió después de
-                                  mucho tiempo", se puede marcar como RE.
-                                  KAN-421 (2026-09-22): toggle compacto en vez
-                                  de checkbox+texto largo. KAN-435
-                                  (2026-09-23): borde + ícono de check en vez
-                                  de solo opacidad -- el owner lo probó en
-                                  vivo y no lo percibía como un botón
-                                  clickeable, solo como una etiqueta ya
-                                  aplicada (bug real de claridad, no de
-                                  datos: el RE automático por tiempo se sacó
-                                  del backend en esta misma migración). */}
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  cambiarReconciliacion(p.id, !(reconciliadosPorPersona[p.id] ?? false));
-                                }}
-                                title={reconciliadosPorPersona[p.id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
-                                className={cn(
-                                  'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
-                                  reconciliadosPorPersona[p.id]
-                                    ? 'border-transparent bg-white text-foreground'
-                                    : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
-                                )}
+                                key={p.id}
+                                onClick={() => setFichaRapidaId(p.id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+                                style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
-                                {reconciliadosPorPersona[p.id] && <Check className="h-2.5 w-2.5" />}
-                                RE
+                                <Check className="h-3 w-3 shrink-0" />
+                                {p.nombre_completo}
+                                {reconciliadosPorPersona[p.id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => quitarAsistenteExistente(p.id)}
-                                className="rounded-full p-0.5 hover:bg-black/10"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
                             );
                           })}
                         </div>
@@ -1371,72 +1393,19 @@ export function Reportes() {
                             const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
                             const colorPastilla = esOriginal ? 'var(--destructive)' : AZUL;
                             return (
-                              <span
+                              <button
+                                type="button"
                                 key={id}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                onClick={() => setFichaRapidaId(id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
                                 {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
                                     falta escribir "Nuevo Convertido" completo. */}
                                 {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
-                                {!persona.tiene_fecha_nacimiento && (
-                                  <label className="ml-1 flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                    <Checkbox
-                                      className="h-3 w-3"
-                                      checked={esMenorPorPersona[id] ?? false}
-                                      onCheckedChange={(v) => cambiarEsMenorAsistente(id, v === true)}
-                                    />
-                                    es menor
-                                  </label>
-                                )}
-                                {/* KAN-421 (2026-09-22): antes 2 checkboxes con texto largo
-                                    ("Asiste a esta CDP" / "se reconcilió") por pastilla, se
-                                    sentía recargado. RE queda como toggle compacto (el caso
-                                    frecuente), "Asiste a esta CDP" pasa a un menú aparte
-                                    (caso raro: visita de otra CdP). KAN-435 (2026-09-23):
-                                    borde + check en vez de solo opacidad, ver nota arriba. */}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
-                                  }}
-                                  title={reconciliadosPorPersona[id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
-                                  className={cn(
-                                    'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
-                                    reconciliadosPorPersona[id]
-                                      ? 'border-transparent bg-white text-foreground'
-                                      : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
-                                  )}
-                                >
-                                  {reconciliadosPorPersona[id] && <Check className="h-2.5 w-2.5" />}
-                                  RE
-                                </button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="rounded-full p-0.5 hover:bg-black/10"
-                                      title="Más opciones"
-                                    >
-                                      <MoreVertical className="h-3 w-3" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuCheckboxItem
-                                      checked={asisteCdpPorPersona[id] ?? true}
-                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                    >
-                                      Asiste a esta CDP
-                                    </DropdownMenuCheckboxItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
+                                {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
+                              </button>
                             );
                           })}
                         </div>
@@ -1457,56 +1426,19 @@ export function Reportes() {
                             const esOriginal = modoEdicion && idsAsistentesOriginales.has(id);
                             const colorPastilla = esOriginal ? 'var(--destructive)' : AMBAR;
                             return (
-                              <span
+                              <button
+                                type="button"
                                 key={id}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                                onClick={() => setFichaRapidaId(id)}
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
                                 {/* KAN-420 (2026-09-22): etiqueta corta "NC" -- no hace
                                     falta escribir "Nuevo Convertido" completo. */}
                                 {persona.estado_sigla === 'NC' && <span className="text-[10px] font-semibold opacity-80">NC</span>}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cambiarReconciliacion(id, !(reconciliadosPorPersona[id] ?? false));
-                                  }}
-                                  title={reconciliadosPorPersona[id] ? 'Se reconcilió con la fe hoy -- tocá para desmarcar' : 'Marcar que se reconcilió con la fe hoy'}
-                                  className={cn(
-                                    'ml-1 flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
-                                    reconciliadosPorPersona[id]
-                                      ? 'border-transparent bg-white text-foreground'
-                                      : 'border-current/40 text-current/70 hover:border-current/70 hover:text-current'
-                                  )}
-                                >
-                                  {reconciliadosPorPersona[id] && <Check className="h-2.5 w-2.5" />}
-                                  RE
-                                </button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="rounded-full p-0.5 hover:bg-black/10"
-                                      title="Más opciones"
-                                    >
-                                      <MoreVertical className="h-3 w-3" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuCheckboxItem
-                                      checked={asisteCdpPorPersona[id] ?? true}
-                                      onCheckedChange={(v) => cambiarAsisteCdp(id, v === true)}
-                                    >
-                                      Asiste a esta CDP
-                                    </DropdownMenuCheckboxItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                                <button type="button" onClick={() => toggleAsistente(id, false)} className="rounded-full p-0.5 hover:bg-black/10">
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
+                                {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
+                              </button>
                             );
                           })}
                         </div>
@@ -1518,6 +1450,35 @@ export function Reportes() {
                 )}
           </div>
         </section>
+
+        {fichaRapidaId && fichaRapidaDatos && (
+          <FichaRapidaAsistente
+            open
+            onOpenChange={(v) => !v && setFichaRapidaId(null)}
+            personaId={fichaRapidaId}
+            nombreCompleto={fichaRapidaDatos.nombreCompleto}
+            estadoSigla={fichaRapidaDatos.estadoSigla}
+            edad={fichaRapidaDatos.edad}
+            tieneFechaNacimiento={fichaRapidaDatos.tieneFechaNacimiento}
+            esMenor={esMenorPorPersona[fichaRapidaId]}
+            edadMinima={edadMinima}
+            esReconciliado={reconciliadosPorPersona[fichaRapidaId] ?? false}
+            asisteCdp={asisteCdpPorPersona[fichaRapidaId] ?? true}
+            guardandoFecha={actualizarFechaNacimiento.isPending}
+            onGuardarFecha={(fecha) => guardarFechaNacimientoFichaRapida(fichaRapidaId, fecha)}
+            onGuardarEdadAproximada={(edad) => guardarEdadAproximadaFichaRapida(fichaRapidaId, edad)}
+            onCambiarEsMenor={(v) => cambiarEsMenorAsistente(fichaRapidaId, v)}
+            onCambiarReconciliacion={(v) => cambiarReconciliacion(fichaRapidaId, v)}
+            onCambiarAsisteCdp={(v) => cambiarAsisteCdp(fichaRapidaId, v)}
+            onQuitarDelReporte={() => quitarDelReporte(fichaRapidaId)}
+            onAbrirFichaCompleta={() => {
+              setFichaCompletaId(fichaRapidaId);
+              setFichaRapidaId(null);
+            }}
+          />
+        )}
+        <FichaPersonaSheet personaId={fichaCompletaId} onOpenChange={(v) => !v && setFichaCompletaId(undefined)} />
+      </>
     );
   }
 
