@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { OpcionRolFila } from './OpcionRolFila';
 import type { OpcionRolContextual } from '@/hooks/useOpcionesRolContextuales';
 
@@ -37,17 +38,26 @@ function agruparPorIglesia(opciones: OpcionRolContextual[]): Grupo[] {
  * que cada grupo fluya de arriba a abajo en una columna antes de saltar a
  * la siguiente, por eso cada grupo lleva break-inside-avoid: no queremos
  * que una iglesia se corte a la mitad entre columnas), en mobile/tablet
- * apiladas una arriba de la otra en el mismo orden (madre primero). */
+ * apiladas una arriba de la otra en el mismo orden (madre primero), con una
+ * línea horizontal separando cada iglesia (feedback en vivo del owner,
+ * 2026-09-25: en desktop el título de iglesia quedaba muy chico/apagado y
+ * en mobile no había ninguna separación visual entre grupos). */
 export function GrupoOpcionesRol({ opciones, onSeleccionar }: Props) {
   const grupos = agruparPorIglesia(opciones);
   const mostrarEncabezados = grupos.filter((g) => g.iglesiaNombre).length > 1;
 
   return (
     <div className="sm:columns-2 sm:gap-x-6 sm:[column-rule:1px_solid_var(--border)]">
-      {grupos.map((grupo) => (
-        <div key={grupo.iglesiaId ?? 'GLOBAL'} className="break-inside-avoid">
+      {grupos.map((grupo, i) => (
+        <div
+          key={grupo.iglesiaId ?? 'GLOBAL'}
+          className={cn(
+            'break-inside-avoid',
+            mostrarEncabezados && i > 0 && 'mt-4 border-t border-border pt-4 sm:mt-0 sm:border-t-0 sm:pt-0'
+          )}
+        >
           {mostrarEncabezados && grupo.iglesiaNombre && (
-            <p className="mt-3 mb-1 truncate px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase first:mt-0">
+            <p className="mb-2 truncate px-1 text-sm font-bold tracking-wide text-foreground uppercase">
               {grupo.iglesiaNombre}
             </p>
           )}
