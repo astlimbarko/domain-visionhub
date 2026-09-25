@@ -64,6 +64,7 @@ import {
   useCrearReunionNoRealizada,
   useEdadMinimaCreyente,
   useEliminarBorradorReporte,
+  useCorregirEstadoSsvaManual,
   useGuardarBorradorReporte,
   useIdsLiderCdp,
   useLibros,
@@ -90,7 +91,8 @@ import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendi
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { aISO, fechaLegible, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { rutaReporteEditar } from '@/utils/constants';
-import { calcularEdad, clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
+import { calcularEdad } from '@/utils/edad';
+import { EdadEstadoBadges } from '@/components/shared/EdadEstadoBadges';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import type {
@@ -153,10 +155,6 @@ const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-car
  * catálogo `cdp_tema` tenía una fila `es_especial=true` para ESE libro
  * puntual (solo 2 de 13 libros la tienen). No es un `tema_id` real. */
 const TEMA_ESPECIAL_SENTINEL = '__tema_especial__';
-
-/** KAN-435 (pedido explícito del owner): color por estado SSVA para las
- * pastillas de asistencia -- mismo criterio de color que FichaRapidaAsistente. */
-const COLOR_ESTADO_SSVA: Record<string, string> = { SIM: AMBAR, NC: MORADO, CRE: VERDE, RE: AZUL };
 
 export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
@@ -582,6 +580,7 @@ export function Reportes() {
   );
   const guardarBorrador = useGuardarBorradorReporte();
   const eliminarBorrador = useEliminarBorradorReporte();
+  const corregirEstadoSsva = useCorregirEstadoSsvaManual();
   const [borradorId, setBorradorId] = useState<string | null>(null);
   const [estadoBorrador, setEstadoBorrador] = useState<'inactivo' | 'guardando' | 'guardado' | 'error'>('inactivo');
   // Destello flotante (pedido explícito del owner): visible mientras
@@ -1209,6 +1208,20 @@ export function Reportes() {
   // Se usa en la descripción de la sección "Asistencia" más abajo.
   const totalAsistentesActual = idsNuevos.length + idsRegulares.length + idsNinos.length + visitasNuevas.length;
 
+  // KAN-448 (pedido explícito del owner): el conteo de la sección se separa
+  // en "mayores" (incluye asistentes nuevos que sean mayores) y "niños",
+  // en vez de un solo número que mezclaba las 2 edades. `idsNinos` ya viene
+  // separado; para las 3 fuentes de "nuevos" (asistentesNuevosExistentes ya
+  // trae `edad`, evangelizadosExistentesComoAsistentes solo a veces trae
+  // `fecha_nacimiento`, visitasNuevas ya calculó `es_menor` al agregarse)
+  // hay que clasificar cada una para saber cuántas de esas son niños.
+  const totalNinosActual =
+    idsNinos.length +
+    visitasNuevas.filter((v) => v.es_menor).length +
+    asistentesNuevosExistentes.filter((p) => p.edad !== null && p.edad !== undefined && p.edad < edadMinima).length +
+    evangelizadosExistentesComoAsistentes.filter((p) => p.fecha_nacimiento && calcularEdad(p.fecha_nacimiento) < edadMinima).length;
+  const totalMayoresActual = totalAsistentesActual - totalNinosActual;
+
   // KAN-392: camino de guardado totalmente aparte de onSubmit -- no pasa por
   // react-hook-form/zod (el formulario normal ni se muestra cuando
   // `reunionNoRealizada` está tildado), solo motivo + fecha_reunion (mismo
@@ -1537,7 +1550,12 @@ export function Reportes() {
           tieneFechaNacimiento: fichaRapidaMiembro.tiene_fecha_nacimiento,
         }
       : fichaRapidaExistente
-        ? { nombreCompleto: fichaRapidaExistente.nombre_completo, estadoSigla: undefined, edad: null, tieneFechaNacimiento: false }
+        ? {
+            nombreCompleto: fichaRapidaExistente.nombre_completo,
+            estadoSigla: fichaRapidaExistente.estado_sigla,
+            edad: fichaRapidaExistente.edad ?? null,
+            tieneFechaNacimiento: fichaRapidaExistente.edad !== null && fichaRapidaExistente.edad !== undefined,
+          }
         : undefined;
 
     return (
@@ -1548,7 +1566,10 @@ export function Reportes() {
               icon={Users}
               color={TEAL}
               titulo="Asistencia"
-              descripcion={`${totalAsistentesActual} persona${totalAsistentesActual === 1 ? '' : 's'} marcada${totalAsistentesActual === 1 ? '' : 's'} hasta ahora`}
+              descripcion={
+                `${totalMayoresActual} persona${totalMayoresActual === 1 ? '' : 's'} marcada${totalMayoresActual === 1 ? '' : 's'} hasta ahora` +
+                (totalNinosActual > 0 ? ` + ${totalNinosActual} niño${totalNinosActual === 1 ? '' : 's'}` : '')
+              }
             />
           </div>
           <div className="flex flex-col gap-4 p-5">
@@ -1648,6 +1669,11 @@ export function Reportes() {
                               >
                                 <Check className="h-3 w-3 shrink-0" />
                                 {p.nombre_completo}
+                                {/* KAN-445 (pedido explícito del owner): mismo par de
+                                    badges que ya mostraban las pastillas de abajo --
+                                    faltaba acá para que las 3 listas de Asistencia se
+                                    vean consistentes entre sí. */}
+                                <EdadEstadoBadges edad={p.edad} estadoSigla={p.estado_sigla} colorFallback={colorPastilla} telefono={p.telefono} />
                                 {reconciliadosPorPersona[p.id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1687,17 +1713,7 @@ export function Reportes() {
                                     entre paréntesis, y el estado SSVA vigente (SIM/NC/CRE/RE)
                                     -- todo asistente ya registrado tiene uno al llegar a la
                                     iglesia, no solo cuando es NC. */}
-                                {persona.edad !== null && (
-                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
-                                )}
-                                {persona.estado_sigla && (
-                                  <span
-                                    className="rounded-full px-1 text-[10px] font-semibold"
-                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
-                                  >
-                                    {persona.estado_sigla}
-                                  </span>
-                                )}
+                                <EdadEstadoBadges edad={persona.edad} estadoSigla={persona.estado_sigla} colorFallback={colorPastilla} telefono={persona.telefono} />
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1728,17 +1744,7 @@ export function Reportes() {
                                 style={{ backgroundColor: `color-mix(in oklab, ${colorPastilla} 14%, transparent)`, color: colorPastilla }}
                               >
                                 {persona.nombre_completo}
-                                {persona.edad !== null && (
-                                  <span className="text-[10px] opacity-70">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(persona.edad)]})</span>
-                                )}
-                                {persona.estado_sigla && (
-                                  <span
-                                    className="rounded-full px-1 text-[10px] font-semibold"
-                                    style={{ backgroundColor: 'rgba(255,255,255,0.5)', color: COLOR_ESTADO_SSVA[persona.estado_sigla] ?? colorPastilla }}
-                                  >
-                                    {persona.estado_sigla}
-                                  </span>
-                                )}
+                                <EdadEstadoBadges edad={persona.edad} estadoSigla={persona.estado_sigla} colorFallback={colorPastilla} telefono={persona.telefono} />
                                 {reconciliadosPorPersona[id] && <span className="text-[10px] font-semibold opacity-80">RE</span>}
                               </button>
                             );
@@ -1773,6 +1779,27 @@ export function Reportes() {
             onCambiarReconciliacion={(v) => cambiarReconciliacion(fichaRapidaId, v)}
             onCambiarAsisteCdp={(v) => cambiarAsisteCdp(fichaRapidaId, v)}
             onQuitarDelReporte={() => quitarDelReporte(fichaRapidaId)}
+            onCorregirEstadoSsva={(estadoSigla) =>
+              corregirEstadoSsva.mutate(
+                { personaId: fichaRapidaId, estadoSigla },
+                {
+                  onSuccess: () => {
+                    // `asistentesNuevosExistentes` es un snapshot local (se
+                    // copió al elegir a la persona en el buscador) -- no se
+                    // entera solo de la invalidación de useMiembrosCdp
+                    // (poolRegulares/poolNinos sí, porque leen esa query
+                    // directo). Se parchea a mano para que la pastilla se
+                    // vea al toque, sin esperar a reabrir el reporte.
+                    setAsistentesNuevosExistentes((prev) =>
+                      prev.map((p) => (p.id === fichaRapidaId ? { ...p, estado_sigla: estadoSigla } : p))
+                    );
+                    toast.success('Estado corregido.');
+                  },
+                  onError: () => toast.error('No se pudo corregir el estado.'),
+                }
+              )
+            }
+            corrigiendoEstado={corregirEstadoSsva.isPending}
             onAbrirFichaCompleta={() => {
               setFichaCompletaId(fichaRapidaId);
               setFichaRapidaId(null);
