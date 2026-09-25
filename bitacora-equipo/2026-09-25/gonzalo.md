@@ -10,3 +10,18 @@
 - [x] Migración faltante de fn_mis_iglesias_detalle (iglesia_padre_id) documentada en el historial
 - [x] PR #121 abierto contra master con toda la integración del día (KAN-438, 440-444)
 - [ ] Falta: investigar más a fondo la "franja blanca" al hacer scroll en Reporte de CdP -- no se pudo reproducir en Chromium/desktop ni mobile viewport, puede ser específico de un navegador/dispositivo real
+- [x] /seleccionar-rol: se quitó el logo y el nombre "VisionHub" del header (no debe verse por fuera del equipo)
+- [x] KAN-453: botón "+ Agregar persona nueva" en Asistencia funciona como toggle, pide confirmación si hay datos sin guardar
+- [x] Revisada y aprobada rama `exp/reporte-subtitulo-lider-2026-09-25` hecha con OpenCode (nombre del líder + dirección bajo el título del hero de Reportes) -- código correcto, seguro, verificado en vivo
+- [x] KAN-445: edad y estado SSVA consistentes en las 3 listas de Asistencia + buscador (componente EdadEstadoBadges)
+- [x] KAN-446: corrección manual de estado SSVA (SIM/NC/CRE) desde la Ficha rápida
+- [x] KAN-447: teléfono de asistentes NC/RE visible en Asistencia
+- [x] KAN-448: conteo de Asistencia separado en mayores/niños
+- [x] KAN-449: buscador de Asistencia encuentra personas de la iglesia madre/satélite pareja -- bug real, verificado end-to-end (búsqueda + envío de reporte), aplica genérico a producción (4 Anillo/Montero)
+- [x] KAN-451: fecha de reunión ya no viene precargada (evitaba falso "se restauró tu borrador"), botón "Hoy" en los 3 formularios
+- [x] KAN-452: botones "Guardar semana sin reunión"/"Enviar reporte de Megafiesta" centrados
+- [x] KAN-450: color de burbuja "Reunión no realizada" de celeste a gris oscuro (ajustado en vivo a pedido: más gris, menos negro)
+- [x] KAN-450 (ampliado): burbujas de "no realizada" ahora se pueden gestionar dentro de la ventana de edición -- corregir motivo/fecha, o convertir en reporte real. 2 RPCs nuevas, mismo patrón que fn_anular_reporte_cdp (evitó un 403 real de auto-rechazo RLS)
+- [x] `/avances` actualizado con 10 entradas nuevas de esta sesión
+- [x] PR #122 abierto contra `preview/integracion-2026-09-25` con todo lo de arriba (KAN-442 banner + KAN-445 a 453)
+- [ ] Cola pendiente para después: mejoras al buscador de diezmante en Finanzas (a veces no busca, falta edad/estado, contraste de colores del monto)
