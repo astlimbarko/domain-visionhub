@@ -2314,8 +2314,6 @@ export function Reportes() {
           </div>
         </section>
 
-        {renderAsistenciaSection()}
-
         {/* Evangelismo */}
         {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
           <section className={CARD_SECCION_CON_DESPLEGABLE}>
@@ -2370,6 +2368,8 @@ export function Reportes() {
             </div>
           </section>
         )}
+
+        {renderAsistenciaSection()}
 
         {/* Finanzas */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
