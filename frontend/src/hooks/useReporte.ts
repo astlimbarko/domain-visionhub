@@ -7,6 +7,7 @@ import {
   crearReporte,
   crearReporteMegafiesta,
   crearReunionNoRealizada,
+  corregirEstadoSsvaManual,
   eliminarBorradorReporte,
   existeReporteParaFecha,
   guardarBorradorReporte,
@@ -458,6 +459,20 @@ export function useGuardarBorradorReporte() {
 export function useEliminarBorradorReporte() {
   return useMutation({
     mutationFn: (borradorId: string) => eliminarBorradorReporte(borradorId),
+  });
+}
+
+/** KAN-446: corrige a mano el estado SSVA de una persona (SIM/NC/CRE). Al
+ * confirmar, invalida la query de `useMiembrosCdp` (mismo queryKey) para
+ * que las 3 listas de Asistencia reflejen el cambio sin recargar la página. */
+export function useCorregirEstadoSsvaManual() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, estadoSigla, motivo }: { personaId: string; estadoSigla: string; motivo?: string }) =>
+      corregirEstadoSsvaManual(personaId, estadoSigla, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros'] });
+    },
   });
 }
 
