@@ -22,6 +22,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Sparkles,
   Trash2,
   UserPlus,
   UserRound,
@@ -2532,11 +2533,12 @@ export function Reportes() {
         </section>
 
         {/* Testimonios -- KAN-423 (2026-09-22, pedido explícito del owner):
-            se separa en 2 cosas. Testimonios personales (categoría + texto,
-            se pueden cargar varios) más abajo la narración general de la
-            reunión ("¿Qué se desató en la CdP?", mismo campo `testimonios`
-            de siempre -- antes se llamaba "Comentarios"/"Testimonio", solo
-            cambia la etiqueta). */}
+            testimonios personales (categoría + texto, se pueden cargar
+            varios). La narración general de la reunión ("¿Qué se desató en
+            la CdP?") vive en su propia sección aparte, justo abajo -- pedido
+            explícito del owner (2026-09-25): antes estaba mezclada adentro
+            de esta misma tarjeta, como si fuera un campo más del formulario
+            de testimonios. */}
         <section className={CARD_SECCION}>
           <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonios" descripcion="Lo que Dios hizo en esta reunión" />
           <div className="flex flex-col gap-4 p-5">
@@ -2606,17 +2608,25 @@ export function Reportes() {
                 </Button>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="testimonios">¿Qué se desató en la CdP? {campos?.REPORTE_TESTIMONIOS_OBLIGATORIO && '*'}</Label>
-              <Textarea
-                id="testimonios"
-                placeholder="Contá qué pasó en general durante esta reunión de Casa de Paz"
-                rows={4}
-                className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
-                {...register('testimonios')}
-              />
-            </div>
+        <section className={CARD_SECCION}>
+          <TarjetaHeader
+            icon={Sparkles}
+            color={MORADO}
+            titulo={`¿Qué se desató en la CdP?${campos?.REPORTE_TESTIMONIOS_OBLIGATORIO ? ' *' : ''}`}
+            descripcion="La narración general de la reunión"
+          />
+          <div className="flex flex-col gap-1.5 p-5">
+            <Textarea
+              id="testimonios"
+              aria-label="¿Qué se desató en la CdP?"
+              placeholder="Contá qué pasó en general durante esta reunión de Casa de Paz"
+              rows={4}
+              className={claseCampoEdicion(modoEdicion, !!dirtyFields.testimonios)}
+              {...register('testimonios')}
+            />
           </div>
         </section>
 
