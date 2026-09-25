@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Plus, Search, UserPlus, X } from 'lucide-react';
+import { AlertTriangle, Check, Plus, Search, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { normalizarNombre } from '@/utils/normalizarNombre';
-import { clasificarEdad, RANGO_EDAD_LABEL_PERSONA } from '@/utils/edad';
 import { componerTelefono, PAISES_TELEFONO } from '@/utils/paises-telefono';
 import { MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
+import { EdadEstadoBadges } from '@/components/shared/EdadEstadoBadges';
 import { esCandidatoLocal, PREFIJO_CANDIDATO_LOCAL, sonNombresIguales } from '@/utils/personaSimilarLocal';
 import { toast } from 'sonner';
 import type { MiembroCdp } from '@/types/reporte.types';
@@ -257,6 +258,52 @@ export function BuscadorPersonaMultiple({
     setAbierto(false);
   }
 
+  // Pedido explícito del owner (2026-09-25): el botón "+" ahora es un toggle
+  // -- un clic abre el mini-formulario, otro clic lo cierra (antes solo
+  // sabía abrirlo). Si hay datos cargados sin guardar, no cierra directo:
+  // confirma primero (mismo patrón que "descartar borrador" en Reportes.tsx).
+  const [confirmandoCerrarFormNueva, setConfirmandoCerrarFormNueva] = useState(false);
+
+  function hayDatosNuevaSinGuardar() {
+    return Boolean(
+      nombreNueva.trim() ||
+        segundoNombreNueva.trim() ||
+        apellidoPaternoNueva.trim() ||
+        apellidoMaternoNueva.trim() ||
+        sexoNueva ||
+        domicilioNueva.trim() ||
+        telefonoNumeroNueva.trim() ||
+        fechaNacimientoNueva ||
+        edadAproximadaNueva ||
+        aceptoACristoNueva
+    );
+  }
+
+  function cerrarFormNueva() {
+    setMostrarFormNueva(false);
+    setConfirmandoCerrarFormNueva(false);
+    setNombreNueva('');
+    setSegundoNombreNueva('');
+    setApellidoPaternoNueva('');
+    setApellidoMaternoNueva('');
+    setSexoNueva('');
+    setDomicilioNueva('');
+    setTelefonoPaisNueva('+591');
+    setTelefonoNumeroNueva('');
+    setFechaNacimientoNueva('');
+    setFechaDesconocidaNueva(false);
+    setEdadAproximadaNueva('');
+    setAceptoACristoNueva(false);
+  }
+
+  function intentarCerrarFormNueva() {
+    if (hayDatosNuevaSinGuardar()) {
+      setConfirmandoCerrarFormNueva(true);
+      return;
+    }
+    cerrarFormNueva();
+  }
+
   // KAN-407: punto de entrada real del botón "Agregar" del mini-formulario
   // -- si `fn_buscar_personas_similares` encontró candidatos sin descartar
   // todavía, frena y muestra el modal en vez de crear directo.
@@ -409,6 +456,10 @@ export function BuscadorPersonaMultiple({
                     >
                       <Check className="h-3.5 w-3.5 shrink-0 text-chart-2" />
                       {p.nombre_completo}
+                      {/* KAN-445 (pedido explícito del owner): mismos badges de
+                          edad/estado SSVA que ya muestran las pastillas de
+                          resultado, para que el buscador se vea consistente. */}
+                      <EdadEstadoBadges edad={p.edad} estadoSigla={p.estado_sigla} colorFallback={VERDE} telefono={p.telefono} />
                       {/* KAN-391: de qué CdP viene, cuando se sabe -- si no
                           tiene membresía principal (ej. evangelizado suelto),
                           se muestra el texto genérico de siempre. */}
@@ -443,9 +494,8 @@ export function BuscadorPersonaMultiple({
                     <Checkbox checked={seleccionadosSet.has(m.persona_id)} onCheckedChange={() => onToggle(m.persona_id)} />
                     <span className="flex-1">
                       {m.nombre_completo}
-                      {m.edad !== null && (
-                        <span className="ml-1.5 text-xs text-muted-foreground">({RANGO_EDAD_LABEL_PERSONA[clasificarEdad(m.edad)]})</span>
-                      )}
+                      {' '}
+                      <EdadEstadoBadges edad={m.edad} estadoSigla={m.estado_sigla} colorFallback={VERDE} telefono={m.telefono} />
                     </span>
                     {seleccionadosSet.has(m.persona_id) && <Check className="h-3.5 w-3.5 text-chart-2" />}
                   </label>
@@ -471,10 +521,10 @@ export function BuscadorPersonaMultiple({
             size="icon"
             className="h-10 w-10 shrink-0 rounded-xl border-transparent"
             style={{ backgroundColor: `color-mix(in oklab, ${VERDE} 14%, transparent)`, color: VERDE }}
-            title="Agregar persona nueva"
-            onClick={abrirFormNueva}
+            title={mostrarFormNueva ? 'Cerrar formulario' : 'Agregar persona nueva'}
+            onClick={() => (mostrarFormNueva ? intentarCerrarFormNueva() : abrirFormNueva())}
           >
-            <UserPlus className="h-4 w-4" />
+            {mostrarFormNueva ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
           </Button>
         )}
       </div>
@@ -601,7 +651,11 @@ export function BuscadorPersonaMultiple({
                     else setEdadAproximadaNueva('');
                   }}
                 />
-                Se desconoce la fecha de nacimiento
+                {/* Pedido explícito del owner (2026-09-25): "se desconoce" sonaba
+                    a que nadie sabe la fecha -- pero también pasa con niños que
+                    se registran sin sus padres presentes, donde sí se sabe pero
+                    no hay quién la confirme en el momento. */}
+                No se puede confirmar la fecha de nacimiento ahora
               </label>
             </div>
           </div>
@@ -627,7 +681,7 @@ export function BuscadorPersonaMultiple({
           </label>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setMostrarFormNueva(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={intentarCerrarFormNueva}>
               Cancelar
             </Button>
             <Button
@@ -643,6 +697,26 @@ export function BuscadorPersonaMultiple({
           </div>
         </div>
       )}
+
+      <Dialog open={confirmandoCerrarFormNueva} onOpenChange={setConfirmandoCerrarFormNueva}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-destructive">Vas a perder los datos de esta persona</p>
+              <p className="text-sm text-muted-foreground">Lo que ya cargaste en el formulario no se guardó. ¿De verdad querés cerrarlo?</p>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmandoCerrarFormNueva(false)}>
+              Seguir completando
+            </Button>
+            <Button type="button" variant="destructive" onClick={cerrarFormNueva}>
+              Sí, cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmarPosibleDuplicadoDialog
         open={mostrarConfirmDuplicado}
