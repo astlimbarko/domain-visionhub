@@ -37,8 +37,6 @@ export function SeleccionarRol() {
   const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
   const logout = useAuthStore((s) => s.logout);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
-  const iglesias = useAuthStore((s) => s.iglesias);
-  const nombreIglesia = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
 
   const opcionesContextuales = useOpcionesRolContextuales();
   // Mismo query que ya usan los hooks de arriba (misma queryKey, sin pedido de
@@ -123,7 +121,13 @@ export function SeleccionarRol() {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
               <img src="/logo.png" alt="" aria-hidden="true" className="h-4 w-4 object-contain brightness-0 invert" />
             </span>
-            <span className="truncate text-[13px] font-semibold text-foreground">{nombreIglesia}</span>
+            {/* KAN-442 (feedback en vivo del owner, 2026-09-25): antes mostraba
+                el nombre de la iglesia "activa" (residual de la última sesión),
+                incoherente con que esta pantalla puede listar roles de MÁS de
+                una iglesia (ver GrupoOpcionesRol). Acá todavía no hay ninguna
+                iglesia decidida -- la marca queda neutra, cada grupo de abajo
+                ya identifica su propia iglesia. */}
+            <span className="truncate text-[13px] font-semibold text-foreground">VisionHub</span>
           </div>
           {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg).
               Hacer clic de nuevo sobre el mismo ícono vuelve a la lista de
