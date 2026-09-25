@@ -171,6 +171,9 @@ export function Reportes() {
   // Sublíder de CdP (ver campos, más abajo).
   const rolActivo = useAuthStore((s) => s.rolActivo);
   const esRolCdp = rolActivo === 'LIDER_CDP' || rolActivo === 'SUBLIDER_CDP';
+  // Nombre de quien está llenando el reporte -- se muestra como línea chica
+  // bajo el título del hero (mismo patrón que DashboardLiderRed).
+  const nombreLider = useAuthStore((s) => s.nombreCompleto);
 
   // KAN-271: en modo edición, la iglesia/CdP salen del reporte que se está
   // editando, no del contexto activo -- Líder/Supervisor de Red edita
@@ -201,7 +204,20 @@ export function Reportes() {
   // muestra el contexto (Líder, Anfitrión, Dirección, Ciudad) para que esté
   // seguro de cuál está editando.
   const esCdpAjena = modoEdicion && (!contextoCdp || contextoCdp.cdpId !== cdpActiva);
-  const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, esCdpAjena);
+  // KAN-367: la query solo se disparaba con `esCdpAjena` (editar el reporte de
+  // una CdP que no es la tuya). Ahora corre siempre que haya una CdP en
+  // contexto, porque el hero muestra su dirección -- también cuando el
+  // Líder/Sublider está creando su propio reporte semanal. El RPC ya valida
+  // `fn_mis_iglesias()` y la cache es por `cdpId`, así que no cambia el
+  // alcance de datos: solo pasa a estar disponible. Los paneles de "CdP ajena"
+  // (más abajo) siguen filtrando por `esCdpAjena`, así que no se muestran de más.
+  const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, true);
+
+  // Dirección de la CdP para la línea del hero: el RPC devuelve `direccion`
+  // (calle+número) y `ciudad` por separado -- se unen en una línea con el
+  // mismo criterio que ya usan los paneles de "CdP ajena". Vacía si la CdP
+  // no tiene dirección cargada, y ahí el hero no muestra la línea.
+  const direccionCdp = [cdpContexto?.direccion, cdpContexto?.ciudad].filter(Boolean).join(', ');
 
   // KAN-367 (pedido del owner, 2026-09-17): mostrar el número real de días de
   // la ventana (configurable en Panel del Supervisor -> Formularios -> Control
@@ -1897,6 +1913,21 @@ export function Reportes() {
         icon={ClipboardList}
         eyebrow={modoEdicion ? 'Editar reporte' : 'Reporte semanal'}
         title={modoEdicion ? `Reunión del ${fechaLegible(reporteExistente?.fecha_reunion ?? hoy)}` : 'Reporte de la reunión'}
+        subtitle={
+          <>
+            {nombreLider ? (
+              <>
+                <strong className="font-semibold text-white/90">Líder:</strong> {nombreLider}
+              </>
+            ) : null}
+            {nombreLider && direccionCdp ? <br /> : null}
+            {direccionCdp ? (
+              <>
+                <strong className="font-semibold text-white/90">Dirección:</strong> {direccionCdp}
+              </>
+            ) : null}
+          </>
+        }
         color={colorRed ?? undefined}
       />
 
@@ -2108,7 +2139,7 @@ export function Reportes() {
                 Esta reunión es una Megafiesta de Casa de Paz
               </span>
               <span className="text-[12px] text-muted-foreground">
-                Solo pedimos la fecha y la asistencia -- lo demás lo completa el Líder de Red desde el consolidado.
+                Anota solo la fecha y asistencia, el resto es competencia del Líder de Red.
               </span>
             </span>
           </label>
