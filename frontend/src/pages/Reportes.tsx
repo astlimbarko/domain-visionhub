@@ -273,7 +273,13 @@ export function Reportes() {
   // que faltó. Solo aplica al crear (nunca pisa la fecha de un reporte que
   // ya se está editando).
   const fechaQueryParam = searchParams.get('fecha');
-  const fechaInicial = !modoEdicion && fechaQueryParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaQueryParam) ? fechaQueryParam : hoy;
+  // KAN-451 (pedido explícito del owner, 2026-09-25): al abrir el formulario
+  // para un reporte nuevo, la fecha viene en blanco -- precargarla con "hoy"
+  // disparaba un falso "se restauró tu borrador" (el borrador quedaba
+  // identificado por esa fecha desde el primer render, antes de que la
+  // persona tocara nada). Sigue precargándose cuando se llega con
+  // ?fecha=YYYY-MM-DD (click desde el calendario, KAN-435) o en modo edición.
+  const fechaInicial = modoEdicion ? hoy : fechaQueryParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaQueryParam) ? fechaQueryParam : '';
 
   const { data: libros = [] } = useLibros();
   const { data: miembrosCrudo = [], isLoading: cargandoMiembros } = useMiembrosCdp(cdpActiva);
@@ -563,12 +569,17 @@ export function Reportes() {
   // tiene sentido al cargar un reporte NUEVO (nunca en modo edición, ni en
   // "reunión no realizada"/Megafiesta -- esos son formularios chicos e
   // instantáneos, con bajo riesgo real de perder trabajo). El borrador se
-  // identifica por CdP+fecha (fechaInicial, la que tenía el formulario al
-  // montar) para no pisarse con otro borrador de otra semana de la misma CdP.
+  // identifica por CdP+fecha.
+  //
+  // KAN-451: la fecha se toma del campo EN VIVO (`fechaReunion`, ver watch()
+  // más abajo), no de `fechaInicial` -- con `fechaInicial` en blanco (recién
+  // arriba), la búsqueda de borrador tiene que esperar a que la persona
+  // realmente elija una fecha (tipeando o con el botón "Hoy"), no dispararse
+  // sola al montar con una fecha que nadie eligió todavía.
   const borradorAplica = !modoEdicion;
   const { data: borrador, isLoading: cargandoBorrador } = useBorradorReporte(
     borradorAplica ? cdpActiva : undefined,
-    borradorAplica ? fechaInicial : undefined
+    borradorAplica ? fechaReunion : undefined
   );
   // KAN-435 (pedido explícito del owner): antes de restaurar un borrador,
   // chequear si alguien ya envió el reporte REAL de esa fecha mientras
@@ -576,7 +587,7 @@ export function Reportes() {
   // borrador como si nada sería mostrarle datos que ya no sirven.
   const { data: reporteExistenteId, isLoading: cargandoConflictoFecha } = useExisteReporteParaFecha(
     borradorAplica ? cdpActiva : undefined,
-    borradorAplica ? fechaInicial : undefined
+    borradorAplica ? fechaReunion : undefined
   );
   const guardarBorrador = useGuardarBorradorReporte();
   const eliminarBorrador = useEliminarBorradorReporte();
@@ -608,9 +619,14 @@ export function Reportes() {
   const saltarProximoAutoguardado = useRef(false);
   const reactivarAutoguardadoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restaura el formulario con lo que había guardado, una sola vez al montar.
+  // Restaura el formulario con lo que había guardado, una sola vez -- al
+  // montar si ya había fecha (ej. ?fecha=... del calendario), o recién
+  // cuando la persona elige una fecha por primera vez (KAN-451: sin fecha
+  // todavía, `cargandoBorrador` da `false` igual por estar la query
+  // deshabilitada -- hay que esperar a `fechaReunion` explícitamente para
+  // no gastar el único disparo de esta bandera antes de tiempo).
   useEffect(() => {
-    if (!borradorAplica || cargandoBorrador || cargandoConflictoFecha || borradorHidratado.current) return;
+    if (!borradorAplica || !fechaReunion || cargandoBorrador || cargandoConflictoFecha || borradorHidratado.current) return;
     borradorHidratado.current = true;
     if (!borrador) return;
     // Punto 2: si ya existe el reporte real de esta fecha, no restauramos
@@ -2177,14 +2193,19 @@ export function Reportes() {
         <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="fecha_reunion_no_realizada">Fecha de la reunión *</Label>
-            <Input
-              id="fecha_reunion_no_realizada"
-              type="date"
-              max={hoy}
-              className={CAMPO_ESTILO}
-              value={fechaReunion}
-              onChange={(e) => setValue('fecha_reunion', e.target.value)}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="fecha_reunion_no_realizada"
+                type="date"
+                max={hoy}
+                className={cn(CAMPO_ESTILO, 'flex-1')}
+                value={fechaReunion}
+                onChange={(e) => setValue('fecha_reunion', e.target.value)}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+                Hoy
+              </Button>
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="motivo_no_realizada">Motivo por el que no se realizó la reunión *</Label>
@@ -2198,7 +2219,7 @@ export function Reportes() {
           </div>
           <Button
             type="button"
-            className="h-11 gap-2 self-start rounded-xl"
+            className="h-11 gap-2 self-center rounded-xl"
             disabled={!motivoNoRealizada.trim() || crearNoRealizada.isPending}
             onClick={enviarReunionNoRealizada}
           >
@@ -2217,14 +2238,19 @@ export function Reportes() {
             <div className="p-5">
               <div className="flex max-w-xs flex-col gap-1.5">
                 <Label htmlFor="fecha_reunion_megafiesta">Fecha de la reunión *</Label>
-                <Input
-                  id="fecha_reunion_megafiesta"
-                  type="date"
-                  max={hoy}
-                  className={CAMPO_ESTILO}
-                  value={fechaReunion}
-                  onChange={(e) => setValue('fecha_reunion', e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="fecha_reunion_megafiesta"
+                    type="date"
+                    max={hoy}
+                    className={cn(CAMPO_ESTILO, 'flex-1')}
+                    value={fechaReunion}
+                    onChange={(e) => setValue('fecha_reunion', e.target.value)}
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+                    Hoy
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
@@ -2233,7 +2259,7 @@ export function Reportes() {
 
           <Button
             type="button"
-            className="h-11 gap-2 self-start rounded-xl"
+            className="h-11 gap-2 self-center rounded-xl"
             disabled={crearMegafiesta.isPending}
             onClick={onSubmitMegafiesta}
           >
@@ -2264,13 +2290,21 @@ export function Reportes() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="fecha_reunion">Fecha de la reunión *</Label>
-                    <Input
-                      id="fecha_reunion"
-                      type="date"
-                      max={hoy}
-                      className={claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion)}
-                      {...register('fecha_reunion')}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="fecha_reunion"
+                        type="date"
+                        max={hoy}
+                        className={cn(claseCampoEdicion(modoEdicion, !!dirtyFields.fecha_reunion), 'flex-1')}
+                        {...register('fecha_reunion')}
+                      />
+                      {/* KAN-451 (pedido explícito del owner): la fecha ya no viene
+                          precargada -- este botón cubre el caso más común (reunión de
+                          hoy) sin obligar a abrir el selector nativo. */}
+                      <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+                        Hoy
+                      </Button>
+                    </div>
                     {/* KAN-435 (pedido explícito del owner): el input de fecha nativo
                         no muestra el día de la semana -- se agrega acá al lado, en
                         vivo, según lo que se va eligiendo (el input solo muestra
