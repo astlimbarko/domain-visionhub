@@ -19,10 +19,11 @@ import { cn } from '@/lib/utils';
  * mismo azul que ya representa otro concepto en la misma pantalla.
  *
  * KAN-450 (pedido explícito del owner, 2026-09-25): el celeste original se
- * veía "como un lila" -- pasa a un gris oscuro (entre negro y gris), sin
- * tocar el resto de la paleta compartida (`DashboardUI`).
+ * veía "como un lila" -- pasa a un gris oscuro, ni tan negro ni tan gris
+ * claro ("más tirando a gris" que a negro puro), sin tocar el resto de la
+ * paleta compartida (`DashboardUI`).
  */
-const NO_REALIZADA_COLOR = '#3f3f46';
+const NO_REALIZADA_COLOR = '#52525b';
 
 interface Props {
   casaDePazId: string | undefined;
