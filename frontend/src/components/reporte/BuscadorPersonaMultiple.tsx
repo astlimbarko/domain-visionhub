@@ -13,6 +13,8 @@ import { MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import { useBuscarPersonasSimilares } from '@/hooks/useCasasDePaz';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
+import { esCandidatoLocal, PREFIJO_CANDIDATO_LOCAL, sonNombresIguales } from '@/utils/personaSimilarLocal';
+import { toast } from 'sonner';
 import type { MiembroCdp } from '@/types/reporte.types';
 import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
@@ -68,6 +70,12 @@ interface Props {
    * ya está en el sistema, no crean personas. */
   permitirAgregarNueva?: boolean;
   onAgregarNueva?: (datos: DatosPersonaNueva) => void;
+  /** KAN-438: personas nuevas ya agregadas a este mismo reporte (todavía sin
+   * guardar) -- se comparan en el cliente contra el mini-formulario de
+   * "persona nueva", porque `fn_buscar_personas_similares` (RPC) solo ve la
+   * tabla `persona` real y no puede detectar un nombre repetido dentro del
+   * mismo borrador sin enviar. */
+  visitasNuevasExistentes?: { clave: string; primer_nombre?: string; primer_apellido?: string }[];
   /** Búsqueda en vivo en TODA la iglesia (no solo el pool de `miembros`) --
    * usado en "Asistentes nuevos", donde antes no había forma de encontrar a
    * alguien que ya está en el sistema (una visita de otra semana, un
@@ -150,6 +158,7 @@ export function BuscadorPersonaMultiple({
   onAsisteCdpChange,
   permitirAgregarNueva,
   onAgregarNueva,
+  visitasNuevasExistentes,
   resultadosBusquedaGlobal,
   buscandoGlobal,
   onSeleccionarGlobal,
@@ -219,6 +228,18 @@ export function BuscadorPersonaMultiple({
     setDuplicadoDescartado(false);
   }, [nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva]);
 
+  // KAN-438: mismo criterio que EvangelismoPendientePanel -- `similaresNueva`
+  // (RPC) no ve a las visitas nuevas que ya se agregaron a este mismo
+  // reporte pero todavía no se guardaron, se comparan acá en el cliente.
+  const candidatosLocalesNueva: PersonaSimilar[] = (visitasNuevasExistentes ?? [])
+    .filter((v) => sonNombresIguales(nombreNueva, apellidoPaternoNueva, v.primer_nombre, v.primer_apellido))
+    .map((v) => ({
+      id: `${PREFIJO_CANDIDATO_LOCAL}${v.clave}`,
+      nombre_completo: [v.primer_nombre, v.primer_apellido].filter(Boolean).join(' '),
+      score: 1,
+    }));
+  const candidatosDuplicadoNueva = [...candidatosLocalesNueva, ...similaresNueva];
+
   const filtrados = texto.trim()
     ? miembros.filter((m) => m.nombre_completo.toLowerCase().includes(texto.trim().toLowerCase()))
     : miembros;
@@ -242,7 +263,7 @@ export function BuscadorPersonaMultiple({
   // `confirmarAgregarNueva` (abajo) sigue siendo el alta real.
   function intentarConfirmarAgregarNueva() {
     if (!nombreNueva.trim() || !apellidoPaternoNueva.trim() || !sexoNueva || !onAgregarNueva) return;
-    if (!duplicadoDescartado && similaresNueva.length > 0) {
+    if (!duplicadoDescartado && candidatosDuplicadoNueva.length > 0) {
       setMostrarConfirmDuplicado(true);
       return;
     }
@@ -250,7 +271,14 @@ export function BuscadorPersonaMultiple({
   }
 
   function usarPersonaNuevaSimilar(persona: PersonaSimilar) {
-    onSeleccionarGlobal?.(persona);
+    // Candidato "local": ya está agregada como visita nueva en este mismo
+    // reporte, sin guardar todavía -- no tiene un persona_id real, así que
+    // no se agrega de nuevo en vez de fabricar un id falso.
+    if (esCandidatoLocal(persona.id)) {
+      toast.info('Ya está en la lista de asistentes nuevos de este reporte.');
+    } else {
+      onSeleccionarGlobal?.(persona);
+    }
     setMostrarConfirmDuplicado(false);
     setTexto('');
     onTextoCambia?.('');
@@ -616,7 +644,7 @@ export function BuscadorPersonaMultiple({
       <ConfirmarPosibleDuplicadoDialog
         open={mostrarConfirmDuplicado}
         onOpenChange={setMostrarConfirmDuplicado}
-        candidatos={similaresNueva}
+        candidatos={candidatosDuplicadoNueva}
         nombreTentativo={[nombreNueva, segundoNombreNueva, apellidoPaternoNueva, apellidoMaternoNueva].filter(Boolean).join(' ')}
         onUsarExistente={usarPersonaNuevaSimilar}
         onNoEsLaMisma={() => {

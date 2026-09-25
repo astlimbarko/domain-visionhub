@@ -1554,6 +1554,7 @@ export function Reportes() {
                         buscandoGlobal={buscandoAsistenteNuevo}
                         onSeleccionarGlobal={agregarAsistenteExistente}
                         onTextoCambia={setTextoAsistenteNuevo}
+                        visitasNuevasExistentes={visitasNuevas}
                         ocultarResultados
                         mostrarOrigenBusquedaGlobal={!esRolCdp || (campos?.REPORTE_MOSTRAR_ORIGEN_ASISTENTE ?? true)}
                       />

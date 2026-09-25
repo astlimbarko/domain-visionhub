@@ -13,6 +13,7 @@ import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPo
 import type { EvangelizadoPendiente } from '@/types/reporte.types';
 import type { PersonaSimilar } from '@/types/casas-de-paz.types';
 import { normalizarNombre } from '@/utils/normalizarNombre';
+import { esCandidatoLocal, PREFIJO_CANDIDATO_LOCAL, sonNombresIguales } from '@/utils/personaSimilarLocal';
 
 interface Props {
   iglesiaId: string | undefined;
@@ -103,6 +104,14 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
     setDuplicadoDescartado(false);
   }, [nombre, segundoNombre, apellido, segundoApellido]);
 
+  // KAN-438: `similares` (RPC contra la base) no ve a las personas nuevas
+  // que ya se agregaron a este mismo reporte pero todavía no se guardaron
+  // (`pendientes` sin `persona_id`) -- se comparan acá, en el cliente.
+  const candidatosLocales: PersonaSimilar[] = pendientes
+    .filter((p) => !p.persona_id && sonNombresIguales(nombre, apellido, p.primer_nombre, p.primer_apellido))
+    .map((p) => ({ id: `${PREFIJO_CANDIDATO_LOCAL}${p.clave}`, nombre_completo: p.nombre_completo, score: 1 }));
+  const candidatosDuplicado = [...candidatosLocales, ...similares];
+
   function agregarExistente(persona: { id: string; nombre_completo: string }) {
     if (tipos.length > 0 && !tipoEvangelismoId) {
       toast.error('Elegí primero el tipo de evangelismo');
@@ -130,7 +139,7 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
       toast.error('Elegí primero el tipo de evangelismo');
       return;
     }
-    if (!duplicadoDescartado && similares.length > 0) {
+    if (!duplicadoDescartado && candidatosDuplicado.length > 0) {
       setMostrarConfirmDuplicado(true);
       return;
     }
@@ -138,7 +147,15 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
   }
 
   function usarPersonaSimilar(persona: PersonaSimilar) {
-    agregarExistente(persona);
+    // Candidato "local": ya está en la lista de este mismo reporte, sin
+    // guardar todavía -- no tiene un persona_id real para vincular, así que
+    // simplemente no se agrega de nuevo (evita el duplicado sin fabricar un
+    // persona_id falso).
+    if (esCandidatoLocal(persona.id)) {
+      toast.info('Ya está en la lista de evangelizados de este reporte.');
+    } else {
+      agregarExistente(persona);
+    }
     setMostrarConfirmDuplicado(false);
     setNombre('');
     setSegundoNombre('');
@@ -363,7 +380,7 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
       <ConfirmarPosibleDuplicadoDialog
         open={mostrarConfirmDuplicado}
         onOpenChange={setMostrarConfirmDuplicado}
-        candidatos={similares}
+        candidatos={candidatosDuplicado}
         nombreTentativo={[nombre, segundoNombre, apellido, segundoApellido].filter(Boolean).join(' ')}
         onUsarExistente={usarPersonaSimilar}
         onNoEsLaMisma={() => {
