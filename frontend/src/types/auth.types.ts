@@ -20,6 +20,10 @@ export interface IglesiaAccesible {
   /** Capacidades ortogonales al rol: cargo Tipo B de nivel IGLESIA (persona_cargo), acceso global de solo lectura. */
   es_lider_jovenes: boolean;
   es_encargado_matrimonios: boolean;
+  /** KAN-442: iglesia madre, si esta es una satélite/hija -- null si es la
+   * cabecera de su propia jerarquía. Se usa para ordenar el selector de rol
+   * (madre arriba) cuando la cuenta tiene acceso a más de una iglesia. */
+  iglesia_padre_id: string | null;
 }
 
 export interface SesionUsuario {
