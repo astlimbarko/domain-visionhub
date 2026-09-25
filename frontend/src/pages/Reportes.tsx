@@ -668,9 +668,28 @@ export function Reportes() {
   // Autoguardado con debounce -- recién arranca después de intentar
   // restaurar (si no, el primer render con el formulario vacío pisaría un
   // borrador real antes de siquiera leerlo).
+  //
+  // Bug real encontrado en vivo (2026-09-25): `fecha_reunion` viene
+  // precargada con la fecha de hoy desde el primer render (fechaInicial),
+  // así que este efecto disparaba igual apenas se montaba el formulario --
+  // guardaba un "borrador" con la fecha nada más, todo lo demás vacío. La
+  // próxima vez que el líder abría un reporte nuevo para esa misma fecha,
+  // aparecía "Se restauró tu borrador sin enviar" con el formulario
+  // totalmente en blanco a la vista. `hayContenidoReal` filtra ese caso:
+  // sin ningún campo realmente tocado por la persona, no hay nada que
+  // guardar como borrador todavía.
+  const hayContenidoReal =
+    !!libroId || !!temaId || !!temaEspecialTxt || !!disertadorId || salioEvangelizar ||
+    (testimoniosTexto ?? '').trim() !== '' ||
+    testimoniosCategorizados.some((t) => t.texto.trim() !== '' || t.nombrePersona.trim() !== '') ||
+    asistentes.size > 0 || visitasNuevas.length > 0 || asistentesNuevosExistentes.length > 0 ||
+    Object.values(reconciliadosPorPersona).some(Boolean) ||
+    (totalOfrendasTexto ?? '').trim() !== '' || diezmos.length > 0;
+
   useEffect(() => {
     if (!borradorAplica || !borradorHidratado.current || !cdpActiva || !iglesiaActivaId || reporteConflictoId) return;
     if (saltarProximoAutoguardado.current) return;
+    if (!hayContenidoReal && !borradorId) return;
     setEstadoBorrador('guardando');
     if (ocultarIndicadorBorradorRef.current) clearTimeout(ocultarIndicadorBorradorRef.current);
     setMostrarIndicadorBorrador(true);
