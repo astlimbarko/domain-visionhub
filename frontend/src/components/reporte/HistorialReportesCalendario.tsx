@@ -1,15 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, PartyPopper, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
-import { useDiasLimiteEdicionReporte, usePrimeraFechaReunion, useReportesParaCalendario, useReunionesNoRealizadas } from '@/hooks/useReporte';
+import {
+  useConvertirReunionNoRealizadaEnReporte,
+  useCorregirReunionNoRealizada,
+  useDiasLimiteEdicionReporte,
+  usePrimeraFechaReunion,
+  useReportesParaCalendario,
+  useReunionesNoRealizadas,
+} from '@/hooks/useReporte';
 import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
 import { ROUTES, rutaReporteEditar } from '@/utils/constants';
 import { aISO, fechaLegible, fechaLegibleConDia, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
+import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 
 /**
@@ -194,10 +207,61 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   // ver la migración), así que se resuelven con un query aparte.
   const { data: reunionesNoRealizadas = [] } = useReunionesNoRealizadas(casaDePazId, desde, hasta);
   const motivoNoRealizadaPorSemana = useMemo(() => {
-    const mapa = new Map<string, string>();
-    for (const r of reunionesNoRealizadas) mapa.set(inicioSemanaISO(r.fecha_reunion), r.motivo ?? '');
+    const mapa = new Map<string, { id: string; motivo: string; fechaReunion: string; fechaCreacion: string }>();
+    for (const r of reunionesNoRealizadas) {
+      mapa.set(inicioSemanaISO(r.fecha_reunion), {
+        id: r.id,
+        motivo: r.motivo ?? '',
+        fechaReunion: r.fecha_reunion,
+        fechaCreacion: r.fecha_creacion,
+      });
+    }
     return mapa;
   }, [reunionesNoRealizadas]);
+
+  // KAN-450 (pedido explícito del owner): gestionar una "reunión no
+  // realizada" ya cargada -- corregir motivo/fecha, o convertirla en
+  // reporte real si en verdad sí hubo reunión. Solo dentro de la misma
+  // ventana de edición configurable que ya rige los reportes reales.
+  const [gestionando, setGestionando] = useState<{ id: string; fechaReunion: string; motivo: string } | null>(null);
+  const [vistaGestion, setVistaGestion] = useState<'elegir' | 'corregir' | 'convertir'>('elegir');
+  const [fechaCorregida, setFechaCorregida] = useState('');
+  const [motivoCorregido, setMotivoCorregido] = useState('');
+  const corregirNoRealizada = useCorregirReunionNoRealizada(casaDePazId);
+  const convertirNoRealizada = useConvertirReunionNoRealizadaEnReporte(casaDePazId);
+
+  function abrirGestion(datos: { id: string; fechaReunion: string; motivo: string }) {
+    setGestionando(datos);
+    setVistaGestion('elegir');
+    setFechaCorregida(datos.fechaReunion);
+    setMotivoCorregido(datos.motivo);
+  }
+
+  function guardarCorreccion() {
+    if (!gestionando || !fechaCorregida || !motivoCorregido.trim()) return;
+    corregirNoRealizada.mutate(
+      { id: gestionando.id, fechaReunion: fechaCorregida, motivo: motivoCorregido.trim() },
+      {
+        onSuccess: () => {
+          toast.success('Corregido.');
+          setGestionando(null);
+        },
+        onError: () => toast.error('No se pudo corregir -- puede que ya se haya salido de la ventana de edición.'),
+      }
+    );
+  }
+
+  function confirmarConversion() {
+    if (!gestionando) return;
+    const fecha = gestionando.fechaReunion;
+    convertirNoRealizada.mutate(gestionando.id, {
+      onSuccess: () => {
+        setGestionando(null);
+        navigate(`${ROUTES.REPORTES}?fecha=${fecha}`);
+      },
+      onError: () => toast.error('No se pudo convertir -- puede que ya se haya salido de la ventana de edición.'),
+    });
+  }
 
   // Numeración continua de semanas (1..N) en orden cronológico, para el rótulo de cada círculo.
   const numeroDeSemana = useMemo(() => {
@@ -369,6 +433,11 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                         // esto solo decide si el círculo se muestra como clickeable.
                         const reporteSemana = reportePorSemana.get(s.inicio);
                         const editable = enviado && !!reporteSemana && dentroDeVentanaEdicionReporte(reporteSemana.fechaCreacion, diasLimiteEdicion);
+                        // KAN-450 (pedido explícito del owner): "reunión no realizada" también
+                        // se puede gestionar (corregir motivo/fecha, o convertir en reporte real)
+                        // mientras siga dentro de la misma ventana configurable -- antes no había
+                        // ninguna forma de tocar estas burbujas.
+                        const editableNoRealizada = !!motivoNoRealizada && dentroDeVentanaEdicionReporte(motivoNoRealizada.fechaCreacion, diasLimiteEdicion);
 
                         const estadoTexto = enviado
                           ? 'reporte entregado'
@@ -402,8 +471,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   mostrar el resumen sin mouse. */}
                               <button
                                 type="button"
-                                aria-disabled={!editable && !faltante}
-                                tabIndex={editable || faltante ? 0 : -1}
+                                aria-disabled={!editable && !faltante && !editableNoRealizada}
+                                tabIndex={editable || faltante || editableNoRealizada ? 0 : -1}
                                 onClick={
                                   editable
                                     ? () => navigate(rutaReporteEditar(reporteSemana.reporteId))
@@ -413,9 +482,15 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                       // (mismo criterio que los verdes: el click ya es la acción).
                                       faltante
                                       ? () => navigate(`${ROUTES.REPORTES}?fecha=${s.inicio}`)
-                                      : esTactil
-                                        ? () => setSemanaAbiertaTactil((actual) => (actual === s.inicio ? null : s.inicio))
-                                        : undefined
+                                      : // KAN-450 (pedido explícito del owner): "reunión no realizada"
+                                        // dentro de la ventana abre el diálogo de gestión (corregir o
+                                        // convertir), no navega directo -- a diferencia de los otros 2
+                                        // casos, acá hay más de una acción posible.
+                                        editableNoRealizada && motivoNoRealizada
+                                        ? () => abrirGestion({ id: motivoNoRealizada.id, fechaReunion: motivoNoRealizada.fechaReunion, motivo: motivoNoRealizada.motivo })
+                                        : esTactil
+                                          ? () => setSemanaAbiertaTactil((actual) => (actual === s.inicio ? null : s.inicio))
+                                          : undefined
                                 }
                                 className={cn(
                                   // KAN-392: círculo más chico en mobile (h-7/w-7) -- junto con el
@@ -428,7 +503,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   !enviado && !faltante && !noRealizada && 'bg-muted text-muted-foreground/60',
                                   editable && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]',
                                   faltante && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-110',
-                                  !editable && !faltante && 'cursor-default'
+                                  editableNoRealizada && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-110',
+                                  !editable && !faltante && !editableNoRealizada && 'cursor-default'
                                 )}
                                 // KAN-367 (pedido del owner, 2026-09-17): entregado-editable vs
                                 // entregado-vencido son el mismo estado semántico (verde) pero uno
@@ -484,7 +560,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: NO_REALIZADA_COLOR }} />
                                     Reunión no realizada
                                   </p>
-                                  <p className="text-muted-foreground">Motivo: {motivoNoRealizada || '—'}</p>
+                                  <p className="text-muted-foreground">Motivo: {motivoNoRealizada?.motivo || '—'}</p>
+                                  {editableNoRealizada && <p className="mt-0.5 font-medium text-primary">Click para gestionar</p>}
                                 </div>
                               ) : faltante ? (
                                 <div className="flex flex-col gap-[3px]">
@@ -514,6 +591,84 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
           </>
         )}
       </div>
+
+      {/* KAN-450 (pedido explícito del owner): gestión de una "reunión no
+          realizada" ya cargada, dentro de la ventana de edición. */}
+      <Dialog open={!!gestionando} onOpenChange={(open) => !open && setGestionando(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reunión no realizada -- {gestionando ? fechaLegible(gestionando.fechaReunion) : ''}</DialogTitle>
+          </DialogHeader>
+
+          {vistaGestion === 'elegir' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">Motivo actual: {gestionando?.motivo || '—'}</p>
+              <Button type="button" variant="outline" className="justify-start gap-2" onClick={() => setVistaGestion('corregir')}>
+                <Pencil className="h-4 w-4" />
+                Corregir motivo o fecha
+              </Button>
+              <Button type="button" variant="outline" className="justify-start gap-2" onClick={() => setVistaGestion('convertir')}>
+                <History className="h-4 w-4" />
+                En realidad sí hubo reunión
+              </Button>
+            </div>
+          )}
+
+          {vistaGestion === 'corregir' && (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="no-realizada-fecha">Fecha de la reunión</Label>
+                <Input
+                  id="no-realizada-fecha"
+                  type="date"
+                  max={hoyISO}
+                  className={CAMPO_ESTILO}
+                  value={fechaCorregida}
+                  onChange={(e) => setFechaCorregida(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="no-realizada-motivo">Motivo</Label>
+                <Textarea
+                  id="no-realizada-motivo"
+                  className={CAMPO_ESTILO}
+                  value={motivoCorregido}
+                  onChange={(e) => setMotivoCorregido(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setVistaGestion('elegir')}>
+                  Volver
+                </Button>
+                <Button
+                  type="button"
+                  onClick={guardarCorreccion}
+                  disabled={!fechaCorregida || !motivoCorregido.trim() || corregirNoRealizada.isPending}
+                >
+                  {corregirNoRealizada.isPending ? 'Guardando...' : 'Guardar'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {vistaGestion === 'convertir' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Se va a borrar esta marca de "reunión no realizada" y te vamos a llevar al formulario de reporte de esa fecha para
+                que cargues los datos reales.
+              </p>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setVistaGestion('elegir')}>
+                  Volver
+                </Button>
+                <Button type="button" onClick={confirmarConversion} disabled={convertirNoRealizada.isPending}>
+                  {convertirNoRealizada.isPending ? 'Un momento...' : 'Sí, cargar reporte real'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

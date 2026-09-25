@@ -8,6 +8,8 @@ import {
   crearReporteMegafiesta,
   crearReunionNoRealizada,
   corregirEstadoSsvaManual,
+  corregirReunionNoRealizada,
+  convertirReunionNoRealizadaEnReporte,
   eliminarBorradorReporte,
   existeReporteParaFecha,
   guardarBorradorReporte,
@@ -303,6 +305,34 @@ export function useCrearReunionNoRealizada(casaDePazId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'recientes'] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-fechas'] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
+    },
+  });
+}
+
+/** KAN-450 (pedido explícito del owner): corregir fecha/motivo de una
+ * "reunión no realizada" ya cargada, dentro de la ventana de edición. */
+export function useCorregirReunionNoRealizada(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, fechaReunion, motivo }: { id: string; fechaReunion: string; motivo: string }) =>
+      corregirReunionNoRealizada(id, fechaReunion, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
+    },
+  });
+}
+
+/** KAN-450 (pedido explícito del owner): "en realidad sí hubo reunión" --
+ * da de baja la fila de "no realizada" para poder cargar el reporte real
+ * de esa fecha desde cero. */
+export function useConvertirReunionNoRealizadaEnReporte(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => convertirReunionNoRealizadaEnReporte(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
       queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
     },
