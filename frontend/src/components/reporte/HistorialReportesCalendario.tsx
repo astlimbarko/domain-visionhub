@@ -15,14 +15,14 @@ import { cn } from '@/lib/utils';
 /**
  * KAN-393 usó `AZUL` (marca/cumplimiento, ya usado en el header de esta misma
  * tarjeta para el % de cumplimiento) para "reunión no realizada" -- pedido
- * explícito del owner (2026-09-17): tiene que ser CELESTE, un color propio,
- * no el mismo azul que ya representa otro concepto en la misma pantalla.
- * No hay celeste en la paleta compartida de `DashboardUI` (AZUL/VERDE/AMBAR/
- * MORADO/MARINO/TEAL) -- se reusa el mismo hex que ya representa "Casas de
- * Paz" en `AREA_ICONO` de `pages/Avances.tsx`, coherente porque este
- * calendario ES el de reportes de una Casa de Paz.
+ * explícito del owner (2026-09-17): tiene que ser un color propio, no el
+ * mismo azul que ya representa otro concepto en la misma pantalla.
+ *
+ * KAN-450 (pedido explícito del owner, 2026-09-25): el celeste original se
+ * veía "como un lila" -- pasa a un gris oscuro (entre negro y gris), sin
+ * tocar el resto de la paleta compartida (`DashboardUI`).
  */
-const CELESTE = '#0aa5c0';
+const NO_REALIZADA_COLOR = '#3f3f46';
 
 interface Props {
   casaDePazId: string | undefined;
@@ -289,7 +289,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 No entregado
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CELESTE }} />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: NO_REALIZADA_COLOR }} />
                 Reunión no realizada
               </span>
               {/* KAN-409: indicador propio para semanas reportadas como
@@ -434,7 +434,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                 // se puede tocar y el otro no -- distinto tono (no solo el anillo)
                                 // para que se note a simple vista sin depender del hover/tooltip.
                                 // KAN-393 (color pedido explícito por el owner, 2026-09-17): "reunión
-                                // no realizada" usa CELESTE, no AZUL -- AZUL ya representa el % de
+                                // no realizada" usa NO_REALIZADA_COLOR, no AZUL -- AZUL ya representa el % de
                                 // cumplimiento en el header de esta misma tarjeta, reusarlo acá
                                 // mezclaba dos conceptos distintos bajo el mismo color.
                                 style={
@@ -453,7 +453,7 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                             : undefined,
                                         }
                                     : noRealizada
-                                      ? { backgroundColor: CELESTE }
+                                      ? { backgroundColor: NO_REALIZADA_COLOR }
                                       : undefined
                                 }
                               >
@@ -479,8 +479,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                 </div>
                               ) : noRealizada ? (
                                 <div className="flex flex-col gap-[3px]">
-                                  <p className="flex items-center gap-1.5 font-semibold" style={{ color: CELESTE }}>
-                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: CELESTE }} />
+                                  <p className="flex items-center gap-1.5 font-semibold" style={{ color: NO_REALIZADA_COLOR }}>
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: NO_REALIZADA_COLOR }} />
                                     Reunión no realizada
                                   </p>
                                   <p className="text-muted-foreground">Motivo: {motivoNoRealizada || '—'}</p>
