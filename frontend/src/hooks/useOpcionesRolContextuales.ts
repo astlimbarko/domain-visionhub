@@ -9,6 +9,7 @@ import { DEPARTAMENTO_META } from '@/utils/departamentos';
 import { useAuthStore } from '@/store/auth.store';
 import { obtenerMisRoles } from '@/services/dashboard.service';
 import { construirContextosDisponibles } from '@/utils/contextos-disponibles';
+import { ordenarIglesiasPorJerarquia } from '@/utils/ordenar-iglesias';
 import type { ContextoActivo } from '@/types/contexto-activo.types';
 import type { RolUI } from '@/utils/permisos';
 import type { CargoCdpDashboard, MisRolesDashboard } from '@/types/dashboard.types';
@@ -29,6 +30,11 @@ export interface OpcionRolContextual {
   bgIcono: string;
   colorIcono: string;
   lineas: LineaSecundaria[];
+  /** KAN-442: null para SUPER_ADMIN (sin iglesia); se usa para agrupar
+   * visualmente las filas por iglesia en el selector cuando la cuenta tiene
+   * acceso a más de una. */
+  iglesiaId: string | null;
+  iglesiaNombre: string | null;
   /** Solo Líder de Red: color real de la red para el punto junto a la flecha. */
   colorRed?: string;
   /** Ícono propio (SVG con su fondo circular ya incluido, ej. Evangelismo) --
@@ -38,7 +44,8 @@ export interface OpcionRolContextual {
   iconoSvg?: string;
 }
 
-function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesiaId: string): OpcionRolContextual {
+function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesia: IglesiaAccesible): OpcionRolContextual {
+  const iglesiaId = iglesia.id;
   const v = esSublider ? FILA_ROL_VISUAL.SUBLIDER_CDP : FILA_ROL_VISUAL.LIDER_CDP;
   const lineas: LineaSecundaria[] = [];
   if (cdp.anfitrion_nombre) lineas.push({ icon: User, texto: cdp.anfitrion_nombre });
@@ -61,25 +68,24 @@ function construirOpcionCdp(cdp: CargoCdpDashboard, esSublider: boolean, iglesia
     bgIcono: v.bgIcono,
     colorIcono: v.colorIcono,
     lineas,
+    iglesiaId,
+    iglesiaNombre: iglesia.nombre,
   };
 }
 
 /** KAN-442: arma las opciones de UNA iglesia -- antes esta lógica vivía
- * inline en el hook, atada a la única `iglesiaActivaId`. `mostrarNombreIglesia`
- * agrega el nombre de la iglesia a las líneas secundarias de cada fila
- * (redundante si la cuenta solo tiene una iglesia, necesario para
- * distinguir cuando tiene más de una). */
-function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDashboard, mostrarNombreIglesia: boolean): OpcionRolContextual[] {
+ * inline en el hook, atada a la única `iglesiaActivaId`. */
+function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDashboard): OpcionRolContextual[] {
   const opciones: OpcionRolContextual[] = [];
   const iglesiaId = iglesia.id;
-  const lineaIglesia: LineaSecundaria[] = mostrarNombreIglesia ? [{ texto: iglesia.nombre }] : [];
+  const iglesiaNombre = iglesia.nombre;
 
   if (iglesia.es_pastor) {
     const v = FILA_ROL_VISUAL.PASTOR;
     opciones.push({
       key: `PASTOR:${iglesiaId}`, rolUI: 'PASTOR', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `PASTOR:${iglesiaId}`, rolUI: 'PASTOR', alcance: 'IGLESIA', iglesiaId },
-      lineas: lineaIglesia,
+      lineas: [], iglesiaId, iglesiaNombre,
     });
   }
 
@@ -88,7 +94,7 @@ function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDash
     opciones.push({
       key: `SUPERVISOR:${iglesiaId}`, rolUI: 'SUPERVISOR', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
       contexto: { clave: `SUPERVISOR:${iglesiaId}`, rolUI: 'SUPERVISOR', alcance: 'IGLESIA', iglesiaId },
-      lineas: lineaIglesia,
+      lineas: [], iglesiaId, iglesiaNombre,
     });
   }
 
@@ -106,13 +112,14 @@ function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDash
       contexto: { clave, rolUI: 'LIDER_RED', alcance: 'RED', iglesiaId, redId: red.id, cargoRed },
       titulo: red.es_sublider ? 'Supervisor de Red' : v.titulo,
       icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
-      lineas: mostrarNombreIglesia ? [{ texto: red.nombre }, { texto: iglesia.nombre }] : [{ texto: red.nombre }],
+      lineas: [{ texto: red.nombre }],
       colorRed: red.color && red.color.toUpperCase() !== '#FFFFFF' ? red.color : COLOR_RED_NEUTRO,
+      iglesiaId, iglesiaNombre,
     });
   }
 
-  for (const cdp of roles.cdp_lider ?? []) opciones.push(construirOpcionCdp(cdp, false, iglesiaId));
-  for (const cdp of roles.cdp_sublider ?? []) opciones.push(construirOpcionCdp(cdp, true, iglesiaId));
+  for (const cdp of roles.cdp_lider ?? []) opciones.push(construirOpcionCdp(cdp, false, iglesia));
+  for (const cdp of roles.cdp_sublider ?? []) opciones.push(construirOpcionCdp(cdp, true, iglesia));
 
   if (iglesia.es_lider_afirmacion) {
     const v = FILA_ROL_VISUAL.LIDER_DEPARTAMENTO;
@@ -122,7 +129,7 @@ function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDash
       // pedido explícito del owner, 2026-09-09.
       iconoSvg: '/icono-afirmacion.svg',
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaId}:AFIRMACION`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId, departamentoId: null, departamentoCodigo: 'AFIRMACION' },
-      lineas: lineaIglesia,
+      lineas: [], iglesiaId, iglesiaNombre,
     });
   }
 
@@ -135,26 +142,47 @@ function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDash
       // corazón genérico -- pedido explícito del owner, 2026-09-08.
       iconoSvg: '/icono-evangelismo.svg',
       contexto: { clave: `LIDER_DEPARTAMENTO:${iglesiaId}:EVANGELISMO`, rolUI: 'LIDER_DEPARTAMENTO', alcance: 'DEPARTAMENTO', iglesiaId, departamentoId: null, departamentoCodigo: 'EVANGELISMO' },
-      lineas: lineaIglesia,
+      lineas: [], iglesiaId, iglesiaNombre,
     });
   }
 
   if (iglesia.es_lider_jovenes) {
     const v = FILA_ROL_VISUAL.LIDER_JOVENES;
-    opciones.push({ key: `LIDER_JOVENES:${iglesiaId}`, rolUI: 'LIDER_JOVENES', contexto: { clave: `LIDER_JOVENES:${iglesiaId}`, rolUI: 'LIDER_JOVENES', alcance: 'IGLESIA', iglesiaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: lineaIglesia });
+    opciones.push({
+      key: `LIDER_JOVENES:${iglesiaId}`, rolUI: 'LIDER_JOVENES', contexto: { clave: `LIDER_JOVENES:${iglesiaId}`, rolUI: 'LIDER_JOVENES', alcance: 'IGLESIA', iglesiaId },
+      titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: [], iglesiaId, iglesiaNombre,
+    });
   }
 
   if (iglesia.es_encargado_matrimonios) {
     const v = FILA_ROL_VISUAL.ENCARGADO_MATRIMONIOS;
-    opciones.push({ key: `ENCARGADO_MATRIMONIOS:${iglesiaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', contexto: { clave: `ENCARGADO_MATRIMONIOS:${iglesiaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', alcance: 'IGLESIA', iglesiaId }, titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: lineaIglesia });
+    opciones.push({
+      key: `ENCARGADO_MATRIMONIOS:${iglesiaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', contexto: { clave: `ENCARGADO_MATRIMONIOS:${iglesiaId}`, rolUI: 'ENCARGADO_MATRIMONIOS', alcance: 'IGLESIA', iglesiaId },
+      titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: [], iglesiaId, iglesiaNombre,
+    });
   }
 
   return opciones;
 }
 
+const OPCION_SUPER_ADMIN: OpcionRolContextual = (() => {
+  const v = FILA_ROL_VISUAL.SUPER_ADMIN;
+  return {
+    key: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
+    contexto: { clave: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', alcance: 'GLOBAL' },
+    lineas: [{ texto: 'Administración general del sistema' }],
+    iglesiaId: null, iglesiaNombre: null,
+  };
+})();
+
 export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined {
   const esSuperAdmin = useAuthStore((s) => s.esSuperAdmin);
-  const iglesias = useAuthStore((s) => s.iglesias);
+  const iglesiasRaw = useAuthStore((s) => s.iglesias);
+  // KAN-442: madre arriba, satélites justo después de su madre -- pedido
+  // explícito del owner (2026-09-25). El orden de este array es el mismo
+  // que usan tanto las queries de abajo como el agrupado visual del
+  // selector (GrupoOpcionesRol), así que alcanza con ordenar acá una vez.
+  const iglesias = ordenarIglesiasPorJerarquia(iglesiasRaw);
 
   // KAN-442: antes esto solo pedía los roles de `iglesiaActivaId` -- una
   // cuenta con rol operativo en más de una iglesia (ej. iglesia madre +
@@ -173,12 +201,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   // Caso límite del Super Admin sin ninguna iglesia asociada: no tiene nada
   // que desambiguar por iglesia, solo su propio contexto global.
   if (esSuperAdmin && iglesias.length === 0) {
-    const v = FILA_ROL_VISUAL.SUPER_ADMIN;
-    return [{
-      key: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
-      contexto: { clave: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', alcance: 'GLOBAL' },
-      lineas: [{ texto: 'Administración general del sistema' }],
-    }];
+    return [OPCION_SUPER_ADMIN];
   }
 
   const cargando = resultadosPorIglesia.some((r) => r.isLoading);
@@ -187,15 +210,9 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
   const opciones: OpcionRolContextual[] = [];
 
   if (esSuperAdmin) {
-    const v = FILA_ROL_VISUAL.SUPER_ADMIN;
-    opciones.push({
-      key: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono,
-      contexto: { clave: 'SUPER_ADMIN', rolUI: 'SUPER_ADMIN', alcance: 'GLOBAL' },
-      lineas: [{ texto: 'Administración general del sistema' }],
-    });
+    opciones.push(OPCION_SUPER_ADMIN);
   }
 
-  const mostrarNombreIglesia = iglesias.length > 1;
   iglesias.forEach((iglesia, i) => {
     const roles = resultadosPorIglesia[i]?.data as MisRolesDashboard | undefined;
     if (!roles) return;
@@ -204,7 +221,7 @@ export function useOpcionesRolContextuales(): OpcionRolContextual[] | undefined 
     // iglesia, para no filtrar por error las opciones de una iglesia que no
     // sea la activa.
     const contextosDisponiblesIglesia = construirContextosDisponibles({ esSuperAdmin: false, iglesia, roles });
-    for (const opcion of construirOpcionesIglesia(iglesia, roles, mostrarNombreIglesia)) {
+    for (const opcion of construirOpcionesIglesia(iglesia, roles)) {
       const contexto = contextosDisponiblesIglesia.find((item) => item.clave === opcion.key);
       if (contexto) opciones.push({ ...opcion, contexto });
     }
