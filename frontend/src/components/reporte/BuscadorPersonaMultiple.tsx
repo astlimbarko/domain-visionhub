@@ -272,13 +272,16 @@ export function BuscadorPersonaMultiple({
 
   function usarPersonaNuevaSimilar(persona: PersonaSimilar) {
     // Candidato "local": ya está agregada como visita nueva en este mismo
-    // reporte, sin guardar todavía -- no tiene un persona_id real, así que
-    // no se agrega de nuevo en vez de fabricar un id falso.
+    // reporte, sin guardar todavía -- no tiene un persona_id real. El aviso
+    // nunca bloquea la carga (pedido explícito del owner, 2026-09-25):
+    // aunque el líder confirme "sí, es la misma persona", igual se agrega.
     if (esCandidatoLocal(persona.id)) {
-      toast.info('Ya está en la lista de asistentes nuevos de este reporte.');
-    } else {
-      onSeleccionarGlobal?.(persona);
+      toast.info('Se agrega igual, como otro asistente nuevo con ese nombre.');
+      setMostrarConfirmDuplicado(false);
+      confirmarAgregarNueva();
+      return;
     }
+    onSeleccionarGlobal?.(persona);
     setMostrarConfirmDuplicado(false);
     setTexto('');
     onTextoCambia?.('');

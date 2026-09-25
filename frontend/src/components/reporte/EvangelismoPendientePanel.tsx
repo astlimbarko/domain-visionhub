@@ -148,14 +148,17 @@ export function EvangelismoPendientePanel({ iglesiaId, pendientes, onAgregar, on
 
   function usarPersonaSimilar(persona: PersonaSimilar) {
     // Candidato "local": ya está en la lista de este mismo reporte, sin
-    // guardar todavía -- no tiene un persona_id real para vincular, así que
-    // simplemente no se agrega de nuevo (evita el duplicado sin fabricar un
-    // persona_id falso).
+    // guardar todavía -- no tiene un persona_id real para vincular a él. El
+    // aviso nunca bloquea la carga (pedido explícito del owner, 2026-09-25):
+    // aunque el líder confirme "sí, es la misma persona", igual se registra
+    // -- queda anotada como otra evangelización de la misma persona.
     if (esCandidatoLocal(persona.id)) {
-      toast.info('Ya está en la lista de evangelizados de este reporte.');
-    } else {
-      agregarExistente(persona);
+      toast.info('Se anota como otra evangelización de la misma persona.');
+      setMostrarConfirmDuplicado(false);
+      agregarNueva();
+      return;
     }
+    agregarExistente(persona);
     setMostrarConfirmDuplicado(false);
     setNombre('');
     setSegundoNombre('');
