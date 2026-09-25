@@ -31,6 +31,9 @@ export interface MiembroCdp {
    * solo viene informado para "visitas" (fn_visitas_cdp); los miembros
    * formales de la CdP no lo traen todavía. */
   estado_sigla?: string | null;
+  /** KAN-447 (pedido explícito del owner): para mostrar el teléfono junto al
+   * nombre de asistentes NC/RE en las 3 listas de Asistencia. */
+  telefono?: string | null;
 }
 
 export interface EvangelizadoPendiente {

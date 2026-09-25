@@ -162,7 +162,10 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
         // miembro. Mismo criterio de "vigente" que esa función
         // (fecha_fin/fecha_eliminacion null), filtrado en el map de abajo
         // porque persona_estado es historial completo (append-only).
-        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)))'
+        // KAN-447 (pedido explícito del owner): teléfono para mostrarlo junto
+        // al nombre de asistentes NC/RE -- mismo criterio "vigente/principal"
+        // que persona_estado arriba, filtrado en el map de abajo.
+        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)), telefono_asignacion(es_principal, fecha_eliminacion, telefono:telefono_id(numero)))'
       )
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
@@ -187,12 +190,16 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
     const historialEstados = (p?.persona_estado ?? []) as { fecha_fin: string | null; fecha_eliminacion: string | null; estado: { sigla: string } | { sigla: string }[] | null }[];
     const estadoVigente = historialEstados.find((pe) => pe.fecha_fin === null && pe.fecha_eliminacion === null);
     const estadoObj = Array.isArray(estadoVigente?.estado) ? estadoVigente?.estado[0] : estadoVigente?.estado;
+    const telefonos = (p?.telefono_asignacion ?? []) as { es_principal: boolean; fecha_eliminacion: string | null; telefono: { numero: string } | { numero: string }[] | null }[];
+    const telefonoPrincipal = telefonos.find((t) => t.es_principal && t.fecha_eliminacion === null);
+    const telefonoObj = Array.isArray(telefonoPrincipal?.telefono) ? telefonoPrincipal?.telefono[0] : telefonoPrincipal?.telefono;
     return {
       persona_id: r.persona_id,
       nombre_completo: nombre,
       tiene_fecha_nacimiento: !!p?.fecha_nacimiento,
       edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
       estado_sigla: estadoObj?.sigla ?? null,
+      telefono: telefonoObj?.numero ?? null,
     };
   });
 
@@ -1542,4 +1549,17 @@ export async function existeReporteParaFecha(casaDePazId: string, fechaReunion: 
     .maybeSingle();
   if (error) throw error;
   return data?.id ?? null;
+}
+
+/** KAN-446 (pedido explícito del owner): corrige a mano el estado SSVA de
+ * una persona (SIM/NC/CRE) -- cierra la fila vigente de persona_estado y
+ * abre una nueva marcada como corrección manual. RE sigue teniendo su
+ * propio toggle (KAN-390, no toca persona_estado) -- esto es aparte. */
+export async function corregirEstadoSsvaManual(personaId: string, estadoSigla: string, motivo?: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_corregir_estado_ssva_manual', {
+    p_persona_id: personaId,
+    p_estado_sigla: estadoSigla,
+    p_motivo: motivo ?? null,
+  });
+  if (error) throw error;
 }
