@@ -34,6 +34,7 @@ export function SeleccionarRol() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const correo = useAuthStore((s) => s.correo);
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
+  const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
   const logout = useAuthStore((s) => s.logout);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
   const iglesias = useAuthStore((s) => s.iglesias);
@@ -68,6 +69,14 @@ export function SeleccionarRol() {
   }
 
   function elegir(opcion: OpcionRolContextual) {
+    // KAN-442: la lista ahora puede traer roles de una iglesia distinta a la
+    // activa (ver useOpcionesRolContextuales) -- si el rol elegido es de otra
+    // iglesia, hay que cambiarla primero. setIglesiaActiva ya limpia
+    // contextoActivo/rolActivo solo, por eso el orden importa: se llama
+    // antes de setContextoActivo, nunca después (lo pisaría).
+    if (opcion.contexto.alcance !== 'GLOBAL' && opcion.contexto.iglesiaId !== iglesiaActivaId) {
+      setIglesiaActiva(opcion.contexto.iglesiaId);
+    }
     setContextoActivo(opcion.contexto);
     // Delay chico a propósito (KAN-199): sin esto, la navegación es tan
     // instantánea que el ripple/borde de "click" de OpcionRolFila no
