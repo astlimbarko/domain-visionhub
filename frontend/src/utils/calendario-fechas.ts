@@ -85,6 +85,17 @@ export function finSemanaISO(fechaISO: string): string {
   return aISO(inicio);
 }
 
+/** Rango de una semana ISO en formato compacto (ej. "7–13 sep" o "29 sep–5
+ * oct" si cruza de mes) -- para encabezados chicos donde "del 7 de
+ * septiembre al 13 de septiembre" ocupa demasiado espacio. */
+export function rangoSemanaBreve(fechaISO: string): string {
+  const inicio = desdeISO(inicioSemanaISO(fechaISO));
+  const fin = desdeISO(finSemanaISO(fechaISO));
+  const mesInicio = nombreMesCorto(inicio.getMonth()).toLowerCase();
+  const mesFin = nombreMesCorto(fin.getMonth()).toLowerCase();
+  return mesInicio === mesFin ? `${inicio.getDate()}–${fin.getDate()} ${mesFin}` : `${inicio.getDate()} ${mesInicio}–${fin.getDate()} ${mesFin}`;
+}
+
 export function fechaLegible(fechaISO: string): string {
   const fecha = desdeISO(fechaISO);
   return `${fecha.getDate()} de ${NOMBRES_MES[fecha.getMonth()].toLowerCase()}`;

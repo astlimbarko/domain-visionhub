@@ -36,7 +36,7 @@ import {
 } from '@/hooks/useDashboard';
 import { useTasaEvangelismo } from '@/hooks/useEvangelismo';
 import { usePersonasDeCdp } from '@/hooks/usePersonas';
-import { useHistorialReportes, useTestimoniosCdp } from '@/hooks/useReporte';
+import { useHistorialReportes, useReunionesNoRealizadas, useTestimoniosCdp } from '@/hooks/useReporte';
 import type { FiltroInicialPersonasCdp } from '@/components/personas/PersonasDeCdpVista';
 import { ROUTES } from '@/utils/constants';
 import { aISO, diasDeAtraso, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
@@ -343,9 +343,22 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const desdeVentanaCumplimiento = semanasCumplimiento[semanasCumplimiento.length - 1].inicio;
   const hastaVentanaCumplimiento = semanasCumplimiento[0].fin;
   const { data: fechasReportadasVentana = [] } = useHistorialReportes(casaDePazId, desdeVentanaCumplimiento, hastaVentanaCumplimiento);
+  // Bug real encontrado en vivo (2026-09-26): "reunión no realizada" se
+  // colaba como si fuera un reporte real en Cumplimiento/Racha -- ya no
+  // aparece en fechasReportadasVentana (obtenerFechasReportadas la excluye),
+  // pero además hay que sacar esas semanas del denominador (no cuentan ni a
+  // favor ni en contra, KAN-392).
+  const { data: reunionesNoRealizadas = [] } = useReunionesNoRealizadas(casaDePazId, desdeVentanaCumplimiento, hastaVentanaCumplimiento);
 
   const { cumplimientoReportes, rachaReportes, detalleSemanasReportes } = useMemo(() => {
     const semanasConReporte = new Set(fechasReportadasVentana.map((f) => inicioSemanaISO(f.fecha_reunion)));
+    // Caso límite real encontrado en vivo (2026-09-26): si una semana tiene
+    // un reporte real Y ADEMÁS una marca de "no realizada" (datos
+    // desprolijos, no debería pasar en uso normal), sigue contando como
+    // "reportada" -- "no realizada" solo excluye semanas sin ningún reporte real.
+    const semanasNoRealizada = new Set(
+      reunionesNoRealizadas.map((r) => inicioSemanaISO(r.fecha_reunion)).filter((inicio) => !semanasConReporte.has(inicio))
+    );
     // Cumplimiento (pedido explícito del owner, 2026-09-26): solo cuenta si
     // además se envió a tiempo (0 días de atraso). La racha (existencia,
     // KAN-367) no se toca, pero la grilla de abajo sí distingue "a tiempo"
@@ -355,7 +368,7 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
         .filter((f) => diasDeAtraso(f.fecha_reunion, f.fecha_creacion) <= 0)
         .map((f) => inicioSemanaISO(f.fecha_reunion))
     );
-    const semanasCerradas = semanasCumplimiento.filter((s) => s.fin < hoyISOTendencias);
+    const semanasCerradas = semanasCumplimiento.filter((s) => s.fin < hoyISOTendencias && !semanasNoRealizada.has(s.inicio));
     const cumplimientoCalc =
       semanasCerradas.length > 0
         ? Math.round((semanasCerradas.filter((s) => semanasConReporteATiempo.has(s.inicio)).length / semanasCerradas.length) * 100)
@@ -370,9 +383,10 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
       cerrada: s.fin < hoyISOTendencias,
       reportado: semanasConReporte.has(s.inicio),
       aTiempo: semanasConReporteATiempo.has(s.inicio),
+      noRealizada: semanasNoRealizada.has(s.inicio),
     }));
     return { cumplimientoReportes: cumplimientoCalc, rachaReportes: rachaCalc, detalleSemanasReportes: detalleCalc };
-  }, [fechasReportadasVentana, semanasCumplimiento, hoyISOTendencias]);
+  }, [fechasReportadasVentana, reunionesNoRealizadas, semanasCumplimiento, hoyISOTendencias]);
 
   // Bug real reportado por el owner (2026-09-08): "primero muestra azul y
   // luego cambia al color que corresponde a la red". Causa: los hooks usan

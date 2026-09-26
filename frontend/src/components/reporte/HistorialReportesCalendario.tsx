@@ -370,6 +370,13 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 Próxima semana
               </span>
             </div>
+            {/* KAN-460 (pedido explícito del owner, 2026-09-26): semanas
+                anteriores a la primera reunión registrada ahora se pueden
+                completar retroactivamente (para sumar historial y mejorar
+                estadísticas) -- ya no quedan bloqueadas para siempre. Siguen
+                viéndose igual de grises que antes a propósito ("deben
+                seguir siendo grises"), sin aviso aparte (el owner pidió
+                sacarlo) -- el tooltip al tocar el círculo alcanza. */}
 
             {/* KAN-367: aviso de que los círculos verdes se pueden editar -- solo si hay al menos uno editable a la vista. */}
             {hayReporteEditable && (
@@ -472,8 +479,8 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   mostrar el resumen sin mouse. */}
                               <button
                                 type="button"
-                                aria-disabled={!editable && !faltante && !editableNoRealizada}
-                                tabIndex={editable || faltante || editableNoRealizada ? 0 : -1}
+                                aria-disabled={!editable && !faltante && !editableNoRealizada && !antesDePrimera}
+                                tabIndex={editable || faltante || editableNoRealizada || antesDePrimera ? 0 : -1}
                                 onClick={
                                   editable
                                     ? () => navigate(rutaReporteEditar(reporteSemana.reporteId))
@@ -481,7 +488,13 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                       // tiene reporte -- abre directo el formulario en blanco con la
                                       // fecha de esa semana precargada, sin ningún aviso intermedio
                                       // (mismo criterio que los verdes: el click ya es la acción).
-                                      faltante
+                                      // KAN-460 (pedido explícito del owner, 2026-09-26): una semana
+                                      // "antes de la primera reunión" usa el mismo camino -- no hay
+                                      // ninguna restricción real de backend contra fechas pasadas
+                                      // (chk_reporte_fecha solo bloquea futuras), así que completarla
+                                      // simplemente corre hacia atrás la fecha mínima conocida de esta
+                                      // CdP (usePrimeraFechaReunion, MIN(fecha_reunion) real).
+                                      faltante || antesDePrimera
                                       ? () => navigate(`${ROUTES.REPORTES}?fecha=${s.inicio}`)
                                       : // KAN-450 (pedido explícito del owner): "reunión no realizada"
                                         // dentro de la ventana abre el diálogo de gestión (corregir o
@@ -501,11 +514,17 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                   enviado && 'text-white',
                                   faltante && 'bg-destructive text-white shadow-sm shadow-destructive/30',
                                   noRealizada && 'text-white',
+                                  // KAN-460 (pedido explícito del owner, 2026-09-26): antes esta
+                                  // semana quedaba gris para siempre y sin poder tocarse -- ahora se
+                                  // puede completar retroactivamente, pero sigue viéndose igual de
+                                  // gris que antes (pedido explícito: "deben seguir siendo grises").
+                                  // El anillo al hover es la única pista de que ahora sí es clickeable.
                                   !enviado && !faltante && !noRealizada && 'bg-muted text-muted-foreground/60',
                                   editable && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-[0.97]',
                                   faltante && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-110',
                                   editableNoRealizada && 'cursor-pointer ring-1 ring-inset ring-white/40 hover:brightness-110',
-                                  !editable && !faltante && !editableNoRealizada && 'cursor-default'
+                                  antesDePrimera && 'cursor-pointer ring-1 ring-inset ring-black/10 hover:brightness-95',
+                                  !editable && !faltante && !editableNoRealizada && !antesDePrimera && 'cursor-default'
                                 )}
                                 // KAN-367 (pedido del owner, 2026-09-17): entregado-editable vs
                                 // entregado-vencido son el mismo estado semántico (verde) pero uno
@@ -574,6 +593,14 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                                     Fecha supuesta: {fechaLegible(s.inicio)} – {fechaLegible(s.fin)}
                                   </p>
                                   <p className="mt-0.5 font-medium text-primary">Click para completar este reporte</p>
+                                </div>
+                              ) : antesDePrimera ? (
+                                <div className="flex flex-col gap-[3px]">
+                                  <p className="font-semibold text-muted-foreground">Antes de tu primera reunión registrada</p>
+                                  <p className="text-muted-foreground">
+                                    Fecha supuesta: {fechaLegible(s.inicio)} – {fechaLegible(s.fin)}
+                                  </p>
+                                  <p className="mt-0.5 font-medium text-primary">Click para cargar historial de esta semana (opcional)</p>
                                 </div>
                               ) : (
                                 <p>

@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
@@ -12,7 +13,7 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
+import { useCdpContextoReporte, useHistorialReportes, useReportesRecientes, useReunionesNoRealizadas } from '@/hooks/useReporte';
 import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
@@ -43,6 +44,9 @@ export function HistorialReportes() {
   const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const contenedorRef = useRef<HTMLDivElement>(null);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const nombreLider = useAuthStore((s) => s.nombreCompleto);
+  const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, true);
+  const direccionCdp = [cdpContexto?.direccion, cdpContexto?.ciudad].filter(Boolean).join(', ');
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -52,9 +56,25 @@ export function HistorialReportes() {
 
   const { data: fechasVentana = [], isLoading: cargandoVentana } = useHistorialReportes(cdpActiva, desdeVentana, hastaVentana);
   const { data: recientes = [] } = useReportesRecientes(cdpActiva ? [cdpActiva] : []);
-
+  // Bug real encontrado en vivo (2026-09-26): "reunión no realizada" se
+  // colaba en las 3 tarjetas de arriba (Semanas con reporte/Racha/
+  // Cumplimiento) como si fuera un reporte real -- ya no aparece en
+  // fechasVentana (obtenerFechasReportadas la excluye ahora), pero además
+  // hay que sacar esas semanas del DENOMINADOR (no deben contar ni a favor
+  // ni en contra, decisión ya tomada en KAN-392 -- mismo criterio que
+  // HistorialReportesCalendario.tsx ya aplicaba en su propio cálculo).
+  const { data: reunionesNoRealizadas = [] } = useReunionesNoRealizadas(cdpActiva, desdeVentana, hastaVentana);
   const semanasConReporte = new Set(fechasVentana.map((f) => inicioSemanaISO(f.fecha_reunion)));
-  const semanasReportadas = semanas.filter((s) => semanasConReporte.has(s.inicio)).length;
+  // Caso límite real encontrado en vivo (2026-09-26): si una semana tiene un
+  // reporte real Y ADEMÁS una marca de "no realizada" (datos de prueba
+  // desprolijos, no debería pasar en uso normal), esa semana sigue contando
+  // como "reportada" -- la marca de "no realizada" solo excluye del
+  // denominador a las semanas que NO tienen ningún reporte real.
+  const semanasNoRealizada = new Set(
+    reunionesNoRealizadas.map((r) => inicioSemanaISO(r.fecha_reunion)).filter((inicio) => !semanasConReporte.has(inicio))
+  );
+  const semanasJuzgables = semanas.filter((s) => !semanasNoRealizada.has(s.inicio));
+  const semanasReportadas = semanasJuzgables.filter((s) => semanasConReporte.has(s.inicio)).length;
   // Cumplimiento (pedido explícito del owner, 2026-09-26): antes contaba
   // cualquier semana con reporte, sin importar cuánto atraso tuvo -- una CdP
   // con reportes de 100+ días de atraso igual mostraba 100%. Ahora una
@@ -67,7 +87,7 @@ export function HistorialReportes() {
   );
   // El cumplimiento y la racha solo cuentan semanas que ya terminaron -- la semana
   // en curso todavia puede recibir su reporte, contarla como "falta" seria injusto.
-  const semanasCerradas = semanas.filter((s) => s.fin < hoyISO);
+  const semanasCerradas = semanasJuzgables.filter((s) => s.fin < hoyISO);
   const semanasATiempoCount = semanasCerradas.filter((s) => semanasConReporteATiempo.has(s.inicio)).length;
   const cumplimiento = semanasCerradas.length > 0 ? Math.round((semanasATiempoCount / semanasCerradas.length) * 100) : null;
   let racha = 0;
@@ -99,6 +119,28 @@ export function HistorialReportes() {
         <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="historial-reportes" />
       </div>
 
+      {/* Pedido explícito del owner (2026-09-26): encabezado con líder +
+          dirección de la CdP, solo para el PDF descargado -- en la pantalla
+          normal no aporta nada (el usuario ya sabe qué CdP está viendo), pero
+          un PDF suelto sin ese dato no se identifica solo. `data-pdf-solo`
+          lo mantiene oculto acá y `descargarElementoComoPdf` lo revela
+          justo antes de capturar la imagen. */}
+      {(nombreLider || direccionCdp) && (
+        <div data-pdf-solo="true" style={{ display: 'none' }} className="flex flex-col gap-0.5 border-b border-border/60 pb-4">
+          <p className="text-lg font-bold tracking-tight">Historial de Reportes -- Casa de Paz</p>
+          {nombreLider && (
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-semibold text-foreground">Líder:</strong> {nombreLider}
+            </p>
+          )}
+          {direccionCdp && (
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-semibold text-foreground">Dirección:</strong> {direccionCdp}
+            </p>
+          )}
+        </div>
+      )}
+
       {cargandoVentana ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -112,9 +154,13 @@ export function HistorialReportes() {
             label="Semanas con reporte"
             icon={CalendarCheck2}
             color={VERDE}
-            sub={`De las últimas ${VENTANA_SEMANAS} semanas`}
+            sub={
+              semanasJuzgables.length < VENTANA_SEMANAS
+                ? `De las últimas ${VENTANA_SEMANAS} semanas (sin contar "no realizada")`
+                : `De las últimas ${VENTANA_SEMANAS} semanas`
+            }
           >
-            {semanasReportadas}/{VENTANA_SEMANAS}
+            {semanasReportadas}/{semanasJuzgables.length}
           </KpiMosaico>
 
           {/* Rachas largas son un logro, por eso el color calido/energico. */}
@@ -158,7 +204,14 @@ export function HistorialReportes() {
             {recientes.map((r) => {
               const atraso = diasDeAtraso(r.fecha_reunion, r.fecha_creacion);
               return (
-                <div key={r.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-muted/50">
+                <div
+                  key={r.id}
+                  className={cn('flex items-center gap-3 rounded-xl px-2 py-2 text-sm', atraso >= 1 ? 'hover:brightness-95' : 'hover:bg-muted/50')}
+                  // Pedido explícito del owner (2026-09-26): fondo "hueso
+                  // rojizo" suave en los reportes con atraso, para que se
+                  // distingan de un vistazo sin depender solo del badge.
+                  style={atraso >= 1 ? { backgroundColor: 'color-mix(in oklab, var(--destructive) 8%, transparent)' } : undefined}
+                >
                   {atraso >= 1 ? (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
                       <CalendarCheck2 className="h-4 w-4 text-destructive" />
