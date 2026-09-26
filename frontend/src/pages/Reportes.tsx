@@ -90,7 +90,7 @@ import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { useActualizarFechaNacimientoBasica } from '@/hooks/usePersonas';
 import { EvangelismoPendientePanel } from '@/components/reporte/EvangelismoPendientePanel';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
-import { aISO, fechaLegible, fechaLegibleConDia } from '@/utils/calendario-fechas';
+import { aISO, fechaLegible, fechaLegibleConDia, numeroSemanaISO, rangoSemanaBreve } from '@/utils/calendario-fechas';
 import { rutaReporteEditar } from '@/utils/constants';
 import { calcularEdad } from '@/utils/edad';
 import { EdadEstadoBadges } from '@/components/shared/EdadEstadoBadges';
@@ -577,6 +577,13 @@ export function Reportes() {
   });
 
   const fechaReunion = watch('fecha_reunion');
+
+  // Semana ISO de la reunión, para la línea del hero. Se ancla en
+  // `fecha_reunion` (y no en `hoy`) a propósito: al cargar un lunes atrasado
+  // tiene que mostrar la semana de ESE lunes, no la de hoy. Como viene del
+  // `watch`, el número se recalcula solo si el Líder cambia la fecha en el
+  // form. Mismo criterio que "Resumen semanal" (EvangelismoSupervisorVista).
+  const semanaReunion = fechaReunion ? { numero: numeroSemanaISO(fechaReunion), rango: rangoSemanaBreve(fechaReunion) } : null;
   const libroId = watch('libro_id');
   const temaId = watch('tema_id');
   const temaEspecialTxt = watch('tema_especial_txt');
@@ -2046,6 +2053,14 @@ export function Reportes() {
                 <strong className="font-semibold text-white/90">Dirección:</strong> {direccionCdp}
               </>
             ) : null}
+            {nombreLider || direccionCdp ? <br /> : null}
+            {/* Pedido explícito del owner (2026-09-26): campo "Fecha:" fijo
+                (con guion si todavía no se eligió fecha) en vez de ocultar
+                la línea entera -- versión breve del número de semana con
+                rangoSemanaBreve (ej. "7–13 sep") en vez del texto largo
+                "del 7 de septiembre al 13 de septiembre". */}
+            <strong className="font-semibold text-white/90">Fecha:</strong>{' '}
+            {semanaReunion ? <>Semana {semanaReunion.numero} · {semanaReunion.rango}</> : '—'}
           </>
         }
         color={colorRed ?? undefined}
