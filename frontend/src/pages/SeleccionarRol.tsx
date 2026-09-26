@@ -34,10 +34,9 @@ export function SeleccionarRol() {
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const correo = useAuthStore((s) => s.correo);
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
+  const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
   const logout = useAuthStore((s) => s.logout);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
-  const iglesias = useAuthStore((s) => s.iglesias);
-  const nombreIglesia = iglesias.find((i) => i.id === iglesiaActivaId)?.nombre ?? 'VisionHub';
 
   const opcionesContextuales = useOpcionesRolContextuales();
   // Mismo query que ya usan los hooks de arriba (misma queryKey, sin pedido de
@@ -68,6 +67,14 @@ export function SeleccionarRol() {
   }
 
   function elegir(opcion: OpcionRolContextual) {
+    // KAN-442: la lista ahora puede traer roles de una iglesia distinta a la
+    // activa (ver useOpcionesRolContextuales) -- si el rol elegido es de otra
+    // iglesia, hay que cambiarla primero. setIglesiaActiva ya limpia
+    // contextoActivo/rolActivo solo, por eso el orden importa: se llama
+    // antes de setContextoActivo, nunca después (lo pisaría).
+    if (opcion.contexto.alcance !== 'GLOBAL' && opcion.contexto.iglesiaId !== iglesiaActivaId) {
+      setIglesiaActiva(opcion.contexto.iglesiaId);
+    }
     setContextoActivo(opcion.contexto);
     // Delay chico a propósito (KAN-199): sin esto, la navegación es tan
     // instantánea que el ripple/borde de "click" de OpcionRolFila no
@@ -109,13 +116,16 @@ export function SeleccionarRol() {
           roles siempre entre. Con 6-7 roles la tarjeta ya no empuja toda la
           página, hace scroll adentro y "Cerrar sesión" sigue siempre a mano. */}
       <div className="scrollbar-minimal relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-card p-5 shadow-xl shadow-black/[0.06] sm:p-7">
-        <div className="mb-4 flex items-center justify-between gap-2.5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
-              <img src="/logo.png" alt="" aria-hidden="true" className="h-4 w-4 object-contain brightness-0 invert" />
-            </span>
-            <span className="truncate text-[13px] font-semibold text-foreground">{nombreIglesia}</span>
-          </div>
+        {/* KAN-442 (feedback en vivo del owner, 2026-09-25): antes había un
+            logo + nombre de iglesia arriba -- el nombre mostraba la iglesia
+            "activa" residual de la sesión anterior, incoherente con que esta
+            pantalla puede listar roles de MÁS de una iglesia (ver
+            GrupoOpcionesRol). Segunda vuelta de feedback: ni siquiera
+            corresponde mostrar la marca "VisionHub" acá -- es un nombre
+            interno del equipo, no algo para mostrarle a las iglesias. Con el
+            avatar/iniciales de la persona (más abajo) alcanza; solo queda el
+            botón de ayuda. */}
+        <div className="mb-4 flex items-center justify-end gap-2.5">
           {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg).
               Hacer clic de nuevo sobre el mismo ícono vuelve a la lista de
               roles -- alternativa rápida al botón "Volver a mis roles". */}

@@ -162,7 +162,10 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
         // miembro. Mismo criterio de "vigente" que esa función
         // (fecha_fin/fecha_eliminacion null), filtrado en el map de abajo
         // porque persona_estado es historial completo (append-only).
-        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)))'
+        // KAN-447 (pedido explícito del owner): teléfono para mostrarlo junto
+        // al nombre de asistentes NC/RE -- mismo criterio "vigente/principal"
+        // que persona_estado arriba, filtrado en el map de abajo.
+        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)), telefono_asignacion(es_principal, fecha_eliminacion, telefono:telefono_id(numero)))'
       )
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
@@ -187,12 +190,16 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
     const historialEstados = (p?.persona_estado ?? []) as { fecha_fin: string | null; fecha_eliminacion: string | null; estado: { sigla: string } | { sigla: string }[] | null }[];
     const estadoVigente = historialEstados.find((pe) => pe.fecha_fin === null && pe.fecha_eliminacion === null);
     const estadoObj = Array.isArray(estadoVigente?.estado) ? estadoVigente?.estado[0] : estadoVigente?.estado;
+    const telefonos = (p?.telefono_asignacion ?? []) as { es_principal: boolean; fecha_eliminacion: string | null; telefono: { numero: string } | { numero: string }[] | null }[];
+    const telefonoPrincipal = telefonos.find((t) => t.es_principal && t.fecha_eliminacion === null);
+    const telefonoObj = Array.isArray(telefonoPrincipal?.telefono) ? telefonoPrincipal?.telefono[0] : telefonoPrincipal?.telefono;
     return {
       persona_id: r.persona_id,
       nombre_completo: nombre,
       tiene_fecha_nacimiento: !!p?.fecha_nacimiento,
       edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
       estado_sigla: estadoObj?.sigla ?? null,
+      telefono: telefonoObj?.numero ?? null,
     };
   });
 
@@ -892,22 +899,69 @@ export async function crearReunionNoRealizada(datos: {
 
 /** KAN-393: semanas marcadas "reunión no realizada" en el rango -- quedan
  * afuera de v_reporte_totales a propósito (no cuentan como presentado), así
- * que el calendario las resuelve con un query aparte. */
+ * que el calendario las resuelve con un query aparte. `id`/`fecha_creacion`
+ * (KAN-450) hacen falta para poder gestionarlas: la misma ventana de edición
+ * configurable por Supervisión que ya rige los reportes reales
+ * (`fn_puede_editar_reporte_cdp`, gatilla por RLS en cualquier UPDATE de
+ * esta tabla -- no discrimina por `reunion_no_realizada`). */
 export async function obtenerReunionesNoRealizadas(
   casaDePazId: string,
   desde: string,
   hasta: string
-): Promise<{ fecha_reunion: string; motivo: string | null }[]> {
+): Promise<{ id: string; fecha_reunion: string; motivo: string | null; fecha_creacion: string }[]> {
   const { data, error } = await supabase
     .from('casa_de_paz_reporte')
-    .select('fecha_reunion, motivo_no_realizada')
+    .select('id, fecha_reunion, motivo_no_realizada, fecha_creacion')
     .eq('casa_de_paz_id', casaDePazId)
     .eq('reunion_no_realizada', true)
     .is('fecha_eliminacion', null)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta);
   if (error) throw error;
-  return (data ?? []).map((r) => ({ fecha_reunion: r.fecha_reunion, motivo: r.motivo_no_realizada }));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    fecha_reunion: r.fecha_reunion,
+    motivo: r.motivo_no_realizada,
+    fecha_creacion: r.fecha_creacion,
+  }));
+}
+
+/** KAN-450 (pedido explícito del owner): corregir la fecha/motivo de una
+ * "reunión no realizada" ya cargada -- ej. un motivo mal escrito.
+ *
+ * RPC, no un UPDATE directo: `fn_corregir_reunion_no_realizada` hace el
+ * chequeo de permiso (`fn_puede_editar_reporte_cdp`, misma ventana que
+ * configura Supervisión) antes de tocar la fila -- ver la nota en la
+ * migración sobre por qué un UPDATE directo a `fecha_eliminacion` (la otra
+ * función de acá abajo) se auto-rechaza vía RLS. */
+export async function corregirReunionNoRealizada(id: string, fechaReunion: string, motivo: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_corregir_reunion_no_realizada', {
+    p_reporte_id: id,
+    p_fecha_reunion: fechaReunion,
+    p_motivo: motivo,
+  });
+  if (error) throw error;
+}
+
+/** KAN-450 (pedido explícito del owner): "en realidad sí hubo reunión" --
+ * da de baja esta fila de "no realizada" (soft-delete, mismo criterio que
+ * el resto del proyecto) para que la persona cargue el reporte real de esa
+ * fecha desde cero (`/reportes?fecha=...`, mismo patrón que KAN-435). No
+ * se intenta convertir la fila in-place: un reporte real tiene muchos más
+ * campos (disertador, libro, tema, asistencia, finanzas) que esta fila
+ * nunca tuvo, y el formulario de creación ya sabe completarlos todos.
+ *
+ * RPC (`fn_convertir_no_realizada_en_reporte`), no un UPDATE directo desde
+ * el cliente -- probado en vivo: un UPDATE que toca `fecha_eliminacion`
+ * dispara de nuevo la policy de UPDATE de `casa_de_paz_reporte` (WITH
+ * CHECK usa la misma expresión que USING por default), y
+ * `fn_puede_editar_reporte_cdp` filtra `fecha_eliminacion IS NULL` en su
+ * propio SELECT -- termina rechazándose a sí mismo (403 real). El RPC
+ * SECURITY DEFINER evita el problema haciendo el chequeo una sola vez,
+ * antes del UPDATE (mismo patrón que `fn_anular_reporte_cdp`). */
+export async function convertirReunionNoRealizadaEnReporte(id: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_convertir_no_realizada_en_reporte', { p_reporte_id: id });
+  if (error) throw error;
 }
 
 /**
@@ -1542,4 +1596,17 @@ export async function existeReporteParaFecha(casaDePazId: string, fechaReunion: 
     .maybeSingle();
   if (error) throw error;
   return data?.id ?? null;
+}
+
+/** KAN-446 (pedido explícito del owner): corrige a mano el estado SSVA de
+ * una persona (SIM/NC/CRE) -- cierra la fila vigente de persona_estado y
+ * abre una nueva marcada como corrección manual. RE sigue teniendo su
+ * propio toggle (KAN-390, no toca persona_estado) -- esto es aparte. */
+export async function corregirEstadoSsvaManual(personaId: string, estadoSigla: string, motivo?: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_corregir_estado_ssva_manual', {
+    p_persona_id: personaId,
+    p_estado_sigla: estadoSigla,
+    p_motivo: motivo ?? null,
+  });
+  if (error) throw error;
 }
