@@ -1,4 +1,4 @@
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 // KAN-50: exporta a PDF cualquier contenedor de dashboard tal cual se ve en
@@ -47,9 +47,17 @@ export async function descargarElementoComoPdf(contenedor: HTMLElement, prefijoA
 
   const fondo = window.getComputedStyle(document.body).backgroundColor || '#ffffff';
 
-  const dataUrl = await toPng(contenedor, {
+  // JPEG en vez de PNG (bug real, 2026-09-26): un dashboard completo (KPIs +
+  // calendario anual con gradientes/muchos círculos de color) comprime muy
+  // mal como PNG -- un solo PDF de una página llegaba a pesar 13 MB con
+  // pixelRatio 2, fallando o siendo demasiado pesado en dispositivos móviles.
+  // JPEG con calidad alta reduce esto en más de 90% sin pérdida visible de
+  // legibilidad (no hay transparencia real que perder -- `backgroundColor`
+  // ya rellena el fondo antes de rasterizar).
+  const dataUrl = await toJpeg(contenedor, {
     backgroundColor: fondo,
     pixelRatio: 2,
+    quality: 0.85,
     filter: (nodo) => !(nodo instanceof HTMLElement && elementoExcluido(nodo)),
   });
 
@@ -64,6 +72,6 @@ export async function descargarElementoComoPdf(contenedor: HTMLElement, prefijoA
     format: [anchoPdf, altoPdf],
   });
 
-  pdf.addImage(dataUrl, 'PNG', MARGEN_PX, MARGEN_PX, anchoContenido, altoContenido);
+  pdf.addImage(dataUrl, 'JPEG', MARGEN_PX, MARGEN_PX, anchoContenido, altoContenido);
   pdf.save(`${nombreArchivoConFecha(prefijoArchivo)}.pdf`);
 }
