@@ -36,6 +36,15 @@ export interface PersonaBusqueda {
    * viene. `null`/`undefined` si no tiene membresía principal o no aplica. */
   casa_de_paz_id?: string | null;
   casa_de_paz_nombre?: string | null;
+  /** Pedido explícito del owner (2026-09-25): misma info que ya mostraban
+   * las pastillas de "Asistencia regular"/"de niños" (edad por clasificación
+   * + estado SSVA vigente) -- faltaba acá para que el buscador y "Asistentes
+   * nuevos" se vean consistentes con esas dos listas. */
+  edad?: number | null;
+  estado_sigla?: string | null;
+  /** KAN-447 (pedido explícito del owner): para mostrar el teléfono junto al
+   * nombre de asistentes NC/RE en las 3 listas de Asistencia. */
+  telefono?: string | null;
 }
 
 /** KAN-407: candidato a "posible duplicado" devuelto por

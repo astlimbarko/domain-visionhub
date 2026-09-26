@@ -34,6 +34,13 @@ interface Props {
   onCambiarAsisteCdp: (asiste: boolean) => void;
   onQuitarDelReporte: () => void;
   onAbrirFichaCompleta: () => void;
+  /** KAN-446 (pedido explícito del owner): corrige a mano el estado SSVA
+   * (SIM/NC/CRE) -- por ejemplo, alguien que se registró sin marcar
+   * "¿Aceptó a Cristo?" pero en realidad sí aceptó. `undefined` si esta
+   * persona no tiene un `personaId` real todavía (visita nueva sin guardar
+   * en este mismo reporte) -- ahí no hay nada que corregir en la base. */
+  onCorregirEstadoSsva?: (estadoSigla: string) => void;
+  corrigiendoEstado?: boolean;
 }
 
 /**
@@ -70,6 +77,8 @@ export function FichaRapidaAsistente({
   onCambiarAsisteCdp,
   onQuitarDelReporte,
   onAbrirFichaCompleta,
+  onCorregirEstadoSsva,
+  corrigiendoEstado,
 }: Props) {
   const [fecha, setFecha] = useState('');
   const [edadAproximada, setEdadAproximada] = useState('');
@@ -102,6 +111,37 @@ export function FichaRapidaAsistente({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          {/* KAN-446 (pedido explícito del owner): corrección manual del
+              estado SSVA -- caso real: se registró sin marcar "¿Aceptó a
+              Cristo?" y en verdad sí aceptó. Solo aparece si `personaId` es
+              real (no una visita nueva sin guardar todavía en este mismo
+              reporte). RE queda aparte con su propio toggle más abajo
+              (KAN-390, no es un estado SSVA persistido). */}
+          {onCorregirEstadoSsva && (
+            <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+              <p className="text-xs font-medium text-muted-foreground">Estado SSVA</p>
+              <div className="flex gap-1.5">
+                {(['SIM', 'NC', 'CRE'] as const).map((sigla) => (
+                  <Button
+                    key={sigla}
+                    type="button"
+                    size="sm"
+                    variant={estadoSigla === sigla ? 'default' : 'outline'}
+                    className="flex-1 flex-col gap-0 py-1.5 text-[11px] leading-tight"
+                    title={NOMBRE_ESTADO[sigla]}
+                    disabled={corrigiendoEstado || estadoSigla === sigla}
+                    onClick={() => onCorregirEstadoSsva(sigla)}
+                    style={estadoSigla === sigla ? { backgroundColor: COLOR_ESTADO[sigla], borderColor: COLOR_ESTADO[sigla], color: 'white' } : undefined}
+                  >
+                    <span className="font-semibold">{sigla}</span>
+                    <span className="opacity-80">{NOMBRE_ESTADO[sigla]}</span>
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">Usalo solo para corregir un error -- por ejemplo, si de verdad aceptó a Cristo y no quedó marcado.</p>
+            </div>
+          )}
+
           {tieneFechaNacimiento ? (
             <p className="text-sm text-muted-foreground">{edad !== null ? RANGO_EDAD_LABEL_PERSONA[clasificarEdad(edad)] : 'Edad no disponible'}.</p>
           ) : (

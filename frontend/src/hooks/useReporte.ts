@@ -7,6 +7,9 @@ import {
   crearReporte,
   crearReporteMegafiesta,
   crearReunionNoRealizada,
+  corregirEstadoSsvaManual,
+  corregirReunionNoRealizada,
+  convertirReunionNoRealizadaEnReporte,
   eliminarBorradorReporte,
   existeReporteParaFecha,
   guardarBorradorReporte,
@@ -308,6 +311,34 @@ export function useCrearReunionNoRealizada(casaDePazId: string | undefined) {
   });
 }
 
+/** KAN-450 (pedido explícito del owner): corregir fecha/motivo de una
+ * "reunión no realizada" ya cargada, dentro de la ventana de edición. */
+export function useCorregirReunionNoRealizada(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, fechaReunion, motivo }: { id: string; fechaReunion: string; motivo: string }) =>
+      corregirReunionNoRealizada(id, fechaReunion, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
+    },
+  });
+}
+
+/** KAN-450 (pedido explícito del owner): "en realidad sí hubo reunión" --
+ * da de baja la fila de "no realizada" para poder cargar el reporte real
+ * de esa fecha desde cero. */
+export function useConvertirReunionNoRealizadaEnReporte(casaDePazId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => convertirReunionNoRealizadaEnReporte(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'historial-calendario', casaDePazId] });
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'reuniones-no-realizadas', casaDePazId] });
+    },
+  });
+}
+
 /** KAN-393: semanas "reunión no realizada" del rango visible del calendario. */
 export function useReunionesNoRealizadas(casaDePazId: string | undefined, desde: string, hasta: string) {
   return useQuery({
@@ -458,6 +489,20 @@ export function useGuardarBorradorReporte() {
 export function useEliminarBorradorReporte() {
   return useMutation({
     mutationFn: (borradorId: string) => eliminarBorradorReporte(borradorId),
+  });
+}
+
+/** KAN-446: corrige a mano el estado SSVA de una persona (SIM/NC/CRE). Al
+ * confirmar, invalida la query de `useMiembrosCdp` (mismo queryKey) para
+ * que las 3 listas de Asistencia reflejen el cambio sin recargar la página. */
+export function useCorregirEstadoSsvaManual() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, estadoSigla, motivo }: { personaId: string; estadoSigla: string; motivo?: string }) =>
+      corregirEstadoSsvaManual(personaId, estadoSigla, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reporte', 'miembros'] });
+    },
   });
 }
 

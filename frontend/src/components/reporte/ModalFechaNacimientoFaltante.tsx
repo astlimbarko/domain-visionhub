@@ -128,7 +128,11 @@ export function ModalFechaNacimientoFaltante({
 
             <label className="flex items-center gap-2 text-sm text-muted-foreground" onClick={(e) => e.stopPropagation()}>
               <Checkbox checked={seDesconoce} onCheckedChange={(v) => setSeDesconoce(v === true)} />
-              Aún se desconoce la fecha de nacimiento
+              {/* Pedido explícito del owner (2026-09-25): "se desconoce" sonaba
+                  a que nadie sabe la fecha -- pero también pasa con niños que
+                  se registran sin sus padres presentes, donde sí se sabe pero
+                  no hay quién la confirme en el momento. */}
+              No se puede confirmar la fecha de nacimiento ahora
             </label>
 
             {seDesconoce && (
