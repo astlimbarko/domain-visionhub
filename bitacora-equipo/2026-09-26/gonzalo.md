@@ -12,6 +12,12 @@
 - [x] KAN-464: botón "Descartar cambios" al editar un reporte -- bug real encontrado y corregido en el camino (precarga de asistentes ya existentes se contaba como cambio sin guardar)
 - [x] KAN-465: semanas anteriores a la primera reunión real de una CdP ya no quedan bloqueadas para siempre -- se pueden completar retroactivamente, sin cambiar su color gris (ajustado en vivo a pedido del owner)
 - [x] PR #123 (KAN-457/458/459/461/462) mergeado a master
-- [x] PR #124 (KAN-463/464/465/466) abierto contra master, sin mergear -- pendiente de que el owner lo revise
+- [x] KAN-468: campo "Fecha:" siempre visible en el encabezado de Reportes (con "—" si no hay fecha, antes se ocultaba) + formato de semana simplificado + fondo rojizo suave en reportes con atraso en "Reportes recientes"
+- [x] PR #124 (KAN-463/464/465/466/468) mergeado a master (pedido explícito del owner, urgente)
 - [x] 2 corridas de QA en vivo con agente Urías (fork), en paralelo con el trabajo de Jira/bitácora
-- [ ] Cola: buscador de diezmante en Finanzas, "franja blanca" sin reproducir, pregunta OpenCode sin responder, deploy real a producción (bloqueado por facturación de GitHub)
+- [x] Deploy manual a producción: build generado desde master (v1.0.124), armado en .zip listo para subir por cPanel (el owner lo hace a mano, Claude no tiene ni puede usar credenciales de FTP/cPanel de producción -- regla de seguridad dura). Guía visual armada como Artifact con el paso a paso
+- [x] Gap real encontrado por el owner: PR #123 se había mergeado sin sus entradas de `/avances` -- corregido (6 entradas nuevas, aplicadas directo en producción) y reforzada la regla en CLAUDE.md (ahora es checkpoint obligatorio ANTES de mergear un PR, no "antes de terminar la tarea"). PR #125 mergeado
+- [x] Autocorrección: había commiteado ese fix directo a `master` (violando la propia regla del proyecto) -- se movió a una rama nueva antes de pushear, sin tocar historia compartida
+- [x] KAN-469 (nuevo, para mañana): demora notable al cerrar el anuncio de inicio de sesión con X o click afuera -- siempre cierra, pero se siente tosco. Investigar causa / agregar transición de cierre
+- [ ] Falta que el owner suba `frontend/deploy-2026-09-26-v124.zip` a producción por cPanel (Claude no puede hacerlo)
+- [ ] Cola: buscador de diezmante en Finanzas, "franja blanca" sin reproducir, pregunta OpenCode sin responder, KAN-469
