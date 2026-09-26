@@ -253,16 +253,19 @@ export function HistorialReportes() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate font-medium">{fechaLegible(r.fecha_reunion)}</p>
                       <span className="shrink-0 text-[11px] font-normal text-muted-foreground">Semana {numeroSemanaISO(r.fecha_reunion)}</span>
-                      {atraso >= 1 && (
-                        <Badge variant="destructive">
-                          {atraso} día{atraso === 1 ? '' : 's'} de atraso
-                        </Badge>
-                      )}
                     </div>
                     <p className="truncate text-[11px] text-muted-foreground">
                       {r.total_asistentes} asistente{r.total_asistentes === 1 ? '' : 's'} · {r.total_menores} niño
                       {r.total_menores === 1 ? '' : 's'} / {r.total_mayores} adulto{r.total_mayores === 1 ? '' : 's'}
                     </p>
+                    {/* Pedido explícito del owner (2026-09-26): la etiqueta de
+                        atraso pasa a ir debajo del resumen de asistencia, no
+                        pegada a la fecha. */}
+                    {atraso >= 1 && (
+                      <Badge variant="destructive" className="mt-1">
+                        {atraso} día{atraso === 1 ? '' : 's'} de atraso
+                      </Badge>
+                    )}
                   </div>
                 </button>
               );
