@@ -12,7 +12,7 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useCdpContextoReporte, useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
+import { useCdpContextoReporte, useHistorialReportes, useReportesRecientes, useReunionesNoRealizadas } from '@/hooks/useReporte';
 import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
@@ -55,9 +55,25 @@ export function HistorialReportes() {
 
   const { data: fechasVentana = [], isLoading: cargandoVentana } = useHistorialReportes(cdpActiva, desdeVentana, hastaVentana);
   const { data: recientes = [] } = useReportesRecientes(cdpActiva ? [cdpActiva] : []);
-
+  // Bug real encontrado en vivo (2026-09-26): "reunión no realizada" se
+  // colaba en las 3 tarjetas de arriba (Semanas con reporte/Racha/
+  // Cumplimiento) como si fuera un reporte real -- ya no aparece en
+  // fechasVentana (obtenerFechasReportadas la excluye ahora), pero además
+  // hay que sacar esas semanas del DENOMINADOR (no deben contar ni a favor
+  // ni en contra, decisión ya tomada en KAN-392 -- mismo criterio que
+  // HistorialReportesCalendario.tsx ya aplicaba en su propio cálculo).
+  const { data: reunionesNoRealizadas = [] } = useReunionesNoRealizadas(cdpActiva, desdeVentana, hastaVentana);
   const semanasConReporte = new Set(fechasVentana.map((f) => inicioSemanaISO(f.fecha_reunion)));
-  const semanasReportadas = semanas.filter((s) => semanasConReporte.has(s.inicio)).length;
+  // Caso límite real encontrado en vivo (2026-09-26): si una semana tiene un
+  // reporte real Y ADEMÁS una marca de "no realizada" (datos de prueba
+  // desprolijos, no debería pasar en uso normal), esa semana sigue contando
+  // como "reportada" -- la marca de "no realizada" solo excluye del
+  // denominador a las semanas que NO tienen ningún reporte real.
+  const semanasNoRealizada = new Set(
+    reunionesNoRealizadas.map((r) => inicioSemanaISO(r.fecha_reunion)).filter((inicio) => !semanasConReporte.has(inicio))
+  );
+  const semanasJuzgables = semanas.filter((s) => !semanasNoRealizada.has(s.inicio));
+  const semanasReportadas = semanasJuzgables.filter((s) => semanasConReporte.has(s.inicio)).length;
   // Cumplimiento (pedido explícito del owner, 2026-09-26): antes contaba
   // cualquier semana con reporte, sin importar cuánto atraso tuvo -- una CdP
   // con reportes de 100+ días de atraso igual mostraba 100%. Ahora una
@@ -70,7 +86,7 @@ export function HistorialReportes() {
   );
   // El cumplimiento y la racha solo cuentan semanas que ya terminaron -- la semana
   // en curso todavia puede recibir su reporte, contarla como "falta" seria injusto.
-  const semanasCerradas = semanas.filter((s) => s.fin < hoyISO);
+  const semanasCerradas = semanasJuzgables.filter((s) => s.fin < hoyISO);
   const semanasATiempoCount = semanasCerradas.filter((s) => semanasConReporteATiempo.has(s.inicio)).length;
   const cumplimiento = semanasCerradas.length > 0 ? Math.round((semanasATiempoCount / semanasCerradas.length) * 100) : null;
   let racha = 0;
@@ -137,9 +153,13 @@ export function HistorialReportes() {
             label="Semanas con reporte"
             icon={CalendarCheck2}
             color={VERDE}
-            sub={`De las últimas ${VENTANA_SEMANAS} semanas`}
+            sub={
+              semanasJuzgables.length < VENTANA_SEMANAS
+                ? `De las últimas ${VENTANA_SEMANAS} semanas (sin contar "no realizada")`
+                : `De las últimas ${VENTANA_SEMANAS} semanas`
+            }
           >
-            {semanasReportadas}/{VENTANA_SEMANAS}
+            {semanasReportadas}/{semanasJuzgables.length}
           </KpiMosaico>
 
           {/* Rachas largas son un logro, por eso el color calido/energico. */}

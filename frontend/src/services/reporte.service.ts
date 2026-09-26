@@ -590,7 +590,16 @@ export async function obtenerHistorialReporte(reporteId: string): Promise<Histor
 
 /** Fechas de reunion con reporte enviado dentro del rango -- para pintar el
  * calendario de Historial de Reportes y calcular el % de cumplimiento
- * (incluye fecha_creacion para saber si cada una se envió a tiempo). */
+ * (incluye fecha_creacion para saber si cada una se envió a tiempo).
+ *
+ * Bug real encontrado en vivo (2026-09-26): esta consulta no excluía
+ * `reunion_no_realizada = true` -- esas filas no son un reporte real (no
+ * hay asistencia, ofrendas, tema, nada), así que se colaban en "Semanas
+ * con reporte"/Racha/Cumplimiento como si fueran un envío cualquiera
+ * (incluso "a tiempo" si se marcó rápido). Por decisión ya tomada en
+ * KAN-392, esas semanas no cuentan ni a favor ni en contra -- quedan
+ * afuera de acá, y HistorialReportes.tsx/DashboardLiderCdp.tsx además
+ * las excluyen del denominador con useReunionesNoRealizadas. */
 export async function obtenerFechasReportadas(
   casaDePazId: string,
   desde: string,
@@ -600,6 +609,7 @@ export async function obtenerFechasReportadas(
     .from('casa_de_paz_reporte')
     .select('fecha_reunion, fecha_creacion')
     .eq('casa_de_paz_id', casaDePazId)
+    .eq('reunion_no_realizada', false)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta);
   if (error) throw error;

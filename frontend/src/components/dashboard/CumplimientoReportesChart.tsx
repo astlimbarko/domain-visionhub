@@ -5,7 +5,12 @@ export interface DetalleSemanaReporte {
   reportado: boolean;
   /** true si además se envió a tiempo (0 días de atraso) -- distingue "entregado tarde" de "cumplido" en la grilla. */
   aTiempo: boolean;
+  /** true si esta semana se marcó como "reunión no realizada" -- no cuenta ni a favor ni en contra del %, se muestra aparte (KAN-392). */
+  noRealizada: boolean;
 }
+
+/** Mismo gris que usa la burbuja de "reunión no realizada" en el calendario de Historial de Reportes (HistorialReportesCalendario.tsx). */
+const NO_REALIZADA_COLOR = '#52525b';
 
 interface Props {
   /** % de las últimas semanas cerradas con reporte enviado, o null si todavía no cerró ninguna semana. */
@@ -51,15 +56,27 @@ export function CumplimientoReportesChart({ cumplimiento, racha, ventanaSemanas,
             key={i}
             className="h-7 flex-1 rounded-md transition-colors duration-500"
             style={{
-              background: !s.cerrada
-                ? 'var(--muted)'
-                : s.aTiempo
-                  ? 'var(--chart-2)'
-                  : s.reportado
-                    ? '#f59e0b'
-                    : 'color-mix(in oklab, var(--destructive) 70%, white)',
+              background: s.noRealizada
+                ? NO_REALIZADA_COLOR
+                : !s.cerrada
+                  ? 'var(--muted)'
+                  : s.aTiempo
+                    ? 'var(--chart-2)'
+                    : s.reportado
+                      ? '#f59e0b'
+                      : 'color-mix(in oklab, var(--destructive) 70%, white)',
             }}
-            title={!s.cerrada ? 'Semana en curso' : s.aTiempo ? 'Reporte enviado a tiempo' : s.reportado ? 'Reporte enviado tarde' : 'Sin reporte'}
+            title={
+              s.noRealizada
+                ? 'Reunión no realizada -- no cuenta para el cumplimiento'
+                : !s.cerrada
+                  ? 'Semana en curso'
+                  : s.aTiempo
+                    ? 'Reporte enviado a tiempo'
+                    : s.reportado
+                      ? 'Reporte enviado tarde'
+                      : 'Sin reporte'
+            }
           />
         ))}
       </div>
