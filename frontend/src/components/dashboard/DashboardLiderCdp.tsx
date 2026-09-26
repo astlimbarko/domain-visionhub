@@ -39,7 +39,7 @@ import { usePersonasDeCdp } from '@/hooks/usePersonas';
 import { useHistorialReportes, useTestimoniosCdp } from '@/hooks/useReporte';
 import type { FiltroInicialPersonasCdp } from '@/components/personas/PersonasDeCdpVista';
 import { ROUTES } from '@/utils/constants';
-import { aISO, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
+import { aISO, diasDeAtraso, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 import {
   cantidadPorDefecto,
   etiquetaCantidad,
@@ -345,11 +345,20 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const { data: fechasReportadasVentana = [] } = useHistorialReportes(casaDePazId, desdeVentanaCumplimiento, hastaVentanaCumplimiento);
 
   const { cumplimientoReportes, rachaReportes, detalleSemanasReportes } = useMemo(() => {
-    const semanasConReporte = new Set(fechasReportadasVentana.map((f) => inicioSemanaISO(f)));
+    const semanasConReporte = new Set(fechasReportadasVentana.map((f) => inicioSemanaISO(f.fecha_reunion)));
+    // Cumplimiento (pedido explícito del owner, 2026-09-26): solo cuenta si
+    // además se envió a tiempo (0 días de atraso). La racha (existencia,
+    // KAN-367) no se toca, pero la grilla de abajo sí distingue "a tiempo"
+    // de "tarde" (aTiempo) para no contradecir visualmente el %.
+    const semanasConReporteATiempo = new Set(
+      fechasReportadasVentana
+        .filter((f) => diasDeAtraso(f.fecha_reunion, f.fecha_creacion) <= 0)
+        .map((f) => inicioSemanaISO(f.fecha_reunion))
+    );
     const semanasCerradas = semanasCumplimiento.filter((s) => s.fin < hoyISOTendencias);
     const cumplimientoCalc =
       semanasCerradas.length > 0
-        ? Math.round((semanasCerradas.filter((s) => semanasConReporte.has(s.inicio)).length / semanasCerradas.length) * 100)
+        ? Math.round((semanasCerradas.filter((s) => semanasConReporteATiempo.has(s.inicio)).length / semanasCerradas.length) * 100)
         : null;
     let rachaCalc = 0;
     for (const s of semanasCerradas) {
@@ -357,9 +366,11 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
       else break;
     }
     // De la más vieja a la más reciente, para la grilla de racha semanal (semanasCumplimiento viene al revés).
-    const detalleCalc = [...semanasCumplimiento]
-      .reverse()
-      .map((s) => ({ cerrada: s.fin < hoyISOTendencias, reportado: semanasConReporte.has(s.inicio) }));
+    const detalleCalc = [...semanasCumplimiento].reverse().map((s) => ({
+      cerrada: s.fin < hoyISOTendencias,
+      reportado: semanasConReporte.has(s.inicio),
+      aTiempo: semanasConReporteATiempo.has(s.inicio),
+    }));
     return { cumplimientoReportes: cumplimientoCalc, rachaReportes: rachaCalc, detalleSemanasReportes: detalleCalc };
   }, [fechasReportadasVentana, semanasCumplimiento, hoyISOTendencias]);
 

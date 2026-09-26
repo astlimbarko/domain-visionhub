@@ -1,8 +1,10 @@
 export interface DetalleSemanaReporte {
   /** true si la semana ya cerró (terminó el domingo); las semanas en curso no cuentan para el cumplimiento. */
   cerrada: boolean;
-  /** true si hubo reporte enviado en esa semana. */
+  /** true si hubo reporte enviado en esa semana (a tiempo o tarde). */
   reportado: boolean;
+  /** true si además se envió a tiempo (0 días de atraso) -- distingue "entregado tarde" de "cumplido" en la grilla. */
+  aTiempo: boolean;
 }
 
 interface Props {
@@ -49,9 +51,15 @@ export function CumplimientoReportesChart({ cumplimiento, racha, ventanaSemanas,
             key={i}
             className="h-7 flex-1 rounded-md transition-colors duration-500"
             style={{
-              background: !s.cerrada ? 'var(--muted)' : s.reportado ? 'var(--chart-2)' : 'color-mix(in oklab, var(--destructive) 70%, white)',
+              background: !s.cerrada
+                ? 'var(--muted)'
+                : s.aTiempo
+                  ? 'var(--chart-2)'
+                  : s.reportado
+                    ? '#f59e0b'
+                    : 'color-mix(in oklab, var(--destructive) 70%, white)',
             }}
-            title={!s.cerrada ? 'Semana en curso' : s.reportado ? 'Reporte enviado' : 'Sin reporte'}
+            title={!s.cerrada ? 'Semana en curso' : s.aTiempo ? 'Reporte enviado a tiempo' : s.reportado ? 'Reporte enviado tarde' : 'Sin reporte'}
           />
         ))}
       </div>

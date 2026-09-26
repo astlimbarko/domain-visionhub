@@ -588,16 +588,22 @@ export async function obtenerHistorialReporte(reporteId: string): Promise<Histor
   }));
 }
 
-/** Fechas de reunion con reporte enviado dentro del rango -- para pintar el calendario de Historial de Reportes. */
-export async function obtenerFechasReportadas(casaDePazId: string, desde: string, hasta: string): Promise<string[]> {
+/** Fechas de reunion con reporte enviado dentro del rango -- para pintar el
+ * calendario de Historial de Reportes y calcular el % de cumplimiento
+ * (incluye fecha_creacion para saber si cada una se envió a tiempo). */
+export async function obtenerFechasReportadas(
+  casaDePazId: string,
+  desde: string,
+  hasta: string
+): Promise<{ fecha_reunion: string; fecha_creacion: string }[]> {
   const { data, error } = await supabase
     .from('casa_de_paz_reporte')
-    .select('fecha_reunion')
+    .select('fecha_reunion, fecha_creacion')
     .eq('casa_de_paz_id', casaDePazId)
     .gte('fecha_reunion', desde)
     .lte('fecha_reunion', hasta);
   if (error) throw error;
-  return (data ?? []).map((r) => r.fecha_reunion);
+  return data ?? [];
 }
 
 export interface ReporteCalendarioFila {

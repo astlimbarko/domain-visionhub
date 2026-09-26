@@ -63,6 +63,13 @@ export function desdeISO(fechaISO: string): Date {
   return new Date(y, m - 1, d);
 }
 
+/** Días entre la fecha de la reunión y cuándo se envió el reporte -- día 0 =
+ * enviado el mismo día de calendario (hora local), sin importar la hora. */
+export function diasDeAtraso(fechaReunionISO: string, fechaCreacionTimestamp: string): number {
+  const fechaEnvioISO = aISO(new Date(fechaCreacionTimestamp));
+  return Math.round((desdeISO(fechaEnvioISO).getTime() - desdeISO(fechaReunionISO).getTime()) / 86400000);
+}
+
 /** Lunes de la semana ISO que contiene la fecha dada. */
 export function inicioSemanaISO(fechaISO: string): string {
   const fecha = desdeISO(fechaISO);
