@@ -2202,7 +2202,7 @@ export function Reportes() {
                 value={fechaReunion}
                 onChange={(e) => setValue('fecha_reunion', e.target.value)}
               />
-              <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+              <Button type="button" variant="outline" size="sm" className="h-10" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
                 Hoy
               </Button>
             </div>
@@ -2247,7 +2247,7 @@ export function Reportes() {
                     value={fechaReunion}
                     onChange={(e) => setValue('fecha_reunion', e.target.value)}
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+                  <Button type="button" variant="outline" size="sm" className="h-10" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
                     Hoy
                   </Button>
                 </div>
@@ -2301,7 +2301,7 @@ export function Reportes() {
                       {/* KAN-451 (pedido explícito del owner): la fecha ya no viene
                           precargada -- este botón cubre el caso más común (reunión de
                           hoy) sin obligar a abrir el selector nativo. */}
-                      <Button type="button" variant="outline" size="sm" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
+                      <Button type="button" variant="outline" size="sm" className="h-10" onClick={() => setValue('fecha_reunion', hoy, { shouldDirty: true })}>
                         Hoy
                       </Button>
                     </div>
