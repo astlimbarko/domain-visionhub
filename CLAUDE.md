@@ -211,6 +211,16 @@ funcionalidad salió de varios tickets, se agrupa en una sola entrada).
   implementado (jerarquía general ascendente + alcances especiales
   Evangelismo/Afirmación) — no inventar una lista de roles a mano.
 
+**Ancla obligatoria (pedido explícito 2026-09-26, tras un olvido real):**
+"antes de dar la tarea por terminada" es demasiado vago en una sesión larga
+con muchos cambios encadenados — se pierde de vista. La regla dura es:
+**nunca mergear un PR a `master` (ni a una rama de integración) sin haber
+agregado antes la(s) migración(es) de `/avances` que correspondan a los
+cambios de ese PR.** Si el PR no tiene ningún cambio visible para el
+usuario final, no hace falta entrada — pero eso se decide explícitamente
+antes de mergear, no se descubre después. Mismo checkpoint que ya se usa
+para revisar bitácora/Jira antes de cerrar, no un paso aparte.
+
 Ver `visionhub-membresia-cdp-re-asistencia-unificada-2026-09-17` en
 memoria para el detalle técnico de cómo está armado.
 
