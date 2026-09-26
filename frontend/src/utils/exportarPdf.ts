@@ -21,6 +21,13 @@ function elementoExcluido(nodo: HTMLElement): boolean {
   return estilo.display === 'none' || estilo.visibility === 'hidden';
 }
 
+/** Opuesto de `data-pdf-excluir`: nodos ocultos en pantalla (`data-pdf-solo="true"`)
+ * que solo se revelan mientras dura la captura -- ej. un encabezado de "líder +
+ * dirección" que no tiene sentido en la vista normal pero sí en el PDF descargado. */
+function nodosSoloPdf(contenedor: HTMLElement): HTMLElement[] {
+  return Array.from(contenedor.querySelectorAll<HTMLElement>('[data-pdf-solo="true"]'));
+}
+
 function nombreArchivoConFecha(prefijo: string): string {
   const normalizado = prefijo
     .normalize('NFD')
@@ -40,38 +47,53 @@ function nombreArchivoConFecha(prefijo: string): string {
  * en pantalla.
  */
 export async function descargarElementoComoPdf(contenedor: HTMLElement, prefijoArchivo: string): Promise<void> {
-  const rect = contenedor.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) {
-    throw new Error('No hay nada para descargar todavía');
+  const nodosPdf = nodosSoloPdf(contenedor);
+  const estilosOriginales = nodosPdf.map((n) => n.getAttribute('style'));
+  nodosPdf.forEach((n) => (n.style.display = 'block'));
+
+  try {
+    // Se remide DESPUES de revelar los nodos "solo PDF" -- si agregan altura
+    // (ej. el encabezado de líder/dirección), el tamaño de página tiene que
+    // contemplarla.
+    const rect = contenedor.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      throw new Error('No hay nada para descargar todavía');
+    }
+
+    const fondo = window.getComputedStyle(document.body).backgroundColor || '#ffffff';
+
+    // JPEG en vez de PNG (bug real, 2026-09-26): un dashboard completo (KPIs +
+    // calendario anual con gradientes/muchos círculos de color) comprime muy
+    // mal como PNG -- un solo PDF de una página llegaba a pesar 13 MB con
+    // pixelRatio 2, fallando o siendo demasiado pesado en dispositivos móviles.
+    // JPEG con calidad alta reduce esto en más de 90% sin pérdida visible de
+    // legibilidad (no hay transparencia real que perder -- `backgroundColor`
+    // ya rellena el fondo antes de rasterizar).
+    const dataUrl = await toJpeg(contenedor, {
+      backgroundColor: fondo,
+      pixelRatio: 2,
+      quality: 0.85,
+      filter: (nodo) => !(nodo instanceof HTMLElement && elementoExcluido(nodo)),
+    });
+
+    const anchoContenido = rect.width;
+    const altoContenido = rect.height;
+    const anchoPdf = anchoContenido + MARGEN_PX * 2;
+    const altoPdf = altoContenido + MARGEN_PX * 2;
+
+    const pdf = new jsPDF({
+      orientation: anchoPdf >= altoPdf ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [anchoPdf, altoPdf],
+    });
+
+    pdf.addImage(dataUrl, 'JPEG', MARGEN_PX, MARGEN_PX, anchoContenido, altoContenido);
+    pdf.save(`${nombreArchivoConFecha(prefijoArchivo)}.pdf`);
+  } finally {
+    nodosPdf.forEach((n, i) => {
+      const original = estilosOriginales[i];
+      if (original === null) n.removeAttribute('style');
+      else n.setAttribute('style', original);
+    });
   }
-
-  const fondo = window.getComputedStyle(document.body).backgroundColor || '#ffffff';
-
-  // JPEG en vez de PNG (bug real, 2026-09-26): un dashboard completo (KPIs +
-  // calendario anual con gradientes/muchos círculos de color) comprime muy
-  // mal como PNG -- un solo PDF de una página llegaba a pesar 13 MB con
-  // pixelRatio 2, fallando o siendo demasiado pesado en dispositivos móviles.
-  // JPEG con calidad alta reduce esto en más de 90% sin pérdida visible de
-  // legibilidad (no hay transparencia real que perder -- `backgroundColor`
-  // ya rellena el fondo antes de rasterizar).
-  const dataUrl = await toJpeg(contenedor, {
-    backgroundColor: fondo,
-    pixelRatio: 2,
-    quality: 0.85,
-    filter: (nodo) => !(nodo instanceof HTMLElement && elementoExcluido(nodo)),
-  });
-
-  const anchoContenido = rect.width;
-  const altoContenido = rect.height;
-  const anchoPdf = anchoContenido + MARGEN_PX * 2;
-  const altoPdf = altoContenido + MARGEN_PX * 2;
-
-  const pdf = new jsPDF({
-    orientation: anchoPdf >= altoPdf ? 'landscape' : 'portrait',
-    unit: 'px',
-    format: [anchoPdf, altoPdf],
-  });
-
-  pdf.addImage(dataUrl, 'JPEG', MARGEN_PX, MARGEN_PX, anchoContenido, altoContenido);
-  pdf.save(`${nombreArchivoConFecha(prefijoArchivo)}.pdf`);
 }

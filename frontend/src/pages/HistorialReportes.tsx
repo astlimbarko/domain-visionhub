@@ -12,7 +12,7 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
+import { useCdpContextoReporte, useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
 import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
@@ -43,6 +43,9 @@ export function HistorialReportes() {
   const cdpActiva = cdpInspeccionada ?? (contextoActivo?.alcance === 'CDP' ? contextoActivo.cdpId : undefined);
   const contenedorRef = useRef<HTMLDivElement>(null);
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
+  const nombreLider = useAuthStore((s) => s.nombreCompleto);
+  const { data: cdpContexto } = useCdpContextoReporte(cdpActiva, true);
+  const direccionCdp = [cdpContexto?.direccion, cdpContexto?.ciudad].filter(Boolean).join(', ');
 
   const hoy = new Date();
   const hoyISO = aISO(hoy);
@@ -98,6 +101,28 @@ export function HistorialReportes() {
       <div className="flex justify-end">
         <DescargarPdfButton contenedorRef={contenedorRef} nombreArchivo="historial-reportes" />
       </div>
+
+      {/* Pedido explícito del owner (2026-09-26): encabezado con líder +
+          dirección de la CdP, solo para el PDF descargado -- en la pantalla
+          normal no aporta nada (el usuario ya sabe qué CdP está viendo), pero
+          un PDF suelto sin ese dato no se identifica solo. `data-pdf-solo`
+          lo mantiene oculto acá y `descargarElementoComoPdf` lo revela
+          justo antes de capturar la imagen. */}
+      {(nombreLider || direccionCdp) && (
+        <div data-pdf-solo="true" style={{ display: 'none' }} className="flex flex-col gap-0.5 border-b border-border/60 pb-4">
+          <p className="text-lg font-bold tracking-tight">Historial de Reportes -- Casa de Paz</p>
+          {nombreLider && (
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-semibold text-foreground">Líder:</strong> {nombreLider}
+            </p>
+          )}
+          {direccionCdp && (
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-semibold text-foreground">Dirección:</strong> {direccionCdp}
+            </p>
+          )}
+        </div>
+      )}
 
       {cargandoVentana ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
