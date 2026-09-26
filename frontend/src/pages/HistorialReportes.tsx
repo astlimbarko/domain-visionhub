@@ -2,6 +2,7 @@ import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { DescargarPdfButton } from '@/components/shared/DescargarPdfButton';
 import { AZUL, VERDE, AMBAR, KpiMosaico } from '@/components/dashboard/DashboardUI';
@@ -12,7 +13,7 @@ import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useHistorialReportes, useReportesRecientes } from '@/hooks/useReporte';
-import { aISO, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
+import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
 
 const VENTANA_SEMANAS = 8;
 
@@ -52,15 +53,23 @@ export function HistorialReportes() {
   const { data: fechasVentana = [], isLoading: cargandoVentana } = useHistorialReportes(cdpActiva, desdeVentana, hastaVentana);
   const { data: recientes = [] } = useReportesRecientes(cdpActiva ? [cdpActiva] : []);
 
-  const semanasConReporte = new Set(fechasVentana.map((f) => inicioSemanaISO(f)));
+  const semanasConReporte = new Set(fechasVentana.map((f) => inicioSemanaISO(f.fecha_reunion)));
   const semanasReportadas = semanas.filter((s) => semanasConReporte.has(s.inicio)).length;
+  // Cumplimiento (pedido explícito del owner, 2026-09-26): antes contaba
+  // cualquier semana con reporte, sin importar cuánto atraso tuvo -- una CdP
+  // con reportes de 100+ días de atraso igual mostraba 100%. Ahora una
+  // semana solo cuenta como "cumplida" si además se envió a tiempo (0 días
+  // de atraso). La racha de abajo sigue siendo solo de existencia (KAN-367),
+  // no se toca -- son dos preguntas distintas ("¿mandó algo?" vs "¿a
+  // tiempo?").
+  const semanasConReporteATiempo = new Set(
+    fechasVentana.filter((f) => diasDeAtraso(f.fecha_reunion, f.fecha_creacion) <= 0).map((f) => inicioSemanaISO(f.fecha_reunion))
+  );
   // El cumplimiento y la racha solo cuentan semanas que ya terminaron -- la semana
   // en curso todavia puede recibir su reporte, contarla como "falta" seria injusto.
   const semanasCerradas = semanas.filter((s) => s.fin < hoyISO);
-  const cumplimiento =
-    semanasCerradas.length > 0
-      ? Math.round((semanasCerradas.filter((s) => semanasConReporte.has(s.inicio)).length / semanasCerradas.length) * 100)
-      : null;
+  const semanasATiempoCount = semanasCerradas.filter((s) => semanasConReporteATiempo.has(s.inicio)).length;
+  const cumplimiento = semanasCerradas.length > 0 ? Math.round((semanasATiempoCount / semanasCerradas.length) * 100) : null;
   let racha = 0;
   for (const s of semanasCerradas) {
     if (semanasConReporte.has(s.inicio)) racha++;
@@ -124,7 +133,11 @@ export function HistorialReportes() {
             label="Cumplimiento"
             icon={Sparkles}
             color={AZUL}
-            sub="Semanas cerradas con reporte a tiempo"
+            sub={
+              semanasCerradas.length > 0
+                ? `${semanasATiempoCount} de ${semanasCerradas.length} entregados a tiempo`
+                : 'Todavía no hay semanas cerradas'
+            }
           >
             {cumplimiento != null ? `${cumplimiento}%` : '—'}
           </KpiMosaico>
@@ -142,22 +155,39 @@ export function HistorialReportes() {
             {recientes.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay reportes.</p>}
             {/* KAN-367: la edición se hace desde el calendario (círculo verde),
                 no desde acá -- esta lista queda como resumen informativo. */}
-            {recientes.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-muted/50">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}
-                >
-                  <CalendarCheck2 className="h-4 w-4" style={{ color: AZUL }} />
+            {recientes.map((r) => {
+              const atraso = diasDeAtraso(r.fecha_reunion, r.fecha_creacion);
+              return (
+                <div key={r.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-muted/50">
+                  {atraso >= 1 ? (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                      <CalendarCheck2 className="h-4 w-4 text-destructive" />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `color-mix(in oklab, ${AZUL} 12%, transparent)` }}
+                    >
+                      <CalendarCheck2 className="h-4 w-4" style={{ color: AZUL }} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate font-medium">{fechaLegible(r.fecha_reunion)}</p>
+                      {atraso >= 1 && (
+                        <Badge variant="destructive">
+                          {atraso} día{atraso === 1 ? '' : 's'} de atraso
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {r.total_asistentes} asistente{r.total_asistentes === 1 ? '' : 's'} · {r.total_menores} niño
+                      {r.total_menores === 1 ? '' : 's'} / {r.total_mayores} adulto{r.total_mayores === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{fechaLegible(r.fecha_reunion)}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {r.total_asistentes} asistentes · {r.total_menores} niños / {r.total_mayores} adultos
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>

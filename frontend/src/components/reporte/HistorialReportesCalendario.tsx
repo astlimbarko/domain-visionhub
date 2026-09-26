@@ -12,7 +12,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { AZUL, MORADO, VERDE } from '@/components/dashboard/DashboardUI';
 import {
-  useConvertirReunionNoRealizadaEnReporte,
   useCorregirReunionNoRealizada,
   useDiasLimiteEdicionReporte,
   usePrimeraFechaReunion,
@@ -228,7 +227,6 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
   const [fechaCorregida, setFechaCorregida] = useState('');
   const [motivoCorregido, setMotivoCorregido] = useState('');
   const corregirNoRealizada = useCorregirReunionNoRealizada(casaDePazId);
-  const convertirNoRealizada = useConvertirReunionNoRealizadaEnReporte(casaDePazId);
 
   function abrirGestion(datos: { id: string; fechaReunion: string; motivo: string }) {
     setGestionando(datos);
@@ -251,16 +249,19 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
     );
   }
 
+  // KAN-450 seguimiento (pedido explícito del owner, 2026-09-26): un click
+  // por error acá ya no borra nada -- solo navega al formulario del
+  // reporte llevando el id pendiente. La marca vieja de "no realizada"
+  // recién se da de baja cuando esa persona efectivamente ENVÍA algo desde
+  // ese formulario (ver Reportes.tsx, darDeBajaNoRealizadaPendienteSiHace).
+  // Si se equivocó de opción y no llega a enviar nada, la burbuja negra
+  // queda intacta sin que nadie tenga que deshacer nada a mano.
   function confirmarConversion() {
     if (!gestionando) return;
     const fecha = gestionando.fechaReunion;
-    convertirNoRealizada.mutate(gestionando.id, {
-      onSuccess: () => {
-        setGestionando(null);
-        navigate(`${ROUTES.REPORTES}?fecha=${fecha}`);
-      },
-      onError: () => toast.error('No se pudo convertir -- puede que ya se haya salido de la ventana de edición.'),
-    });
+    const idNoRealizada = gestionando.id;
+    setGestionando(null);
+    navigate(`${ROUTES.REPORTES}?fecha=${fecha}&convertirNoRealizadaId=${idNoRealizada}`);
   }
 
   // Numeración continua de semanas (1..N) en orden cronológico, para el rótulo de cada círculo.
@@ -597,7 +598,11 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
       <Dialog open={!!gestionando} onOpenChange={(open) => !open && setGestionando(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Reunión no realizada -- {gestionando ? fechaLegible(gestionando.fechaReunion) : ''}</DialogTitle>
+            <DialogTitle>
+              Reunión no realizada
+              {gestionando &&
+                `, ${conMayusInicial(fechaLegibleConDia(gestionando.fechaReunion))} - semana ${numeroDeSemana.get(inicioSemanaISO(gestionando.fechaReunion)) ?? '?'}`}
+            </DialogTitle>
           </DialogHeader>
 
           {vistaGestion === 'elegir' && (
@@ -654,15 +659,16 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
           {vistaGestion === 'convertir' && (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">
-                Se va a borrar esta marca de "reunión no realizada" y te vamos a llevar al formulario de reporte de esa fecha para
-                que cargues los datos reales.
+                Te vamos a llevar al formulario de reporte de esa fecha para que cargues los datos reales. Esta marca de "reunión
+                no realizada" recién se borra cuando termines de enviar ese reporte -- si te arrepentís y no llegás a enviar nada,
+                queda como está.
               </p>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setVistaGestion('elegir')}>
                   Volver
                 </Button>
-                <Button type="button" onClick={confirmarConversion} disabled={convertirNoRealizada.isPending}>
-                  {convertirNoRealizada.isPending ? 'Un momento...' : 'Sí, cargar reporte real'}
+                <Button type="button" onClick={confirmarConversion}>
+                  Sí, cargar reporte real
                 </Button>
               </DialogFooter>
             </div>

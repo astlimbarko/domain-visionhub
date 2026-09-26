@@ -62,6 +62,7 @@ import {
   useCrearReporte,
   useCrearReporteMegafiesta,
   useCrearReunionNoRealizada,
+  useConvertirReunionNoRealizadaEnReporte,
   useEdadMinimaCreyente,
   useEliminarBorradorReporte,
   useCorregirEstadoSsvaManual,
@@ -160,7 +161,7 @@ export function Reportes() {
   const { reporteId } = useParams<{ reporteId?: string }>();
   const modoEdicion = !!reporteId;
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { contextoActivo } = useContextoActivo();
   const contextoCdp = contextoActivo?.alcance === 'CDP' ? contextoActivo : null;
   // KAN-391: Líder de Red y Supervisor (y por encima) siempre ven de qué CdP
@@ -280,6 +281,14 @@ export function Reportes() {
   // persona tocara nada). Sigue precargándose cuando se llega con
   // ?fecha=YYYY-MM-DD (click desde el calendario, KAN-435) o en modo edición.
   const fechaInicial = modoEdicion ? hoy : fechaQueryParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaQueryParam) ? fechaQueryParam : '';
+  // KAN-450 seguimiento (pedido explícito del owner, 2026-09-26): "en
+  // realidad sí hubo reunión" ya NO borra la marca de "no realizada" al
+  // tocarse -- solo navega para acá con este id pendiente. Si la persona
+  // se equivocó de opción y nunca llega a enviar nada desde este
+  // formulario, la marca vieja queda intacta, sin que nadie tenga que
+  // deshacer nada a mano. Recién se da de baja justo antes de crear el
+  // reporte/no-realizada/Megafiesta real de esta misma fecha.
+  const convertirNoRealizadaId = searchParams.get('convertirNoRealizadaId');
 
   const { data: libros = [] } = useLibros();
   const { data: miembrosCrudo = [], isLoading: cargandoMiembros } = useMiembrosCdp(cdpActiva);
@@ -307,6 +316,7 @@ export function Reportes() {
   const { data: monedas = [] } = useMonedasActivas(iglesiaActivaId);
   const crear = useCrearReporte(cdpActiva);
   const crearNoRealizada = useCrearReunionNoRealizada(cdpActiva);
+  const convertirNoRealizada = useConvertirReunionNoRealizadaEnReporte(cdpActiva);
   const actualizar = useActualizarReporte(cdpActiva);
   const anular = useAnularReporte(cdpActiva);
   // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
@@ -1238,12 +1248,37 @@ export function Reportes() {
     evangelizadosExistentesComoAsistentes.filter((p) => p.fecha_nacimiento && calcularEdad(p.fecha_nacimiento) < edadMinima).length;
   const totalMayoresActual = totalAsistentesActual - totalNinosActual;
 
+  // KAN-450 seguimiento: recién acá se da de baja la marca vieja de "no
+  // realizada" (si se llegó a este formulario por ese camino) -- justo
+  // antes de crear lo que sea que se vaya a enviar en su lugar, nunca
+  // antes. Devuelve false si no se pudo (y ya avisó), para que el llamador
+  // corte el envío sin crear nada nuevo sobre una fecha que sigue teniendo
+  // la fila vieja activa.
+  async function darDeBajaNoRealizadaPendienteSiHace(): Promise<boolean> {
+    if (!convertirNoRealizadaId) return true;
+    try {
+      await convertirNoRealizada.mutateAsync(convertirNoRealizadaId);
+      setSearchParams(
+        (prev) => {
+          prev.delete('convertirNoRealizadaId');
+          return prev;
+        },
+        { replace: true }
+      );
+      return true;
+    } catch {
+      toast.error('No se pudo dar de baja la marca de "reunión no realizada" -- puede que ya se haya salido de la ventana de edición.');
+      return false;
+    }
+  }
+
   // KAN-392: camino de guardado totalmente aparte de onSubmit -- no pasa por
   // react-hook-form/zod (el formulario normal ni se muestra cuando
   // `reunionNoRealizada` está tildado), solo motivo + fecha_reunion (mismo
   // input de fecha de siempre, reusado).
   async function enviarReunionNoRealizada() {
     if (!cdpActiva || !iglesiaActivaId || !motivoNoRealizada.trim()) return;
+    if (!(await darDeBajaNoRealizadaPendienteSiHace())) return;
     try {
       await crearNoRealizada.mutateAsync({
         iglesia_id: iglesiaActivaId,
@@ -1254,7 +1289,16 @@ export function Reportes() {
       toast.success('Semana registrada como reunión no realizada');
       setReunionNoRealizada(false);
       setMotivoNoRealizada('');
-      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
+      reset({
+        fecha_reunion: '',
+        libro_id: undefined,
+        tema_id: undefined,
+        tema_especial_txt: undefined,
+        disertador_id: undefined,
+        salio_evangelizar: false,
+        moneda_id: monedas[0]?.moneda_id,
+        total_ofrendas: '',
+      });
     } catch (e) {
       const error = e as { code?: string; message?: string } | null;
       if (error?.code === '23505') {
@@ -1362,6 +1406,8 @@ export function Reportes() {
         monedaId: valores.moneda_id,
       };
 
+      if (!modoEdicion && !(await darDeBajaNoRealizadaPendienteSiHace())) return;
+
       const resultado = modoEdicion
         ? await actualizar.mutateAsync({ reporteId: reporteId as string, datos: datosComunes })
         : await crear.mutateAsync(datosComunes);
@@ -1443,7 +1489,17 @@ export function Reportes() {
         `Reporte enviado: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
       );
       limpiarBorradorEnviado();
-      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id, testimonios: '' });
+      reset({
+        fecha_reunion: '',
+        libro_id: undefined,
+        tema_id: undefined,
+        tema_especial_txt: undefined,
+        disertador_id: undefined,
+        salio_evangelizar: false,
+        moneda_id: monedas[0]?.moneda_id,
+        testimonios: '',
+        total_ofrendas: '',
+      });
       setAsistentes(new Map());
       setVisitasNuevas([]);
       setAsistentesNuevosExistentes([]);
@@ -1508,6 +1564,7 @@ export function Reportes() {
     }
 
     try {
+      if (!(await darDeBajaNoRealizadaPendienteSiHace())) return;
       const resultado = await crearMegafiesta.mutateAsync({
         casa_de_paz_id: cdpActiva,
         iglesia_id: iglesiaActivaId,
@@ -1518,7 +1575,16 @@ export function Reportes() {
       toast.success(
         `Megafiesta enviada: ${resultado.totalAsistentes} asistentes (${resultado.totalMenores} menores, ${resultado.totalMayores} mayores)`
       );
-      reset({ fecha_reunion: hoy, salio_evangelizar: false, moneda_id: monedas[0]?.moneda_id });
+      reset({
+        fecha_reunion: '',
+        libro_id: undefined,
+        tema_id: undefined,
+        tema_especial_txt: undefined,
+        disertador_id: undefined,
+        salio_evangelizar: false,
+        moneda_id: monedas[0]?.moneda_id,
+        total_ofrendas: '',
+      });
       setAsistentes(new Map());
       setVisitasNuevas([]);
       setAsistentesNuevosExistentes([]);
