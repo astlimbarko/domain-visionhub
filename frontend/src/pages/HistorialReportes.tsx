@@ -1,6 +1,6 @@
 import { CalendarCheck2, Flame, History, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,16 @@ import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceho
 import { VolverAlDashboard } from '@/components/shared/VolverAlDashboard';
 import { useAuthStore } from '@/store/auth.store';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
-import { useCdpContextoReporte, useHistorialReportes, useReportesRecientes, useReunionesNoRealizadas } from '@/hooks/useReporte';
-import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO } from '@/utils/calendario-fechas';
+import {
+  useCdpContextoReporte,
+  useDiasLimiteEdicionReporte,
+  useHistorialReportes,
+  useReportesRecientes,
+  useReunionesNoRealizadas,
+} from '@/hooks/useReporte';
+import { dentroDeVentanaEdicionReporte } from '@/services/reporte.service';
+import { aISO, diasDeAtraso, fechaLegible, finSemanaISO, inicioSemanaISO, numeroSemanaISO } from '@/utils/calendario-fechas';
+import { rutaReporteEditar } from '@/utils/constants';
 
 const VENTANA_SEMANAS = 8;
 
@@ -35,6 +43,7 @@ export function HistorialReportes() {
   const { contextoActivo } = useContextoActivo();
   const rolUI = contextoActivo?.rolUI;
   const location = useLocation();
+  const navigate = useNavigate();
   // Acceso directo desde el Dashboard de un Líder/Supervisor de Red (o
   // Pastor/Supervisor) inspeccionando una Casa de Paz ajena (2026-09-11,
   // mismo mecanismo que Personas.tsx/TestimoniosCdp.tsx) -- tiene que ganarle
@@ -56,6 +65,10 @@ export function HistorialReportes() {
 
   const { data: fechasVentana = [], isLoading: cargandoVentana } = useHistorialReportes(cdpActiva, desdeVentana, hastaVentana);
   const { data: recientes = [] } = useReportesRecientes(cdpActiva ? [cdpActiva] : []);
+  // KAN-471 (pedido explícito del owner, 2026-09-26): mismo criterio
+  // configurable que ya usa el calendario (HistorialReportesCalendario.tsx)
+  // para decidir si un reporte todavía se puede editar.
+  const { data: diasLimiteEdicion = 3 } = useDiasLimiteEdicionReporte(iglesiaActivaId, 'DIAS_LIMITE_EDICION_REPORTE_CDP');
   // Bug real encontrado en vivo (2026-09-26): "reunión no realizada" se
   // colaba en las 3 tarjetas de arriba (Semanas con reporte/Racha/
   // Cumplimiento) como si fuera un reporte real -- ya no aparece en
@@ -199,14 +212,26 @@ export function HistorialReportes() {
           <TarjetaHeader icon={History} color={AZUL} titulo="Reportes recientes" descripcion="Últimos envíos de esta Casa de Paz" />
           <div className="flex flex-col gap-1.5 p-5">
             {recientes.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay reportes.</p>}
-            {/* KAN-367: la edición se hace desde el calendario (círculo verde),
-                no desde acá -- esta lista queda como resumen informativo. */}
             {recientes.map((r) => {
               const atraso = diasDeAtraso(r.fecha_reunion, r.fecha_creacion);
+              // KAN-471 (pedido explícito del owner, 2026-09-26): toda la
+              // fila pasa a ser clickeable para editar ese reporte -- pero
+              // solo si sigue dentro de la ventana de edición (mismo
+              // criterio que ya usan los círculos verdes del calendario).
+              // Si ya venció, queda igual que antes: informativa, sin click.
+              const editable = dentroDeVentanaEdicionReporte(r.fecha_creacion, diasLimiteEdicion);
               return (
-                <div
+                <button
                   key={r.id}
-                  className={cn('flex items-center gap-3 rounded-xl px-2 py-2 text-sm', atraso >= 1 ? 'hover:brightness-95' : 'hover:bg-muted/50')}
+                  type="button"
+                  disabled={!editable}
+                  onClick={editable ? () => navigate(rutaReporteEditar(r.id)) : undefined}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition-colors',
+                    editable && 'cursor-pointer',
+                    !editable && 'cursor-default',
+                    atraso >= 1 ? 'hover:brightness-95' : editable && 'hover:bg-muted/50'
+                  )}
                   // Pedido explícito del owner (2026-09-26): fondo "hueso
                   // rojizo" suave en los reportes con atraso, para que se
                   // distingan de un vistazo sin depender solo del badge.
@@ -227,6 +252,7 @@ export function HistorialReportes() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate font-medium">{fechaLegible(r.fecha_reunion)}</p>
+                      <span className="shrink-0 text-[11px] font-normal text-muted-foreground">Semana {numeroSemanaISO(r.fecha_reunion)}</span>
                       {atraso >= 1 && (
                         <Badge variant="destructive">
                           {atraso} día{atraso === 1 ? '' : 's'} de atraso
@@ -238,7 +264,7 @@ export function HistorialReportes() {
                       {r.total_menores === 1 ? '' : 's'} / {r.total_mayores} adulto{r.total_mayores === 1 ? '' : 's'}
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
