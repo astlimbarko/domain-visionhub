@@ -321,6 +321,11 @@ export function Reportes() {
   const anular = useAnularReporte(cdpActiva);
   // Confirmación inline (sin diálogo bloqueante) para anular el reporte en edición.
   const [confirmandoAnular, setConfirmandoAnular] = useState(false);
+  // Pedido explícito del owner (2026-09-26): en modo edición faltaba una
+  // forma de salir sin guardar. Como en edición no hay autoguardado (a
+  // diferencia de un reporte nuevo), nada se toca en la base hasta apretar
+  // "Guardar cambios" -- "descartar" acá es solo salir de la pantalla.
+  const [confirmandoDescartarEdicion, setConfirmandoDescartarEdicion] = useState(false);
   // KAN-367 (pedido del owner, 2026-09-17): botón "Sí, anular" arranca
   // deshabilitado con cuenta regresiva de 3 segundos -- nadie lo confirma
   // por reflejo. Arranca de nuevo cada vez que se abre el diálogo.
@@ -354,6 +359,12 @@ export function Reportes() {
   // Nunca se toca fuera del efecto de precarga: agregar/sacar gente durante
   // la edición no entra ni sale de este set.
   const [idsAsistentesOriginales, setIdsAsistentesOriginales] = useState<Set<string>>(new Set());
+  // Igual que idsAsistentesOriginales, pero para "asistentes nuevos ya
+  // existentes" (visitas con persona_id real precargadas al editar, ver
+  // setAsistentesNuevosExistentes más abajo) -- sin esto, "Descartar
+  // cambios" los contaba como cambio pendiente apenas se abría el reporte,
+  // aunque nadie hubiera tocado nada todavía (bug real encontrado en vivo).
+  const [idsAsistentesNuevosOriginales, setIdsAsistentesNuevosOriginales] = useState<Set<string>>(new Set());
   const [visitasNuevas, setVisitasNuevas] = useState<NuevaVisita[]>([]);
   // Bug real reportado por el owner (2026-09-05): "Asistentes nuevos" no
   // buscaba a nadie, así que una visita recurrente (alguien que ya está en
@@ -885,11 +896,11 @@ export function Reportes() {
     // visitas a propósito, ni en Asistentes nuevos, que en modo edición
     // arranca vacío). Se muestran acá como "ya existentes" -- ya tienen
     // persona_id real, no hace falta crearlas de nuevo.
-    setAsistentesNuevosExistentes(
-      reporteExistente.asistentes
-        .filter((a) => a.esVisita && a.nombreCompleto)
-        .map((a) => ({ id: a.personaId, nombre_completo: a.nombreCompleto as string }))
-    );
+    const visitasExistentesPrecarga = reporteExistente.asistentes
+      .filter((a) => a.esVisita && a.nombreCompleto)
+      .map((a) => ({ id: a.personaId, nombre_completo: a.nombreCompleto as string }));
+    setAsistentesNuevosExistentes(visitasExistentesPrecarga);
+    setIdsAsistentesNuevosOriginales(new Set(visitasExistentesPrecarga.map((a) => a.id)));
     setFormPrecargado(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reporteExistente, modoEdicion]);
@@ -2876,9 +2887,54 @@ export function Reportes() {
               Anular reporte
             </Button>
           )}
+          {/* Descartar cambios (pedido explícito del owner, 2026-09-26): en
+              edición no hay autoguardado -- nada se toca en la base hasta
+              "Guardar cambios", así que esto solo navega para atrás. Si no
+              se tocó nada todavía, sale directo sin preguntar. */}
+          {modoEdicion && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-11 gap-2 rounded-xl text-muted-foreground"
+              onClick={() => {
+                const asistentesCambiaron =
+                  asistentes.size !== idsAsistentesOriginales.size || Array.from(asistentes.keys()).some((id) => !idsAsistentesOriginales.has(id));
+                const asistentesNuevosCambiaron =
+                  asistentesNuevosExistentes.length !== idsAsistentesNuevosOriginales.size ||
+                  asistentesNuevosExistentes.some((a) => !idsAsistentesNuevosOriginales.has(a.id));
+                const hayCambiosSinGuardar =
+                  Object.keys(dirtyFields).length > 0 || asistentesCambiaron || visitasNuevas.length > 0 || asistentesNuevosCambiaron;
+                if (hayCambiosSinGuardar) setConfirmandoDescartarEdicion(true);
+                else navigate(-1);
+              }}
+            >
+              <X className="h-4 w-4" />
+              Descartar cambios
+            </Button>
+          )}
         </div>
       </form>
       )}
+
+      <Dialog open={confirmandoDescartarEdicion} onOpenChange={setConfirmandoDescartarEdicion}>
+        <DialogContent className="sm:max-w-sm">
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+            <div className="flex flex-col gap-1">
+              <p className="font-medium">Tenés cambios sin guardar</p>
+              <p className="text-sm text-muted-foreground">Si salís ahora, se pierden. El reporte queda tal cual estaba antes de que empezaras a editar.</p>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmandoDescartarEdicion(false)}>
+              Seguir editando
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => navigate(-1)}>
+              Descartar y salir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* KAN-367 (pedido del owner, 2026-09-17): confirmación fuerte -- diálogo
           con advertencia destacada + botón bloqueado 3 segundos, en vez del
