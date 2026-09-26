@@ -25,3 +25,8 @@
 - [x] `/avances` actualizado con 10 entradas nuevas de esta sesión
 - [x] PR #122 abierto contra `preview/integracion-2026-09-25` con todo lo de arriba (KAN-442 banner + KAN-445 a 453)
 - [ ] Cola pendiente para después: mejoras al buscador de diezmante en Finanzas (a veces no busca, falta edad/estado, contraste de colores del monto)
+- [x] Simulacro de QA completo en Reporte de CdP: 6 asistentes nuevos (3 directo en el reporte, 3 desde Evangelismo) + 1 persona sin identificar + 3 "olvidados" agregados tarde, todo verificado en base de datos
+- [x] KAN-454 (bug real, documentado, sin implementar): evangelizados agregados directo en el reporte se pierden si se navega fuera antes de enviar (no están en el autoguardado)
+- [x] KAN-455 (bug real, documentado, sin implementar): teléfono se guarda sin "+591" al agregar persona nueva desde el Reporte de CdP (sí lo lleva desde Evangelismo)
+- [x] KAN-456: botón "Hoy" ajustado a la misma altura que el campo Fecha, en los 3 formularios de Reportes
+- [x] Datos de prueba del simulacro de QA limpiados de producción (soft-delete en cascada), sin tocar el estado real de los 3 miembros pre-existentes de esa CdP
