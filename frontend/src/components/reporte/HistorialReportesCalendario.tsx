@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Check, ChevronLeft, ChevronRight, Flame, History, Pencil, PartyPopper, Sparkles } from 'lucide-react';
+import { CalendarCheck2, Check, ChevronLeft, ChevronRight, Flame, History, Pencil, PartyPopper, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -378,13 +378,26 @@ export function HistorialReportesCalendario({ casaDePazId, iglesiaId }: Props) {
                 seguir siendo grises"), sin aviso aparte (el owner pidió
                 sacarlo) -- el tooltip al tocar el círculo alcanza. */}
 
+            {/* KAN-470 (pedido explícito del owner, 2026-09-26): antes era un
+                solo aviso que mezclaba "qué es el número" con "cuánto tiempo
+                tenés para editar" -- se separa en 2 mensajes cortos. El
+                plazo sigue siendo {diasLimiteEdicion} (variable real, ver
+                fn_criterio/DIAS_LIMITE_EDICION_REPORTE_CDP -- configurable
+                por iglesia en la base, aunque todavía no hay una pantalla
+                en Supervisión para editarlo, solo SQL directo). */}
+            <div className="mb-1.5 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] text-muted-foreground">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <CalendarCheck2 className="h-3 w-3" />
+              </span>
+              El número de cada círculo es la semana del año -- tocalo para cargar o modificar el reporte de esa semana.
+            </div>
             {/* KAN-367: aviso de que los círculos verdes se pueden editar -- solo si hay al menos uno editable a la vista. */}
             {hayReporteEditable && (
               <div className="mb-4 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] text-muted-foreground">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Pencil className="h-3 w-3" />
                 </span>
-                Tocá un círculo verde para modificar ese reporte (hasta {diasLimiteEdicion} días después de cargado).
+                Tenés {diasLimiteEdicion} días desde que subiste un reporte para poder modificarlo.
               </div>
             )}
 
