@@ -181,62 +181,70 @@ export function AfirmacionAltar() {
           </TabsList>
 
           <TabsContent value="buscar" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
-            {!personaSeleccionada ? (
-              <div className="flex flex-col items-center gap-6 py-4 text-center sm:items-start sm:text-left">
-                <div className="flex flex-col items-center gap-2 sm:items-start">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-3 shadow-sm dark:bg-card">
-                    <img src="/logo_centro_de_vida.svg" alt="Centro de Vida" className="h-full w-full" />
-                  </span>
-                  <h1 className="text-2xl font-black tracking-tight text-[var(--brand-navy)]">ALTAR</h1>
-                  <p className="text-sm text-muted-foreground">Registro y seguimiento de personas</p>
-                </div>
-
-                <div className="w-full">
-                  <BuscadorPersona
-                    iglesiaId={iglesiaActivaId}
-                    onSeleccionar={(p: PersonaBusqueda) => setPersonaSeleccionada({ id: p.id, nombre_completo: p.nombre_completo })}
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  className="w-full gap-2 bg-[#34c759] py-6 text-base text-white hover:bg-[#2fb350]"
-                  onClick={() => setTab('nuevo')}
-                >
-                  <UserPlus className="h-5 w-5" /> Añadir nueva persona
-                </Button>
-
-                <div className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 text-left">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[#0071E3]">
-                      <CheckCircle2 className="h-4 w-4" />
+            {/* Centrado vertical (pedido explícito del owner, 2026-09-27): solo
+             * acá -- el panel de resultados del buscador es flotante (absolute,
+             * ver BuscadorPersona.tsx) y no suma altura al flujo, así que este
+             * bloque nunca "crece" y siempre puede flotar en el medio sin
+             * romper la usabilidad. Nuevo/Datos quedan como estaban (arriba,
+             * scroll normal) porque sí pueden crecer mucho (formulario/tabla). */}
+            <div className="flex min-h-[75vh] flex-col justify-center">
+              {!personaSeleccionada ? (
+                <div className="flex flex-col items-center gap-6 py-4 text-center sm:items-start sm:text-left">
+                  <div className="flex flex-col items-center gap-2 sm:items-start">
+                    <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-3 shadow-sm dark:bg-card">
+                      <img src="/logo_centro_de_vida.svg" alt="Centro de Vida" className="h-full w-full" />
                     </span>
-                    <div>
-                      <p className="text-sm font-semibold">Recomendaciones</p>
-                      <p className="text-xs text-muted-foreground">para tomar datos en el altar</p>
-                    </div>
+                    <h1 className="text-2xl font-black tracking-tight text-[var(--brand-navy)]">ALTAR</h1>
+                    <p className="text-sm text-muted-foreground">Registro y seguimiento de personas</p>
                   </div>
-                  <ul className="flex flex-col gap-1.5 pl-1 text-[13px] text-muted-foreground">
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Trata a cada persona con amabilidad y respeto.
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Explicá brevemente para qué se piden sus datos.
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Ayudala si tiene dudas y revisá la información.
-                    </li>
-                  </ul>
-                  <p className="mt-3 text-center text-xs text-[#0071E3] italic">¡Gracias por servir!</p>
+
+                  <div className="w-full">
+                    <BuscadorPersona
+                      iglesiaId={iglesiaActivaId}
+                      onSeleccionar={(p: PersonaBusqueda) => setPersonaSeleccionada({ id: p.id, nombre_completo: p.nombre_completo })}
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="w-full gap-2 bg-[#34c759] py-6 text-base text-white hover:bg-[#2fb350]"
+                    onClick={() => setTab('nuevo')}
+                  >
+                    <UserPlus className="h-5 w-5" /> Añadir nueva persona
+                  </Button>
+
+                  <div className="w-full rounded-2xl border border-border/60 bg-card/70 p-4 text-left">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[#0071E3]">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold">Recomendaciones</p>
+                        <p className="text-xs text-muted-foreground">para tomar datos en el altar</p>
+                      </div>
+                    </div>
+                    <ul className="flex flex-col gap-1.5 pl-1 text-[13px] text-muted-foreground">
+                      <li className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Trata a cada persona con amabilidad y respeto.
+                      </li>
+                      <li className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Explicá brevemente para qué se piden sus datos.
+                      </li>
+                      <li className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0071E3]" /> Ayudala si tiene dudas y revisá la información.
+                      </li>
+                    </ul>
+                    <p className="mt-3 text-center text-xs text-[#0071E3] italic">¡Gracias por servir!</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <ConfirmarAltar
-                persona={personaSeleccionada}
-                onCancelar={() => setPersonaSeleccionada(null)}
-                onRegistrado={() => setPersonaSeleccionada(null)}
-              />
-            )}
+              ) : (
+                <ConfirmarAltar
+                  persona={personaSeleccionada}
+                  onCancelar={() => setPersonaSeleccionada(null)}
+                  onRegistrado={() => setPersonaSeleccionada(null)}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="nuevo" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
