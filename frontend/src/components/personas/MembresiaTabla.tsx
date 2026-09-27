@@ -56,6 +56,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AZUL, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+// KAN-474 (preview v6, pedido explícito del owner): AZUL/VERDE/MORADO/TEAL
+// (paleta ya usada en este archivo) para diferenciar de un vistazo los
+// sub-datos de la celda "Identidad" -- Edad, CI, Estado civil y Rango.
+// Sexo (badge) y Estado SSVA (Badge) ya tenían color propio, Teléfono ya
+// usa el verde de WhatsApp de CeldaTelefono -- ninguno de esos se toca.
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
@@ -83,9 +88,6 @@ const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_ESTADOS = '__todos__';
-
-const SELECT_ENCABEZADO =
-  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
 
 type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
@@ -138,7 +140,7 @@ const RANGO_EDAD_LABEL: Record<RangoEdadFiltro, string> = {
   ADOLESCENTES: 'Adolescentes',
   JOVENES: 'Jóvenes',
   ADULTOS: 'Adultos',
-  MAYORES: 'Adultos mayores',
+  MAYORES: 'Ancianos',
 };
 
 const RANGO_EDAD_ICONO: Record<RangoEdadFiltro, LucideIcon> = {
@@ -1049,7 +1051,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             <div className="flex items-center gap-1.5">
               <Cake className="h-4 w-4 shrink-0" style={{ color: MORADO }} />
               <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo)}>
-                <SelectTrigger size="sm" className="w-[130px]">
+                <SelectTrigger size="sm" className="min-w-[190px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1117,43 +1119,15 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
-                    {/* KAN-474 (preview v5, 2026-09-27, pedido explícito del owner):
-                        "Nombre" e "Identidad" (de la v3/v4) se fusionan en UNA sola
-                        columna -- el header pasa a llamarse "Identidad". Sigue siendo
-                        ordenable por nombre (mismo botón/ícono que EncabezadoOrdenable,
-                        armado a mano acá porque también necesita el <Select> de Estado
-                        debajo, que EncabezadoOrdenable no soporta). */}
-                    <th className="px-2 py-2 text-left">
-                      <div className="flex flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => ordenarPor('nombre_completo')}
-                          className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
-                        >
-                          Identidad
-                          {(() => {
-                            const activa = orden?.columna === 'nombre_completo';
-                            const Icono = activa ? (orden!.direccion === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
-                            return <Icono className={cn('h-3 w-3', activa ? 'text-foreground' : 'text-muted-foreground/50')} />;
-                          })()}
-                        </button>
-                        {!scoped && (
-                          <Select value={estadoId} onValueChange={setEstadoId}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODOS_LOS_ESTADOS}>Estado</SelectItem>
-                              {estados.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
-                                  {e.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
-                    </th>
+                    {/* KAN-474 (preview v5): "Nombre" e "Identidad" se fusionan en UNA
+                        sola columna -- el header pasa a llamarse "Identidad".
+                        KAN-474 (preview v6, pedido explícito del owner): sacado el
+                        <Select> de Estado de este header -- redundante con la categoría
+                        de filtro "Estado espiritual" (chips arriba de la tabla). Vuelve
+                        a EncabezadoOrdenable, ya no hace falta el wrapper a mano. */}
+                    <EncabezadoOrdenable columna="nombre_completo" ordenActual={orden} onOrdenar={ordenarPor}>
+                      Identidad
+                    </EncabezadoOrdenable>
                     {/* KAN-474 (preview v4): "Cumpleaños" dejó de ser columna -- la torta
                         se mudó a Nombre, el filtro de período se mudó junto al buscador
                         (ver más abajo, cerca de "Buscar por nombre..."). */}
@@ -1210,8 +1184,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             torta (v4), CI + Estado (SSVA) + Estado civil, Teléfono + correo,
                             Rango. No importa que la celda crezca en alto. */}
                         <td className="px-2 py-2 leading-tight font-medium">
+                          {/* KAN-474 (preview v6, pedido explícito del owner): nombre y
+                              apellido con el mismo peso visual -- antes el apellido era
+                              más chico/gris (text-xs font-normal text-muted-foreground). */}
                           <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
-                          {nombreLinea2 && <p className="truncate text-xs font-normal text-muted-foreground">{nombreLinea2}</p>}
+                          {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
                           <div className="mt-0.5 flex items-center gap-1.5 font-normal">
                             <span
                               className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
@@ -1222,7 +1199,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             >
                               {p.sexo === 'M' ? 'M' : 'F'}
                             </span>
-                            <span className="text-xs text-muted-foreground">{p.edad != null ? `${p.edad} años` : 'Edad —'}</span>
+                            <span className="text-xs font-medium" style={{ color: VERDE }}>
+                              {p.edad != null ? `${p.edad} años` : 'Edad —'}
+                            </span>
                             {(() => {
                               const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
                               if (!fechaCumple) return null;
@@ -1254,7 +1233,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           </div>
                           <div className="mt-0.5 flex flex-col gap-0.5 font-normal text-muted-foreground">
                             <span className="flex items-center gap-1.5">
-                              <span>CI {p.ci ?? '—'}</span>
+                              <span className="font-medium" style={{ color: AZUL }}>
+                                CI {p.ci ?? '—'}
+                              </span>
                               {p.estado_sigla ? (
                                 <Badge variant="secondary" className="rounded-full text-[10px]">
                                   {p.estado_sigla}
@@ -1262,13 +1243,19 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                               ) : (
                                 <span>—</span>
                               )}
-                              {p.estado_civil && <span>{ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil]}</span>}
+                              {p.estado_civil && (
+                                <span className="font-medium" style={{ color: TEAL }}>
+                                  {ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil]}
+                                </span>
+                              )}
                             </span>
                             <span className="flex items-center gap-1.5">
                               <CeldaTelefono telefono={p.telefono_principal} />
                               {p.correo && <span>· {p.correo}</span>}
                             </span>
-                            <span>{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : 'Rango —'}</span>
+                            <span className="font-medium" style={{ color: MORADO }}>
+                              {p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : 'Rango —'}
+                            </span>
                           </div>
                         </td>
                         {/* KAN-474 (preview v3): Red/CdP/Vía sacados de la tabla, ver
