@@ -764,15 +764,17 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           8 categorías de filtro en filas compactas -- se sacó "Por
           URL"/"Por formulario" (ya no hacían falta) y se sumaron Efesios,
           Ministerios, Cargos de censo y Edad. Chips de una sola línea
-          (antes 2) para que entren las 26 en total sin ocupar demasiado. */}
+          (antes 2) para que entren las 26 en total sin ocupar demasiado.
+          KAN-474 (preview v5, pedido explícito del owner): gap entre
+          categorías achicado de gap-3 a gap-1.5 -- se veía muy separado. */}
       {cargandoEstadisticas ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: scoped ? 5 : 10 }).map((_, i) => (
             <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           <CategoriaFiltros titulo="General" defaultAbierta={true}>
             <KpiChipFiltro
               icon={Users}
@@ -814,43 +816,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               {estadisticas?.mujeres ?? 0}
             </KpiChipFiltro>
           </CategoriaFiltros>
-
-          {/* KAN-474 (preview v3, 2026-09-27): Red y Casa de Paz dejan de ser
-              columnas/<select> del header de la tabla y pasan a ser botones
-              de filtro acá arriba, mismo patrón que el resto de categorías.
-              Solo aplica al modo completo (!scoped) -- en scoped (Líder/
-              Sublíder de CdP) ya no se mostraban estos filtros antes. */}
-          {!scoped && (
-            <>
-              <CategoriaFiltros titulo="Red" defaultAbierta={true}>
-                <BotonFiltroSimple label="Todas" color={AZUL} activo={redId === TODAS_LAS_REDES} onClick={() => setRedId(TODAS_LAS_REDES)} />
-                {redes.map((r) => (
-                  <BotonFiltroSimple key={r.id} label={r.nombre} color={AZUL} activo={redId === r.id} onClick={() => setRedId(r.id)} />
-                ))}
-              </CategoriaFiltros>
-
-              {/* KAN-474: los botones de CdP se acotan a la Red elegida arriba
-                  (cdps.filter por red_id) -- sin Red elegida, muestra todas
-                  las CdP de la iglesia (mismo universo que antes). */}
-              <CategoriaFiltros titulo="Casa de Paz" defaultAbierta={true}>
-                <BotonFiltroSimple
-                  label="Todas"
-                  color={TEAL}
-                  activo={casaDePazIdFiltroUi === TODAS_LAS_CDP}
-                  onClick={() => setCasaDePazIdFiltroUi(TODAS_LAS_CDP)}
-                />
-                {(redIdFiltro ? cdps.filter((c) => c.red_id === redIdFiltro) : cdps).map((c) => (
-                  <BotonFiltroSimple
-                    key={c.id}
-                    label={c.etiqueta}
-                    color={TEAL}
-                    activo={casaDePazIdFiltroUi === c.id}
-                    onClick={() => setCasaDePazIdFiltroUi(c.id)}
-                  />
-                ))}
-              </CategoriaFiltros>
-            </>
-          )}
 
           {/* KAN-403 seguimiento 2026-09-19: solo SIM y CRE -- NC y RE son
               de Evangelismo, no de Afirmación (aclaración explícita del
@@ -999,6 +964,42 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               </KpiChipFiltro>
             ))}
           </CategoriaFiltros>
+
+          {/* KAN-474 (preview v5, pedido explícito del owner): Red y Casa de Paz
+              van al FINAL del bloque de filtros -- antes de la v3 estaban justo
+              después de "General". Solo modo completo (!scoped); en scoped
+              (Líder/Sublíder de CdP) ya no se mostraban estos filtros antes. */}
+          {!scoped && (
+            <>
+              <CategoriaFiltros titulo="Red" defaultAbierta={true}>
+                <BotonFiltroSimple label="Todas" color={AZUL} activo={redId === TODAS_LAS_REDES} onClick={() => setRedId(TODAS_LAS_REDES)} />
+                {redes.map((r) => (
+                  <BotonFiltroSimple key={r.id} label={r.nombre} color={AZUL} activo={redId === r.id} onClick={() => setRedId(r.id)} />
+                ))}
+              </CategoriaFiltros>
+
+              {/* KAN-474: los botones de CdP se acotan a la Red elegida arriba
+                  (cdps.filter por red_id) -- sin Red elegida, muestra todas
+                  las CdP de la iglesia (mismo universo que antes). */}
+              <CategoriaFiltros titulo="Casa de Paz" defaultAbierta={true}>
+                <BotonFiltroSimple
+                  label="Todas"
+                  color={TEAL}
+                  activo={casaDePazIdFiltroUi === TODAS_LAS_CDP}
+                  onClick={() => setCasaDePazIdFiltroUi(TODAS_LAS_CDP)}
+                />
+                {(redIdFiltro ? cdps.filter((c) => c.red_id === redIdFiltro) : cdps).map((c) => (
+                  <BotonFiltroSimple
+                    key={c.id}
+                    label={c.etiqueta}
+                    color={TEAL}
+                    activo={casaDePazIdFiltroUi === c.id}
+                    onClick={() => setCasaDePazIdFiltroUi(c.id)}
+                  />
+                ))}
+              </CategoriaFiltros>
+            </>
+          )}
         </div>
       )}
 
@@ -1116,17 +1117,26 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
-                    <EncabezadoOrdenable columna="nombre_completo" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Nombre
-                    </EncabezadoOrdenable>
-                    {/* KAN-474 (preview, 2026-09-27): "Identidad" fusiona Sexo/Edad/CI +
-                        Estado (SSVA) + Estado civil + Teléfono en una sola columna de
-                        varios renglones -- el filtro de Estado (antes al lado de Red/CdP)
-                        se muda acá, pegado a lo mismo que filtra. Sexo/Edad dejan de
-                        tener su propio botón de orden (antes EncabezadoOrdenable). */}
+                    {/* KAN-474 (preview v5, 2026-09-27, pedido explícito del owner):
+                        "Nombre" e "Identidad" (de la v3/v4) se fusionan en UNA sola
+                        columna -- el header pasa a llamarse "Identidad". Sigue siendo
+                        ordenable por nombre (mismo botón/ícono que EncabezadoOrdenable,
+                        armado a mano acá porque también necesita el <Select> de Estado
+                        debajo, que EncabezadoOrdenable no soporta). */}
                     <th className="px-2 py-2 text-left">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Identidad</span>
+                        <button
+                          type="button"
+                          onClick={() => ordenarPor('nombre_completo')}
+                          className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+                        >
+                          Identidad
+                          {(() => {
+                            const activa = orden?.columna === 'nombre_completo';
+                            const Icono = activa ? (orden!.direccion === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+                            return <Icono className={cn('h-3 w-3', activa ? 'text-foreground' : 'text-muted-foreground/50')} />;
+                          })()}
+                        </button>
                         {!scoped && (
                           <Select value={estadoId} onValueChange={setEstadoId}>
                             <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
@@ -1195,11 +1205,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
                       >
                         <td className="px-2 py-2 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
-                        {/* KAN-474 (preview v4): Sexo (badge AZUL/TEAL, misma convención que
-                            los chips "Hombres"/"Mujeres" de arriba), Edad (texto plano,
-                            dato secundario) y la torta de cumpleaños (MORADO, mismo ícono
-                            de siempre) se sumaron como 3ra línea de Nombre -- antes eran
-                            2 columnas propias + la columna "Cumpleaños". */}
+                        {/* KAN-474 (preview v5, pedido explícito del owner): "Nombre" e
+                            "Identidad" se fusionan en una sola celda -- nombre, Sexo/Edad/
+                            torta (v4), CI + Estado (SSVA) + Estado civil, Teléfono + correo,
+                            Rango. No importa que la celda crezca en alto. */}
                         <td className="px-2 py-2 leading-tight font-medium">
                           <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
                           {nombreLinea2 && <p className="truncate text-xs font-normal text-muted-foreground">{nombreLinea2}</p>}
@@ -1243,14 +1252,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                               );
                             })()}
                           </div>
-                        </td>
-                        {/* KAN-474 (preview v4): Identidad -- línea 1 CI (Sexo/Edad se
-                            mudaron a Nombre), línea 2 Estado (SSVA) + Estado civil,
-                            línea 3 Teléfono + correo, línea 4 Rango. */}
-                        <td className="px-2 py-2 text-muted-foreground">
-                          <div className="flex flex-col gap-0.5 leading-tight">
-                            <span>CI {p.ci ?? '—'}</span>
+                          <div className="mt-0.5 flex flex-col gap-0.5 font-normal text-muted-foreground">
                             <span className="flex items-center gap-1.5">
+                              <span>CI {p.ci ?? '—'}</span>
                               {p.estado_sigla ? (
                                 <Badge variant="secondary" className="rounded-full text-[10px]">
                                   {p.estado_sigla}
