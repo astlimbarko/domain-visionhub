@@ -129,6 +129,14 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   // Supervisor) o Líder de Afirmación.
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const puedeEditarIdentidadBasica = esOperativo || esLiderAfirmacion;
+  // KAN-475: "Ocultar de búsquedas" tiene su propio permiso, distinto al de
+  // arriba -- el trigger `trg_restringir_oculto` en la BD (paridad Pastor/
+  // Supervisor, KAN paridad_pastor_supervisor) solo lo permite a operativo
+  // o Pastor, no a Líder de Afirmación. El botón mostraba/permitía tocarlo
+  // a esLiderDeSuRed y esUnoMismo (vía `puedeEditar`), que el backend
+  // siempre rechazaba -- y no lo mostraba a Pastor solo, que sí tenía permiso.
+  const esPastor = ficha ? (iglesias.find((i) => i.id === ficha.persona.iglesia_id)?.es_pastor ?? false) : false;
+  const puedeCambiarVisibilidad = esOperativo || esPastor;
   const editando = puedeEditar && modoEdicion;
   // Igual criterio que `editando`, pero para el permiso más angosto de
   // arriba -- se usa en la sección Identidad/censo (KAN-403 la unificó en
@@ -201,29 +209,33 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
                 </p>
               </DialogHeader>
 
-              {puedeEditar && (
+              {(puedeEditar || puedeCambiarVisibilidad) && (
                 <div className="flex flex-wrap gap-2 border-b border-border/60 pb-4">
-                  {modoEdicion ? (
-                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setModoEdicion(false)}>
-                      <X className="h-3.5 w-3.5" />
-                      Cancelar edición
-                    </Button>
-                  ) : (
-                    <Button type="button" size="sm" className={cn('gap-1.5', BOTON_ROJO_FUERTE)} onClick={() => setMostrarAdvertenciaEditar(true)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                      Editar
-                    </Button>
+                  {puedeEditar && (
+                    modoEdicion ? (
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setModoEdicion(false)}>
+                        <X className="h-3.5 w-3.5" />
+                        Cancelar edición
+                      </Button>
+                    ) : (
+                      <Button type="button" size="sm" className={cn('gap-1.5', BOTON_ROJO_FUERTE)} onClick={() => setMostrarAdvertenciaEditar(true)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        Editar
+                      </Button>
+                    )
                   )}
-                  {ficha.casa_de_paz && (
+                  {puedeEditar && ficha.casa_de_paz && (
                     <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setMostrarMoverRed(true)}>
                       <ArrowRightLeft className="h-3.5 w-3.5" />
                       Cambiar de Red
                     </Button>
                   )}
-                  <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={toggleOculto.isPending} onClick={manejarToggleOculto}>
-                    {ficha.persona.oculto ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                    {ficha.persona.oculto ? 'Quitar de ocultas' : 'Ocultar de búsquedas'}
-                  </Button>
+                  {puedeCambiarVisibilidad && (
+                    <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={toggleOculto.isPending} onClick={manejarToggleOculto}>
+                      {ficha.persona.oculto ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      {ficha.persona.oculto ? 'Quitar de ocultas' : 'Ocultar de búsquedas'}
+                    </Button>
+                  )}
                 </div>
               )}
 
