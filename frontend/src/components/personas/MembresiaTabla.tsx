@@ -265,6 +265,55 @@ function CategoriaFiltros({ titulo, defaultAbierta, children }: { titulo: string
   );
 }
 
+// KAN-474 (preview, 2026-09-27): un punto de la columna "Afirmación" --
+// mismo patrón de tooltip abrir/cerrar por clic (táctil) u hover (mouse)
+// que ya usa el ícono de torta de cumpleaños. `deshabilitado` es para
+// Cuartito de bienvenida/Fiesta de bienvenida (KAN-477/478) y RSIL en esta
+// vista puntual -- todavía no hay dato real, se muestra siempre vacío y
+// con opacidad baja para no mentir sobre qué pasos ya se pueden registrar.
+function PuntoAfirmacion({
+  abierta,
+  onAbrirCambio,
+  onClickPunto,
+  hecho,
+  deshabilitado,
+  ariaLabel,
+  tooltipContenido,
+}: {
+  abierta: boolean;
+  onAbrirCambio: (abierta: boolean) => void;
+  onClickPunto: () => void;
+  hecho: boolean;
+  deshabilitado?: boolean;
+  ariaLabel: string;
+  tooltipContenido: ReactNode;
+}) {
+  return (
+    <Tooltip open={abierta} onOpenChange={onAbrirCambio}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={cn('inline-flex h-4 w-4 items-center justify-center', deshabilitado && 'opacity-40')}
+          onClick={onClickPunto}
+          aria-label={ariaLabel}
+        >
+          <span
+            className="h-3 w-3 rounded-full border"
+            style={
+              hecho && !deshabilitado
+                ? { backgroundColor: VERDE, borderColor: 'transparent' }
+                : { backgroundColor: 'transparent', borderColor: 'var(--border)' }
+            }
+          />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-center">
+        {tooltipContenido}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function comparar(a: MembresiaResultadoBusqueda, b: MembresiaResultadoBusqueda, columna: ColumnaOrden) {
   const va = a[columna];
   const vb = b[columna];
@@ -462,6 +511,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // controlado en todos los dispositivos (antes solo en táctil) -- así el
   // clic también lo abre en PC, además del hover que ya andaba bien.
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
+  // KAN-474 (preview, 2026-09-27): clave compuesta "<personaId>:<paso>" --
+  // un solo tooltip de Afirmación abierto a la vez en toda la tabla, mismo
+  // criterio que tortaAbiertaId de arriba.
+  const [puntoAfirmacionAbierto, setPuntoAfirmacionAbierto] = useState<string | null>(null);
   // Bug real encontrado al verificar en vivo (2026-09-20): un clic de mouse
   // real siempre dispara hover ANTES que el click -- si el onClick alterna
   // (toggle), el hover ya lo había abierto, y el click lo cerraba de
@@ -994,12 +1047,31 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                     <EncabezadoOrdenable columna="nombre_completo" ordenActual={orden} onOrdenar={ordenarPor}>
                       Nombre
                     </EncabezadoOrdenable>
-                    <EncabezadoOrdenable columna="sexo" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Sexo
-                    </EncabezadoOrdenable>
-                    <EncabezadoOrdenable columna="edad" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Edad
-                    </EncabezadoOrdenable>
+                    {/* KAN-474 (preview, 2026-09-27): "Identidad" fusiona Sexo/Edad/CI +
+                        Estado (SSVA) + Estado civil + Teléfono en una sola columna de
+                        varios renglones -- el filtro de Estado (antes al lado de Red/CdP)
+                        se muda acá, pegado a lo mismo que filtra. Sexo/Edad dejan de
+                        tener su propio botón de orden (antes EncabezadoOrdenable). */}
+                    <th className="px-3 py-2.5 text-left">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Identidad</span>
+                        {!scoped && (
+                          <Select value={estadoId} onValueChange={setEstadoId}>
+                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
+                              <SelectValue placeholder="Estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={TODOS_LOS_ESTADOS}>Estado</SelectItem>
+                              {estados.map((e) => (
+                                <SelectItem key={e.id} value={e.id}>
+                                  {e.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-2 py-2">
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
@@ -1018,10 +1090,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         </Select>
                       </div>
                     </th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
-                    {scoped ? (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado</th>
-                    ) : (
+                    {!scoped && (
                       <>
                         <th className="px-2 py-2">
                           <Select value={redId} onValueChange={setRedId}>
@@ -1053,35 +1122,21 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             </SelectContent>
                           </Select>
                         </th>
-                        <th className="px-2 py-2">
-                          <Select value={estadoId} onValueChange={setEstadoId}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODOS_LOS_ESTADOS}>Estado</SelectItem>
-                              {estados.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
-                                  {e.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
                       </>
-                    )}
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    {!scoped && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
                     )}
                     <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
                       Membresía
                     </EncabezadoOrdenable>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado civil</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Rango</th>
-                    <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautizado</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo CdP</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
+                    {/* KAN-474 (preview): Cargo CdP + Cargo Red fusionados en "Cargos". */}
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos</th>
+                    {/* KAN-474 (preview): 4 pasos en orden -- Cuartito de bienvenida y
+                        Fiesta de bienvenida son KAN-477/478, sin dato real todavía
+                        (ver PuntoAfirmacion). Bautizado y RSIL dejan de ser columnas
+                        sueltas y pasan a ser 2 de los 4 puntos. */}
+                    <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Afirmación</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulado</th>
                     {vistaAmpliada && (
                       <>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
@@ -1117,8 +1172,28 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
                           {nombreLinea2 && <p className="truncate text-xs font-normal text-muted-foreground">{nombreLinea2}</p>}
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.sexo === 'M' ? 'M' : 'F'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{p.edad ?? '—'}</td>
+                        {/* KAN-474 (preview): línea 1 Sexo/Edad/CI, línea 2 Estado (SSVA) +
+                            Estado civil, línea 3 Teléfono -- fusión de 6 columnas viejas. */}
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 leading-tight">
+                            <span>
+                              {p.sexo === 'M' ? 'M' : 'F'} · {p.edad != null ? `${p.edad} años` : 'Edad —'} · CI {p.ci ?? '—'}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              {p.estado_sigla ? (
+                                <Badge variant="secondary" className="rounded-full text-[10px]">
+                                  {p.estado_sigla}
+                                </Badge>
+                              ) : (
+                                <span>—</span>
+                              )}
+                              {p.estado_civil && <span>{ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil]}</span>}
+                            </span>
+                            <span>
+                              <CeldaTelefono telefono={p.telefono_principal} />
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                           {(() => {
                             const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
@@ -1156,37 +1231,12 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             );
                           })()}
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.ci ?? '—'}</td>
-                        {scoped ? (
-                          <td className="px-3 py-2.5">
-                            {p.estado_sigla ? (
-                              <Badge variant="secondary" className="rounded-full text-[10px]">
-                                {p.estado_sigla}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                        ) : (
+                        {!scoped && (
                           <>
                             <td className="px-3 py-2.5 text-muted-foreground">{p.red_nombre ?? '—'}</td>
                             <td className="px-3 py-2.5 text-muted-foreground">{p.casa_de_paz_etiqueta ?? '—'}</td>
-                            <td className="px-3 py-2.5">
-                              {p.estado_sigla ? (
-                                <Badge variant="secondary" className="rounded-full text-[10px]">
-                                  {p.estado_sigla}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro as 'URL' | 'FORMULARIO'] : '—'}</td>
                           </>
-                        )}
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          <CeldaTelefono telefono={p.telefono_principal} />
-                        </td>
-                        {!scoped && (
-                          <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro as 'URL' | 'FORMULARIO'] : '—'}</td>
                         )}
                         <td className="px-3 py-2.5">
                           {p.membresia_completada ? (
@@ -1201,13 +1251,66 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             </Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.estado_civil ? ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil] : '—'}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—'}</td>
-                        <td className="px-3 py-2.5 text-center">
-                          {p.bautizado ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
+                        {/* KAN-474 (preview): Cargos fusionados. */}
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 leading-tight">
+                            <span>CdP: {cargoCdp ?? '—'}</span>
+                            <span>Red: {cargoRed ?? '—'}</span>
+                          </div>
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{cargoCdp ?? '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>
+                        {/* KAN-474 (preview): 4 puntos de Afirmación, en orden. Cuartito de
+                            bienvenida y Fiesta de bienvenida (KAN-477/478) y RSIL no tienen
+                            dato real disponible en esta vista -- ver comentario en
+                            PuntoAfirmacion, siempre deshabilitados a propósito. */}
+                        <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2">
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:cuartito`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:cuartito` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:cuartito` ? null : `${p.id}:cuartito`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="Cuartito de bienvenida"
+                              tooltipContenido={<span>Cuartito de bienvenida -- todavía no se registra este paso (KAN-477)</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:fiesta`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:fiesta` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:fiesta` ? null : `${p.id}:fiesta`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="Fiesta de bienvenida"
+                              tooltipContenido={<span>Fiesta de bienvenida -- todavía no se registra este paso (KAN-478)</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:bautizado`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:bautizado` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:bautizado` ? null : `${p.id}:bautizado`))
+                              }
+                              hecho={p.bautizado}
+                              ariaLabel="Bautizado"
+                              tooltipContenido={<span>{p.bautizado ? formatBautismo(p) : 'Bautizado -- No'}</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:rsil`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:rsil` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:rsil` ? null : `${p.id}:rsil`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="RSIL"
+                              tooltipContenido={<span>RSIL -- esta vista todavía no trae la fecha del retiro</span>}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{p.discipulados ?? '—'}</td>
                         {vistaAmpliada && (
                           <>
                             <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
