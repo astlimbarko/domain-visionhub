@@ -241,6 +241,26 @@ function KpiChipFiltro({
   );
 }
 
+// KAN-474 (preview v3, 2026-09-27): botón de filtro simple, sin contador --
+// para Red/Casa de Paz, que antes eran <select> sueltos en el header de la
+// tabla y ahora son botones arriba, mismo patrón visual que KpiChipFiltro
+// pero sin el número (no hay un conteo por Red/CdP a mano acá).
+function BotonFiltroSimple({ label, color, activo, onClick }: { label: string; color: string; activo: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={activo ? { backgroundColor: color } : undefined}
+      className={cn(
+        'shrink-0 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+        activo ? 'border-transparent text-white' : 'border-border/60 bg-card text-foreground hover:border-border'
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 // KAN-401 seguimiento (2026-09-20): fila de chips agrupada por categoría,
 // con su nombre chico arriba (mismo estilo que un encabezado de columna). En
 // desktop/tablet siempre visible (el owner lo eligió así -- "todo siempre
@@ -751,7 +771,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           (antes 2) para que entren las 26 en total sin ocupar demasiado. */}
       {cargandoEstadisticas ? (
         <div className="flex flex-col gap-3">
-          {Array.from({ length: scoped ? 5 : 8 }).map((_, i) => (
+          {Array.from({ length: scoped ? 5 : 10 }).map((_, i) => (
             <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
           ))}
         </div>
@@ -798,6 +818,43 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               {estadisticas?.mujeres ?? 0}
             </KpiChipFiltro>
           </CategoriaFiltros>
+
+          {/* KAN-474 (preview v3, 2026-09-27): Red y Casa de Paz dejan de ser
+              columnas/<select> del header de la tabla y pasan a ser botones
+              de filtro acá arriba, mismo patrón que el resto de categorías.
+              Solo aplica al modo completo (!scoped) -- en scoped (Líder/
+              Sublíder de CdP) ya no se mostraban estos filtros antes. */}
+          {!scoped && (
+            <>
+              <CategoriaFiltros titulo="Red" defaultAbierta={true}>
+                <BotonFiltroSimple label="Todas" color={AZUL} activo={redId === TODAS_LAS_REDES} onClick={() => setRedId(TODAS_LAS_REDES)} />
+                {redes.map((r) => (
+                  <BotonFiltroSimple key={r.id} label={r.nombre} color={AZUL} activo={redId === r.id} onClick={() => setRedId(r.id)} />
+                ))}
+              </CategoriaFiltros>
+
+              {/* KAN-474: los botones de CdP se acotan a la Red elegida arriba
+                  (cdps.filter por red_id) -- sin Red elegida, muestra todas
+                  las CdP de la iglesia (mismo universo que antes). */}
+              <CategoriaFiltros titulo="Casa de Paz" defaultAbierta={true}>
+                <BotonFiltroSimple
+                  label="Todas"
+                  color={TEAL}
+                  activo={casaDePazIdFiltroUi === TODAS_LAS_CDP}
+                  onClick={() => setCasaDePazIdFiltroUi(TODAS_LAS_CDP)}
+                />
+                {(redIdFiltro ? cdps.filter((c) => c.red_id === redIdFiltro) : cdps).map((c) => (
+                  <BotonFiltroSimple
+                    key={c.id}
+                    label={c.etiqueta}
+                    color={TEAL}
+                    activo={casaDePazIdFiltroUi === c.id}
+                    onClick={() => setCasaDePazIdFiltroUi(c.id)}
+                  />
+                ))}
+              </CategoriaFiltros>
+            </>
+          )}
 
           {/* KAN-403 seguimiento 2026-09-19: solo SIM y CRE -- NC y RE son
               de Evangelismo, no de Afirmación (aclaración explícita del
@@ -1090,45 +1147,13 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         </Select>
                       </div>
                     </th>
-                    {!scoped && (
-                      <>
-                        <th className="px-2 py-2">
-                          <Select value={redId} onValueChange={setRedId}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Red" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
-                              {redes.map((r) => (
-                                <SelectItem key={r.id} value={r.id}>
-                                  {r.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
-                        <th className="px-2 py-2">
-                          <Select value={casaDePazIdFiltroUi} onValueChange={setCasaDePazIdFiltroUi}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Casa de Paz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODAS_LAS_CDP}>Casa de Paz</SelectItem>
-                              {cdps.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.etiqueta}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
-                      </>
-                    )}
+                    {/* KAN-474 (preview v3): Red, Casa de Paz y Vía dejaron de ser
+                        columnas -- Red/CdP pasaron a botones de filtro arriba de la
+                        tabla, Vía se sacó por completo de esta vista (el dato sigue
+                        existiendo, solo deja de mostrarse acá). */}
                     <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
                       Membresía
                     </EncabezadoOrdenable>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Rango</th>
                     {/* KAN-474 (preview): Cargo CdP + Cargo Red fusionados en "Cargos". */}
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos</th>
                     {/* KAN-474 (preview): 4 pasos en orden -- Cuartito de bienvenida y
@@ -1137,6 +1162,8 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         sueltas y pasan a ser 2 de los 4 puntos. */}
                     <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Afirmación</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulado</th>
+                    {/* KAN-474 (preview v3): Familia nueva -- Cónyuge + Familiares. */}
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Familia</th>
                     {vistaAmpliada && (
                       <>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
@@ -1172,8 +1199,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
                           {nombreLinea2 && <p className="truncate text-xs font-normal text-muted-foreground">{nombreLinea2}</p>}
                         </td>
-                        {/* KAN-474 (preview): línea 1 Sexo/Edad/CI, línea 2 Estado (SSVA) +
-                            Estado civil, línea 3 Teléfono -- fusión de 6 columnas viejas. */}
+                        {/* KAN-474 (preview v3): línea 1 Sexo/Edad/CI, línea 2 Estado (SSVA) +
+                            Estado civil, línea 3 Teléfono + correo (correo no tenía
+                            lugar en ninguna vista compacta todavía), línea 4 Rango --
+                            fusión de 7 columnas viejas. */}
                         <td className="px-3 py-2.5 text-muted-foreground">
                           <div className="flex flex-col gap-0.5 leading-tight">
                             <span>
@@ -1189,9 +1218,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                               )}
                               {p.estado_civil && <span>{ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil]}</span>}
                             </span>
-                            <span>
+                            <span className="flex items-center gap-1.5">
                               <CeldaTelefono telefono={p.telefono_principal} />
+                              {p.correo && <span>· {p.correo}</span>}
                             </span>
+                            <span>{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : 'Rango —'}</span>
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1231,13 +1262,8 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             );
                           })()}
                         </td>
-                        {!scoped && (
-                          <>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.red_nombre ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.casa_de_paz_etiqueta ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro as 'URL' | 'FORMULARIO'] : '—'}</td>
-                          </>
-                        )}
+                        {/* KAN-474 (preview v3): Red/CdP/Vía sacados de la tabla, ver
+                            filtros arriba y comentario del <thead>. */}
                         <td className="px-3 py-2.5">
                           {p.membresia_completada ? (
                             <Badge variant="secondary" className="gap-1 rounded-full text-[10px]">
@@ -1251,7 +1277,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             </Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—'}</td>
                         {/* KAN-474 (preview): Cargos fusionados. */}
                         <td className="px-3 py-2.5 text-muted-foreground">
                           <div className="flex flex-col gap-0.5 leading-tight">
@@ -1311,6 +1336,13 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.discipulados ?? '—'}</td>
+                        {/* KAN-474 (preview v3): Familia nueva -- Cónyuge + Familiares. */}
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 leading-tight">
+                            <span>{p.conyuge_nombre ?? '—'}</span>
+                            <span>{p.familiares ?? '—'}</span>
+                          </div>
+                        </td>
                         {vistaAmpliada && (
                           <>
                             <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
