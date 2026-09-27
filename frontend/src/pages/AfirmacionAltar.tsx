@@ -178,14 +178,14 @@ export function AfirmacionAltar() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="buscar" className="mx-auto w-full max-w-md sm:max-w-lg">
+          <TabsContent value="buscar" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
             {!personaSeleccionada ? (
               <div className="flex flex-col items-center gap-6 py-4 text-center sm:items-start sm:text-left">
                 <div className="flex flex-col items-center gap-2 sm:items-start">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#0071E3]/30 bg-white p-3 shadow-sm dark:bg-card">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-3 shadow-sm dark:bg-card">
                     <img src="/logo_centro_de_vida.svg" alt="Centro de Vida" className="h-full w-full" />
                   </span>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#0071E3]">ALTAR</h1>
+                  <h1 className="text-2xl font-black tracking-tight text-[var(--brand-navy)]">ALTAR</h1>
                   <p className="text-sm text-muted-foreground">Registro y seguimiento de personas</p>
                 </div>
 
@@ -237,7 +237,7 @@ export function AfirmacionAltar() {
             )}
           </TabsContent>
 
-          <TabsContent value="nuevo" className="mx-auto w-full max-w-md sm:max-w-lg">
+          <TabsContent value="nuevo" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
             <button
               type="button"
               onClick={() => setTab('buscar')}
@@ -260,7 +260,7 @@ export function AfirmacionAltar() {
             </Button>
           </TabsContent>
 
-          <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl">
+          <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
             <DatosAltar iglesiaId={iglesiaActivaId} puedeVerTodos={puedeVerTodos} />
           </TabsContent>
         </Tabs>
