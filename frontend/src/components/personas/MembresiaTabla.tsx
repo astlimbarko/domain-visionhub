@@ -468,10 +468,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // inmediato (el ícono "parpadeaba" en vez de quedarse abierto). En
   // táctil no hay hover, ahí el tap sigue alternando como siempre.
   const [esTactil] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches);
-  // KAN-401 seguimiento (2026-09-20): las categorías de filtro arrancan
-  // colapsadas en celular (pedido explícito del owner), siempre abiertas
-  // desde tablet -- mismo umbral md (768px) que ya usa el resto del layout.
-  const [esMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
 
   // KAN-404 (pedido explícito del owner, 2026-09-19): la tabla es ancha y
   // antes solo tenía el scroll horizontal nativo al fondo -- para
@@ -708,7 +704,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <CategoriaFiltros titulo="General" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="General" defaultAbierta={true}>
             <KpiChipFiltro
               icon={Users}
               label="Total"
@@ -754,7 +750,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               de Evangelismo, no de Afirmación (aclaración explícita del
               owner). Siguen filtrables desde el select "Estado" del
               encabezado de la tabla si hace falta. */}
-          <CategoriaFiltros titulo="Estado espiritual" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Estado espiritual" defaultAbierta={true}>
             {(['SIM', 'CRE'] as const).map((sigla) => (
               <KpiChipFiltro
                 key={sigla}
@@ -773,7 +769,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             ))}
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Estado civil" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Estado civil" defaultAbierta={true}>
             {(Object.keys(ESTADO_CIVIL_LABELS) as EstadoCivil[]).map((codigo) => (
               <KpiChipFiltro
                 key={codigo}
@@ -792,7 +788,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             ))}
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Datos personales" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Datos personales" defaultAbierta={true}>
             <KpiChipFiltro
               icon={Briefcase}
               label="Con profesión"
@@ -821,7 +817,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             </KpiChipFiltro>
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Efesios" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Efesios" defaultAbierta={true}>
             {OPCIONES_EFESIO.map(({ value, label }) => (
               <KpiChipFiltro
                 key={value}
@@ -840,7 +836,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             ))}
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Ministerios" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Ministerios" defaultAbierta={true}>
             <KpiChipFiltro
               icon={Sparkles}
               label="Con ministerio"
@@ -856,7 +852,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             </KpiChipFiltro>
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Cargos" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Cargos" defaultAbierta={true}>
             {(['MINISTRO', 'ANCIANO', 'DIACONO'] as const).map((codigo) => (
               <KpiChipFiltro
                 key={codigo}
@@ -879,7 +875,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
             ))}
           </CategoriaFiltros>
 
-          <CategoriaFiltros titulo="Edad" defaultAbierta={!esMobile}>
+          <CategoriaFiltros titulo="Edad" defaultAbierta={true}>
             {(['NINOS', 'ADOLESCENTES', 'JOVENES', 'ADULTOS', 'MAYORES'] as const).map((rango) => (
               <KpiChipFiltro
                 key={rango}
