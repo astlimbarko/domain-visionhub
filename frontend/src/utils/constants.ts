@@ -93,6 +93,9 @@ export const ROUTES = {
   // KAN-405: gestion de codigos/Colaboradores temporales -- generar codigo,
   // ver activos, extender/pausar/finalizar, auditoria por Colaborador.
   AFIRMACION_COLABORADORES: '/afirmacion-colaboradores',
+  // KAN-481: primer proceso de Afirmacion (Altar) -- buscar/dar de alta una
+  // persona y registrar que paso al altar, con historial de fechas.
+  AFIRMACION_ALTAR: '/afirmacion-altar',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

@@ -9,9 +9,13 @@ import {
   obtenerConfigRegistroUrlAfirmacion,
   obtenerEstadisticasPersonasAfirmacion,
   obtenerEstadisticasRegistroAfirmacion,
+  obtenerEstadoProcesoAfirmacion,
+  obtenerHistorialProcesoAfirmacion,
   registrarPersonaAfirmacion,
+  registrarProcesoAfirmacion,
   setEstadoUrlsAfirmacion,
   type FiltrosMembresiaAfirmacion,
+  type ProcesoAfirmacionCodigo,
 } from '@/services/afirmacion.service';
 import type { DatosPersonaAfirmacion, EstadoUrl } from '@/types/afirmacion.types';
 
@@ -122,6 +126,36 @@ export function useEstadisticasPersonasAfirmacion(
   return useQuery({
     queryKey: ['afirmacion', 'estadisticas-personas', iglesiaId, casaDePazId, filtros, texto],
     queryFn: () => obtenerEstadisticasPersonasAfirmacion(iglesiaId as string, casaDePazId, filtros, texto),
+    enabled: !!iglesiaId,
+  });
+}
+
+// ---- KAN-481 Altar / KAN-483 RSIL / KAN-484 Fiesta de Bienvenida ----
+
+export function useRegistrarProcesoAfirmacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, procesoCodigo, fecha }: { personaId: string; procesoCodigo: ProcesoAfirmacionCodigo; fecha: string }) =>
+      registrarProcesoAfirmacion(personaId, procesoCodigo, fecha),
+    onSuccess: (_data, { procesoCodigo, personaId }) => {
+      qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-historial', procesoCodigo] });
+      qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-estado', personaId, procesoCodigo] });
+    },
+  });
+}
+
+export function useEstadoProcesoAfirmacion(personaId: string | undefined, procesoCodigo: ProcesoAfirmacionCodigo) {
+  return useQuery({
+    queryKey: ['afirmacion', 'proceso-estado', personaId, procesoCodigo],
+    queryFn: () => obtenerEstadoProcesoAfirmacion(personaId as string, procesoCodigo),
+    enabled: !!personaId,
+  });
+}
+
+export function useHistorialProcesoAfirmacion(iglesiaId: string | undefined, procesoCodigo: ProcesoAfirmacionCodigo, registradoPor?: string) {
+  return useQuery({
+    queryKey: ['afirmacion', 'proceso-historial', procesoCodigo, iglesiaId, registradoPor],
+    queryFn: () => obtenerHistorialProcesoAfirmacion(iglesiaId as string, procesoCodigo, registradoPor),
     enabled: !!iglesiaId,
   });
 }

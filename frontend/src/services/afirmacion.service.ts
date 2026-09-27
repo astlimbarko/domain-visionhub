@@ -209,3 +209,58 @@ export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Pro
   if (error) throw error;
   return data as boolean;
 }
+
+// ---- Procesos de Afirmacion (KAN-481 Altar, KAN-483 RSIL, KAN-484 Fiesta
+// de Bienvenida) -- tabla y RPCs genericas por proceso_codigo, ver
+// 20260927140000_kan481_altar_proceso_afirmacion.sql. Una sola persona
+// puede pasar por el mismo proceso mas de una vez (historial de fechas).
+
+export type ProcesoAfirmacionCodigo = 'ALTAR' | 'RSIL' | 'FIESTA_BIENVENIDA';
+
+export interface EstadoProcesoAfirmacion {
+  realizado: boolean;
+  primera_fecha: string | null;
+  ultima_fecha: string | null;
+  cantidad: number;
+}
+
+export interface RegistroProcesoAfirmacion {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  fecha_creacion: string;
+  registrado_por: string | null;
+  registrado_por_nombre: string | null;
+}
+
+export async function registrarProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo, fecha: string): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_registrar_proceso', {
+    p_persona_id: personaId,
+    p_proceso_codigo: procesoCodigo,
+    p_fecha: fecha,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function obtenerEstadoProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo): Promise<EstadoProcesoAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estado_proceso', { p_persona_id: personaId, p_proceso_codigo: procesoCodigo });
+  if (error) throw error;
+  const fila = (data as EstadoProcesoAfirmacion[])[0];
+  return fila ?? { realizado: false, primera_fecha: null, ultima_fecha: null, cantidad: 0 };
+}
+
+export async function obtenerHistorialProcesoAfirmacion(
+  iglesiaId: string,
+  procesoCodigo: ProcesoAfirmacionCodigo,
+  registradoPor?: string,
+): Promise<RegistroProcesoAfirmacion[]> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_historial_proceso', {
+    p_iglesia_id: iglesiaId,
+    p_proceso_codigo: procesoCodigo,
+    p_registrado_por: registradoPor ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as RegistroProcesoAfirmacion[];
+}
