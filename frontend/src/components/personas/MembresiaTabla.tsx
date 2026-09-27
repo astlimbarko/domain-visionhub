@@ -589,7 +589,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
   }
 
-  const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId);
+  const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId, filtros, texto);
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaId, texto, pagina, POR_PAGINA, filtros);
 
   useEffect(() => {

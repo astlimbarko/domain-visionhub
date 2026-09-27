@@ -167,8 +167,33 @@ export async function buscarMembresiaAfirmacion(
 // Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.
 // KAN-386 seguimiento (2026-09-17): casaDePazId opcional -- scoped al panel
 // "Membresía" por CdP (Líder/Sublíder CdP, Líder/Supervisor de Red).
-export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string, casaDePazId?: string): Promise<EstadisticasPersonasAfirmacion> {
-  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId, p_casa_de_paz_id: casaDePazId ?? null });
+// KAN-479 (2026-09-27): mismos filtros + texto que `buscarMembresiaAfirmacion`
+// -- cada chip recalcula su conteo dentro del subconjunto ya filtrado por los
+// demás chips/columnas (cascada), sin auto-filtrarse por su propia categoría
+// (eso ya lo resuelve la función de BD).
+export async function obtenerEstadisticasPersonasAfirmacion(
+  iglesiaId: string,
+  casaDePazId?: string,
+  filtros: FiltrosMembresiaAfirmacion = {},
+  texto = '',
+): Promise<EstadisticasPersonasAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', {
+    p_iglesia_id: iglesiaId,
+    p_casa_de_paz_id: casaDePazId ?? null,
+    p_texto: texto.trim() === '' ? null : texto.trim(),
+    p_red_id: filtros.redId ?? null,
+    p_estado_id: filtros.estadoId ?? null,
+    p_sexo: filtros.sexo ?? null,
+    p_via_registro: filtros.viaRegistro ?? null,
+    p_con_profesion: filtros.conProfesion ?? null,
+    p_estado_civil: filtros.estadoCivil ?? null,
+    p_bautizado: filtros.bautizado ?? null,
+    p_cumpleanos_periodo: filtros.cumpleanosPeriodo ?? null,
+    p_efesio_tipo: filtros.efesioTipo ?? null,
+    p_con_ministerio: filtros.conMinisterio ?? null,
+    p_cargo_censo: filtros.cargoCenso ?? null,
+    p_rango_edad: filtros.rangoEdad ?? null,
+  });
   if (error) throw error;
   return data as EstadisticasPersonasAfirmacion;
 }
