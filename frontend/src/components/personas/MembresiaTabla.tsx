@@ -75,7 +75,7 @@ import {
   type FiltrosMembresiaAfirmacion,
   type RangoEdadFiltro,
 } from '@/services/afirmacion.service';
-import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
+import { fechaCumpleEnPeriodo, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { obtenerFicha } from '@/services/persona.service';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
@@ -155,6 +155,14 @@ const CUMPLEANOS_LABEL: Record<CumpleanosPeriodo, string> = {
   DIA: 'Cumpleaños de hoy',
   SEMANA: 'Cumpleaños de la semana',
   MES: 'Cumpleaños del mes',
+};
+
+// KAN-474 (preview v7): texto del tooltip de la torta -- antes era fijo
+// "Cumple años esta semana", ahora sigue el período elegido en el combobox.
+const CUMPLEANOS_TOOLTIP_LABEL: Record<CumpleanosPeriodo, string> = {
+  DIA: 'Cumple años hoy',
+  SEMANA: 'Cumple años esta semana',
+  MES: 'Cumple años este mes',
 };
 
 function formatFechaParcial(anio: number | null, mes: number | null, dia: number | null): string | null {
@@ -588,6 +596,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const casaDePazIdFiltro = scoped ? casaDePazId : casaDePazIdFiltroUi === TODAS_LAS_CDP ? undefined : casaDePazIdFiltroUi;
   const estadoIdFiltro = estadoId === TODOS_LOS_ESTADOS ? undefined : estadoId;
 
+  // KAN-474 (preview v7, pedido explícito del owner): cumpleanosFiltro
+  // controla SOLO la torta (ver más abajo, fechaCumpleEnPeriodo) -- ya NO va
+  // dentro de `filtros`, así fn_afirmacion_buscar_membresia deja de ocultar
+  // filas por esto. El combobox sigue existiendo, ya no filtra la tabla.
   const filtros: FiltrosMembresiaAfirmacion = useMemo(
     () => ({
       redId: redIdFiltro,
@@ -597,7 +609,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesion: conProfesionFiltro,
       estadoCivil: estadoCivilFiltro,
       bautizado: bautizadoFiltro,
-      cumpleanosPeriodo: cumpleanosFiltro,
       efesioTipo: efesioFiltro,
       conMinisterio: conMinisterioFiltro,
       cargoCenso: cargoCensoFiltro,
@@ -611,7 +622,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesionFiltro,
       estadoCivilFiltro,
       bautizadoFiltro,
-      cumpleanosFiltro,
       efesioFiltro,
       conMinisterioFiltro,
       cargoCensoFiltro,
@@ -721,7 +731,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
-    cumpleanosFiltro && CUMPLEANOS_LABEL[cumpleanosFiltro],
     efesioFiltro && EFESIO_LABEL[efesioFiltro],
     conMinisterioFiltro && 'Con ministerio',
     cargoCensoFiltro && CARGO_CENSO_LABEL[cargoCensoFiltro],
@@ -1203,7 +1212,12 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                               {p.edad != null ? `${p.edad} años` : 'Edad —'}
                             </span>
                             {(() => {
-                              const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
+                              // KAN-474 (preview v7, pedido explícito del owner): la torta
+                              // sigue el período elegido en el combobox de arriba (antes
+                              // estaba fija en "esta semana", sin relación con el combobox).
+                              const fechaCumple = p.fecha_nacimiento
+                                ? fechaCumpleEnPeriodo(p.fecha_nacimiento, cumpleanosFiltro)
+                                : null;
                               if (!fechaCumple) return null;
                               return (
                                 <Tooltip
@@ -1218,13 +1232,13 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                                         e.stopPropagation();
                                         setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id));
                                       }}
-                                      aria-label="Cumple años esta semana"
+                                      aria-label={CUMPLEANOS_TOOLTIP_LABEL[cumpleanosFiltro]}
                                     >
                                       <Cake className="h-[16px] w-[16px]" style={{ color: MORADO }} />
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="flex flex-col items-center text-center">
-                                    <span>Cumple años el</span>
+                                    <span>{CUMPLEANOS_TOOLTIP_LABEL[cumpleanosFiltro]}</span>
                                     <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
                                   </TooltipContent>
                                 </Tooltip>
