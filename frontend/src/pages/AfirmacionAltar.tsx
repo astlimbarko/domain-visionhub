@@ -31,15 +31,17 @@ const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
 
 // Marca de agua decorativa: logo oficial de Centro de Vida
-// (frontend/public/logo_centro_de_vida.svg) agrandado y con opacidad baja
-// en la esquina inferior derecha.
+// (frontend/public/logo_centro_de_vida.svg) con opacidad baja en la esquina
+// inferior derecha. Tope fijo de tamaño (pedido explícito del owner,
+// 2026-09-27): en pantallas anchas no debe crecer más que en el boceto
+// original (celular) -- discreta, no protagonista.
 function PalomaMarcaDeAgua() {
   return (
     <img
       src="/logo_centro_de_vida.svg"
       alt=""
       aria-hidden="true"
-      className="pointer-events-none absolute -right-16 -bottom-16 h-[340px] w-[340px] opacity-[0.07] dark:opacity-[0.1]"
+      className="pointer-events-none absolute -right-10 -bottom-10 h-[300px] max-h-[300px] w-[300px] max-w-[300px] opacity-[0.07] dark:opacity-[0.1]"
     />
   );
 }
