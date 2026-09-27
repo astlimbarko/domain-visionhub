@@ -111,10 +111,17 @@ export function useEstadisticasRegistroAfirmacion(iglesiaId: string | undefined)
 // KAN-216: totales de personas para /afirmacion-personas.
 // KAN-386 seguimiento (2026-09-17): casaDePazId opcional -- scoped al panel
 // "Membresía" por CdP.
-export function useEstadisticasPersonasAfirmacion(iglesiaId: string | undefined, casaDePazId?: string) {
+// KAN-479 seguimiento (2026-09-27): filtros + texto para que los chips se
+// recalculen en cascada según lo que ya está filtrado en la tabla de abajo.
+export function useEstadisticasPersonasAfirmacion(
+  iglesiaId: string | undefined,
+  casaDePazId?: string,
+  filtros: FiltrosMembresiaAfirmacion = {},
+  texto = '',
+) {
   return useQuery({
-    queryKey: ['afirmacion', 'estadisticas-personas', iglesiaId, casaDePazId],
-    queryFn: () => obtenerEstadisticasPersonasAfirmacion(iglesiaId as string, casaDePazId),
+    queryKey: ['afirmacion', 'estadisticas-personas', iglesiaId, casaDePazId, filtros, texto],
+    queryFn: () => obtenerEstadisticasPersonasAfirmacion(iglesiaId as string, casaDePazId, filtros, texto),
     enabled: !!iglesiaId,
   });
 }
