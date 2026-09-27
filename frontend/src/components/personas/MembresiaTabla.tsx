@@ -26,8 +26,6 @@ import {
   Cake,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   CircleAlert,
   CircleCheck,
   Compass,
@@ -452,14 +450,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportando, setExportando] = useState(false);
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
-  // KAN-474 (preview, 2026-09-27, pedido del owner -- sin mergear todavía):
-  // "Mostrar más columnas" es un toggle DISTINTO de "Vista ampliada" -- este
-  // oculta/muestra columnas que ya existen hoy en la vista compacta
-  // (Cumpleaños, Red, Vía, Membresía, Estado civil, Rango, Bautizado, Cargo
-  // CdP, Cargo Red), dejando siempre visibles Nombre/Sexo/Edad/CI/CdP/
-  // Estado/Teléfono. "Vista ampliada" sigue agregando SUS columnas propias
-  // encima, sin relación con este toggle.
-  const [mostrarMasColumnas, setMostrarMasColumnas] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
   // KAN-401 seguimiento (2026-09-19, pedido explícito del owner): a
   // diferencia de Red/CdP/Estado, este filtro NO tiene una opción "todos"
@@ -697,17 +687,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // KAN-404: mismo ancho para la tabla real y la barra de scroll fantasma
   // de arriba -- si difirieran, el scroll superior no llegaría al mismo
   // punto final que el de abajo.
-  const anchoTabla = vistaAmpliada
-    ? scoped
-      ? 'min-w-[2400px]'
-      : 'min-w-[2800px]'
-    : mostrarMasColumnas
-      ? scoped
-        ? 'min-w-[1100px]'
-        : 'min-w-[1400px]'
-      : scoped
-        ? 'min-w-[900px]'
-        : 'min-w-[1000px]';
+  const anchoTabla = vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]';
 
   return (
     <div className="flex flex-col gap-6">
@@ -925,15 +905,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           accion={
             <div className="flex gap-2">
               <Button
-                variant={mostrarMasColumnas ? 'default' : 'outline'}
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setMostrarMasColumnas((v) => !v)}
-              >
-                {mostrarMasColumnas ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
-                {mostrarMasColumnas ? 'Menos columnas' : 'Mostrar más columnas'}
-              </Button>
-              <Button
                 variant={vistaAmpliada ? 'default' : 'outline'}
                 size="sm"
                 className="gap-1.5"
@@ -1029,48 +1000,44 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                     <EncabezadoOrdenable columna="edad" ordenActual={orden} onOrdenar={ordenarPor}>
                       Edad
                     </EncabezadoOrdenable>
-                    {mostrarMasColumnas && (
-                      <th className="px-2 py-2">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
-                          <Select
-                            value={cumpleanosFiltro ?? ''}
-                            onValueChange={(v) => setCumpleanosFiltro(v ? (v as CumpleanosPeriodo) : undefined)}
-                          >
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-center')}>
-                              <SelectValue placeholder="Período" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="DIA">Día</SelectItem>
-                              <SelectItem value="SEMANA">Semana</SelectItem>
-                              <SelectItem value="MES">Mes</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </th>
-                    )}
+                    <th className="px-2 py-2">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
+                        <Select
+                          value={cumpleanosFiltro ?? ''}
+                          onValueChange={(v) => setCumpleanosFiltro(v ? (v as CumpleanosPeriodo) : undefined)}
+                        >
+                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-center')}>
+                            <SelectValue placeholder="Período" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DIA">Día</SelectItem>
+                            <SelectItem value="SEMANA">Semana</SelectItem>
+                            <SelectItem value="MES">Mes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
                     {scoped ? (
                       <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado</th>
                     ) : (
                       <>
-                        {mostrarMasColumnas && (
-                          <th className="px-2 py-2">
-                            <Select value={redId} onValueChange={setRedId}>
-                              <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                                <SelectValue placeholder="Red" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
-                                {redes.map((r) => (
-                                  <SelectItem key={r.id} value={r.id}>
-                                    {r.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </th>
-                        )}
+                        <th className="px-2 py-2">
+                          <Select value={redId} onValueChange={setRedId}>
+                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
+                              <SelectValue placeholder="Red" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
+                              {redes.map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </th>
                         <th className="px-2 py-2">
                           <Select value={casaDePazIdFiltroUi} onValueChange={setCasaDePazIdFiltroUi}>
                             <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
@@ -1104,29 +1071,17 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                       </>
                     )}
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    {!scoped && mostrarMasColumnas && (
+                    {!scoped && (
                       <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
                     )}
-                    {mostrarMasColumnas && (
-                      <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
-                        Membresía
-                      </EncabezadoOrdenable>
-                    )}
-                    {mostrarMasColumnas && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado civil</th>
-                    )}
-                    {mostrarMasColumnas && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Rango</th>
-                    )}
-                    {mostrarMasColumnas && (
-                      <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautizado</th>
-                    )}
-                    {mostrarMasColumnas && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo CdP</th>
-                    )}
-                    {mostrarMasColumnas && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
-                    )}
+                    <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
+                      Membresía
+                    </EncabezadoOrdenable>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado civil</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Rango</th>
+                    <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautizado</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo CdP</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
                     {vistaAmpliada && (
                       <>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
@@ -1164,45 +1119,43 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.sexo === 'M' ? 'M' : 'F'}</td>
                         <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{p.edad ?? '—'}</td>
-                        {mostrarMasColumnas && (
-                          <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                            {(() => {
-                              const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
-                              if (!fechaCumple) return null;
-                              return (
-                                // KAN-401 seguimiento (2026-09-20, pedido explícito del
-                                // owner): antes el clic solo abría/cerraba en táctil (sin
-                                // hover) -- ahora también funciona en PC, además del hover
-                                // que ya andaba bien, sin duración especial: se abre/cierra
-                                // igual que ya lo hacía el hover o el tap.
-                                <Tooltip
-                                  open={tortaAbiertaId === p.id}
-                                  onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
-                                >
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type="button"
-                                      className="inline-flex h-6 w-6 items-center justify-center"
-                                      onClick={() => setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id))}
-                                      aria-label="Cumple años esta semana"
-                                    >
-                                      {/* Mismo ícono que el badge de cumpleaños del calendario de
-                                          Casas de Paz (CalendarioGrid.tsx). Sin círculo ni relleno
-                                          (pedido explícito del owner, 2026-09-19): solo el dibujo en
-                                          líneas moradas, no un badge sólido. */}
-                                      <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  {/* Fecha en 2 líneas (pedido explícito del owner, 2026-09-20). */}
-                                  <TooltipContent side="top" className="flex flex-col items-center text-center">
-                                    <span>Cumple años el</span>
-                                    <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })()}
-                          </td>
-                        )}
+                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
+                            if (!fechaCumple) return null;
+                            return (
+                              // KAN-401 seguimiento (2026-09-20, pedido explícito del
+                              // owner): antes el clic solo abría/cerraba en táctil (sin
+                              // hover) -- ahora también funciona en PC, además del hover
+                              // que ya andaba bien, sin duración especial: se abre/cierra
+                              // igual que ya lo hacía el hover o el tap.
+                              <Tooltip
+                                open={tortaAbiertaId === p.id}
+                                onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
+                              >
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-6 w-6 items-center justify-center"
+                                    onClick={() => setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id))}
+                                    aria-label="Cumple años esta semana"
+                                  >
+                                    {/* Mismo ícono que el badge de cumpleaños del calendario de
+                                        Casas de Paz (CalendarioGrid.tsx). Sin círculo ni relleno
+                                        (pedido explícito del owner, 2026-09-19): solo el dibujo en
+                                        líneas moradas, no un badge sólido. */}
+                                    <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
+                                  </button>
+                                </TooltipTrigger>
+                                {/* Fecha en 2 líneas (pedido explícito del owner, 2026-09-20). */}
+                                <TooltipContent side="top" className="flex flex-col items-center text-center">
+                                  <span>Cumple años el</span>
+                                  <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
+                        </td>
                         <td className="px-3 py-2.5 text-muted-foreground">{p.ci ?? '—'}</td>
                         {scoped ? (
                           <td className="px-3 py-2.5">
@@ -1216,7 +1169,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           </td>
                         ) : (
                           <>
-                            {mostrarMasColumnas && <td className="px-3 py-2.5 text-muted-foreground">{p.red_nombre ?? '—'}</td>}
+                            <td className="px-3 py-2.5 text-muted-foreground">{p.red_nombre ?? '—'}</td>
                             <td className="px-3 py-2.5 text-muted-foreground">{p.casa_de_paz_etiqueta ?? '—'}</td>
                             <td className="px-3 py-2.5">
                               {p.estado_sigla ? (
@@ -1232,37 +1185,29 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         <td className="px-3 py-2.5 text-muted-foreground">
                           <CeldaTelefono telefono={p.telefono_principal} />
                         </td>
-                        {!scoped && mostrarMasColumnas && (
+                        {!scoped && (
                           <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro as 'URL' | 'FORMULARIO'] : '—'}</td>
                         )}
-                        {mostrarMasColumnas && (
-                          <td className="px-3 py-2.5">
-                            {p.membresia_completada ? (
-                              <Badge variant="secondary" className="gap-1 rounded-full text-[10px]">
-                                <CircleCheck className="h-3 w-3" style={{ color: VERDE }} />
-                                Completa
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="gap-1 rounded-full text-[10px] text-muted-foreground">
-                                <CircleAlert className="h-3 w-3" />
-                                Incompleta
-                              </Badge>
-                            )}
-                          </td>
-                        )}
-                        {mostrarMasColumnas && (
-                          <td className="px-3 py-2.5 text-muted-foreground">{p.estado_civil ? ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil] : '—'}</td>
-                        )}
-                        {mostrarMasColumnas && (
-                          <td className="px-3 py-2.5 text-muted-foreground">{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—'}</td>
-                        )}
-                        {mostrarMasColumnas && (
-                          <td className="px-3 py-2.5 text-center">
-                            {p.bautizado ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
-                          </td>
-                        )}
-                        {mostrarMasColumnas && <td className="px-3 py-2.5 text-muted-foreground">{cargoCdp ?? '—'}</td>}
-                        {mostrarMasColumnas && <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>}
+                        <td className="px-3 py-2.5">
+                          {p.membresia_completada ? (
+                            <Badge variant="secondary" className="gap-1 rounded-full text-[10px]">
+                              <CircleCheck className="h-3 w-3" style={{ color: VERDE }} />
+                              Completa
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 rounded-full text-[10px] text-muted-foreground">
+                              <CircleAlert className="h-3 w-3" />
+                              Incompleta
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{p.estado_civil ? ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil] : '—'}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—'}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {p.bautizado ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{cargoCdp ?? '—'}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>
                         {vistaAmpliada && (
                           <>
                             <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
