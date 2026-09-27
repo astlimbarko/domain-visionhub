@@ -1122,7 +1122,21 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               <div
                 ref={scrollTablaRef}
                 onScroll={sincronizarDesdeTabla}
-                className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}
+                className={cn(
+                  'overflow-x-auto rounded-xl border border-border/60 transition-opacity',
+                  // KAN-474 (preview v9, bug real encontrado por el owner): antes de la
+                  // cascada de KAN-479, isFetching solo se sentía al escribir en el
+                  // buscador de texto (donde sí tiene sentido). Ahora los chips de KPI
+                  // también refetchean la tabla, y atenuarla ENTERA en cada clic de
+                  // chip se veía como un parpadeo molesto encima del spinner del chip
+                  // (que ya es señal suficiente). filtroEnCurso se pone en cada chip
+                  // ANTES de refetchear (ver más abajo) -- si está seteado, el fetch en
+                  // curso es de un chip, no del buscador de texto, así que la tabla no
+                  // se atena. Los botones de Red/Casa de Paz no setean filtroEnCurso (no
+                  // tienen spinner propio), así que ahí la tabla sigue atenuándose --
+                  // sigue siendo su única señal de carga, igual que el buscador.
+                  isFetching && !filtroEnCurso && 'opacity-60'
+                )}
               >
               <table className={cn('w-full border-collapse text-sm', anchoTabla)}>
                 <thead className="bg-muted/40">
