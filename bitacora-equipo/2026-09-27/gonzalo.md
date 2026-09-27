@@ -1,0 +1,10 @@
+# Gonzalo — 2026-09-27
+
+- [x] KAN-475: corregido el gate de "Ocultar de búsquedas" en la ficha de persona -- el trigger real de la BD ya restringía correctamente (operativo/Pastor), pero el frontend mostraba el botón a roles equivocados (Líder de Red, "uno mismo") y no a Pastor cuando correspondía. Desplegado y verificado en vivo
+- [x] KAN-476: chips de filtro en Membresía de Afirmación ya no arrancan colapsados en pantallas angostas -- desplegado
+- [x] KAN-474 (Membresía de Afirmación por categorías): 9 rondas de iteración en vivo con Lisa (fork), en una rama de preview local sin pushear -- columnas reorganizadas en Identidad/Cargos/Afirmación/Discipulado/Familia, Red y Casa de Paz pasaron a ser filtros dinámicos, colores para diferenciar datos, nombre más protagonista. Pendiente: aprobación final del owner antes de abrir PR a master
+- [x] KAN-479 (chips de KPI en cascada): función SQL nueva que recalcula cada chip solo dentro del subconjunto ya filtrado por los demás -- desarrollada en paralelo por Copérnico (fork, worktree aislado), migración ya aplicada y verificada en producción (retrocompatible). El wiring de frontend que la activa vive en la rama de preview de KAN-474 (ya fusionada), pendiente de la misma aprobación
+- [x] KAN-480 (nuevo): índice faltante en `persona_llegada.persona_id` encontrado al investigar una sensación de lentitud en los chips -- aplicado y verificado en producción (Seq Scan → Index Scan). Investigación más a fondo queda pendiente para retomar: un parpadeo real en la tabla al tocar chips persiste después de un primer intento de fix
+- [x] KAN-477/478 (nuevos, specs sin implementar): "Cuartito de bienvenida" y "Fiesta de bienvenida", 2 procesos nuevos de Afirmación identificados en la conversación con el owner, documentados para implementar más adelante
+- [ ] Pendiente: aprobación del owner sobre la rama de preview de KAN-474 (incluye KAN-479) antes de mergear a master
+- [ ] Pendiente: investigar mañana el parpadeo de la tabla de Membresía al tocar chips (KAN-480) y confirmar si la lentitud persiste en producción real, fuera del entorno de desarrollo
