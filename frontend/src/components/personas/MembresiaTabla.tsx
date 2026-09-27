@@ -215,28 +215,48 @@ function KpiChipFiltro({
   onClick: () => void;
   children: ReactNode;
 }) {
+  // KAN-474 (preview v8, pedido explícito del owner): chip completo apagado
+  // (fondo/borde/texto/ícono) cuando el número da 0 -- mismo patrón gris que
+  // ya usa el estado vacío de la tabla (border-border/50 bg-muted/30
+  // text-muted-foreground), no un gris inventado. Sigue siendo clickeable
+  // igual que cualquier otro chip, solo cambia el look.
+  const enCero = children === 0;
   return (
     <button
       type="button"
       onClick={onClick}
-      style={activo ? { backgroundColor: color } : undefined}
+      style={activo && !enCero ? { backgroundColor: color } : undefined}
       className={cn(
         'flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-        activo ? 'border-transparent' : 'border-border/60 bg-card hover:border-border'
+        enCero ? 'border-border/50 bg-muted/30' : activo ? 'border-transparent' : 'border-border/60 bg-card hover:border-border'
       )}
     >
       <span
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+        className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full', enCero && 'bg-muted text-muted-foreground')}
         style={
-          activo
-            ? { background: 'rgb(255 255 255 / 25%)', color: '#fff' }
-            : { background: `color-mix(in oklab, ${color} 14%, transparent)`, color }
+          enCero
+            ? undefined
+            : activo
+              ? { background: 'rgb(255 255 255 / 25%)', color: '#fff' }
+              : { background: `color-mix(in oklab, ${color} 14%, transparent)`, color }
         }
       >
         {cargando ? <Spinner className="h-3 w-3" /> : <Icon className="h-3 w-3" strokeWidth={2.4} />}
       </span>
-      <span className={cn('text-[13px] leading-none font-bold tabular-nums', activo ? 'text-white' : 'text-foreground')}>{children}</span>
-      <span className={cn('text-[11px] leading-none font-medium whitespace-nowrap', activo ? 'text-white/90' : 'text-muted-foreground')}>
+      <span
+        className={cn(
+          'text-[13px] leading-none font-bold tabular-nums',
+          enCero ? 'text-muted-foreground' : activo ? 'text-white' : 'text-foreground'
+        )}
+      >
+        {children}
+      </span>
+      <span
+        className={cn(
+          'text-[11px] leading-none font-medium whitespace-nowrap',
+          enCero ? 'text-muted-foreground' : activo ? 'text-white/90' : 'text-muted-foreground'
+        )}
+      >
         {label}
       </span>
     </button>
@@ -1196,8 +1216,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                           {/* KAN-474 (preview v6, pedido explícito del owner): nombre y
                               apellido con el mismo peso visual -- antes el apellido era
                               más chico/gris (text-xs font-normal text-muted-foreground). */}
-                          <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
-                          {nombreLinea2 && <p className="truncate">{nombreLinea2}</p>}
+                          {/* KAN-474 (preview v8, pedido explícito del owner): un escalón
+                              más grande que el resto de la celda (text-[15px] vs. el
+                              text-sm de la tabla) -- sigue truncando, no desalinea la fila. */}
+                          <p className="truncate text-[15px]">{nombreLinea1 || p.nombre_completo}</p>
+                          {nombreLinea2 && <p className="truncate text-[15px]">{nombreLinea2}</p>}
                           <div className="mt-0.5 flex items-center gap-1.5 font-normal">
                             <span
                               className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
