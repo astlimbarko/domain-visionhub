@@ -3,6 +3,16 @@
 // (pestaña Nuevo) -- pestaña Datos sin boceto, criterio propio (ver nota
 // abajo). Mobile-first a proposito (deducido del boceto en celular);
 // tablet/desktop heredan el mismo layout con mas aire via max-width.
+//
+// ⚠️ HAY SPECS DE MODIFICACION PENDIENTES antes de seguir tocando esta
+// pantalla o los demas procesos de Afirmacion. LEER PRIMERO:
+//   - harness/21-altar-formulario-membresia-paralela/  (ampliar este form
+//     a "membresia paralela": mas campos, ver/editar bloqueado->Editar,
+//     pestaña Datos con hover, quitar boton "Ocultar de busquedas") -- lo
+//     termina Matias.
+//   - harness/20-afirmacion-procesos-y-colaborar/  (RSIL, Fiesta de
+//     Bienvenida, Bautismo/Membresia + Colaborar por tarjetas; reusan el
+//     patron de ver/editar de harness 21).
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';

@@ -161,6 +161,48 @@ Reusar el patrón de:
   fecha después" ya está implementada ahí -- no reinventarla, reusar el
   mismo flujo/campo.
 
+## Hallazgo 9: el flujo de edición actual y el botón "Ocultar de búsquedas"
+
+Hoy, al hacer clic en una persona (pestaña "Datos" de Altar), se abre
+**`frontend/src/components/personas/FichaPersonaSheet.tsx`** -- una ficha
+paginada de 9 páginas, con botón "Editar" que dispara un modal de
+advertencia ("vas a editar datos reales") y recién ahí desbloquea. El owner
+lo considera feo para el contexto de Altar y quiere reemplazarlo (Req 8)
+por el mismo formulario ampliado en modo bloqueado → Editar desbloquea.
+
+- `FichaPersonaSheet` es un componente **compartido** (se usa en Personas,
+  Evangelismo, MembresiaTabla, PersonasDeCdp/Red, etc. -- 12 archivos lo
+  referencian vía `useFichaPersonaStore`). Decisión pendiente
+  (open-questions #12): ¿el nuevo patrón bloqueado→Editar reemplaza a
+  `FichaPersonaSheet` en TODA la app, o es una vista de edición
+  específica del contexto Afirmación (Altar/RSIL/Bautismo) mientras el
+  resto sigue usando la ficha paginada?
+- El botón **"Ocultar de búsquedas"** vive en ese mismo `FichaPersonaSheet`
+  (visto en vivo, junto al botón "Editar"). Escribe sobre `persona.oculto`
+  y su gate ya existe en backend: trigger `trg_restringir_oculto`
+  (permite solo operativo/pastor -- ver
+  `visionhub-kan474-kan479-afirmacion-preview-2026-09-27` en memoria,
+  KAN-475). Para el Req 10:
+  - Quitar el botón del componente de ficha.
+  - Modelar un flag de configuración por iglesia (ej. criterio/config
+    `OCULTAR_EFESIOS_DE_BUSQUEDAS`, por defecto `true`) editable solo por
+    Supervisor/Pastor desde su panel de configuración
+    (`harness/10-panel-supervisor/`, patrón de criterios configurables ya
+    existente).
+  - La lógica de ocultamiento pasa a aplicarse a nivel de query del front
+    (los cargos de Efesios no aparecen en búsquedas) manteniendo el dato
+    intacto en la base -- nunca borra ni oculta a nivel de sistema.
+
+## Hallazgo 10: patrón ver/editar reusable para RSIL y Bautismo
+
+El patrón del Req 8 (form bloqueado → Editar desbloquea, mismo componente
+para alta/ver/editar) debe quedar como un patrón reusable, no una
+implementación pegada solo a Altar -- RSIL, Fiesta y Bautismo/Membresía
+(`harness/20-`) lo van a consumir. Conviene que el componente de membresía
+liviana (Hallazgo 1, opción B) reciba un prop `modo: 'alta' | 'ver' |
+'editar'` que controle el bloqueo de campos, en vez de duplicar la lógica
+por proceso.
+
 ## Resumen de esfuerzo
 
 - **Frontend**: componente de membresía liviana (compone

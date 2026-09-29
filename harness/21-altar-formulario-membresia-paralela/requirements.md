@@ -119,6 +119,67 @@ futuro habrá un catálogo de tipos de servicio (tradicionales fijos + otros
 eventuales) -- ver Hallazgo 6 y open-questions #7. El programador decide si
 ya lo modela como catálogo o lo deja como solo-fecha en esta iteración.
 
+## Requisito 8 — El mismo formulario sirve para ver y editar (bloqueado → "Editar" desbloquea)
+
+Pedido del owner (2026-09-29): *"el formulario de edición de personas en
+Altar está feo, no debería verse así. Debe hacerse clic y ver directamente
+el form pero con campos bloqueados, y al hacer clic en el botón Editar los
+campos se activan para poder modificar."*
+
+- WHEN el usuario hace clic en una persona (en la pestaña "Datos" o al
+  seleccionarla en "Buscar"), THE SYSTEM SHALL mostrar **este mismo
+  formulario ampliado** precargado con los datos de la persona, con **todos
+  los campos bloqueados** (solo lectura, prolijo, no la ficha paginada
+  actual de 9 páginas).
+- WHEN el usuario presiona "Editar", THE SYSTEM SHALL desbloquear los
+  campos en el lugar para permitir modificarlos y guardar.
+- THE SYSTEM SHALL NOT usar el flujo actual (abrir `FichaPersonaSheet`
+  paginado + modal de advertencia "vas a editar datos reales") en el
+  contexto de Altar -- ese flujo se reemplaza por el patrón bloqueado →
+  Editar descrito acá. (Ver open-questions #12: si esto reemplaza la ficha
+  global o es solo para el contexto Afirmación.)
+- **Patrón compartido**: RSIL, Fiesta de Bienvenida y Bautismo/Membresía
+  (`harness/20-afirmacion-procesos-y-colaborar/`) SHALL seguir este mismo
+  patrón de ver/editar. La spec de esos otros procesos no se escribe acá,
+  pero el patrón se define acá y ellos lo reusan.
+
+## Requisito 9 — Pestaña "Datos" más prolija, con hover
+
+Pedido del owner (2026-09-29): *"en Datos debe verse más bonito, no tiene
+hover y es necesario."*
+
+- THE SYSTEM SHALL mejorar la presentación visual de la pestaña "Datos"
+  (tabla/tarjetas de registros) siguiendo el sistema de diseño del
+  proyecto (skill `frontend-style`).
+- THE SYSTEM SHALL dar **feedback de hover** en las filas/tarjetas
+  clicables (hoy falta), dejando claro que se puede hacer clic para
+  ver/editar la persona.
+
+## Requisito 10 — Quitar el botón "Ocultar de búsquedas" del detalle de persona
+
+Pedido del owner (2026-09-29): el botón **"Ocultar de búsquedas"** que hoy
+aparece en el detalle de persona es peligroso y no debe estar ahí a mano.
+
+- THE SYSTEM SHALL quitar el botón "Ocultar de búsquedas" del detalle/
+  edición de persona (hoy vive en el componente de ficha compartido --
+  `FichaPersonaSheet`, ver technical-design.md).
+- THE SYSTEM SHALL mover esa capacidad a un **panel de configuración** de
+  los roles **Supervisor de la Visión en Acción** y **Pastor**, como un
+  único toggle.
+- WHERE ese toggle está activo (que SHALL ser el valor **por defecto**),
+  THE SYSTEM SHALL ocultar del **front** a los cargos de Efesios (para lo
+  que fue creado originalmente) pero **nunca del sistema/base de datos** --
+  el dato sigue existiendo y accesible internamente, solo no se muestra en
+  las búsquedas del front.
+- Esta capacidad NO SHALL quedar como una acción por-persona suelta en el
+  detalle -- es una decisión de nivel de supervisión/pastoral, no una
+  acción de captura de datos.
+
+> **Nota de seguridad**: este cambio tiene ticket de Jira propio
+> (**KAN-489**) para no perderlo -- es lo único de este harness con
+> implicancia de seguridad, el resto es UI/UX. El resto del harness está en
+> **KAN-488**.
+
 ## Campos restantes del formulario (mapeo)
 
 Ver la tabla completa campo-por-campo en `technical-design.md` (Hallazgo

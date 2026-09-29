@@ -73,6 +73,19 @@ https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkX
     mapea a `persona_llegada` + `invitado_por_id` (dato estructurado que ya
     existe) o queda como texto libre?
 
+## Patrón ver/editar y ficha (Requisitos 8-10)
+
+12. El nuevo patrón "form bloqueado → Editar desbloquea" (Req 8) --
+    ¿reemplaza a `FichaPersonaSheet` (la ficha paginada compartida) en
+    TODA la app, o es solo la vista de edición del contexto Afirmación
+    (Altar/RSIL/Bautismo) mientras el resto de la app sigue con la ficha
+    actual? Afecta el alcance del cambio (12 archivos usan la ficha).
+13. "Ocultar de búsquedas" (Req 10): confirmar el nombre/ubicación del
+    toggle en el panel de Supervisor/Pastor y el nombre del criterio de
+    config (propuesta: `OCULTAR_EFESIOS_DE_BUSQUEDAS`, por defecto true).
+    ¿El toggle es por iglesia, o global de la organización? ¿Aplica solo a
+    Efesios o a cualquier persona marcada hoy con `persona.oculto`?
+
 ## Confirmado, no requiere pregunta (documentado para no repreguntar)
 
 - Es una **membresía paralela/v2** que coexiste con el formulario de

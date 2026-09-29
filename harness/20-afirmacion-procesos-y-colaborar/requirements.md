@@ -98,6 +98,17 @@ mezclados de entrada).
   desde el panel del líder, corte automático al vencer, datos que
   sobreviven al vencimiento del código).
 
+## Patrón compartido de ver/editar persona (definido en harness 21)
+
+RSIL, Fiesta de Bienvenida y Bautismo/Membresía SHALL seguir el mismo
+patrón de ver/editar persona que se define para Altar en
+`harness/21-altar-formulario-membresia-paralela/` (Requisito 8): al hacer
+clic en una persona se abre el formulario del proceso **precargado con
+campos bloqueados**, y "Editar" los desbloquea en el lugar -- NO la ficha
+paginada actual (`FichaPersonaSheet`) ni el modal de advertencia. Lo mismo
+para la pestaña de listado (tarjetas/tabla con hover, Requisito 9 de
+harness 21). No se re-especifica acá para no duplicar -- ver harness 21.
+
 ## Fuera de alcance de este paquete
 
 - Un 5to/6to proceso de Afirmación no mencionado en estos 4 tickets.
