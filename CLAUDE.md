@@ -251,6 +251,23 @@ personalidad/tono propio al reportar avances (no solo el nombre):
 No inventar nombres nuevos sin que el owner lo pida — si hace falta un
 5to agente en paralelo, preguntar primero.
 
+## Specs pendientes de Afirmación (leer antes de tocar esos módulos)
+
+Antes de modificar cualquier pantalla de **Afirmación** (Altar, y a futuro
+RSIL, Fiesta de Bienvenida, Bautismo/Membresía, Colaborar), revisar si hay
+un harness de spec pendiente que aplique — hay trabajo ya diseñado que
+todavía no se implementó:
+
+- `harness/20-afirmacion-procesos-y-colaborar/` — RSIL, Fiesta de
+  Bienvenida, Bautismo/Membresía y Colaborar por tarjetas (KAN-482 a 485).
+- `harness/21-altar-formulario-membresia-paralela/` — ampliar el formulario
+  de Altar a "membresía paralela" (más campos, ver/editar bloqueado→Editar,
+  pestaña Datos con hover, mover "Ocultar de búsquedas" a config de
+  Supervisor/Pastor). **Lo termina Matías.**
+
+Si alguien abre uno de esos módulos sin conocer estos specs, avisarle que
+existen y apuntarlo al harness que corresponda antes de improvisar.
+
 ## Otras convenciones del proyecto
 
 Ver también `harness/README.md` (specs técnicas del sistema) y
