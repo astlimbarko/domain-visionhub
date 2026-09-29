@@ -59,6 +59,10 @@ cargo estructural (Líder de CdP, etc.).
 2. Una persona puede ser Evangelista Y tener cualquier otro rol
    estructural al mismo tiempo (Líder de CdP, Sublíder, miembro sin
    cargo, etc.) -- no son excluyentes.
+2.1. **Confirmado con el owner (2026-09-29)**: un miembro común siempre
+   necesita pertenecer a una Casa de Paz para ser Evangelista -- su
+   evangelismo se cuenta bajo esa CdP/Red. La única excepción es un
+   Efesio de alto rango (ver Requisito 9), que puede no tener CdP propia.
 3. Por defecto, un Evangelista solo ve/edita sus propios registros de
    evangelismo y seguimientos -- nunca los de otro Evangelista.
 4. El acceso a Departamento de Evangelismo no le da automáticamente el
@@ -66,9 +70,21 @@ cargo estructural (Líder de CdP, etc.).
 
 ### Requisito 2: Alta del rol a un miembro (KAN-434)
 
-Como Líder de CdP (u otro cargo a confirmar), quiero poder habilitar a
-un miembro de mi Casa de Paz como Evangelista, para que pueda empezar a
-registrar sus propios evangelizados.
+Como Líder de CdP, Sublíder de CdP, Líder/Supervisor de Red, operativo
+(Pastor/Supervisor) o Departamento de Evangelismo, quiero poder habilitar
+a un miembro como Evangelista, para que pueda empezar a registrar sus
+propios evangelizados.
+
+**Confirmado con el owner (2026-09-29): quién puede otorgar el rol NO es
+un solo cargo -- son varios en simultáneo** (todos los de arriba).
+Además, el owner adelantó que va a existir **un panel especial aparte,
+dedicado a dar de alta personas para este rol** ("Evangelismo") -- ese
+panel todavía no está especificado en detalle ("lo vamos a especificar
+bien esto no ahora"), pero hay que saber que existe y que probablemente
+termine siendo el punto de entrada principal para este alta, más que
+cada rol haciéndolo desde su propio menú. No diseñar ese panel todavía,
+solo dejar la puerta abierta en el modelo de permisos (`fn_puede_otorgar_
+evangelista(iglesia_id)` o similar, no un único chequeo de rol).
 
 #### Criterios de aceptación
 
@@ -79,6 +95,13 @@ registrar sus propios evangelizados.
 3. Si la persona no tiene cuenta de usuario, queda documentado qué pasa
    (ver preguntas abiertas).
 4. El rol se puede revocar.
+5. Cualquiera de los roles confirmados arriba puede otorgarlo -- el
+   chequeo de permiso no puede estar hardcodeado a uno solo.
+6. **Excepción de CdP para Efesios** (ver Requisito 9): un Efesio de alto
+   rango puede evangelizar a título personal SIN necesitar pertenecer él
+   mismo a una Casa de Paz -- confirmar si este mismo flujo de alta
+   aplica igual para un Efesio, o si un Efesio ya trae el permiso de
+   evangelizar por su propio título, sin pasar por este alta.
 
 ### Requisito 3: Base visual UI v2 (KAN-428)
 
@@ -108,8 +131,14 @@ actividad de un vistazo.
 2. Racha calculada con la zona horaria/fecha que ya usa el resto de
    VisionHub (no UTC crudo).
 3. Dos acciones principales: "Nuevo" (registrar persona) e "Historial".
-4. Indicadores: Registrados, En seguimiento, Nuevos convertidos (ver
-   preguntas abiertas sobre el período y la definición exacta).
+4. Indicadores: Registrados, En seguimiento, Nuevos convertidos. **Nuevo
+   convertido, confirmado con el owner (2026-09-29): es cuando el estado
+   SSVA de la persona pasa a `NC` (Nuevo Convertido) -- ocurre cuando
+   acepta a Cristo en la iglesia o en la Casa de Paz.** Antes de ese
+   momento, el registro es solo "registro de evangelismo" (o alguna otra
+   clasificación a definir más adelante, no es NC todavía). Falta
+   confirmar el período de estos 3 indicadores (día/semana/mes/período
+   elegido, ver preguntas abiertas).
 5. Gráfico mensual "Personas evangelizadas" por día, con selector de mes,
    eje diario unitario (1,2,3...), scroll horizontal táctil si no entran
    todos los días.
@@ -194,5 +223,41 @@ módulo de Evangelismo de mi CdP/Red.
    como acción secundaria.
 3. Los 3 conceptos (personal / CdP-Red / Departamento) mantienen rutas y
    permisos separados.
-4. Comportamiento definido y confirmado para roles que pueden no tener
-   CdP propia (Líder de Red, Supervisor, Pastor).
+4. **Confirmado con el owner (2026-09-29)**: cualquier rol puede
+   evangelizar a título personal, y se toma en cuenta la Casa de Paz de
+   la que esa persona es miembro (un Líder de Red, Supervisor o Pastor
+   normal siempre tiene una CdP de la que es miembro, incluso siendo
+   líder arriba en la jerarquía). La única excepción real son los Efesios
+   sin CdP propia -- ver Requisito 9.
+
+### Requisito 9: Evangelismo personal de un Efesio sin Casa de Paz (nuevo, 2026-09-29)
+
+Como Efesio de alto rango (designado por el Apóstol, ver Glosario) que
+todavía no pertenece a ninguna Casa de Paz como miembro, quiero poder
+evangelizar y hacer seguimiento igual que un Evangelista con CdP, para
+que mi responsabilidad de evangelizar no dependa de tener membresía en
+una CdP.
+
+**Contexto real, explicado por el owner (2026-09-29)**: hay Efesios con
+Casa de Paz y Red (como cualquier miembro), y hay Efesios que, por tener
+un cargo de alto rango, no pertenecen a una CdP como tal. Estos últimos
+sí evangelizan y hacen seguimiento de personas, pero esas personas
+evangelizadas no tienen todavía una CdP asignada -- eso lo asignará más
+adelante el Departamento de Afirmación (proceso que **todavía no
+existe** en VisionHub, es trabajo futuro fuera de esta épica).
+
+#### Criterios de aceptación
+
+1. Un Efesio sin CdP puede registrar personas evangelizadas igual que
+   cualquier Evangelista (mismo formulario, mismo flujo de seguimiento).
+2. Las personas evangelizadas por un Efesio sin CdP quedan identificables
+   como tales -- sin forzar una CdP/Red que todavía no tienen.
+3. Las estadísticas de evangelismo, que hoy se agrupan por Red y luego
+   por Casa de Paz, necesitan una **categoría nueva**: "Evangelizado por
+   Efesios" (nombre exacto a definir), para este grupo de personas sin
+   CdP asignada todavía.
+4. Cuando exista el futuro proceso de asignación de CdP por Afirmación,
+   estas personas deben poder pasar de esa categoría a su Red/CdP real
+   sin perder el historial de que fueron evangelizadas por ese Efesio
+   (fuera de alcance implementar ese proceso ahora, pero el modelo de
+   datos de este requisito no debe bloquearlo después).
