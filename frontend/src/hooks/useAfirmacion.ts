@@ -157,5 +157,10 @@ export function useHistorialProcesoAfirmacion(iglesiaId: string | undefined, pro
     queryKey: ['afirmacion', 'proceso-historial', procesoCodigo, iglesiaId, registradoPor],
     queryFn: () => obtenerHistorialProcesoAfirmacion(iglesiaId as string, procesoCodigo, registradoPor),
     enabled: !!iglesiaId,
+    // Pestaña "Datos" de Altar (pedido explícito del owner, 2026-09-29): siempre
+    // trae lo último al abrirla -- otro colaborador puede haber registrado
+    // personas mientras tanto, no alcanza con el staleTime global de 30s.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }

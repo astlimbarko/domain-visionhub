@@ -10,8 +10,7 @@ export function AfirmacionFormulario() {
   // verlo estatico. RegistrarPersonaAfirmacion recibe soloLectura y bloquea
   // unicamente el guardado final (unico punto real de escritura), asi que
   // acá no hace falta ningun bloqueo de interaccion (ni pointer-events-none
-  // ni disabled) -- la barrera real de todas formas es el backend
-  // (fn_registrar_persona_afirmacion nunca sumo fn_es_super_admin()).
+  // ni disabled) -- la barrera real es el flag `soloLectura`.
   const soloLectura = useSoloLectura();
 
   if (!iglesiaActivaId) {

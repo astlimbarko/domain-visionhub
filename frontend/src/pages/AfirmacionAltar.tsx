@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import {
@@ -43,6 +44,33 @@ function PalomaMarcaDeAgua() {
       aria-hidden="true"
       className="pointer-events-none absolute -right-10 -bottom-10 h-[300px] max-h-[300px] w-[300px] max-w-[300px] opacity-[0.07] dark:opacity-[0.1]"
     />
+  );
+}
+
+// Ondas decorativas del fondo (calcadas del boceto afirmacion1.png/2.png,
+// que las tiene en las 3 pestañas). Solo CSS/SVG, sin imagen nueva -- 2
+// capas del mismo tono de marca para dar profundidad sin competir con el
+// contenido. Cambio aislado a pedido del owner (2026-09-29) para revisarlo
+// solo, antes de decidir si suma más ajustes visuales.
+function OndasDecorativas() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 1440 320"
+      preserveAspectRatio="none"
+      className="pointer-events-none -mx-4 mt-8 h-24 w-[calc(100%+2rem)] sm:-mx-6 sm:h-36 sm:w-[calc(100%+3rem)] lg:h-48"
+    >
+      <path
+        fill="#0071E3"
+        opacity="0.1"
+        d="M0,192L48,181.3C96,171,192,149,288,154.7C384,160,480,192,576,208C672,224,768,224,864,202.7C960,181,1056,139,1152,133.3C1248,128,1344,160,1392,176L1440,192L1440,320L0,320Z"
+      />
+      <path
+        fill="#0071E3"
+        opacity="0.16"
+        d="M0,256L48,240C96,224,192,192,288,192C384,192,480,224,576,240C672,256,768,256,864,234.7C960,213,1056,171,1152,165.3C1248,160,1344,192,1392,208L1440,224L1440,320L0,320Z"
+      />
+    </svg>
   );
 }
 
@@ -168,15 +196,15 @@ export function AfirmacionAltar() {
       <div className="relative overflow-hidden rounded-3xl px-4 py-2 sm:px-6">
         <PalomaMarcaDeAgua />
         <Tabs value={tab} onValueChange={setTab} className="relative">
-          <TabsList className="mx-auto max-w-md">
-            <TabsTrigger value="buscar" className="flex-1 gap-1.5">
-              <Search className="h-4 w-4" /> Buscar
+          <TabsList className="mx-auto max-w-md flex-nowrap">
+            <TabsTrigger value="buscar" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
+              <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Buscar</span>
             </TabsTrigger>
-            <TabsTrigger value="nuevo" className="flex-1 gap-1.5">
-              <UserPlus className="h-4 w-4" /> Nuevo
+            <TabsTrigger value="nuevo" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
+              <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Nuevo</span>
             </TabsTrigger>
-            <TabsTrigger value="datos" className="flex-1 gap-1.5">
-              <Save className="h-4 w-4" /> Datos
+            <TabsTrigger value="datos" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
+              <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Datos</span>
             </TabsTrigger>
           </TabsList>
 
@@ -189,9 +217,9 @@ export function AfirmacionAltar() {
              * scroll normal) porque sí pueden crecer mucho (formulario/tabla). */}
             <div className="flex min-h-[75vh] flex-col justify-center">
               {!personaSeleccionada ? (
-                <div className="flex flex-col items-center gap-6 py-4 text-center sm:items-start sm:text-left">
-                  <div className="flex flex-col items-center gap-2 sm:items-start">
-                    <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-3 shadow-sm dark:bg-card">
+                <div className="flex flex-col items-center gap-6 py-4 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-1 shadow-sm dark:bg-card">
                       <img src="/logo_centro_de_vida.svg" alt="Centro de Vida" className="h-full w-full" />
                     </span>
                     <h1 className="text-2xl font-black tracking-tight text-[var(--brand-navy)]">ALTAR</h1>
@@ -247,6 +275,8 @@ export function AfirmacionAltar() {
             </div>
           </TabsContent>
 
+          {tab === 'buscar' && <OndasDecorativas />}
+
           <TabsContent value="nuevo" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
             <button
               type="button"
@@ -290,6 +320,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
     'ALTAR',
     colaboradorFiltro === 'TODOS' ? undefined : colaboradorFiltro,
   );
+  const abrirFicha = useFichaPersonaStore((s) => s.abrir);
 
   const colaboradores = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -348,8 +379,12 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
             </thead>
             <tbody>
               {historial.map((r) => (
-                <tr key={r.id} className="border-t border-border/40">
-                  <td className="px-3 py-2.5">{r.nombre_completo}</td>
+                <tr
+                  key={r.id}
+                  className="cursor-pointer border-t border-border/40 hover:bg-muted/40"
+                  onClick={() => abrirFicha(r.persona_id)}
+                >
+                  <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
                   <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
                 </tr>
@@ -361,7 +396,12 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
 
       <div className={puedeVerTodos ? 'flex flex-col gap-2 md:hidden' : 'flex flex-col gap-2'}>
         {historial.map((r) => (
-          <div key={r.id} className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5">
+          <button
+            type="button"
+            key={r.id}
+            onClick={() => abrirFicha(r.persona_id)}
+            className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 text-left hover:bg-muted/40"
+          >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[11px] font-semibold text-[#0071E3]">
               {r.nombre_completo.slice(0, 2).toUpperCase()}
             </span>
@@ -372,7 +412,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
                 {puedeVerTodos && r.registrado_por_nombre && ` · ${r.registrado_por_nombre}`}
               </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
