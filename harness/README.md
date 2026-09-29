@@ -40,6 +40,7 @@ plan de implementación para separar con precisión lo existente de lo propuesto
 | [18](18-fotos-perfil/) | Fotos de perfil | Compresor reusable, Supabase Storage por persona, recorte 1:1 con zoom y avatar en todos los perfiles (KAN-207/209/210) |
 | [19](19-evangelista-personal/) | Evangelista personal + UI v2 | Rol nuevo distinto del efesio "Evangelista" y del Departamento de Evangelismo, dashboard con racha, registro con borrador, seguimiento N contactos (KAN-426 a 434) |
 | [20](20-afirmacion-procesos-y-colaborar/) | Afirmación: RSIL, Fiesta de Bienvenida, Bautismo/Membresía + Colaborar por tarjetas | RSIL/Fiesta reusan la tabla genérica de Altar sin cambios de esquema; Bautismo reusa el formulario de membresía existente; Colaborar necesita granularidad por tarea (hoy solo por departamento) (KAN-482 a 485) |
+| [21](21-altar-formulario-membresia-paralela/) | Ampliar el formulario de Altar a "membresía paralela" (MODIFICACIÓN, la termina Matías) | Segunda versión liviana de membresía que coexiste con la actual: nombres en vivo formato Título, fecha de nacimiento con mecanismo de CdP, tipo de decisión → SSVA automático, ¿es bautizado?, categoría 1+1/CDP/Elite. Basado en `basura_no_leer/form_altar.png` |
 | [99](99-modulos-futuros.md) | Módulos futuros | Esbozo de los módulos 2 al 6 |
 
 | Documento | Contenido |
