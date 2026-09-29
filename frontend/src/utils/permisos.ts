@@ -24,6 +24,7 @@ import {
   Heart,
   Megaphone,
   KeyRound,
+  Church,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -182,6 +183,7 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.AFIRMACION_URLS,
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
   ROUTES.AFIRMACION_PERSONAS,
+  ROUTES.AFIRMACION_ALTAR,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
@@ -224,6 +226,7 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_URLS,
   ROUTES.AFIRMACION_CASAS_DE_PAZ,
   ROUTES.AFIRMACION_PERSONAS,
+  ROUTES.AFIRMACION_ALTAR,
   // KAN-405: gestión de Colaboradores temporales (generar código, extender/
   // pausar/finalizar, auditoría). Sin esto, el guard de PrivateLayout
   // rebotaba la navegación directa de vuelta a ROUTES.AFIRMACION -- bug real
@@ -305,6 +308,8 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Dpto. Afirmación' },
   { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Dpto. Afirmación' },
   { icon: Users, label: 'Membresía (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6', grupo: 'Dpto. Afirmación' },
+  // KAN-481: primer proceso de Afirmación (Altar).
+  { icon: Church, label: 'Altar (Afirmación)', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482', grupo: 'Dpto. Afirmación' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -337,6 +342,9 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: Users, label: 'Membresía', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
   // KAN-405: generar codigos y gestionar Colaboradores temporales.
   { icon: KeyRound, label: 'Colaboradores', path: ROUTES.AFIRMACION_COLABORADORES, color: '#ff9f0a' },
+  // KAN-481: primer proceso de Afirmación (Altar) -- buscar/dar de alta una
+  // persona y registrar que paso al altar.
+  { icon: Church, label: 'Altar', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,

@@ -177,6 +177,30 @@ export function fechaCumpleEnSemana(fechaNacimientoISO: string, hoyISO: string =
   return null;
 }
 
+/** KAN-474 (preview v7, pedido explícito del owner): generaliza
+ * `fechaCumpleEnSemana` a los 3 períodos del filtro "Cumpleaños" del
+ * formulario de Membresía de Afirmación (Día/Semana/Mes) -- antes ese
+ * combobox filtraba filas de la tabla sin relación con el ícono de torta
+ * (que siempre chequeaba "esta semana" fijo, sin importar el combobox). Con
+ * esto la torta pasa a usar el mismo período elegido, y el combobox deja de
+ * ocultar personas. 'SEMANA' reusa `fechaCumpleEnSemana` tal cual (mismo
+ * criterio de año-cruzado, ej. 30/dic con cumpleaños 2/ene). 'DIA' y 'MES'
+ * no necesitan ese cruce -- un mes o un día siempre caen en el año de hoy. */
+export function fechaCumpleEnPeriodo(
+  fechaNacimientoISO: string,
+  periodo: 'DIA' | 'SEMANA' | 'MES',
+  hoyISO: string = aISO(new Date())
+): string | null {
+  if (periodo === 'SEMANA') return fechaCumpleEnSemana(fechaNacimientoISO, hoyISO);
+
+  const nacimiento = desdeISO(fechaNacimientoISO);
+  const hoy = desdeISO(hoyISO);
+  const candidato = aISO(new Date(hoy.getFullYear(), nacimiento.getMonth(), nacimiento.getDate()));
+
+  if (periodo === 'MES') return nacimiento.getMonth() === hoy.getMonth() ? candidato : null;
+  return candidato === hoyISO ? candidato : null;
+}
+
 /** Número de semana ISO-8601 (1-53, lunes a domingo, la semana 1 es la que
  * contiene el primer jueves del año) -- para mostrar junto al rango de
  * fechas en "Resumen semanal" (KAN-285, pedido explícito del owner). */

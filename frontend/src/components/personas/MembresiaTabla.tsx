@@ -56,6 +56,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AZUL, MORADO, TEAL, VERDE } from '@/components/dashboard/DashboardUI';
+// KAN-474 (preview v6, pedido explícito del owner): AZUL/VERDE/MORADO/TEAL
+// (paleta ya usada en este archivo) para diferenciar de un vistazo los
+// sub-datos de la celda "Identidad" -- Edad, CI, Estado civil y Rango.
+// Sexo (badge) y Estado SSVA (Badge) ya tenían color propio, Teléfono ya
+// usa el verde de WhatsApp de CeldaTelefono -- ninguno de esos se toca.
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
 import { CeldaTelefono } from '@/components/shared/CeldaTelefono';
 import { cn } from '@/lib/utils';
@@ -70,7 +75,7 @@ import {
   type FiltrosMembresiaAfirmacion,
   type RangoEdadFiltro,
 } from '@/services/afirmacion.service';
-import { fechaCumpleEnSemana, fechaLegibleConDia } from '@/utils/calendario-fechas';
+import { fechaCumpleEnPeriodo, fechaLegibleConDia } from '@/utils/calendario-fechas';
 import { FichaPersonaSheet } from '@/components/personas/FichaPersonaSheet';
 import { obtenerFicha } from '@/services/persona.service';
 import { ESTADO_CIVIL_LABELS, type EstadoCivil } from '@/types/persona.types';
@@ -83,17 +88,6 @@ const LIMITE_EXPORTACION = 5000;
 const TODAS_LAS_REDES = '__todas__';
 const TODAS_LAS_CDP = '__todas__';
 const TODOS_LOS_ESTADOS = '__todos__';
-
-const SELECT_ENCABEZADO =
-  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase shadow-none hover:text-foreground focus-visible:ring-0 data-[state=open]:text-foreground [&>span]:truncate';
-
-// KAN-404 seguimiento (2026-09-19, pedido explícito del owner): la columna
-// Cumpleaños pasa a 2 filas -- "Cumpleaños" fijo arriba (como el resto de
-// encabezados) y el período (Día/Semana/Mes/Todos) abajo, con estilo
-// distinto a propósito para que se note que la 2da fila es el filtro
-// interactivo y la 1ra es solo el nombre de columna.
-const SELECT_ENCABEZADO_PERIODO =
-  'h-auto w-full min-w-0 justify-start gap-1 border-none bg-transparent p-0 text-xs font-medium normal-case text-foreground shadow-none hover:text-primary focus-visible:ring-0 data-[state=open]:text-primary [&>span]:truncate';
 
 type ColumnaOrden = 'nombre_completo' | 'sexo' | 'edad' | 'membresia_completada';
 type DireccionOrden = 'asc' | 'desc';
@@ -146,7 +140,7 @@ const RANGO_EDAD_LABEL: Record<RangoEdadFiltro, string> = {
   ADOLESCENTES: 'Adolescentes',
   JOVENES: 'Jóvenes',
   ADULTOS: 'Adultos',
-  MAYORES: 'Adultos mayores',
+  MAYORES: 'Ancianos',
 };
 
 const RANGO_EDAD_ICONO: Record<RangoEdadFiltro, LucideIcon> = {
@@ -161,6 +155,14 @@ const CUMPLEANOS_LABEL: Record<CumpleanosPeriodo, string> = {
   DIA: 'Cumpleaños de hoy',
   SEMANA: 'Cumpleaños de la semana',
   MES: 'Cumpleaños del mes',
+};
+
+// KAN-474 (preview v7): texto del tooltip de la torta -- antes era fijo
+// "Cumple años esta semana", ahora sigue el período elegido en el combobox.
+const CUMPLEANOS_TOOLTIP_LABEL: Record<CumpleanosPeriodo, string> = {
+  DIA: 'Cumple años hoy',
+  SEMANA: 'Cumple años esta semana',
+  MES: 'Cumple años este mes',
 };
 
 function formatFechaParcial(anio: number | null, mes: number | null, dia: number | null): string | null {
@@ -241,6 +243,26 @@ function KpiChipFiltro({
   );
 }
 
+// KAN-474 (preview v3, 2026-09-27): botón de filtro simple, sin contador --
+// para Red/Casa de Paz, que antes eran <select> sueltos en el header de la
+// tabla y ahora son botones arriba, mismo patrón visual que KpiChipFiltro
+// pero sin el número (no hay un conteo por Red/CdP a mano acá).
+function BotonFiltroSimple({ label, color, activo, onClick }: { label: string; color: string; activo: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={activo ? { backgroundColor: color } : undefined}
+      className={cn(
+        'shrink-0 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium shadow-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+        activo ? 'border-transparent text-white' : 'border-border/60 bg-card text-foreground hover:border-border'
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 // KAN-401 seguimiento (2026-09-20): fila de chips agrupada por categoría,
 // con su nombre chico arriba (mismo estilo que un encabezado de columna). En
 // desktop/tablet siempre visible (el owner lo eligió así -- "todo siempre
@@ -262,6 +284,55 @@ function CategoriaFiltros({ titulo, defaultAbierta, children }: { titulo: string
       </button>
       <div className={abierta ? 'flex flex-wrap gap-2' : 'hidden md:flex md:flex-wrap md:gap-2'}>{children}</div>
     </div>
+  );
+}
+
+// KAN-474 (preview, 2026-09-27): un punto de la columna "Afirmación" --
+// mismo patrón de tooltip abrir/cerrar por clic (táctil) u hover (mouse)
+// que ya usa el ícono de torta de cumpleaños. `deshabilitado` es para
+// Cuartito de bienvenida/Fiesta de bienvenida (KAN-477/478) y RSIL en esta
+// vista puntual -- todavía no hay dato real, se muestra siempre vacío y
+// con opacidad baja para no mentir sobre qué pasos ya se pueden registrar.
+function PuntoAfirmacion({
+  abierta,
+  onAbrirCambio,
+  onClickPunto,
+  hecho,
+  deshabilitado,
+  ariaLabel,
+  tooltipContenido,
+}: {
+  abierta: boolean;
+  onAbrirCambio: (abierta: boolean) => void;
+  onClickPunto: () => void;
+  hecho: boolean;
+  deshabilitado?: boolean;
+  ariaLabel: string;
+  tooltipContenido: ReactNode;
+}) {
+  return (
+    <Tooltip open={abierta} onOpenChange={onAbrirCambio}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={cn('inline-flex h-4 w-4 items-center justify-center', deshabilitado && 'opacity-40')}
+          onClick={onClickPunto}
+          aria-label={ariaLabel}
+        >
+          <span
+            className="h-3 w-3 rounded-full border"
+            style={
+              hecho && !deshabilitado
+                ? { backgroundColor: VERDE, borderColor: 'transparent' }
+                : { backgroundColor: 'transparent', borderColor: 'var(--border)' }
+            }
+          />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-center">
+        {tooltipContenido}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -290,7 +361,7 @@ function EncabezadoOrdenable({
   const activa = ordenActual?.columna === columna;
   const Icono = activa ? (ordenActual!.direccion === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className={cn('px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase', className)}>
+    <th className={cn('px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase', className)}>
       <button type="button" onClick={() => onOrdenar(columna)} className="flex items-center gap-1 hover:text-foreground">
         {children}
         <Icono className={cn('h-3 w-3', activa ? 'text-foreground' : 'text-muted-foreground/50')} />
@@ -451,17 +522,19 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [vistaAmpliada, setVistaAmpliada] = useState(false);
   const [filtroEnCurso, setFiltroEnCurso] = useState<string | null>(null);
-  // KAN-401 seguimiento (2026-09-19, pedido explícito del owner): a
-  // diferencia de Red/CdP/Estado, este filtro NO tiene una opción "todos"
-  // en la lista -- "cumpleaños de todo el año" no tiene sentido como
-  // filtro útil acá. Pero sí arranca SIN filtrar (undefined, sin período
-  // elegido) para no ocultar de entrada a la mayoría de las personas --
-  // recién filtra cuando el usuario elige Día/Semana/Mes a propósito.
-  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo | undefined>(undefined);
+  // KAN-401 seguimiento (2026-09-19) -- KAN-474 (preview v4, 2026-09-27,
+  // pedido explícito del owner): arranca en "Semana" en vez de sin filtrar
+  // (antes no había opción "todos" en la lista, así que el valor inicial
+  // solo importaba mientras estuviera undefined -- ahora arranca resuelto).
+  const [cumpleanosFiltro, setCumpleanosFiltro] = useState<CumpleanosPeriodo>('SEMANA');
   // KAN-401 seguimiento (2026-09-20): el tooltip del ícono de torta es
   // controlado en todos los dispositivos (antes solo en táctil) -- así el
   // clic también lo abre en PC, además del hover que ya andaba bien.
   const [tortaAbiertaId, setTortaAbiertaId] = useState<string | null>(null);
+  // KAN-474 (preview, 2026-09-27): clave compuesta "<personaId>:<paso>" --
+  // un solo tooltip de Afirmación abierto a la vez en toda la tabla, mismo
+  // criterio que tortaAbiertaId de arriba.
+  const [puntoAfirmacionAbierto, setPuntoAfirmacionAbierto] = useState<string | null>(null);
   // Bug real encontrado al verificar en vivo (2026-09-20): un clic de mouse
   // real siempre dispara hover ANTES que el click -- si el onClick alterna
   // (toggle), el hover ya lo había abierto, y el click lo cerraba de
@@ -523,6 +596,10 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   const casaDePazIdFiltro = scoped ? casaDePazId : casaDePazIdFiltroUi === TODAS_LAS_CDP ? undefined : casaDePazIdFiltroUi;
   const estadoIdFiltro = estadoId === TODOS_LOS_ESTADOS ? undefined : estadoId;
 
+  // KAN-474 (preview v7, pedido explícito del owner): cumpleanosFiltro
+  // controla SOLO la torta (ver más abajo, fechaCumpleEnPeriodo) -- ya NO va
+  // dentro de `filtros`, así fn_afirmacion_buscar_membresia deja de ocultar
+  // filas por esto. El combobox sigue existiendo, ya no filtra la tabla.
   const filtros: FiltrosMembresiaAfirmacion = useMemo(
     () => ({
       redId: redIdFiltro,
@@ -532,7 +609,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesion: conProfesionFiltro,
       estadoCivil: estadoCivilFiltro,
       bautizado: bautizadoFiltro,
-      cumpleanosPeriodo: cumpleanosFiltro,
       efesioTipo: efesioFiltro,
       conMinisterio: conMinisterioFiltro,
       cargoCenso: cargoCensoFiltro,
@@ -546,7 +622,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conProfesionFiltro,
       estadoCivilFiltro,
       bautizadoFiltro,
-      cumpleanosFiltro,
       efesioFiltro,
       conMinisterioFiltro,
       cargoCensoFiltro,
@@ -554,6 +629,9 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     ]
   );
 
+  // KAN-474 (preview v4): cumpleanosFiltro ya no cuenta para "sin filtros" --
+  // ahora siempre tiene un valor (arranca en "Semana", pedido del owner), no
+  // es una elección deliberada de filtrar como las demás de esta lista.
   const sinFiltros =
     !redIdFiltro &&
     (scoped || !casaDePazIdFiltro) &&
@@ -562,7 +640,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     !conProfesionFiltro &&
     !estadoCivilFiltro &&
     !bautizadoFiltro &&
-    !cumpleanosFiltro &&
     !efesioFiltro &&
     !conMinisterioFiltro &&
     !cargoCensoFiltro &&
@@ -576,7 +653,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setConProfesionFiltro(undefined);
     setEstadoCivilFiltro(undefined);
     setBautizadoFiltro(undefined);
-    setCumpleanosFiltro(undefined);
+    setCumpleanosFiltro('SEMANA');
     setEfesioFiltro(undefined);
     setConMinisterioFiltro(undefined);
     setCargoCensoFiltro(undefined);
@@ -589,7 +666,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     setEstadoId((actual) => (actual === estado.id ? TODOS_LOS_ESTADOS : estado.id));
   }
 
-  const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId);
+  const { data: estadisticas, isLoading: cargandoEstadisticas } = useEstadisticasPersonasAfirmacion(iglesiaId, casaDePazId, filtros, texto);
   const { data, isLoading, isFetching } = useBuscarMembresiaAfirmacion(iglesiaId, texto, pagina, POR_PAGINA, filtros);
 
   useEffect(() => {
@@ -654,7 +731,6 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
     conProfesionFiltro && 'Con profesión',
     estadoCivilFiltro && ESTADO_CIVIL_LABELS[estadoCivilFiltro],
     bautizadoFiltro && 'Bautizados',
-    cumpleanosFiltro && CUMPLEANOS_LABEL[cumpleanosFiltro],
     efesioFiltro && EFESIO_LABEL[efesioFiltro],
     conMinisterioFiltro && 'Con ministerio',
     cargoCensoFiltro && CARGO_CENSO_LABEL[cargoCensoFiltro],
@@ -687,7 +763,11 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // KAN-404: mismo ancho para la tabla real y la barra de scroll fantasma
   // de arriba -- si difirieran, el scroll superior no llegaría al mismo
   // punto final que el de abajo.
-  const anchoTabla = vistaAmpliada ? (scoped ? 'min-w-[2400px]' : 'min-w-[2800px]') : scoped ? 'min-w-[1100px]' : 'min-w-[1400px]';
+  // KAN-474 (preview v4): con Red/CdP/Vía/Cumpleaños/Sexo/Edad/Rango afuera
+  // (filtros arriba o fusionados en Identidad/Nombre), scoped y !scoped
+  // quedaron con la misma cantidad de columnas -- ya no hace falta un ancho
+  // distinto para cada uno. Achicado de 1100/1400px a 900px acorde.
+  const anchoTabla = vistaAmpliada ? 'min-w-[2200px]' : 'min-w-[900px]';
 
   return (
     <div className="flex flex-col gap-6">
@@ -695,15 +775,17 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
           8 categorías de filtro en filas compactas -- se sacó "Por
           URL"/"Por formulario" (ya no hacían falta) y se sumaron Efesios,
           Ministerios, Cargos de censo y Edad. Chips de una sola línea
-          (antes 2) para que entren las 26 en total sin ocupar demasiado. */}
+          (antes 2) para que entren las 26 en total sin ocupar demasiado.
+          KAN-474 (preview v5, pedido explícito del owner): gap entre
+          categorías achicado de gap-3 a gap-1.5 -- se veía muy separado. */}
       {cargandoEstadisticas ? (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: scoped ? 5 : 8 }).map((_, i) => (
+        <div className="flex flex-col gap-1.5">
+          {Array.from({ length: scoped ? 5 : 10 }).map((_, i) => (
             <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           <CategoriaFiltros titulo="General" defaultAbierta={true}>
             <KpiChipFiltro
               icon={Users}
@@ -893,6 +975,42 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               </KpiChipFiltro>
             ))}
           </CategoriaFiltros>
+
+          {/* KAN-474 (preview v5, pedido explícito del owner): Red y Casa de Paz
+              van al FINAL del bloque de filtros -- antes de la v3 estaban justo
+              después de "General". Solo modo completo (!scoped); en scoped
+              (Líder/Sublíder de CdP) ya no se mostraban estos filtros antes. */}
+          {!scoped && (
+            <>
+              <CategoriaFiltros titulo="Red" defaultAbierta={true}>
+                <BotonFiltroSimple label="Todas" color={AZUL} activo={redId === TODAS_LAS_REDES} onClick={() => setRedId(TODAS_LAS_REDES)} />
+                {redes.map((r) => (
+                  <BotonFiltroSimple key={r.id} label={r.nombre} color={AZUL} activo={redId === r.id} onClick={() => setRedId(r.id)} />
+                ))}
+              </CategoriaFiltros>
+
+              {/* KAN-474: los botones de CdP se acotan a la Red elegida arriba
+                  (cdps.filter por red_id) -- sin Red elegida, muestra todas
+                  las CdP de la iglesia (mismo universo que antes). */}
+              <CategoriaFiltros titulo="Casa de Paz" defaultAbierta={true}>
+                <BotonFiltroSimple
+                  label="Todas"
+                  color={TEAL}
+                  activo={casaDePazIdFiltroUi === TODAS_LAS_CDP}
+                  onClick={() => setCasaDePazIdFiltroUi(TODAS_LAS_CDP)}
+                />
+                {(redIdFiltro ? cdps.filter((c) => c.red_id === redIdFiltro) : cdps).map((c) => (
+                  <BotonFiltroSimple
+                    key={c.id}
+                    label={c.etiqueta}
+                    color={TEAL}
+                    activo={casaDePazIdFiltroUi === c.id}
+                    onClick={() => setCasaDePazIdFiltroUi(c.id)}
+                  />
+                ))}
+              </CategoriaFiltros>
+            </>
+          )}
         </div>
       )}
 
@@ -934,6 +1052,25 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                 value={textoInput}
                 onChange={(e) => setTextoInput(e.target.value)}
               />
+            </div>
+
+            {/* KAN-474 (preview v4, 2026-09-27): "Cumpleaños" dejó de ser columna --
+                este filtro de período se reubicó acá, junto al buscador. Arranca en
+                "Semana" (pedido del owner), sigue existiendo y accesible. */}
+            <div className="flex items-center gap-1.5">
+              <Cake className="h-4 w-4 shrink-0" style={{ color: MORADO }} />
+              <Select value={cumpleanosFiltro} onValueChange={(v) => setCumpleanosFiltro(v as CumpleanosPeriodo)}>
+                <SelectTrigger size="sm" className="min-w-[190px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(['DIA', 'SEMANA', 'MES'] as const).map((periodo) => (
+                    <SelectItem key={periodo} value={periodo}>
+                      {CUMPLEANOS_LABEL[periodo]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Pedido explícito del owner (2026-09-20): conteo de resultados
@@ -985,116 +1122,68 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
               <div
                 ref={scrollTablaRef}
                 onScroll={sincronizarDesdeTabla}
-                className={cn('overflow-x-auto rounded-xl border border-border/60 transition-opacity', isFetching && 'opacity-60')}
+                className={cn(
+                  'overflow-x-auto rounded-xl border border-border/60 transition-opacity',
+                  // KAN-474 (preview v9, bug real encontrado por el owner): antes de la
+                  // cascada de KAN-479, isFetching solo se sentía al escribir en el
+                  // buscador de texto (donde sí tiene sentido). Ahora los chips de KPI
+                  // también refetchean la tabla, y atenuarla ENTERA en cada clic de
+                  // chip se veía como un parpadeo molesto encima del spinner del chip
+                  // (que ya es señal suficiente). filtroEnCurso se pone en cada chip
+                  // ANTES de refetchear (ver más abajo) -- si está seteado, el fetch en
+                  // curso es de un chip, no del buscador de texto, así que la tabla no
+                  // se atena. Los botones de Red/Casa de Paz no setean filtroEnCurso (no
+                  // tienen spinner propio), así que ahí la tabla sigue atenuándose --
+                  // sigue siendo su única señal de carga, igual que el buscador.
+                  isFetching && !filtroEnCurso && 'opacity-60'
+                )}
               >
               <table className={cn('w-full border-collapse text-sm', anchoTabla)}>
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
+                    {/* KAN-474 (preview v5): "Nombre" e "Identidad" se fusionan en UNA
+                        sola columna -- el header pasa a llamarse "Identidad".
+                        KAN-474 (preview v6, pedido explícito del owner): sacado el
+                        <Select> de Estado de este header -- redundante con la categoría
+                        de filtro "Estado espiritual" (chips arriba de la tabla). Vuelve
+                        a EncabezadoOrdenable, ya no hace falta el wrapper a mano. */}
                     <EncabezadoOrdenable columna="nombre_completo" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Nombre
+                      Identidad
                     </EncabezadoOrdenable>
-                    <EncabezadoOrdenable columna="sexo" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Sexo
-                    </EncabezadoOrdenable>
-                    <EncabezadoOrdenable columna="edad" ordenActual={orden} onOrdenar={ordenarPor}>
-                      Edad
-                    </EncabezadoOrdenable>
-                    <th className="px-2 py-2">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cumpleaños</span>
-                        <Select
-                          value={cumpleanosFiltro ?? ''}
-                          onValueChange={(v) => setCumpleanosFiltro(v ? (v as CumpleanosPeriodo) : undefined)}
-                        >
-                          <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO_PERIODO, 'justify-center')}>
-                            <SelectValue placeholder="Período" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="DIA">Día</SelectItem>
-                            <SelectItem value="SEMANA">Semana</SelectItem>
-                            <SelectItem value="MES">Mes</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">CI</th>
-                    {scoped ? (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado</th>
-                    ) : (
-                      <>
-                        <th className="px-2 py-2">
-                          <Select value={redId} onValueChange={setRedId}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Red" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODAS_LAS_REDES}>Red</SelectItem>
-                              {redes.map((r) => (
-                                <SelectItem key={r.id} value={r.id}>
-                                  {r.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
-                        <th className="px-2 py-2">
-                          <Select value={casaDePazIdFiltroUi} onValueChange={setCasaDePazIdFiltroUi}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Casa de Paz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODAS_LAS_CDP}>Casa de Paz</SelectItem>
-                              {cdps.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.etiqueta}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
-                        <th className="px-2 py-2">
-                          <Select value={estadoId} onValueChange={setEstadoId}>
-                            <SelectTrigger size="sm" className={cn(SELECT_ENCABEZADO, 'justify-start')}>
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={TODOS_LOS_ESTADOS}>Estado</SelectItem>
-                              {estados.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>
-                                  {e.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </th>
-                      </>
-                    )}
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Teléfono</th>
-                    {!scoped && (
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Vía</th>
-                    )}
+                    {/* KAN-474 (preview v4): "Cumpleaños" dejó de ser columna -- la torta
+                        se mudó a Nombre, el filtro de período se mudó junto al buscador
+                        (ver más abajo, cerca de "Buscar por nombre..."). */}
+                    {/* KAN-474 (preview v3): Red, Casa de Paz y Vía dejaron de ser
+                        columnas -- Red/CdP pasaron a botones de filtro arriba de la
+                        tabla, Vía se sacó por completo de esta vista (el dato sigue
+                        existiendo, solo deja de mostrarse acá). */}
                     <EncabezadoOrdenable columna="membresia_completada" ordenActual={orden} onOrdenar={ordenarPor}>
                       Membresía
                     </EncabezadoOrdenable>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Estado civil</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Rango</th>
-                    <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautizado</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo CdP</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargo Red</th>
+                    {/* KAN-474 (preview): Cargo CdP + Cargo Red fusionados en "Cargos". */}
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos</th>
+                    {/* KAN-474 (preview): 4 pasos en orden -- Cuartito de bienvenida y
+                        Fiesta de bienvenida son KAN-477/478, sin dato real todavía
+                        (ver PuntoAfirmacion). Bautizado y RSIL dejan de ser columnas
+                        sueltas y pasan a ser 2 de los 4 puntos. */}
+                    <th className="px-2 py-2 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Afirmación</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulado</th>
+                    {/* KAN-474 (preview v3): Familia nueva -- Cónyuge + Familiares. */}
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Familia</th>
                     {vistaAmpliada && (
                       <>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulados</th>
-                        <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Seminario</th>
-                        <th className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Univ. Rey Jesús</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautismo</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Mentor</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cónyuge</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Familiares</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Ministerios</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Efesio</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos (censo)</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Nacimiento</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Discipulados</th>
+                        <th className="px-2 py-2 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Seminario</th>
+                        <th className="px-2 py-2 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Univ. Rey Jesús</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bautismo</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Mentor</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cónyuge</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Familiares</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Ministerios</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Efesio</th>
+                        <th className="px-2 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Cargos (censo)</th>
                       </>
                     )}
                   </tr>
@@ -1112,83 +1201,97 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                         onMouseEnter={() => precargarFicha(p.id)}
                         className="cursor-pointer border-t border-border/50 hover:bg-muted/40"
                       >
-                        <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
-                        <td className="px-3 py-2.5 leading-tight font-medium">
-                          <p className="truncate">{nombreLinea1 || p.nombre_completo}</p>
-                          {nombreLinea2 && <p className="truncate text-xs font-normal text-muted-foreground">{nombreLinea2}</p>}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.sexo === 'M' ? 'M' : 'F'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{p.edad ?? '—'}</td>
-                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const fechaCumple = p.fecha_nacimiento ? fechaCumpleEnSemana(p.fecha_nacimiento) : null;
-                            if (!fechaCumple) return null;
-                            return (
-                              // KAN-401 seguimiento (2026-09-20, pedido explícito del
-                              // owner): antes el clic solo abría/cerraba en táctil (sin
-                              // hover) -- ahora también funciona en PC, además del hover
-                              // que ya andaba bien, sin duración especial: se abre/cierra
-                              // igual que ya lo hacía el hover o el tap.
-                              <Tooltip
-                                open={tortaAbiertaId === p.id}
-                                onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
-                              >
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="inline-flex h-6 w-6 items-center justify-center"
-                                    onClick={() => setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id))}
-                                    aria-label="Cumple años esta semana"
-                                  >
-                                    {/* Mismo ícono que el badge de cumpleaños del calendario de
-                                        Casas de Paz (CalendarioGrid.tsx). Sin círculo ni relleno
-                                        (pedido explícito del owner, 2026-09-19): solo el dibujo en
-                                        líneas moradas, no un badge sólido. */}
-                                    <Cake className="h-[18px] w-[18px]" style={{ color: MORADO }} />
-                                  </button>
-                                </TooltipTrigger>
-                                {/* Fecha en 2 líneas (pedido explícito del owner, 2026-09-20). */}
-                                <TooltipContent side="top" className="flex flex-col items-center text-center">
-                                  <span>Cumple años el</span>
-                                  <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
-                                </TooltipContent>
-                              </Tooltip>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.ci ?? '—'}</td>
-                        {scoped ? (
-                          <td className="px-3 py-2.5">
-                            {p.estado_sigla ? (
-                              <Badge variant="secondary" className="rounded-full text-[10px]">
-                                {p.estado_sigla}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                        ) : (
-                          <>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.red_nombre ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.casa_de_paz_etiqueta ?? '—'}</td>
-                            <td className="px-3 py-2.5">
+                        <td className="px-2 py-2 text-muted-foreground tabular-nums">{(pagina - 1) * POR_PAGINA + i + 1}</td>
+                        {/* KAN-474 (preview v5, pedido explícito del owner): "Nombre" e
+                            "Identidad" se fusionan en una sola celda -- nombre, Sexo/Edad/
+                            torta (v4), CI + Estado (SSVA) + Estado civil, Teléfono + correo,
+                            Rango. No importa que la celda crezca en alto. */}
+                        <td className="px-2 py-2 leading-tight font-medium">
+                          {/* KAN-474 (preview v6, pedido explícito del owner): nombre y
+                              apellido con el mismo peso visual -- antes el apellido era
+                              más chico/gris (text-xs font-normal text-muted-foreground). */}
+                          {/* KAN-474 (preview v8, pedido explícito del owner): un escalón
+                              más grande que el resto de la celda (text-[15px] vs. el
+                              text-sm de la tabla) -- sigue truncando, no desalinea la fila. */}
+                          <p className="truncate text-[15px]">{nombreLinea1 || p.nombre_completo}</p>
+                          {nombreLinea2 && <p className="truncate text-[15px]">{nombreLinea2}</p>}
+                          <div className="mt-0.5 flex items-center gap-1.5 font-normal">
+                            <span
+                              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                              style={{
+                                color: p.sexo === 'M' ? AZUL : TEAL,
+                                backgroundColor: `color-mix(in oklab, ${p.sexo === 'M' ? AZUL : TEAL} 12%, transparent)`,
+                              }}
+                            >
+                              {p.sexo === 'M' ? 'M' : 'F'}
+                            </span>
+                            <span className="text-xs font-medium" style={{ color: VERDE }}>
+                              {p.edad != null ? `${p.edad} años` : 'Edad —'}
+                            </span>
+                            {(() => {
+                              // KAN-474 (preview v7, pedido explícito del owner): la torta
+                              // sigue el período elegido en el combobox de arriba (antes
+                              // estaba fija en "esta semana", sin relación con el combobox).
+                              const fechaCumple = p.fecha_nacimiento
+                                ? fechaCumpleEnPeriodo(p.fecha_nacimiento, cumpleanosFiltro)
+                                : null;
+                              if (!fechaCumple) return null;
+                              return (
+                                <Tooltip
+                                  open={tortaAbiertaId === p.id}
+                                  onOpenChange={(abierto) => setTortaAbiertaId(abierto ? p.id : null)}
+                                >
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-5 w-5 items-center justify-center"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTortaAbiertaId((actual) => (esTactil && actual === p.id ? null : p.id));
+                                      }}
+                                      aria-label={CUMPLEANOS_TOOLTIP_LABEL[cumpleanosFiltro]}
+                                    >
+                                      <Cake className="h-[16px] w-[16px]" style={{ color: MORADO }} />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="flex flex-col items-center text-center">
+                                    <span>{CUMPLEANOS_TOOLTIP_LABEL[cumpleanosFiltro]}</span>
+                                    <span className="font-semibold">{fechaLegibleConDia(fechaCumple)}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
+                          </div>
+                          <div className="mt-0.5 flex flex-col gap-0.5 font-normal text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <span className="font-medium" style={{ color: AZUL }}>
+                                CI {p.ci ?? '—'}
+                              </span>
                               {p.estado_sigla ? (
                                 <Badge variant="secondary" className="rounded-full text-[10px]">
                                   {p.estado_sigla}
                                 </Badge>
                               ) : (
-                                <span className="text-muted-foreground">—</span>
+                                <span>—</span>
                               )}
-                            </td>
-                          </>
-                        )}
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          <CeldaTelefono telefono={p.telefono_principal} />
+                              {p.estado_civil && (
+                                <span className="font-medium" style={{ color: TEAL }}>
+                                  {ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil]}
+                                </span>
+                              )}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <CeldaTelefono telefono={p.telefono_principal} />
+                              {p.correo && <span>· {p.correo}</span>}
+                            </span>
+                            <span className="font-medium" style={{ color: MORADO }}>
+                              {p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : 'Rango —'}
+                            </span>
+                          </div>
                         </td>
-                        {!scoped && (
-                          <td className="px-3 py-2.5 text-muted-foreground">{p.via_registro ? VIA_REGISTRO_LABEL[p.via_registro as 'URL' | 'FORMULARIO'] : '—'}</td>
-                        )}
-                        <td className="px-3 py-2.5">
+                        {/* KAN-474 (preview v3): Red/CdP/Vía sacados de la tabla, ver
+                            filtros arriba y comentario del <thead>. */}
+                        <td className="px-2 py-2">
                           {p.membresia_completada ? (
                             <Badge variant="secondary" className="gap-1 rounded-full text-[10px]">
                               <CircleCheck className="h-3 w-3" style={{ color: VERDE }} />
@@ -1201,30 +1304,89 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
                             </Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.estado_civil ? ESTADO_CIVIL_LABELS[p.estado_civil as EstadoCivil] : '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{p.rango_miembro ? RANGO_MIEMBRO_LABEL[p.rango_miembro] : '—'}</td>
-                        <td className="px-3 py-2.5 text-center">
-                          {p.bautizado ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
+                        {/* KAN-474 (preview): Cargos fusionados. */}
+                        <td className="px-2 py-2 text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 leading-tight">
+                            <span>CdP: {cargoCdp ?? '—'}</span>
+                            <span>Red: {cargoRed ?? '—'}</span>
+                          </div>
                         </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{cargoCdp ?? '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{cargoRed ?? '—'}</td>
+                        {/* KAN-474 (preview): 4 puntos de Afirmación, en orden. Cuartito de
+                            bienvenida y Fiesta de bienvenida (KAN-477/478) y RSIL no tienen
+                            dato real disponible en esta vista -- ver comentario en
+                            PuntoAfirmacion, siempre deshabilitados a propósito. */}
+                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2">
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:cuartito`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:cuartito` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:cuartito` ? null : `${p.id}:cuartito`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="Cuartito de bienvenida"
+                              tooltipContenido={<span>Cuartito de bienvenida -- todavía no se registra este paso (KAN-477)</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:fiesta`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:fiesta` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:fiesta` ? null : `${p.id}:fiesta`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="Fiesta de bienvenida"
+                              tooltipContenido={<span>Fiesta de bienvenida -- todavía no se registra este paso (KAN-478)</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:bautizado`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:bautizado` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:bautizado` ? null : `${p.id}:bautizado`))
+                              }
+                              hecho={p.bautizado}
+                              ariaLabel="Bautizado"
+                              tooltipContenido={<span>{p.bautizado ? formatBautismo(p) : 'Bautizado -- No'}</span>}
+                            />
+                            <PuntoAfirmacion
+                              abierta={puntoAfirmacionAbierto === `${p.id}:rsil`}
+                              onAbrirCambio={(a) => setPuntoAfirmacionAbierto(a ? `${p.id}:rsil` : null)}
+                              onClickPunto={() =>
+                                setPuntoAfirmacionAbierto((actual) => (esTactil && actual === `${p.id}:rsil` ? null : `${p.id}:rsil`))
+                              }
+                              hecho={false}
+                              deshabilitado
+                              ariaLabel="RSIL"
+                              tooltipContenido={<span>RSIL -- esta vista todavía no trae la fecha del retiro</span>}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 text-muted-foreground">{p.discipulados ?? '—'}</td>
+                        {/* KAN-474 (preview v3): Familia nueva -- Cónyuge + Familiares. */}
+                        <td className="px-2 py-2 text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 leading-tight">
+                            <span>{p.conyuge_nombre ?? '—'}</span>
+                            <span>{p.familiares ?? '—'}</span>
+                          </div>
+                        </td>
                         {vistaAmpliada && (
                           <>
-                            <td className="px-3 py-2.5 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.discipulados ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-center">
+                            <td className="px-2 py-2 text-muted-foreground tabular-nums">{formatFechaNacimiento(p.fecha_nacimiento)}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.discipulados ?? '—'}</td>
+                            <td className="px-2 py-2 text-center">
                               {p.seminario ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-center">
+                            <td className="px-2 py-2 text-center">
                               {p.universidad_rey_jesus ? <CircleCheck className="mx-auto h-4 w-4" style={{ color: VERDE }} /> : <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{formatBautismo(p)}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{formatMentor(p) ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.conyuge_nombre ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.familiares ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.ministerios ?? '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.efesio_tipo ? (EFESIO_LABEL[p.efesio_tipo] ?? p.efesio_tipo) : '—'}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{p.cargos_censo ?? '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{formatBautismo(p)}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{formatMentor(p) ?? '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.conyuge_nombre ?? '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.familiares ?? '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.ministerios ?? '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.efesio_tipo ? (EFESIO_LABEL[p.efesio_tipo] ?? p.efesio_tipo) : '—'}</td>
+                            <td className="px-2 py-2 text-muted-foreground">{p.cargos_censo ?? '—'}</td>
                           </>
                         )}
                       </tr>

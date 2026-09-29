@@ -167,8 +167,33 @@ export async function buscarMembresiaAfirmacion(
 // Plan panel Afirmación 2026-08-20, punto 3/4 (KAN-216): totales para la fila de KPIs de /afirmacion-personas.
 // KAN-386 seguimiento (2026-09-17): casaDePazId opcional -- scoped al panel
 // "Membresía" por CdP (Líder/Sublíder CdP, Líder/Supervisor de Red).
-export async function obtenerEstadisticasPersonasAfirmacion(iglesiaId: string, casaDePazId?: string): Promise<EstadisticasPersonasAfirmacion> {
-  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', { p_iglesia_id: iglesiaId, p_casa_de_paz_id: casaDePazId ?? null });
+// KAN-479 (2026-09-27): mismos filtros + texto que `buscarMembresiaAfirmacion`
+// -- cada chip recalcula su conteo dentro del subconjunto ya filtrado por los
+// demás chips/columnas (cascada), sin auto-filtrarse por su propia categoría
+// (eso ya lo resuelve la función de BD).
+export async function obtenerEstadisticasPersonasAfirmacion(
+  iglesiaId: string,
+  casaDePazId?: string,
+  filtros: FiltrosMembresiaAfirmacion = {},
+  texto = '',
+): Promise<EstadisticasPersonasAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estadisticas_personas', {
+    p_iglesia_id: iglesiaId,
+    p_casa_de_paz_id: casaDePazId ?? null,
+    p_texto: texto.trim() === '' ? null : texto.trim(),
+    p_red_id: filtros.redId ?? null,
+    p_estado_id: filtros.estadoId ?? null,
+    p_sexo: filtros.sexo ?? null,
+    p_via_registro: filtros.viaRegistro ?? null,
+    p_con_profesion: filtros.conProfesion ?? null,
+    p_estado_civil: filtros.estadoCivil ?? null,
+    p_bautizado: filtros.bautizado ?? null,
+    p_cumpleanos_periodo: filtros.cumpleanosPeriodo ?? null,
+    p_efesio_tipo: filtros.efesioTipo ?? null,
+    p_con_ministerio: filtros.conMinisterio ?? null,
+    p_cargo_censo: filtros.cargoCenso ?? null,
+    p_rango_edad: filtros.rangoEdad ?? null,
+  });
   if (error) throw error;
   return data as EstadisticasPersonasAfirmacion;
 }
@@ -183,4 +208,59 @@ export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Pro
   const { data, error } = await supabase.rpc('fn_afirmacion_config_registro_url', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return data as boolean;
+}
+
+// ---- Procesos de Afirmacion (KAN-481 Altar, KAN-483 RSIL, KAN-484 Fiesta
+// de Bienvenida) -- tabla y RPCs genericas por proceso_codigo, ver
+// 20260927140000_kan481_altar_proceso_afirmacion.sql. Una sola persona
+// puede pasar por el mismo proceso mas de una vez (historial de fechas).
+
+export type ProcesoAfirmacionCodigo = 'ALTAR' | 'RSIL' | 'FIESTA_BIENVENIDA';
+
+export interface EstadoProcesoAfirmacion {
+  realizado: boolean;
+  primera_fecha: string | null;
+  ultima_fecha: string | null;
+  cantidad: number;
+}
+
+export interface RegistroProcesoAfirmacion {
+  id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha: string;
+  fecha_creacion: string;
+  registrado_por: string | null;
+  registrado_por_nombre: string | null;
+}
+
+export async function registrarProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo, fecha: string): Promise<string> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_registrar_proceso', {
+    p_persona_id: personaId,
+    p_proceso_codigo: procesoCodigo,
+    p_fecha: fecha,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function obtenerEstadoProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo): Promise<EstadoProcesoAfirmacion> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_estado_proceso', { p_persona_id: personaId, p_proceso_codigo: procesoCodigo });
+  if (error) throw error;
+  const fila = (data as EstadoProcesoAfirmacion[])[0];
+  return fila ?? { realizado: false, primera_fecha: null, ultima_fecha: null, cantidad: 0 };
+}
+
+export async function obtenerHistorialProcesoAfirmacion(
+  iglesiaId: string,
+  procesoCodigo: ProcesoAfirmacionCodigo,
+  registradoPor?: string,
+): Promise<RegistroProcesoAfirmacion[]> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_historial_proceso', {
+    p_iglesia_id: iglesiaId,
+    p_proceso_codigo: procesoCodigo,
+    p_registrado_por: registradoPor ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as RegistroProcesoAfirmacion[];
 }
