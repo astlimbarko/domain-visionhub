@@ -38,6 +38,7 @@ plan de implementación para separar con precisión lo existente de lo propuesto
 | [15](15-gestion-administrativa/) | Gestión administrativa | Super Admin, Pastor, Supervisor, iglesias hijas/satélite y OTP |
 | [16](16-constructor-estructura-organizacional/) | Constructor de Estructura Organizacional | Lienzo dinámico por iglesia, layout, asignaciones, OTP local y responsividad |
 | [18](18-fotos-perfil/) | Fotos de perfil | Compresor reusable, Supabase Storage por persona, recorte 1:1 con zoom y avatar en todos los perfiles (KAN-207/209/210) |
+| [19](19-evangelista-personal/) | Evangelista personal + UI v2 | Rol nuevo distinto del efesio "Evangelista" y del Departamento de Evangelismo, dashboard con racha, registro con borrador, seguimiento N contactos (KAN-426 a 434) |
 | [99](99-modulos-futuros.md) | Módulos futuros | Esbozo de los módulos 2 al 6 |
 
 | Documento | Contenido |
