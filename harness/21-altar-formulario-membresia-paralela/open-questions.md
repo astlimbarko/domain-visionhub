@@ -88,11 +88,8 @@ https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkX
 
 ## Membresía desde 0 — inventario de campos (2026-09-29)
 
-14. **Cónyuge y Familia**: la membresía por link los pregunta
-    (`SeccionConyugeMembresia`, `SeccionFamiliaMembresia`), pero
-    `form_altar.png` no. ¿Se quitan de la Membresía desde-0 (todos nuevos,
-    se simplifica) o se dejan opcionales? Ver la sección "A confirmar" del
-    inventario en requirements.md.
+14. ~~**Cónyuge y Familia**~~ **RESUELTO (2026-09-29)**: la familia SÍ
+    entra en la Membresía desde-0 -- cónyuge e hijos (decisión del owner).
 15. **Origen link vs desde-0**: ¿cómo se distinguen las dos membresías en
     la base? (campo de origen en la ficha, tabla separada, etc.) -- el
     owner confirmó que son "dos formularios distintos", falta el mecanismo
@@ -101,6 +98,11 @@ https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkX
     el bautismo, ¿el botón abre la Membresía desde-0 en la misma pantalla,
     navega a otra, o queda como pendiente/recordatorio? ¿Es obligatorio
     hacer la membresía tras bautizar o puede quedar para después?
+17. **Wording de las preguntas livianas** (ministerio / discipulado / ya
+    asiste): confirmar el texto exacto y el tipo de control. Propuesta:
+    "¿Ya asistes a la iglesia?" (sí/no); "¿Has trabajado en algún
+    ministerio?" (sí/no) + "¿Cuál?" (texto si sí); "¿Estás en discipulado?"
+    (sí/no). ¿Alguna necesita más detalle (ej. desde cuándo, con quién)?
 
 ## Confirmado, no requiere pregunta (documentado para no repreguntar)
 

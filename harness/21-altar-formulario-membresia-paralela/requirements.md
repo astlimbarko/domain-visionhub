@@ -63,7 +63,11 @@ Comparación contra el formulario de membresía por link real hoy
 
 ### Campos que SÍ pide la Membresía desde 0
 
-Datos de una persona recién captada (coinciden con `form_altar.png`):
+Datos de una persona recién captada. La regla no es "sacar todo lo de la
+iglesia", sino **preguntar liviano** (sí/no + texto) en vez de la estructura
+pesada de la membresía por link (actualizado con el owner 2026-09-29).
+
+Datos personales (coinciden con `form_altar.png`):
 
 - **Nombres**: primer nombre *, segundo nombre, primer apellido *, segundo
   apellido -- 4 campos separados, formato Título en vivo (ver Requisito 2).
@@ -76,6 +80,11 @@ Datos de una persona recién captada (coinciden con `form_altar.png`):
 - **Horario de contacto** (campo nuevo, ver open-questions #9).
 - **CI** y **Correo** (opcionales).
 - **Grado de instrucción** (opcional).
+- **Familia**: **cónyuge e hijos** (el owner confirmó que la familia SÍ
+  entra en la desde-0).
+
+Datos de proceso / evangelismo:
+
 - **Tipo de decisión** → estado SSVA automático (Requisito 4).
 - **¿Es bautizado?** (Católica / Evangélica + cuál iglesia / Centro de
   Vida) (Requisito 5).
@@ -83,28 +92,36 @@ Datos de una persona recién captada (coinciden con `form_altar.png`):
 - **¿Cómo llegó a la iglesia?** (ver open-questions #11).
 - **Categoría de evangelismo** (1+1 / CDP / Elite) (Requisito 6).
 
+Preguntas LIVIANAS sobre vínculo con la iglesia (nuevo, 2026-09-29 -- versión
+simple, NO la estructura pesada de la membresía por link):
+
+- **¿Ya asistes a la iglesia?** (sí / no).
+- **¿Has trabajado en algún ministerio?** (sí / no) → WHERE responde sí,
+  THE SYSTEM SHALL pedir **cuál** (texto libre). NO es la asignación
+  estructurada de ministerios de la membresía por link, solo un dato
+  informativo.
+- **Discipulado**: puede haber gente que **ya está en discipulado y recién
+  se va a bautizar** -- THE SYSTEM SHALL capturarlo de forma liviana
+  (ej. "¿Estás en discipulado?" sí/no, o un texto simple). Wording exacto
+  en open-questions #17. NO es la lista estructurada de discipulados con
+  tipos/fechas de la membresía por link.
+
 ### Campos que se QUITAN (están en la membresía por link, NO van en la desde 0)
 
-Todo lo que marca a la persona como "ya de la iglesia" -- decisión del
-owner: la desde-0 asume que todos son nuevos, no pregunta nada de esto:
+Solo lo que es estructura interna pesada / censo / liderazgo formal:
 
-- **Ministerios** (`SeccionMinisteriosMembresia`) -- QUITADO.
 - **Cargo / Rango / Posición en la iglesia / Efesio / Otros cargos**
-  (`SeccionCargoRangoMembresia`) -- QUITADO (liderazgo/censo).
-- **Discipulados realizados** (`SeccionDiscipuladosMembresia`) -- QUITADO
-  (progreso de discipulado = ya está en la iglesia).
+  (`SeccionCargoRangoMembresia`) -- QUITADO (liderazgo/censo formal).
 - **Seminario / Universidad Rey Jesús**
   (`SeccionSeminarioUniversidadMembresia`) -- QUITADO (formación interna).
-- **Mentor** (parte de `SeccionMentorBautismoMembresia`) -- QUITADO (el
-  mentor es estructura de discipulado interno). De esa sección se
-  **conserva solo el bautismo**.
-
-### A confirmar (no está claro si van o no)
-
-- **Cónyuge** (`SeccionConyugeMembresia`) y **Familia**
-  (`SeccionFamiliaMembresia`): son datos personales, no de "estar en la
-  iglesia", pero `form_altar.png` no los incluye. ¿Se quitan de la desde-0
-  o se dejan opcionales? -- ver open-questions.
+- **Mentor** (parte de `SeccionMentorBautismoMembresia`) -- QUITADO. De esa
+  sección se **conserva solo el bautismo**.
+- **Ministerios estructurados** (`SeccionMinisteriosMembresia`, asignación
+  por ID) -- QUITADO: se reemplaza por la pregunta liviana "¿Has trabajado
+  en algún ministerio? cuál" de arriba.
+- **Discipulados estructurados** (`SeccionDiscipuladosMembresia`, lista con
+  tipos/fechas) -- QUITADO: se reemplaza por la pregunta liviana de
+  discipulado de arriba.
 
 ## Requisito 1 — Persona existente: precargar y verificar
 
