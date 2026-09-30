@@ -71,28 +71,25 @@ alternativa.
 
 ## Requisito 4 — Colaborar: pantalla intermedia por tarjetas (KAN-485)
 
-**THE SYSTEM SHALL** insertar una pantalla intermedia entre "código
-validado" y "formulario de tarea", con una jerarquía de navegación
-`Colaborar → Afirmación → tarea específica` (nunca los 4 formularios
-mezclados de entrada).
+> **ACTUALIZADO 2026-09-29 — spec detallada y decisiones cerradas movidas a
+> `harness/22-colaborar-portal-departamentos/`.** El owner cerró el flujo
+> del portal; esta sección queda como resumen y apunta al harness 22. Dos
+> cambios respecto de lo que decía antes acá:
+> - **Sin granularidad por tarea**: el código habilita TODAS las
+>   colaboraciones de Afirmación (se descarta la columna/tabla nueva de
+>   "tareas autorizadas" que este requisito pedía originalmente).
+> - **Lista de colaboraciones**: Altar, **Bautismo**, RSIL, **Membresía**
+>   (Bautismo y Membresía separados; Fiesta de Bienvenida queda FUERA de
+>   Colaborar por ahora).
 
-- WHEN el Colaborador canjea un código válido, THE SYSTEM SHALL mostrar
-  una tarjeta "Afirmación" (única área hoy soportada por
-  `colaborador_codigo`).
-- WHEN el Colaborador hace clic en "Afirmación", THE SYSTEM SHALL mostrar
-  tarjetas por cada tarea autorizada: Altar, Bautismo/Membresía, RSIL,
-  Fiesta de Bienvenida.
-- THE SYSTEM SHALL NOT asumir que un código autoriza las 4 tareas por
-  igual -- IF el código no autoriza una tarea, THEN THE SYSTEM SHALL NOT
-  mostrar esa tarjeta ni permitir acceder a ella (ver Hallazgo 5,
-  requiere columna/tabla nueva -- hoy `colaborador_codigo` solo tiene
-  granularidad de departamento).
+**THE SYSTEM SHALL** insertar un portal intermedio de 2 niveles
+(Departamento → Colaboración) entre "código validado" y la pantalla de la
+tarea -- ver `harness/22` para el detalle completo. Puntos que siguen
+válidos:
+
 - THE SYSTEM SHALL reutilizar las pantallas reales ya construidas (Altar
-  hoy; RSIL/Fiesta/Bautismo cuando existan) -- Colaborar es una capa de
-  acceso, nunca duplica formularios.
-- THE SYSTEM SHALL rechazar en el backend (RPC/RLS) cualquier intento de
-  usar una tarea no autorizada, aunque el frontend la oculte -- la
-  restricción real nunca puede depender solo de esconder una tarjeta.
+  hoy; RSIL/Bautismo/Membresía cuando Matías las termine) -- Colaborar es
+  una capa de acceso, nunca duplica formularios.
 - THE SYSTEM SHALL mantener el resto del comportamiento ya construido de
   Colaborar (código con vigencia temporal, pausar/reanudar/finalizar
   desde el panel del líder, corte automático al vencer, datos que
