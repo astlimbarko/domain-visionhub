@@ -146,8 +146,14 @@ function cnPl() {
   return `pl-8 ${CAMPO_ESTILO}`;
 }
 
-export function AfirmacionAltar() {
-  const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId);
+// KAN-485: reusable desde el portal de Colaborar -- un colaborador puede
+// estar colaborando en una iglesia distinta de su iglesia activa del store,
+// asi que se acepta `iglesiaId` por prop (default: la del store, uso normal
+// dentro del sidebar de Afirmacion). `onVolver` muestra el boton "volver al
+// portal" cuando se monta embebido en Colaborar.
+export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; onVolver?: () => void } = {}) {
+  const iglesiaDelStore = useAuthStore((s) => s.iglesiaActivaId);
+  const iglesiaActivaId = iglesiaId ?? iglesiaDelStore;
   const iglesias = useAuthStore((s) => s.iglesias);
   const esLiderAfirmacion = useEsLiderAfirmacion();
   const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
@@ -205,6 +211,15 @@ export function AfirmacionAltar() {
       />
       <div className="relative overflow-hidden rounded-3xl px-4 py-2 sm:px-6">
         <PalomaMarcaDeAgua />
+        {onVolver && (
+          <button
+            type="button"
+            onClick={onVolver}
+            className="relative mb-2 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Volver al portal
+          </button>
+        )}
         <Tabs value={tab} onValueChange={setTab} className="relative">
           <TabsList className="mx-auto max-w-md flex-nowrap">
             <TabsTrigger value="buscar" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
