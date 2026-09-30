@@ -136,7 +136,7 @@ bien, una vez confirmado se procede"*).
   permitir corregirlo (no re-preguntar en blanco).
 - WHERE un dato falta, THE SYSTEM SHALL permitir completarlo en el momento.
 
-## Requisito 2 — Nombres: 4 campos + formato Título en vivo
+## Requisito 2 — Nombres: 4 campos + formato Título en vivo (validación front, OBLIGATORIA)
 
 THE SYSTEM SHALL mantener los 4 campos separados (primer/segundo nombre,
 primer/segundo apellido), NO un solo campo "Nombres y apellidos".
@@ -147,6 +147,15 @@ primer/segundo apellido), NO un solo campo "Nombres y apellidos".
   -- el dato siempre se muestra y se guarda en ese formato (decisión del
   owner, verbatim). Hoy `normalizarNombre` ya hace esa transformación pero
   se aplica solo `onBlur` -- hay que aplicarla **en vivo** (ver Hallazgo 2).
+- **Alcance: TODOS los campos de nombre o apellido del formulario**, sin
+  excepción -- primer/segundo nombre, primer/segundo apellido de la
+  persona, Y **los nombres de la familia** (cónyuge e hijos) y cualquier
+  otro campo de nombre/apellido que se agregue. Ninguno queda en mayúsculas
+  sueltas ni en minúsculas.
+- Es **validación de front** (pedido explícito del owner, 2026-09-29): la
+  corrección de formato ocurre en el cliente al escribir, no se delega solo
+  al backend. El backend igual normaliza como red de seguridad, pero el
+  usuario ve el formato correcto en pantalla en el momento.
 
 ## Requisito 3 — Edad: fecha de nacimiento con el mecanismo de Casas de Paz
 
