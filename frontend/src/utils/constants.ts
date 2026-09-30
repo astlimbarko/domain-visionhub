@@ -96,6 +96,9 @@ export const ROUTES = {
   // KAN-481: primer proceso de Afirmacion (Altar) -- buscar/dar de alta una
   // persona y registrar que paso al altar, con historial de fechas.
   AFIRMACION_ALTAR: '/afirmacion-altar',
+  // KAN-488: "Membresía desde 0" -- membresía liviana para gente nueva
+  // captada, distinta de la membresía por link (AFIRMACION_PERSONAS).
+  AFIRMACION_MEMBRESIA_NUEVOS: '/afirmacion-membresia-nuevos',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

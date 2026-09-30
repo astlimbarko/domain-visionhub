@@ -60,6 +60,7 @@ const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').t
 const AfirmacionPersonas = lazy(() => import('@/pages/AfirmacionPersonas').then((m) => ({ default: m.AfirmacionPersonas })));
 const AfirmacionColaboradores = lazy(() => import('@/pages/AfirmacionColaboradores').then((m) => ({ default: m.AfirmacionColaboradores })));
 const AfirmacionAltar = lazy(() => import('@/pages/AfirmacionAltar').then((m) => ({ default: m.AfirmacionAltar })));
+const AfirmacionMembresiaNuevos = lazy(() => import('@/pages/AfirmacionMembresiaNuevos').then((m) => ({ default: m.AfirmacionMembresiaNuevos })));
 // KAN-405: accesible para CUALQUIER rol (no pasa por RutaAfirmacion) -- ver
 // ROUTES.COLABORAR en constants.ts y puedeAccederRuta en paneles-contexto.ts.
 const Colaborar = lazy(() => import('@/pages/Colaborar').then((m) => ({ default: m.Colaborar })));
@@ -337,6 +338,7 @@ function App() {
             <Route path={ROUTES.AFIRMACION_PERSONAS} element={<RutaAfirmacion><AfirmacionPersonas /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_COLABORADORES} element={<RutaAfirmacion><AfirmacionColaboradores /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_ALTAR} element={<RutaAfirmacion><AfirmacionAltar /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_MEMBRESIA_NUEVOS} element={<RutaAfirmacion><AfirmacionMembresiaNuevos /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 
