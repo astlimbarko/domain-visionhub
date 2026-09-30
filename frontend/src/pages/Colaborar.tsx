@@ -1,45 +1,82 @@
 /**
- * KAN-405: pantalla "Colaborar" -- accesible para cualquier rol logueado.
- * Pedido explícito del owner (2026-09-21, en vivo): mientras el permiso de
- * Colaborador está activo, la persona NO ve el panel/sidebar de su rol
- * normal -- es una pantalla propia, separada, sin AppShell (mismo patrón
- * que EstructuraOrganizacional: barra superior oscura propia, se
- * autoprotege con isAuthenticated). Ve SOLO 3 cosas:
- *   1. El formulario de membresía (alta) -- se monta como caja negra
- *      (`<RegistrarPersonaAfirmacion iglesiaId={...} />`, misma interfaz
- *      pública de siempre). El owner está rediseñando ese componente en
- *      paralelo (paginado -> una sola página + borrador autoguardado) en
- *      otra sesión -- a propósito NO se toca ese archivo ni sus internos
- *      desde acá, para no pisarse. La capacidad de "reabrir y corregir lo
- *      que uno mismo cargó" (pedida originalmente) queda para un fast-follow
- *      una vez que ese rediseño esté estable -- fn_editar_persona_afirmacion/
- *      fn_obtener_persona_editar_afirmacion (20260921100700_kan405_edicion_
- *      propia_colaborador.sql) ya están listas del lado del backend.
- *   2. Su propio historial -- de solo lectura por ahora (a quién registró y
- *      cuántos son).
- *   3. Avisos de responsabilidad/seguridad sobre lo que está haciendo.
- * Nada de Casas de Paz/Redes ni ningún otro módulo -- alcance acotado a
- * propósito.
+ * KAN-405 + KAN-485: pantalla "Colaborar" -- accesible para cualquier rol
+ * logueado. Pantalla propia SIN AppShell/sidebar (barra oscura propia, se
+ * autoprotege con isAuthenticated), mismo patrón que EstructuraOrganizacional.
+ *
+ * KAN-485 (portal intermedio, harness/22-colaborar-portal-departamentos):
+ * al canjear el código, la persona NO cae directo en un formulario -- pasa
+ * por un portal de 2 niveles hecho con tarjetas:
+ *   1. Nivel 1: tarjeta del DEPARTAMENTO (hoy solo Afirmación; el diseño
+ *      anticipa más departamentos a futuro).
+ *   2. Nivel 2: tarjetas de COLABORACIÓN (Altar, Bautismo, RSIL, Membresía).
+ *      El código habilita todas (sin granularidad por tarea).
+ *   3. Al elegir una colaboración se abre su pantalla de proceso -- Altar ya
+ *      existe (se reusa `AfirmacionAltar` con la iglesia de la colaboración);
+ *      el resto queda "Próximamente" hasta que se construyan (Matías).
+ * Cada colaboración tiene botón "volver al portal". El colaborador ve en los
+ * listados solo lo que él registró (ya resuelto en Altar por RPC).
  */
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Handshake, ShieldAlert, UserPlus, History, Clock, Pause } from 'lucide-react';
+import {
+  ArrowLeft,
+  ShieldAlert,
+  Handshake,
+  Clock,
+  Pause,
+  ChevronRight,
+  Church,
+  Droplets,
+  HeartPulse,
+  ClipboardList,
+  Building2,
+  type LucideIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { ROUTES } from '@/utils/constants';
-import { useMiColaboracionActiva, useMiHistorialColaborador, useRedimirCodigoColaborador } from '@/hooks/useColaborador';
+import { useMiColaboracionActiva, useRedimirCodigoColaborador } from '@/hooks/useColaborador';
 import { useCuentaRegresiva } from '@/hooks/useCuentaRegresiva';
-import { RegistrarPersonaAfirmacion } from '@/components/afirmacion/RegistrarPersonaAfirmacion';
+import { DEPARTAMENTO_META } from '@/utils/departamentos';
+import { AfirmacionAltar } from '@/pages/AfirmacionAltar';
+import type { MiColaboracionActiva } from '@/types/colaborador.types';
 
-function fmtFechaHora(iso: string) {
-  return new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+// Nombre visible de cada departamento (DEPARTAMENTO_META solo trae verbo+color).
+const DEPARTAMENTO_NOMBRE: Record<string, string> = {
+  AFIRMACION: 'Afirmación',
+  EVANGELISMO: 'Evangelismo',
+  DISCIPULADO: 'Discipulado',
+  ENVIO: 'Envío',
+};
+
+interface ColaboracionItem {
+  codigo: string;
+  label: string;
+  descripcion: string;
+  icono: LucideIcon;
+  /** false => tarjeta "Próximamente" hasta que exista la pantalla (Matías). */
+  disponible: boolean;
+}
+
+// Catálogo de colaboraciones por departamento. Hoy solo Afirmación, con sus 4
+// tareas -- el código habilita todas (harness/22, sin granularidad por tarea).
+const COLABORACIONES_POR_DEPARTAMENTO: Record<string, ColaboracionItem[]> = {
+  AFIRMACION: [
+    { codigo: 'ALTAR', label: 'Altar', descripcion: 'Registrar personas que pasan al altar', icono: Church, disponible: true },
+    { codigo: 'BAUTISMO', label: 'Bautismo', descripcion: 'Registrar bautismos', icono: Droplets, disponible: false },
+    { codigo: 'RSIL', label: 'Retiro de Sanidad Interior', descripcion: 'Registrar el retiro', icono: HeartPulse, disponible: false },
+    { codigo: 'MEMBRESIA', label: 'Membresía', descripcion: 'Membresía desde 0', icono: ClipboardList, disponible: false },
+  ],
+};
+
+function fondoIcono(color: string) {
+  return { backgroundColor: `color-mix(in oklab, ${color} 14%, transparent)`, color };
 }
 
 // Barra superior propia, sin sidebar -- mismo tono oscuro que usa
@@ -136,33 +173,123 @@ function FormularioCodigo() {
   );
 }
 
-// KAN-405 seguimiento: de solo lectura por ahora -- ver nota de arriba
-// (edición en pausa hasta que el rediseño de RegistrarPersonaAfirmacion
-// esté estable).
-function MiHistorial() {
-  const { data: historial = [], isLoading } = useMiHistorialColaborador(true);
+// ─── Portal de 2 niveles (KAN-485) ───────────────────────────────────────────
 
-  if (isLoading) return <Skeleton className="h-40 w-full rounded-2xl" />;
-
+function TarjetaDepartamento({
+  nombre,
+  color,
+  colaboraciones,
+  onAbrir,
+}: {
+  nombre: string;
+  color: string;
+  colaboraciones: ColaboracionItem[];
+  onAbrir: () => void;
+}) {
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        Registraste <span className="font-semibold text-foreground">{historial.length}</span> persona{historial.length === 1 ? '' : 's'} en esta colaboración.
-      </p>
-      {historial.length === 0 ? (
-        <p className="rounded-2xl border border-border/50 bg-card/60 px-4 py-6 text-center text-sm text-muted-foreground">
-          Todavía no cargaste a nadie.
+    <button
+      type="button"
+      onClick={onAbrir}
+      className="flex w-full items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 text-left shadow-sm transition-colors hover:bg-muted/40"
+    >
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={fondoIcono(color)}>
+        <Building2 className="h-7 w-7" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-bold">{nombre}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {colaboraciones.map((c) => c.label).join(' · ')}
         </p>
+      </div>
+      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}
+
+function TarjetaColaboracion({ c, color, onAbrir }: { c: ColaboracionItem; color: string; onAbrir: () => void }) {
+  const Icono = c.icono;
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      disabled={!c.disponible}
+      className={cn(
+        'flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left shadow-sm transition-colors',
+        c.disponible ? 'hover:bg-muted/40' : 'cursor-not-allowed opacity-60',
+      )}
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={fondoIcono(color)}>
+        <Icono className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{c.label}</p>
+        <p className="truncate text-xs text-muted-foreground">{c.descripcion}</p>
+      </div>
+      {c.disponible ? (
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       ) : (
-        <div className="flex flex-col gap-1.5">
-          {historial.map((h) => (
-            <div key={h.persona_id} className="flex items-center justify-between gap-3 rounded-xl bg-muted/30 px-3.5 py-2.5 text-sm">
-              <span className="truncate font-medium">{h.nombre_completo}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">{fmtFechaHora(h.fecha_creacion)}</span>
-            </div>
+        <Badge variant="outline" className="shrink-0 text-[10px]">Próximamente</Badge>
+      )}
+    </button>
+  );
+}
+
+function PortalColaborar({ colaboracion }: { colaboracion: MiColaboracionActiva }) {
+  const dep = colaboracion.departamento_codigo;
+  const color = DEPARTAMENTO_META[dep]?.color ?? '#0071E3';
+  const nombreDep = DEPARTAMENTO_NOMBRE[dep] ?? dep;
+  const colaboraciones = COLABORACIONES_POR_DEPARTAMENTO[dep] ?? [];
+
+  const [departamentoAbierto, setDepartamentoAbierto] = useState<string | null>(null);
+  const [colaboracionAbierta, setColaboracionAbierta] = useState<string | null>(null);
+
+  // Nivel 3: pantalla del proceso. Hoy solo Altar existe.
+  if (colaboracionAbierta === 'ALTAR') {
+    return <AfirmacionAltar iglesiaId={colaboracion.iglesia_id} onVolver={() => setColaboracionAbierta(null)} />;
+  }
+
+  // Nivel 2: colaboraciones del departamento.
+  if (departamentoAbierto === dep) {
+    return (
+      <div className="flex flex-col gap-4">
+        <button
+          type="button"
+          onClick={() => setDepartamentoAbierto(null)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Volver
+        </button>
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">{nombreDep}</h2>
+          <p className="text-sm text-muted-foreground">Elegí la colaboración que vas a registrar.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {colaboraciones.map((c) => (
+            <TarjetaColaboracion
+              key={c.codigo}
+              c={c}
+              color={color}
+              onAbrir={() => c.disponible && setColaboracionAbierta(c.codigo)}
+            />
           ))}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // Nivel 1: departamento.
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight">Tus colaboraciones</h2>
+        <p className="text-sm text-muted-foreground">Elegí el área en la que vas a colaborar.</p>
+      </div>
+      <TarjetaDepartamento
+        nombre={nombreDep}
+        color={color}
+        colaboraciones={colaboraciones}
+        onAbrir={() => setDepartamentoAbierto(dep)}
+      />
     </div>
   );
 }
@@ -209,27 +336,9 @@ export function Colaborar() {
             <p className="text-sm font-medium text-muted-foreground">
               El líder pausó tu colaboración. Vas a recuperar el acceso apenas la reanude.
             </p>
-            <div className="mt-4 w-full max-w-md text-left">
-              <MiHistorial />
-            </div>
           </div>
         ) : (
-          <Tabs defaultValue="formulario">
-            <TabsList>
-              <TabsTrigger value="formulario"><UserPlus />Cargar persona</TabsTrigger>
-              <TabsTrigger value="historial"><History />Mi historial</TabsTrigger>
-            </TabsList>
-            <TabsContent value="formulario">
-              <div className="glass-card-elevated rounded-2xl p-5 sm:p-6">
-                <RegistrarPersonaAfirmacion iglesiaId={colaboracion.iglesia_id} />
-              </div>
-            </TabsContent>
-            <TabsContent value="historial">
-              <section className="overflow-hidden rounded-2xl border border-border/60 bg-card p-5">
-                <MiHistorial />
-              </section>
-            </TabsContent>
-          </Tabs>
+          <PortalColaborar colaboracion={colaboracion} />
         )}
       </main>
     </div>
