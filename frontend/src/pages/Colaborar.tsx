@@ -58,6 +58,9 @@ const DEPARTAMENTO_NOMBRE: Record<string, string> = {
 interface ColaboracionItem {
   codigo: string;
   label: string;
+  /** Nombre corto para la lista resumida de la tarjeta de departamento
+   * (evita que se trunque). Si no se define, se usa `label`. */
+  labelCorto?: string;
   descripcion: string;
   icono: LucideIcon;
   /** false => tarjeta "Próximamente" hasta que exista la pantalla (Matías). */
@@ -68,9 +71,9 @@ interface ColaboracionItem {
 // tareas -- el código habilita todas (harness/22, sin granularidad por tarea).
 const COLABORACIONES_POR_DEPARTAMENTO: Record<string, ColaboracionItem[]> = {
   AFIRMACION: [
-    { codigo: 'ALTAR', label: 'Altar', descripcion: 'Registrar personas que pasan al altar', icono: Church, disponible: true },
+    { codigo: 'ALTAR', label: 'Altar', descripcion: 'Registrar personas del altar', icono: Church, disponible: true },
     { codigo: 'BAUTISMO', label: 'Bautismo', descripcion: 'Registrar bautismos', icono: Droplets, disponible: false },
-    { codigo: 'RSIL', label: 'Retiro de Sanidad Interior', descripcion: 'Registrar el retiro', icono: HeartPulse, disponible: false },
+    { codigo: 'RSIL', label: 'Retiro de Sanidad Interior', labelCorto: 'RSIL', descripcion: 'Registrar el retiro', icono: HeartPulse, disponible: false },
     { codigo: 'MEMBRESIA', label: 'Membresía', descripcion: 'Membresía desde 0', icono: ClipboardList, disponible: false },
   ],
 };
@@ -192,18 +195,18 @@ function TarjetaDepartamento({
     <button
       type="button"
       onClick={onAbrir}
-      className="flex w-full items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 text-left shadow-sm transition-colors hover:bg-muted/40 sm:gap-5 sm:p-6"
+      className="flex w-full items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 text-left shadow-sm transition-colors hover:bg-muted/40 sm:gap-6 sm:rounded-3xl sm:p-8"
     >
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl sm:h-16 sm:w-16" style={fondoIcono(color)}>
-        <Building2 className="h-7 w-7 sm:h-8 sm:w-8" />
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl sm:h-20 sm:w-20 sm:rounded-3xl" style={fondoIcono(color)}>
+        <Building2 className="h-7 w-7 sm:h-10 sm:w-10" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-base font-bold sm:text-lg">{nombre}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-          {colaboraciones.map((c) => c.label).join(' · ')}
+        <p className="text-base font-bold sm:text-2xl">{nombre}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground sm:mt-1 sm:text-base">
+          {colaboraciones.map((c) => c.labelCorto ?? c.label).join(' · ')}
         </p>
       </div>
-      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground sm:h-6 sm:w-6" />
+      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground sm:h-7 sm:w-7" />
     </button>
   );
 }
@@ -216,21 +219,24 @@ function TarjetaColaboracion({ c, color, onAbrir }: { c: ColaboracionItem; color
       onClick={onAbrir}
       disabled={!c.disponible}
       className={cn(
-        'flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left shadow-sm transition-colors sm:gap-4 sm:p-5',
+        'relative flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left shadow-sm transition-colors sm:gap-4 sm:p-5',
         c.disponible ? 'hover:bg-muted/40' : 'cursor-not-allowed opacity-60',
       )}
     >
+      {/* Badge "Próximamente" en la esquina para que no le coma ancho al
+          título (los nombres largos como RSIL quedaban apretados a su lado). */}
+      {!c.disponible && (
+        <Badge variant="outline" className="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px]">Próximamente</Badge>
+      )}
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12" style={fondoIcono(color)}>
         <Icono className="h-5 w-5 sm:h-6 sm:w-6" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold sm:text-base">{c.label}</p>
+        <p className={cn('text-sm font-semibold sm:text-base', !c.disponible && 'pr-20 sm:pr-24')}>{c.label}</p>
         <p className="text-xs text-muted-foreground sm:text-[13px]">{c.descripcion}</p>
       </div>
-      {c.disponible ? (
+      {c.disponible && (
         <ChevronRight className="h-4 w-4 shrink-0 self-center text-muted-foreground sm:h-5 sm:w-5" />
-      ) : (
-        <Badge variant="outline" className="shrink-0 self-center text-[10px] sm:text-[11px]">Próximamente</Badge>
       )}
     </button>
   );
@@ -296,7 +302,7 @@ function PortalColaborar({ colaboracion }: { colaboracion: MiColaboracionActiva 
   // Nivel 1: departamento. Acotado (max-w-lg) y centrado para que la única
   // tarjeta no se estire en desktop; títulos centrados.
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 py-4">
+    <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 py-4">
       <AvisoResponsabilidad />
       <div className="flex flex-col gap-5">
         <div className="text-center">
