@@ -86,6 +86,24 @@ https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkX
     ¿El toggle es por iglesia, o global de la organización? ¿Aplica solo a
     Efesios o a cualquier persona marcada hoy con `persona.oculto`?
 
+## Membresía desde 0 — inventario de campos (2026-09-29)
+
+14. ~~**Cónyuge y Familia**~~ **RESUELTO (2026-09-29)**: la familia SÍ
+    entra en la Membresía desde-0 -- cónyuge e hijos (decisión del owner).
+15. **Origen link vs desde-0**: ¿cómo se distinguen las dos membresías en
+    la base? (campo de origen en la ficha, tabla separada, etc.) -- el
+    owner confirmó que son "dos formularios distintos", falta el mecanismo
+    técnico exacto.
+16. **Botón "llenar membresía" desde Bautismo** (Requisito 0): al registrar
+    el bautismo, ¿el botón abre la Membresía desde-0 en la misma pantalla,
+    navega a otra, o queda como pendiente/recordatorio? ¿Es obligatorio
+    hacer la membresía tras bautizar o puede quedar para después?
+17. **Wording de las preguntas livianas** (ministerio / discipulado / ya
+    asiste): confirmar el texto exacto y el tipo de control. Propuesta:
+    "¿Ya asistes a la iglesia?" (sí/no); "¿Has trabajado en algún
+    ministerio?" (sí/no) + "¿Cuál?" (texto si sí); "¿Estás en discipulado?"
+    (sí/no). ¿Alguna necesita más detalle (ej. desde cuándo, con quién)?
+
 ## Confirmado, no requiere pregunta (documentado para no repreguntar)
 
 - Es una **membresía paralela/v2** que coexiste con el formulario de
