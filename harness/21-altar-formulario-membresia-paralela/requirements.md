@@ -1,44 +1,110 @@
-# Requisitos — Ampliar el formulario de Altar a "membresía paralela"
+# Requisitos — Membresía desde 0 (paralela) + formulario rico de Altar
 
-**Harness de MODIFICACIÓN.** No se implementa nada acá -- este paquete
-describe cómo hay que ampliar el formulario de alta de persona de Altar
-(hoy `DatosBasicosPersonaFields` + pestaña "Nuevo" de `AfirmacionAltar.tsx`,
-KAN-481, ya en producción). **Quien lo implementa es Matías.** Escrito
-2026-09-29 a partir del formulario en papel/Google que Afirmación usa hoy
-(`basura_no_leer/form_altar.png`) y de una ronda de decisiones con el
-owner (ver más abajo cada respuesta citada).
+> **RE-SCOPEADO 2026-09-29.** Este harness antes se llamaba "ampliar el
+> formulario de Altar". Tras aclarar el modelo con el owner, quedó
+> separado en dos partes con dueños distintos:
+> - **Formulario rico de Altar** (`form_altar.png`): lo construye **Matías**
+>   como parte del registro de personas de Altar (Altar/RSIL son
+>   "solo registrar personas", copy-page). Son los campos de las secciones
+>   de abajo.
+> - **Membresía desde 0 (paralela)** — el MODELO de membresía nueva,
+>   distinta de la de "link": es trabajo de **Gonzalo (Chalo)**. Define que
+>   existen DOS formularios de membresía separados y cómo se diferencian.
+>
+> No se implementa nada acá -- es solo spec. Reparto general en
+> `basura_no_leer/planificacion.jpeg`. Formulario rico de referencia:
+> https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkXLCc-_12LWA/viewform
 
-> **Para Matías:** este es el harness para modificar el formulario de
-> Altar. Antes de tocar código, leé este `requirements.md`, el
-> `technical-design.md` (rutas de archivo reales + mecanismos a reusar) y
-> el `open-questions.md` (decisiones que el owner delegó explícitamente en
-> vos, "que el programador decida/pregunte"). Formulario de referencia
-> vivo: https://docs.google.com/forms/d/e/1FAIpQLSdTC5p1A85j4Xn8pzLj4k-pUgZM_v52C6oQZhkXLCc-_12LWA/viewform
+## Concepto central: DOS membresías separadas (link vs desde 0)
 
-## Concepto central: es una "membresía paralela / v2", no un simple form de alta
+Decisión del owner (2026-09-29): existen **dos formularios de membresía
+distintos**, que coexisten -- no uno que se amplía:
 
-Decisión del owner (2026-09-29, verbatim): *"ya tenemos formulario de
-membresía pero eso existe solo para los que están ya en la iglesia antes
-del sistema... ahora estamos ideando una segunda versión que debe
-coexistir con la anterior, pero esta es solo para los nuevos de altar y
-acá no preguntamos ya muchas cosas que tiene nuestra membresía actual como
-ministerio o rol en la iglesia, o cosas que hagan notar como si la persona
-ya sea de la iglesia. Por lo tanto es un formulario de membresía pero
-paralelo."*
+1. **Membresía por link** (ya existe, `RegistrarPersonaAfirmacion.tsx`, NO
+   se toca): para miembros previos a la app / registro por link. Pregunta
+   todo (ministerio, cargo, liderazgo, censo, etc.).
+2. **Membresía desde 0** (nueva, trabajo de Chalo): para gente nueva que
+   se capta/bautiza. Es un formulario **separado y más liviano** -- NO
+   pregunta ministerio, cargo, liderazgo ni nada que marque a la persona
+   como "ya de la iglesia" (se asume que todos son nuevos). Verbatim del
+   owner: *"son dos formularios distintos... la de bautismo no pregunta
+   ministerio/cargo/liderazgo"*.
 
-- **THE SYSTEM SHALL** tratar este formulario ampliado como una segunda
-  versión de membresía (liviana, para gente nueva captada en Altar) que
-  **coexiste** con el formulario de membresía actual
-  (`RegistrarPersonaAfirmacion.tsx`) -- no lo reemplaza.
-- **THE SYSTEM SHALL NOT** incluir en este formulario los campos que
+- **THE SYSTEM SHALL** mantener las dos membresías como formularios
+  separados -- IF NOT THE SYSTEM SHALL NOT fusionarlas ni reemplazar la de
+  link con la desde-0.
+- **THE SYSTEM SHALL** distinguir el **origen** de cada membresía (link vs
+  desde-0) para poder diferenciarlas después (ver open-questions -- si es
+  un campo de origen, tablas separadas, etc.).
+- **THE SYSTEM SHALL NOT** incluir en la membresía desde-0 los campos que
   marcan a alguien como "ya de la iglesia": ministerio, rol/cargo, censo,
-  discipulados avanzados, etc. Solo los datos de una persona recién
-  captada.
-- **THE SYSTEM SHALL** guardar los datos de membresía capturados
-  (estado civil, ocupación, dirección, bautismo) **en la ficha real de la
-  persona** (`persona_detalle` y afines), no atados solo al registro
-  puntual de Altar -- así quedan disponibles para toda la app (decisión
-  del owner).
+  discipulados avanzados.
+- **THE SYSTEM SHALL** guardar los datos capturados (estado civil,
+  ocupación, dirección, bautismo) **en la ficha real de la persona**
+  (`persona_detalle` y afines), disponibles para toda la app.
+
+## Requisito 0 — Bautismo enlaza a "llenar membresía" (nuevo, 2026-09-29)
+
+Bautismo es un proceso de **solo registrar** (como Altar/RSIL: buscar/
+agregar persona + marcar bautismo con fecha; trabajo de Matías/copy-page).
+Pedido del owner: WHEN se registra el bautismo de una persona, THE SYSTEM
+SHALL ofrecer un **botón que lleve a llenar la membresía** (desde-0) de esa
+persona una vez bautizada -- Bautismo y Membresía son cosas distintas pero
+van juntas (todo el que se bautiza hace su membresía). El botón es el
+puente entre el registro de bautismo (Matías) y el formulario de membresía
+desde-0 (Chalo).
+
+## Inventario: qué pide la Membresía desde 0 vs qué se quita
+
+Comparación contra el formulario de membresía por link real hoy
+(`RegistrarPersonaAfirmacion.tsx` = `CamposMembresiaFields` +
+`CamposMembresiaExtendidaFields`). Escrito a pedido del owner
+(2026-09-29) "para estar seguros".
+
+### Campos que SÍ pide la Membresía desde 0
+
+Datos de una persona recién captada (coinciden con `form_altar.png`):
+
+- **Nombres**: primer nombre *, segundo nombre, primer apellido *, segundo
+  apellido -- 4 campos separados, formato Título en vivo (ver Requisito 2).
+- **Sexo** * (M / F; ver open-questions #8 sobre "Sin especificar").
+- **Fecha de nacimiento** (con el mecanismo edad-o-fecha de CdP, Requisito 3).
+- **Estado civil** (Soltero/Casado/Viudo/Divorciado/Concubinato).
+- **Dirección** (texto).
+- **Ocupación**.
+- **Celular** (prefijo país + número).
+- **Horario de contacto** (campo nuevo, ver open-questions #9).
+- **CI** y **Correo** (opcionales).
+- **Grado de instrucción** (opcional).
+- **Tipo de decisión** → estado SSVA automático (Requisito 4).
+- **¿Es bautizado?** (Católica / Evangélica + cuál iglesia / Centro de
+  Vida) (Requisito 5).
+- **¿Asiste a alguna Casa de Paz? (cuál líder)** (ver open-questions #10).
+- **¿Cómo llegó a la iglesia?** (ver open-questions #11).
+- **Categoría de evangelismo** (1+1 / CDP / Elite) (Requisito 6).
+
+### Campos que se QUITAN (están en la membresía por link, NO van en la desde 0)
+
+Todo lo que marca a la persona como "ya de la iglesia" -- decisión del
+owner: la desde-0 asume que todos son nuevos, no pregunta nada de esto:
+
+- **Ministerios** (`SeccionMinisteriosMembresia`) -- QUITADO.
+- **Cargo / Rango / Posición en la iglesia / Efesio / Otros cargos**
+  (`SeccionCargoRangoMembresia`) -- QUITADO (liderazgo/censo).
+- **Discipulados realizados** (`SeccionDiscipuladosMembresia`) -- QUITADO
+  (progreso de discipulado = ya está en la iglesia).
+- **Seminario / Universidad Rey Jesús**
+  (`SeccionSeminarioUniversidadMembresia`) -- QUITADO (formación interna).
+- **Mentor** (parte de `SeccionMentorBautismoMembresia`) -- QUITADO (el
+  mentor es estructura de discipulado interno). De esa sección se
+  **conserva solo el bautismo**.
+
+### A confirmar (no está claro si van o no)
+
+- **Cónyuge** (`SeccionConyugeMembresia`) y **Familia**
+  (`SeccionFamiliaMembresia`): son datos personales, no de "estar en la
+  iglesia", pero `form_altar.png` no los incluye. ¿Se quitan de la desde-0
+  o se dejan opcionales? -- ver open-questions.
 
 ## Requisito 1 — Persona existente: precargar y verificar
 
