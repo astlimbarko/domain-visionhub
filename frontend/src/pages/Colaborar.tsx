@@ -111,16 +111,18 @@ function EncabezadoColaborar({ iglesiaNombre, texto, pausado }: { iglesiaNombre?
   );
 }
 
+// Aviso discreto (pedido del owner 2026-09-30): el mensaje es importante pero
+// NO debe ser protagonista -- nota sutil de una línea con ícono chico, sin la
+// caja roja llamativa de antes.
 function AvisoResponsabilidad() {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-      <p className="text-[13px] leading-relaxed text-foreground">
-        <span className="font-semibold text-destructive">Sos responsable de los datos que cargues acá.</span>{' '}
-        Este acceso es temporal y acotado a Afirmación -- solo podés registrar personas nuevas durante esta colaboración.
-        Escribí los datos con cuidado antes de guardar.
-      </p>
-    </div>
+    <p className="flex items-center justify-center gap-1.5 text-center text-[11px] leading-relaxed text-muted-foreground">
+      <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+      <span>
+        <span className="font-medium text-foreground/80">Sos responsable de los datos que cargues.</span>{' '}
+        Acceso temporal, acotado a Afirmación.
+      </span>
+    </p>
   );
 }
 
