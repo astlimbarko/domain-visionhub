@@ -223,12 +223,12 @@ function TarjetaColaboracion({ c, color, onAbrir }: { c: ColaboracionItem; color
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{c.label}</p>
-        <p className="truncate text-xs text-muted-foreground">{c.descripcion}</p>
+        <p className="text-xs text-muted-foreground">{c.descripcion}</p>
       </div>
       {c.disponible ? (
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronRight className="h-4 w-4 shrink-0 self-center text-muted-foreground" />
       ) : (
-        <Badge variant="outline" className="shrink-0 text-[10px]">Próximamente</Badge>
+        <Badge variant="outline" className="shrink-0 self-center text-[10px]">Próximamente</Badge>
       )}
     </button>
   );
@@ -243,35 +243,49 @@ function PortalColaborar({ colaboracion }: { colaboracion: MiColaboracionActiva 
   const [departamentoAbierto, setDepartamentoAbierto] = useState<string | null>(null);
   const [colaboracionAbierta, setColaboracionAbierta] = useState<string | null>(null);
 
-  // Nivel 3: pantalla del proceso. Hoy solo Altar existe.
+  // Nivel 3: pantalla del proceso (hoy solo Altar). Aviso arriba + Altar
+  // top-aligned -- Altar es alto y trae su propio centrado interno.
   if (colaboracionAbierta === 'ALTAR') {
-    return <AfirmacionAltar iglesiaId={colaboracion.iglesia_id} onVolver={() => setColaboracionAbierta(null)} />;
+    return (
+      <div className="flex flex-col gap-5">
+        <AvisoResponsabilidad />
+        <AfirmacionAltar iglesiaId={colaboracion.iglesia_id} onVolver={() => setColaboracionAbierta(null)} />
+      </div>
+    );
   }
+
+  // Niveles 1 y 2: el aviso + las tarjetas se centran como UN grupo en el
+  // espacio disponible (no el aviso pegado arriba y las tarjetas flotando
+  // abajo) -- así en desktop/tablet queda balanceado, mismo criterio "prolijo"
+  // que la pantalla de Altar.
 
   // Nivel 2: colaboraciones del departamento.
   if (departamentoAbierto === dep) {
     return (
-      <div className="flex flex-col gap-4">
-        <button
-          type="button"
-          onClick={() => setDepartamentoAbierto(null)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Volver
-        </button>
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">{nombreDep}</h2>
-          <p className="text-sm text-muted-foreground">Elegí la colaboración que vas a registrar.</p>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {colaboraciones.map((c) => (
-            <TarjetaColaboracion
-              key={c.codigo}
-              c={c}
-              color={color}
-              onAbrir={() => c.disponible && setColaboracionAbierta(c.codigo)}
-            />
-          ))}
+      <div className="flex flex-1 flex-col justify-center gap-5 py-4">
+        <AvisoResponsabilidad />
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={() => setDepartamentoAbierto(null)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </button>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">{nombreDep}</h2>
+            <p className="text-sm text-muted-foreground">Elegí la colaboración que vas a registrar.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {colaboraciones.map((c) => (
+              <TarjetaColaboracion
+                key={c.codigo}
+                c={c}
+                color={color}
+                onAbrir={() => c.disponible && setColaboracionAbierta(c.codigo)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -279,17 +293,20 @@ function PortalColaborar({ colaboracion }: { colaboracion: MiColaboracionActiva 
 
   // Nivel 1: departamento.
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-bold tracking-tight">Tus colaboraciones</h2>
-        <p className="text-sm text-muted-foreground">Elegí el área en la que vas a colaborar.</p>
+    <div className="flex flex-1 flex-col justify-center gap-5 py-4">
+      <AvisoResponsabilidad />
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">Tus colaboraciones</h2>
+          <p className="text-sm text-muted-foreground">Elegí el área en la que vas a colaborar.</p>
+        </div>
+        <TarjetaDepartamento
+          nombre={nombreDep}
+          color={color}
+          colaboraciones={colaboraciones}
+          onAbrir={() => setDepartamentoAbierto(dep)}
+        />
       </div>
-      <TarjetaDepartamento
-        nombre={nombreDep}
-        color={color}
-        colaboraciones={colaboraciones}
-        onAbrir={() => setDepartamentoAbierto(dep)}
-      />
     </div>
   );
 }
@@ -327,16 +344,17 @@ export function Colaborar() {
     <div className="flex min-h-svh flex-col bg-muted/40">
       <EncabezadoColaborar iglesiaNombre={colaboracion.iglesia_nombre} texto={texto} pausado={pausado} />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 p-4 sm:p-6">
-        <AvisoResponsabilidad />
-
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4 sm:p-6">
         {pausado ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-12 text-center">
-            <Pause className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium text-muted-foreground">
-              El líder pausó tu colaboración. Vas a recuperar el acceso apenas la reanude.
-            </p>
-          </div>
+          <>
+            <AvisoResponsabilidad />
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-12 text-center">
+              <Pause className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">
+                El líder pausó tu colaboración. Vas a recuperar el acceso apenas la reanude.
+              </p>
+            </div>
+          </>
         ) : (
           <PortalColaborar colaboracion={colaboracion} />
         )}
