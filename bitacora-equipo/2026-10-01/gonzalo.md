@@ -10,3 +10,13 @@
 - [ ] Falta (próxima sesión): dirección normalizada, combobox CdP por Red+satélites para "¿a cuál?", persistir cómo llegó/discipulado, precarga de persona existente, verificar en vivo
 - [ ] Falta: integrar las 4 ramas a master + entradas de /avances antes de mergear
 - [ ] Pendiente: revisar reporte de OpenCode de KAN-469
+
+## Sesión 2 (mismo día)
+
+- [x] Pusheé a remoto las 3 ramas de ayer (Bautismo/RSIL/Membresía estaban solo local) — nada en riesgo
+- [x] KAN-469 lo hice yo directo (no OpenCode): cierre optimista del modal de anuncios, rama `fix/kan469-modal-anuncios-optimista` pusheada, Jira En revisión
+- [x] Membresía: persistí dirección (sistema normalizado, `direccion.calle`) y cómo llegó (`persona_llegada.comentarios`) — migración aplicada a prod
+- [x] Backend de CdP buscable: `fn_listar_cdp_asistencia` (CdP de la iglesia + satélites, por Red) + discipulado por nivel en la RPC — aplicado a prod
+- [x] Decisiones del owner: unificar "¿a cuál asiste?" con la asignación de CdP (picker buscable reemplaza "elegir de la lista"); discipulado = dropdown de cursos reales
+- [ ] Falta frontend Membresía (backend ya listo): types discipuladoNivel, dropdown de cursos, picker buscable de CdP, verificar en vivo
+- [ ] Falta: probar KAN-469 en vivo; integrar las 4 ramas a master + /avances antes de mergear
