@@ -1,0 +1,17 @@
+-- harness/24: proceso de Afirmación "Bautismo".
+--
+-- Sumar BAUTISMO al enum de procesos habilita la pantalla
+-- AfirmacionBautismo.tsx sin más cambios de esquema: las funciones
+-- genéricas de Afirmación (fn_afirmacion_registrar_proceso,
+-- ..._estado_proceso, ..._historial_proceso, ver
+-- 20260927140000_kan481_altar_proceso_afirmacion.sql) ya son parametrizadas
+-- por p_proceso_codigo y soportan cualquier valor del enum.
+--
+-- ⚠️ ALTER TYPE ... ADD VALUE no se puede combinar con otras sentencias en la
+-- misma transacción (Postgres: "unsafe use of new value"), por eso este
+-- archivo tiene UNA sola sentencia.
+--
+-- Nota 2026-10-01: el valor ya está aplicado en producción (se corrió a mano
+-- fuera de la cadena de migraciones). El archivo queda como registro; es
+-- idempotente (IF NOT EXISTS) para quien aplique la cadena desde cero.
+ALTER TYPE proceso_afirmacion_codigo_enum ADD VALUE IF NOT EXISTS 'BAUTISMO';

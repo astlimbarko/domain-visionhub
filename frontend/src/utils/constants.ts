@@ -96,6 +96,9 @@ export const ROUTES = {
   // KAN-481: primer proceso de Afirmacion (Altar) -- buscar/dar de alta una
   // persona y registrar que paso al altar, con historial de fechas.
   AFIRMACION_ALTAR: '/afirmacion-altar',
+  // harness/24: segundo proceso de Afirmación (Bautismo) -- mismo clon de
+  // Altar con proceso propio + botón "Llenar membresía" (pendiente, harness/21).
+  AFIRMACION_BAUTISMO: '/afirmacion-bautismo',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',
