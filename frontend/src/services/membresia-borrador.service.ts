@@ -57,6 +57,8 @@ export async function guardarMembresiaNuevos(
     grado_instruccion: datos.gradoInstruccion,
     ocupacion: datos.ocupacion,
     telefono: componerTelefono(datos.telefonoPais, datos.telefonoNumero),
+    direccion: datos.direccion,
+    como_llego: datos.comoLlego,
     es_visita: datos.esVisita,
     cdp_modo: datos.cdpModo,
     invitador_persona_id: datos.invitadorPersonaId,
