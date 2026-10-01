@@ -215,7 +215,7 @@ export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Pro
 // 20260927140000_kan481_altar_proceso_afirmacion.sql. Una sola persona
 // puede pasar por el mismo proceso mas de una vez (historial de fechas).
 
-export type ProcesoAfirmacionCodigo = 'ALTAR' | 'RSIL' | 'FIESTA_BIENVENIDA';
+export type ProcesoAfirmacionCodigo = 'ALTAR' | 'BAUTISMO' | 'RSIL' | 'FIESTA_BIENVENIDA';
 
 export interface EstadoProcesoAfirmacion {
   realizado: boolean;
