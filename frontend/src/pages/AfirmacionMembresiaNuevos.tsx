@@ -29,6 +29,7 @@ import {
   guardarBorradorMembresia,
   obtenerBorradorMembresia,
   eliminarBorradorMembresia,
+  guardarMembresiaNuevos,
 } from '@/services/membresia-borrador.service';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
@@ -53,6 +54,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesi
   const [datos, setDatos] = useState<DatosMembresiaNuevos>(DATOS_MEMBRESIA_NUEVOS_VACIO);
   const [estado, setEstado] = useState<EstadoGuardado>('inactivo');
   const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
+  const [guardandoFinal, setGuardandoFinal] = useState(false);
   const hidratado = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,12 +106,38 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesi
     toast.success('Formulario limpio, listo para empezar de cero.');
   }
 
-  function handleGuardar() {
-    // KAN-488: el guardado final a las tablas reales (persona + detalle +
-    // teléfono + dirección + estado SSVA + Casa de Paz) queda pendiente hasta
-    // cerrar con el owner cómo se asigna la CdP (invitador/afinidad vs
-    // "Asignar", harness/23). El autoguardado del borrador SÍ funciona.
-    toast.info('Guardado final pendiente de conectar (definición de Casa de Paz).');
+  async function handleGuardar() {
+    if (!iglesiaId || guardandoFinal) return;
+    setGuardandoFinal(true);
+    try {
+      const res = await guardarMembresiaNuevos(iglesiaId, datos);
+      // El borrador ya cumplió su función; se borra para no restaurarlo después.
+      try {
+        await eliminarBorradorMembresia(iglesiaId);
+      } catch {
+        /* no bloquea: la membresía ya quedó guardada */
+      }
+      setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO);
+      setEstado('inactivo');
+      if (res.sin_casa_de_paz) {
+        toast.success(`Membresía guardada: ${res.nombre_completo}. Quedó sin Casa de Paz — aparecerá en designaciones.`);
+      } else {
+        toast.success(`Membresía guardada: ${res.nombre_completo}.`);
+      }
+    } catch (e) {
+      const mensaje = e instanceof Error ? e.message : '';
+      if (mensaje.includes('AFIRMACION_SIN_PERMISO')) {
+        toast.error('No tenés permiso para registrar membresías en esta iglesia.');
+      } else if (mensaje.includes('MEMBRESIA_DATOS_INCOMPLETOS')) {
+        toast.error('Faltan datos obligatorios: nombre, apellido y sexo.');
+      } else if (mensaje.includes('MEMBRESIA_CDP_INVALIDA')) {
+        toast.error('La Casa de Paz elegida no es válida. Elegí otra.');
+      } else {
+        toast.error('No se pudo guardar la membresía. Intentá de nuevo.');
+      }
+    } finally {
+      setGuardandoFinal(false);
+    }
   }
 
   if (!iglesiaId) {
@@ -134,8 +162,9 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesi
         <Button type="button" variant="outline" className="gap-1.5" onClick={() => setConfirmarLimpiar(true)}>
           <Eraser className="h-4 w-4" /> Limpiar
         </Button>
-        <Button type="button" className="flex-1 gap-1.5 py-6 text-base" disabled={!puedeGuardar} onClick={handleGuardar}>
-          <Save className="h-5 w-5" /> Guardar membresía
+        <Button type="button" className="flex-1 gap-1.5 py-6 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
+          {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+          {guardandoFinal ? 'Guardando…' : 'Guardar membresía'}
         </Button>
       </div>
 
