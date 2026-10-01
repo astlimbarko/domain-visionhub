@@ -60,6 +60,10 @@ const AfirmacionCasasDePaz = lazy(() => import('@/pages/AfirmacionCasasDePaz').t
 const AfirmacionPersonas = lazy(() => import('@/pages/AfirmacionPersonas').then((m) => ({ default: m.AfirmacionPersonas })));
 const AfirmacionColaboradores = lazy(() => import('@/pages/AfirmacionColaboradores').then((m) => ({ default: m.AfirmacionColaboradores })));
 const AfirmacionAltar = lazy(() => import('@/pages/AfirmacionAltar').then((m) => ({ default: m.AfirmacionAltar })));
+// harness/24: Bautismo, clon de Altar con proceso propio.
+const AfirmacionBautismo = lazy(() => import('@/pages/AfirmacionBautismo').then((m) => ({ default: m.AfirmacionBautismo })));
+// harness/24: RSIL, clon de Bautismo con proceso propio.
+const AfirmacionRSIL = lazy(() => import('@/pages/AfirmacionRSIL').then((m) => ({ default: m.AfirmacionRSIL })));
 // KAN-405: accesible para CUALQUIER rol (no pasa por RutaAfirmacion) -- ver
 // ROUTES.COLABORAR en constants.ts y puedeAccederRuta en paneles-contexto.ts.
 const Colaborar = lazy(() => import('@/pages/Colaborar').then((m) => ({ default: m.Colaborar })));
@@ -337,6 +341,10 @@ function App() {
             <Route path={ROUTES.AFIRMACION_PERSONAS} element={<RutaAfirmacion><AfirmacionPersonas /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_COLABORADORES} element={<RutaAfirmacion><AfirmacionColaboradores /></RutaAfirmacion>} />
             <Route path={ROUTES.AFIRMACION_ALTAR} element={<RutaAfirmacion><AfirmacionAltar /></RutaAfirmacion>} />
+            {/* harness/24: Bautismo (mismo guard de Afirmación que Altar). */}
+            <Route path={ROUTES.AFIRMACION_BAUTISMO} element={<RutaAfirmacion><AfirmacionBautismo /></RutaAfirmacion>} />
+            {/* harness/24: RSIL (mismo guard de Afirmación que Altar/Bautismo). */}
+            <Route path={ROUTES.AFIRMACION_RSIL} element={<RutaAfirmacion><AfirmacionRSIL /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 
