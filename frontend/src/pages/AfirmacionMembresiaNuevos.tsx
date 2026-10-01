@@ -6,7 +6,7 @@
 // harness/23). Reusable desde el portal de Colaborar via prop `iglesiaId`.
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Save, Eraser, Check, Loader2 } from 'lucide-react';
+import { Save, Eraser, Check, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,7 +47,7 @@ function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
   );
 }
 
-export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesiaId?: string } = {}) {
+export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }: { iglesiaId?: string; onVolver?: () => void } = {}) {
   const iglesiaDelStore = useAuthStore((s) => s.iglesiaActivaId);
   const iglesiaId = iglesiaIdProp ?? iglesiaDelStore;
 
@@ -148,6 +148,15 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesi
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-1">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Volver al portal
+        </button>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Membresía (Nuevos)</h1>

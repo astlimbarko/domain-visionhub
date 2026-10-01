@@ -49,6 +49,8 @@ import { AfirmacionAltar } from '@/pages/AfirmacionAltar';
 import { AfirmacionBautismo } from '@/pages/AfirmacionBautismo';
 // harness/24: RSIL, clon de Bautismo embebido en el portal (Req 7).
 import { AfirmacionRSIL } from '@/pages/AfirmacionRSIL';
+// KAN-488: Membresía desde 0, embebida en el portal igual que Altar/Bautismo/RSIL.
+import { AfirmacionMembresiaNuevos } from '@/pages/AfirmacionMembresiaNuevos';
 import type { MiColaboracionActiva } from '@/types/colaborador.types';
 
 // Nombre visible de cada departamento (DEPARTAMENTO_META solo trae verbo+color).
@@ -78,7 +80,7 @@ const COLABORACIONES_POR_DEPARTAMENTO: Record<string, ColaboracionItem[]> = {
     { codigo: 'ALTAR', label: 'Altar', descripcion: 'Registrar personas del altar', icono: Church, disponible: true },
     { codigo: 'BAUTISMO', label: 'Bautismo', descripcion: 'Registrar bautismos', icono: Droplets, disponible: true },
     { codigo: 'RSIL', label: 'Retiro de Sanidad Interior', labelCorto: 'RSIL', descripcion: 'Registrar el retiro', icono: HeartPulse, disponible: true },
-    { codigo: 'MEMBRESIA', label: 'Membresía', descripcion: 'Membresía desde 0', icono: ClipboardList, disponible: false },
+    { codigo: 'MEMBRESIA', label: 'Membresía', descripcion: 'Membresía desde 0', icono: ClipboardList, disponible: true },
   ],
 };
 
@@ -282,6 +284,16 @@ function PortalColaborar({ colaboracion }: { colaboracion: MiColaboracionActiva 
       <div className="flex flex-col gap-5">
         <AvisoResponsabilidad />
         <AfirmacionRSIL iglesiaId={colaboracion.iglesia_id} onVolver={() => setColaboracionAbierta(null)} />
+      </div>
+    );
+  }
+
+  // KAN-488: Membresía desde 0, mismo tratamiento embebido.
+  if (colaboracionAbierta === 'MEMBRESIA') {
+    return (
+      <div className="flex flex-col gap-5">
+        <AvisoResponsabilidad />
+        <AfirmacionMembresiaNuevos iglesiaId={colaboracion.iglesia_id} onVolver={() => setColaboracionAbierta(null)} />
       </div>
     );
   }

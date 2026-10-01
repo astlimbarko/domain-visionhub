@@ -12,7 +12,9 @@
 // propósito. El rediseño visual unificado de Altar/Bautismo/RSIL (molde sin
 // scroll, colores suaves por proceso) es trabajo aparte -- harness/24 Req 8.
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ROUTES } from '@/utils/constants';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useFichaPersonaStore } from '@/store/ficha-persona.store';
@@ -97,21 +99,27 @@ function ConfirmarBautismo({
   persona,
   onCancelar,
   onRegistrado,
+  onLlenarMembresia,
 }: {
   persona: { id: string; nombre_completo: string };
   onCancelar: () => void;
   onRegistrado: () => void;
+  /** harness/24 Req 5: si viene, muestra "Llenar membresía" -- registra el
+   * bautismo y luego abre la Membresía desde 0 de esta persona. Solo en el
+   * contexto normal de Afirmación (no en el portal de colaboradores). */
+  onLlenarMembresia?: (persona: { id: string; nombre_completo: string }) => void;
 }) {
   const [fecha, setFecha] = useState(HOY());
   const registrar = useRegistrarProcesoAfirmacion();
 
-  function confirmar() {
+  function confirmar(despues?: () => void) {
     registrar.mutate(
       { personaId: persona.id, procesoCodigo: 'BAUTISMO', fecha },
       {
         onSuccess: () => {
           toast.success(`Bautismo registrado para ${persona.nombre_completo}.`);
-          onRegistrado();
+          if (despues) despues();
+          else onRegistrado();
         },
         onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo registrar el bautismo'),
       },
@@ -136,24 +144,30 @@ function ConfirmarBautismo({
           <Input id="bautismo_fecha" type="date" max={HOY()} value={fecha} onChange={(e) => setFecha(e.target.value)} className={cnPl()} />
         </div>
       </div>
-      {/* harness/24 Req 5 -- PENDIENTE, no implementado a propósito (decisión
-       * del owner 2026-10-01): acá va el botón secundario "Llenar membresía"
-       * que, tras registrar el bautismo, abre la Membresía (Nuevos) de esta
-       * persona precargada. No se puede construir todavía porque la ruta
-* ROUTES.AFIRMACION_MEMBRESIA_NUEVOS (/afirmacion-membresia-nuevos)
-       * aún NO existe en master: vive en la rama de Membresía (harness/21), que
-       * además es la que tiene que definir cómo se precarga una persona
-       * YA EXISTENTE (harness/24 open-questions #1). Se agrega junto con esa
-       * integración; acá solo el registro del bautismo. */}
       <div className="flex gap-2">
         <Button type="button" variant="outline" className="flex-1" onClick={onCancelar} disabled={registrar.isPending}>
           Cancelar
         </Button>
-        <Button type="button" className="flex-1 gap-1.5" onClick={confirmar} disabled={registrar.isPending}>
+        <Button type="button" className="flex-1 gap-1.5" onClick={() => confirmar()} disabled={registrar.isPending}>
           <CheckCircle2 className="h-4 w-4" />
           {registrar.isPending ? 'Registrando...' : 'Registrar bautismo'}
         </Button>
       </div>
+      {/* harness/24 Req 5 (integración 2026-10-01): registra el bautismo y abre
+       * la Membresía desde 0 de esta persona. La precarga de la persona existente
+       * en ese formulario queda pendiente (harness/21) -- por ahora se pasa en el
+       * state de navegación para cuando se implemente. */}
+      {onLlenarMembresia && (
+        <Button
+          type="button"
+          variant="secondary"
+          className="gap-1.5"
+          onClick={() => confirmar(() => onLlenarMembresia(persona))}
+          disabled={registrar.isPending}
+        >
+          <UserPlus className="h-4 w-4" /> Registrar y llenar membresía
+        </Button>
+      )}
     </div>
   );
 }
@@ -174,6 +188,16 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
   const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
   const esPastor = iglesias.find((i) => i.id === iglesiaActivaId)?.es_pastor ?? false;
   const puedeVerTodos = esOperativo || esPastor || esLiderAfirmacion;
+
+  const navigate = useNavigate();
+  // harness/24 Req 5: "Llenar membresía" solo en el contexto normal de Afirmación
+  // (no embebido en el portal de colaboradores, que no pasa por RutaAfirmacion).
+  const onLlenarMembresia = onVolver
+    ? undefined
+    : (persona: { id: string; nombre_completo: string }) =>
+        navigate(ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, {
+          state: { personaId: persona.id, nombre: persona.nombre_completo },
+        });
 
   const [tab, setTab] = useState('buscar');
   const [personaSeleccionada, setPersonaSeleccionada] = useState<{ id: string; nombre_completo: string } | null>(null);
@@ -319,6 +343,7 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
                   persona={personaSeleccionada}
                   onCancelar={() => setPersonaSeleccionada(null)}
                   onRegistrado={() => setPersonaSeleccionada(null)}
+                  onLlenarMembresia={onLlenarMembresia}
                 />
               )}
             </div>
