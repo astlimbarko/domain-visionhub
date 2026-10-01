@@ -61,18 +61,16 @@ exportado a `AfirmacionBautismo`.
   open-questions #2). Cambiar el acento y el degradado de fondo a ese tono.
 - La marca de agua / logo pueden quedar igual (es el logo de la iglesia).
 
-2c. **Botón "Llenar membresía"** (lo único realmente nuevo respecto de
-Altar). En el paso de confirmación, DESPUÉS de registrar el bautismo con
-éxito (donde Altar muestra el toast de éxito y limpia), agregar un botón
-secundario "Llenar membresía" que navegue a la Membresía (Nuevos) de esa
-persona. La ruta es `ROUTES.AFIRMACION_MEMBRESIA_NUEVOS`
-(`/afirmacion-membresia-nuevos`). Pasar la persona recién bautizada
-(id + nombre) para que la Membresía la precargue -- OJO: hoy esa pantalla
-arranca en blanco y todavía NO soporta "persona existente precargada"
-(ver open-questions #1). Por ahora: dejar el botón navegando a esa ruta
-(ej. con el `persona_id` en el state de navegación o query), y marcar en el
-código con un `// TODO harness/24 #1` que la precarga depende de que
-Membresía (Nuevos) acepte una persona existente.
+2c. **Botón "Llenar membresía" — NO se hace en esta iteración** (decisión
+2026-10-01). La ruta `ROUTES.AFIRMACION_MEMBRESIA_NUEVOS` **todavía no
+existe en master** (vive en la rama de la Membresía desde 0, sin mergear).
+Si se agrega ahora, o da 404, o choca en el merge con esa rama. Por eso:
+**dejá la pantalla de Bautismo COMPLETA pero SIN ese botón**, y poné un
+comentario `// TODO harness/24 Req 5 + harness/21: agregar botón "Llenar
+membresía" cuando se integre la rama de Membresía (la ruta vive ahí)`. El
+botón lo agrega quien integre las dos ramas, no vos. **NO agregues
+`AFIRMACION_MEMBRESIA_NUEVOS` a `constants.ts`** (esa línea la trae la rama
+de Membresía).
 
 2d. **Casa de Paz en "añadir nueva persona"** (decisión del owner 2026-10-01):
 cuando se da de alta a esa persona del ~1% que no está en el sistema, el
