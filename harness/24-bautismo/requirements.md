@@ -50,11 +50,17 @@ el **colaborador ve solo lo que él registró** (forzado por el RPC); el
 Líder de Afirmación / operativo / Pastor ven todo, con columna "Colaborador"
 y filtro. Clic en una fila abre la ficha de la persona (como Altar).
 
-## Requisito 5 — Botón "llenar membresía" (opcional, tras bautizar)
+## Requisito 5 — Botón "llenar membresía" (DIFERIDO a la integración)
 
-WHEN se registra un bautismo, THE SYSTEM SHALL mostrar un botón **"Llenar
-membresía"** que abre la **Membresía (Nuevos)** (harness/21) de esa persona,
-**precargada** con sus datos.
+> **NOTA 2026-10-01: este botón NO se construye en la primera iteración de
+> Bautismo.** La ruta de la Membresía (Nuevos) todavía no está en master
+> (vive en otra rama). Bautismo sale completo SIN el botón; el botón se
+> agrega cuando se integren la rama de Bautismo y la de Membresía. Ver
+> technical-design Paso 2c.
+
+(Objetivo final) WHEN se registra un bautismo, THE SYSTEM SHALL mostrar un
+botón **"Llenar membresía"** que abre la **Membresía (Nuevos)** (harness/21)
+de esa persona, **precargada** con sus datos.
 
 - Es **opcional**: se puede hacer en el momento o más tarde (decisión del
   owner). No bloquea el registro del bautismo.
