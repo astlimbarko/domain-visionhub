@@ -99,6 +99,8 @@ export const ROUTES = {
   // harness/24: segundo proceso de Afirmación (Bautismo) -- mismo clon de
   // Altar con proceso propio + botón "Llenar membresía" (pendiente, harness/21).
   AFIRMACION_BAUTISMO: '/afirmacion-bautismo',
+  // harness/24: tercer proceso de Afirmación (RSIL) -- clon de Bautismo.
+  AFIRMACION_RSIL: '/afirmacion-rsil',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

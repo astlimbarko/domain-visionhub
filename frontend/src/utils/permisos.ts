@@ -28,6 +28,8 @@ import {
   // harness/24: Bautismo (mismo icono que la tarjeta de Bautismo en
   // Colaborar.tsx).
   Droplets,
+  // harness/24: RSIL (mismo icono que la tarjeta RSIL del portal).
+  HeartPulse,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -189,6 +191,7 @@ const RUTAS_SUPERVISOR: string[] = [
   ROUTES.AFIRMACION_ALTAR,
   // harness/24: Bautismo, mismo alcance que Altar en ambos roles.
   ROUTES.AFIRMACION_BAUTISMO,
+  ROUTES.AFIRMACION_RSIL,
   ROUTES.FINANZAS,
   ROUTES.PANEL_SUPERVISOR,
   ROUTES.DEPARTAMENTOS,
@@ -233,6 +236,7 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   ROUTES.AFIRMACION_PERSONAS,
   ROUTES.AFIRMACION_ALTAR,
   ROUTES.AFIRMACION_BAUTISMO,
+  ROUTES.AFIRMACION_RSIL,
   // KAN-405: gestión de Colaboradores temporales (generar código, extender/
   // pausar/finalizar, auditoría). Sin esto, el guard de PrivateLayout
   // rebotaba la navegación directa de vuelta a ROUTES.AFIRMACION -- bug real
@@ -318,6 +322,8 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: Church, label: 'Altar (Afirmación)', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482', grupo: 'Dpto. Afirmación' },
   // harness/24: Bautismo (segundo proceso de Afirmación).
   { icon: Droplets, label: 'Bautismo (Afirmación)', path: ROUTES.AFIRMACION_BAUTISMO, color: '#30b0c7', grupo: 'Dpto. Afirmación' },
+  // harness/24: RSIL (Retiro de Sanidad Interior) -- tercer proceso.
+  { icon: HeartPulse, label: 'RSIL (Afirmación)', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8', grupo: 'Dpto. Afirmación' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -355,6 +361,8 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: Church, label: 'Altar', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482' },
   // harness/24: Bautismo -- registrar bautismos (historial de fechas).
   { icon: Droplets, label: 'Bautismo', path: ROUTES.AFIRMACION_BAUTISMO, color: '#30b0c7' },
+  // harness/24: RSIL -- registrar el retiro (historial de fechas).
+  { icon: HeartPulse, label: 'RSIL', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,
