@@ -42,6 +42,50 @@ no solo a la Membresía.
 - WHERE se elige "Asignar", THE SYSTEM SHALL guardar la persona sin CdP y
   dejarla en la cola de pendientes de asignación.
 
+## Requisito 1b — Selector enriquecido + guardado real (decisiones owner 2026-10-01 s3)
+
+Refina el Requisito 1 con el flujo concreto a implementar AHORA (partes A+B;
+el panel del líder = Requisito 2 queda para después). Ruta de trabajo:
+
+1. **Backend**: `fn_listar_cdp_asistencia` suma el **líder** de cada CdP, para
+   poder buscar por líder (además de nombre de CdP y Red; ya trae satélites).
+2. **Selector unificado**: fusionar `SelectorCasaDePaz` (Altar/Bautismo/RSIL) y
+   `SelectorCdpBuscable` (Membresía) en UN componente, con:
+   - **Invitador**: buscar en el sistema **o** escribir un **nombre libre**
+     (`persona_llegada.invitado_por_txt` para el caso libre; `invitado_por_id`
+     para el real).
+   - IF el invitador existe en el sistema y tiene CdP → **auto-sugerir su CdP**,
+     con opción de **cambiarla** (override flexible — el invitado puede ir a otra).
+   - IF el invitador es nombre libre → ofrecer **elegir CdP a mano O dejar en
+     "Asignar"** (las dos opciones).
+   - **Elegir CdP**: buscador por **nombre de CdP + líder + Red** (+ satélites).
+     Buscar por **zona/dirección** queda FUERA por ahora: las CdP no tienen
+     dirección/zona cargada (requiere trabajo previo). Anotado para después.
+   - **Asignar**: fallback cuando no hay datos → sin CdP, va a designación.
+3. **Guardado real (parte B)**: la CdP capturada se **guarda de verdad** al dar
+   de alta en Altar/Bautismo/RSIL (hoy se DESCARTA — TODO harness/23). Reusar la
+   lógica de `fn_guardar_membresia_nuevos` (INVITADOR deriva CdP del invitador;
+   LISTA → esa CdP, incl. satélite; ASIGNAR → sin CdP). Guardar `invitado_por`
+   (id o txt).
+4. Reemplazar el `SelectorCasaDePaz` viejo por el unificado en las 4 puertas.
+
+Resuelve open-questions #2 (invitador: sistema + texto libre) y #4 (aplica a las
+4 puertas ya). El panel de designación (Req 2/3) y zona-por-dirección siguen pendientes.
+
+## IDEA A MADURAR — Panel de recepción en la Casa de Paz (owner 2026-10-01 s3, NO implementar aún)
+
+> Semilla del owner, **sin harness propio todavía**. Crear la documentación
+> completa de este panel más adelante (el owner pidió que se lo recuerde).
+>
+> Las personas que caen en "Asignar" (sin CdP) necesitan un **lugar donde se
+> reciben**: un panel/opción **a nivel de cada Casa de Paz** donde van
+> **apilándose por antigüedad** (orden de llegada) a medida que llegan más, y
+> el **Líder de la Casa de Paz** trabaja ahí (los recibe/gestiona). Por ahora
+> la idea es mínima: asignar ese panel a las CdP y que aparezca el nombre de
+> cada persona, apilándose. Falta madurar el flujo completo (cómo se asigna a
+> una CdP concreta, quién decide, notificaciones) -> ahí se cruza con los
+> Requisitos 2 y 3 de abajo. NO se implementa nada todavía.
+
 ## Requisito 2 — Menú de Asignación del Líder de Afirmación (harness, NO ahora)
 
 THE SYSTEM SHALL ofrecer al **Líder del Departamento de Afirmación** un menú

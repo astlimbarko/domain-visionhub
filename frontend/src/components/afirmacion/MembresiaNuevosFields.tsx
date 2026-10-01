@@ -4,17 +4,13 @@
 // (harness/23). Componente controlado: recibe valores + onChange.
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPersonaFields';
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
-import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
-import { SelectorCdpBuscable } from '@/components/afirmacion/SelectorCdpBuscable';
-import type { CdpAsistencia } from '@/services/membresia-borrador.service';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import { SelectorCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
 import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 import { DISCIPULADO_NIVEL_LABELS } from '@/types/persona.types';
 
@@ -135,70 +131,21 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
         </div>
       </Seccion>
 
-      {/* Casa de Paz (harness/23): 3 formas -- por invitador/afinidad, de la
-          lista, o ninguna (va a designaciones). */}
+      {/* Casa de Paz (KAN-490): selector unificado -- invitador (sistema o texto
+          libre) + auto-sugerir su CdP con override + buscador por nombre/líder/Red
+          + fallback "sin asignar" (designación). Mismo componente que Altar/Bautismo/RSIL. */}
       <Seccion titulo="Casa de Paz">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>¿Cómo se define su Casa de Paz?</Label>
-            <Select
-              value={valores.cdpModo}
-              onValueChange={(v) =>
-                onChange({
-                  ...valores,
-                  cdpModo: v as DatosMembresiaNuevos['cdpModo'],
-                  invitadorPersonaId: '',
-                  invitadorNombre: '',
-                  casaDePazId: '',
-                  casaDePazNombre: '',
-                })
-              }
-            >
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INVITADOR">Por quién lo invitó (afinidad)</SelectItem>
-                <SelectItem value="LISTA">Elegir de la lista</SelectItem>
-                <SelectItem value="ASIGNAR">Ninguna — asignar después</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {valores.cdpModo === 'INVITADOR' &&
-            (valores.invitadorNombre ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5">
-                <span className="truncate text-sm font-medium">{valores.invitadorNombre}</span>
-                <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...valores, invitadorPersonaId: '', invitadorNombre: '' })}>
-                  Cambiar
-                </Button>
-              </div>
-            ) : (
-              <BuscadorPersona
-                iglesiaId={iglesiaId}
-                onSeleccionar={(p: PersonaBusqueda) => onChange({ ...valores, invitadorPersonaId: p.id, invitadorNombre: p.nombre_completo })}
-              />
-            ))}
-
-          {valores.cdpModo === 'LISTA' && (
-            <SelectorCdpBuscable
-              iglesiaId={iglesiaId}
-              valorId={valores.casaDePazId}
-              valorEtiqueta={valores.casaDePazNombre}
-              onSeleccionar={(c: CdpAsistencia | null) =>
-                onChange({
-                  ...valores,
-                  casaDePazId: c?.casa_de_paz_id ?? '',
-                  casaDePazNombre: c?.casa_de_paz_etiqueta ?? '',
-                })
-              }
-            />
-          )}
-
-          {valores.cdpModo === 'ASIGNAR' && (
-            <p className="rounded-xl border border-border/50 bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground">
-              Esta persona quedará <span className="font-medium text-foreground">sin Casa de Paz</span> y su caso irá a la sección de designaciones, para que el líder de Afirmación le asigne una más adelante.
-            </p>
-          )}
-        </div>
+        <SelectorCasaDePaz
+          iglesiaId={iglesiaId}
+          valores={{
+            invitadorPersonaId: valores.invitadorPersonaId,
+            invitadorNombre: valores.invitadorNombre,
+            invitadorEsLibre: valores.invitadorEsLibre,
+            casaDePazId: valores.casaDePazId,
+            casaDePazNombre: valores.casaDePazNombre,
+          }}
+          onChange={(cdp) => onChange({ ...valores, ...cdp })}
+        />
       </Seccion>
     </div>
   );
