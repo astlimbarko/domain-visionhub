@@ -59,6 +59,7 @@ export async function guardarMembresiaNuevos(
     telefono: componerTelefono(datos.telefonoPais, datos.telefonoNumero),
     direccion: datos.direccion,
     como_llego: datos.comoLlego,
+    discipulado_nivel: datos.discipuladoNivel,
     es_visita: datos.esVisita,
     cdp_modo: datos.cdpModo,
     invitador_persona_id: datos.invitadorPersonaId,
@@ -70,4 +71,25 @@ export async function guardarMembresiaNuevos(
   });
   if (error) throw error;
   return data as MembresiaNuevosGuardada;
+}
+
+export interface CdpAsistencia {
+  casa_de_paz_id: string;
+  casa_de_paz_etiqueta: string;
+  red_id: string | null;
+  red_nombre: string | null;
+  iglesia_id: string;
+  iglesia_nombre: string;
+  es_satelite: boolean;
+}
+
+/**
+ * Lista las Casas de Paz para el picker buscable de la Membresía desde 0:
+ * las de la iglesia Y las de sus satélites/hijas, con Red e iglesia para poder
+ * agrupar por Red y distinguir las de satélite (fn_listar_cdp_asistencia).
+ */
+export async function listarCdpAsistencia(iglesiaId: string): Promise<CdpAsistencia[]> {
+  const { data, error } = await supabase.rpc('fn_listar_cdp_asistencia', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  return (data as CdpAsistencia[]) ?? [];
 }

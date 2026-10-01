@@ -12,9 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPersonaFields';
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
-import { useCasasDePazAfirmacion } from '@/hooks/useAfirmacion';
+import { SelectorCdpBuscable } from '@/components/afirmacion/SelectorCdpBuscable';
+import type { CdpAsistencia } from '@/services/membresia-borrador.service';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
+import { DISCIPULADO_NIVEL_LABELS } from '@/types/persona.types';
 
 const ESTADOS_CIVILES = [
   ['SOLTERO', 'Soltero/a'],
@@ -49,8 +51,6 @@ interface Props {
 }
 
 export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
-  const { data: casasDePaz = [] } = useCasasDePazAfirmacion(valores.cdpModo === 'LISTA' ? iglesiaId : undefined);
-
   function set<K extends keyof DatosMembresiaNuevos>(campo: K, valor: DatosMembresiaNuevos[K]) {
     onChange({ ...valores, [campo]: valor });
   }
@@ -121,7 +121,17 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
               <Input id="mn_min" className={CAMPO_ESTILO} value={valores.ministerioCual} onChange={(e) => set('ministerioCual', e.target.value)} />
             </div>
           )}
-          <SiNo label="¿Está en discipulado?" value={valores.enDiscipulado} onChange={(v) => set('enDiscipulado', v)} />
+          <div className="flex flex-col gap-1.5">
+            <Label>¿Está en discipulado? (nivel)</Label>
+            <Select value={valores.discipuladoNivel} onValueChange={(v) => set('discipuladoNivel', v)}>
+              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="No está en discipulado" /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(DISCIPULADO_NIVEL_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Seccion>
 
@@ -169,18 +179,18 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             ))}
 
           {valores.cdpModo === 'LISTA' && (
-            <Select
-              value={valores.casaDePazId}
-              onValueChange={(v) => {
-                const c = casasDePaz.find((x) => x.casa_de_paz_id === v);
-                onChange({ ...valores, casaDePazId: v, casaDePazNombre: c?.casa_de_paz_etiqueta ?? '' });
-              }}
-            >
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Elegí la Casa de Paz" /></SelectTrigger>
-              <SelectContent>
-                {casasDePaz.map((c) => <SelectItem key={c.casa_de_paz_id} value={c.casa_de_paz_id}>{c.casa_de_paz_etiqueta}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SelectorCdpBuscable
+              iglesiaId={iglesiaId}
+              valorId={valores.casaDePazId}
+              valorEtiqueta={valores.casaDePazNombre}
+              onSeleccionar={(c: CdpAsistencia | null) =>
+                onChange({
+                  ...valores,
+                  casaDePazId: c?.casa_de_paz_id ?? '',
+                  casaDePazNombre: c?.casa_de_paz_etiqueta ?? '',
+                })
+              }
+            />
           )}
 
           {valores.cdpModo === 'ASIGNAR' && (

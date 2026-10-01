@@ -24,11 +24,14 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   yaAsisteIglesia: boolean;
   trabajoMinisterio: boolean;
   ministerioCual: string;
-  enDiscipulado: boolean;
+  // Discipulado: NIVEL/curso real (discipulado_nivel_enum), no un sí/no
+  // (decisión del owner 2026-10-01). '' = no está en discipulado.
+  discipuladoNivel: string;
   // Casa de Paz (harness/23) -- 3 formas de definirla:
   //  - 'INVITADOR': por afinidad; se elige la persona que lo invitó (real) y
   //    de ahí se deriva su CdP.
-  //  - 'LISTA': se elige la CdP directamente de la lista de la iglesia.
+  //  - 'LISTA': se elige la CdP de un buscador agrupado por Red, que incluye
+  //    las CdP de la iglesia y de sus satélites (fn_listar_cdp_asistencia).
   //  - 'ASIGNAR': ninguna; el caso va a la sección de designaciones de CdP
   //    (lo asigna el líder de Afirmación después).
   cdpModo: '' | 'INVITADOR' | 'LISTA' | 'ASIGNAR';
@@ -50,7 +53,7 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   yaAsisteIglesia: false,
   trabajoMinisterio: false,
   ministerioCual: '',
-  enDiscipulado: false,
+  discipuladoNivel: '',
   cdpModo: '',
   invitadorPersonaId: '',
   invitadorNombre: '',
@@ -69,11 +72,11 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
     d.primerNombre, d.segundoNombre, d.primerApellido, d.segundoApellido,
     d.telefonoNumero, d.sexo, d.fechaNacimiento, d.direccion,
     d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion,
-    d.comoLlego, d.ministerioCual,
+    d.comoLlego, d.ministerioCual, d.discipuladoNivel,
     d.invitadorNombre, d.casaDePazNombre, d.cdpModo,
   ];
   if (textos.some((t) => t.trim() !== '')) return true;
-  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio || d.enDiscipulado;
+  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio;
 }
 
 /** Mínimo para poder guardar la membresía real (crear la persona). */
