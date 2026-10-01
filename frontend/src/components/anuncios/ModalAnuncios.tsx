@@ -40,7 +40,7 @@ const MAX_ALTO_RATIO = 0.78;
 const MAX_ALTO_CAP_PX = 720;
 
 export function ModalAnuncios() {
-  const { anuncioActual, cerrarAnuncioActual, cerrando } = useAnunciosPendientes();
+  const { anuncioActual, cerrarAnuncioActual } = useAnunciosPendientes();
   // isError (2026-08-16, pedido explicito del owner: "que no estorbe" si el
   // servidor falla) -- sin esto, si la URL firmada fallaba (Storage caido,
   // etc.) el bloque de abajo caia al `: null` silencioso, dejando la X
@@ -131,7 +131,6 @@ export function ModalAnuncios() {
               size="icon"
               className="rounded-full border border-white/30 bg-black/60 text-white shadow-lg backdrop-blur-sm hover:bg-black/80"
               onClick={cerrarAnuncioActual}
-              disabled={cerrando}
               aria-label="Cerrar anuncio"
             >
               <XIcon className="h-5 w-5" />

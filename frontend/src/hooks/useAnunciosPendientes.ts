@@ -4,6 +4,7 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cerrarAnuncio, marcarAnuncioMostrado, obtenerAnunciosPendientes } from '@/services/anuncio.service';
+import type { AnuncioPendiente } from '@/types/anuncio.types';
 
 const QUERY_KEY = ['anuncios', 'pendientes'] as const;
 
@@ -34,9 +35,26 @@ export function useAnunciosPendientes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anuncioActual?.id]);
 
+  // KAN-469: cierre OPTIMISTA. Antes, cerrarAnuncioActual esperaba el
+  // round-trip de cerrarAnuncio (marcar CERRADO) y recién ahí invalidaba y
+  // avanzaba -- con el botón deshabilitado mientras tanto, se sentía la
+  // demora al cerrar. Ahora sacamos el anuncio de la cola en el acto (el
+  // modal avanza al siguiente / se cierra sin esperar) y el "marcar cerrado"
+  // corre en segundo plano; si falla, se restaura la cola.
   const cerrarMutation = useMutation({
     mutationFn: cerrarAnuncio,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    onMutate: async (anuncioId: string) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+      const previo = queryClient.getQueryData<AnuncioPendiente[]>(QUERY_KEY);
+      queryClient.setQueryData<AnuncioPendiente[]>(QUERY_KEY, (old) =>
+        (old ?? []).filter((a) => a.id !== anuncioId),
+      );
+      return { previo };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previo) queryClient.setQueryData(QUERY_KEY, context.previo);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   return {
