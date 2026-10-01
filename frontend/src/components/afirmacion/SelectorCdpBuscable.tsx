@@ -38,6 +38,7 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
       (c) =>
         c.casa_de_paz_etiqueta.toLowerCase().includes(q) ||
         (c.red_nombre ?? '').toLowerCase().includes(q) ||
+        (c.lider_nombre ?? '').toLowerCase().includes(q) ||
         c.iglesia_nombre.toLowerCase().includes(q),
     );
   }, [cdps, texto]);
@@ -105,9 +106,15 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
                   className="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                 >
                   <span>{c.casa_de_paz_etiqueta}</span>
-                  {c.es_satelite && (
-                    <span className="text-[11px] text-muted-foreground">{c.iglesia_nombre} · satélite</span>
-                  )}
+                  <span className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
+                    {c.lider_nombre && <span>Líder: {c.lider_nombre}</span>}
+                    {c.es_satelite && (
+                      <>
+                        {c.lider_nombre && <span className="text-muted-foreground/40">·</span>}
+                        <span>{c.iglesia_nombre} · satélite</span>
+                      </>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>

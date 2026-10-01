@@ -27,17 +27,13 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   // Discipulado: NIVEL/curso real (discipulado_nivel_enum), no un sí/no
   // (decisión del owner 2026-10-01). '' = no está en discipulado.
   discipuladoNivel: string;
-  // Casa de Paz (harness/23) -- 3 formas de definirla:
-  //  - 'INVITADOR': por afinidad; se elige la persona que lo invitó (real) y
-  //    de ahí se deriva su CdP.
-  //  - 'LISTA': se elige la CdP de un buscador agrupado por Red, que incluye
-  //    las CdP de la iglesia y de sus satélites (fn_listar_cdp_asistencia).
-  //  - 'ASIGNAR': ninguna; el caso va a la sección de designaciones de CdP
-  //    (lo asigna el líder de Afirmación después).
-  cdpModo: '' | 'INVITADOR' | 'LISTA' | 'ASIGNAR';
-  invitadorPersonaId: string;
-  invitadorNombre: string;
-  casaDePazId: string;
+  // Casa de Paz (harness/23, KAN-490): el selector unificado SelectorCasaDePaz
+  // produce estos campos. El "modo" se deriva (cdpModoDerivado): invitador real
+  // -> INVITADOR; CdP explícita -> LISTA; nada -> ASIGNAR (va a designación).
+  invitadorPersonaId: string;   // persona real del sistema ('' si libre o nada)
+  invitadorNombre: string;      // nombre mostrado (real o texto libre)
+  invitadorEsLibre: boolean;    // true = invitadorNombre es texto libre
+  casaDePazId: string;          // CdP elegida/sugerida ('' = sin CdP)
   casaDePazNombre: string;
 }
 
@@ -54,9 +50,9 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   trabajoMinisterio: false,
   ministerioCual: '',
   discipuladoNivel: '',
-  cdpModo: '',
   invitadorPersonaId: '',
   invitadorNombre: '',
+  invitadorEsLibre: false,
   casaDePazId: '',
   casaDePazNombre: '',
 };
@@ -73,7 +69,7 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
     d.telefonoNumero, d.sexo, d.fechaNacimiento, d.direccion,
     d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion,
     d.comoLlego, d.ministerioCual, d.discipuladoNivel,
-    d.invitadorNombre, d.casaDePazNombre, d.cdpModo,
+    d.invitadorNombre, d.casaDePazNombre,
   ];
   if (textos.some((t) => t.trim() !== '')) return true;
   return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio;

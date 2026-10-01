@@ -35,6 +35,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
 import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
+import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
+import { SelectorCasaDePaz, DATOS_CASA_DE_PAZ_VACIO, type DatosCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -164,6 +166,8 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
   const [personaSeleccionada, setPersonaSeleccionada] = useState<{ id: string; nombre_completo: string } | null>(null);
 
   const [formNuevo, setFormNuevo] = useState<DatosBasicosPersonaValores>(DATOS_BASICOS_PERSONA_VACIO);
+  // KAN-490 (harness/23 Req 1): capturar la Casa de Paz también en Altar.
+  const [cdp, setCdp] = useState<DatosCasaDePaz>(DATOS_CASA_DE_PAZ_VACIO);
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
 
   async function handleCrearYContinuar() {
@@ -188,8 +192,12 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
         await agregarDireccion(iglesiaActivaId, persona.id, { calle: formNuevo.direccion.trim() }, true);
       }
 
+      // KAN-490: aplicar la Casa de Paz capturada (y el invitado_por).
+      await asignarEntradaCdp(persona.id, iglesiaActivaId, cdp);
+
       toast.success('Persona creada.');
       setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
+      setCdp(DATOS_CASA_DE_PAZ_VACIO);
       setPersonaSeleccionada({ id: persona.id, nombre_completo: `${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim() });
       setTab('buscar');
     } catch (e) {
@@ -315,6 +323,9 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
               </span>
             </button>
             <DatosBasicosPersonaFields valores={formNuevo} onChange={setFormNuevo} />
+            <div className="mt-4">
+              <SelectorCasaDePaz valores={cdp} onChange={setCdp} iglesiaId={iglesiaActivaId} />
+            </div>
             <Button
               type="button"
               className="mt-4 w-full gap-2 py-6 text-base"

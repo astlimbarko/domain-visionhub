@@ -43,6 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
 import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
+import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 
@@ -212,12 +213,9 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
         await agregarDireccion(iglesiaActivaId, persona.id, { calle: formNuevo.direccion.trim() }, true);
       }
 
-      // TODO harness/23: aplicar la CdP capturada (cdp). Todavía NO existe la
-      // lógica de guardado compartida (INVITADOR -> CdP del invitador;
-      // LISTA -> esa CdP; ASIGNAR -> sin CdP, a la cola de designaciones), y
-      // es el mismo trabajo pendiente que el guardado final de la Membresía
-      // (harness/21). No se improvisa acá: la persona se crea sin CdP y el
-      // modo elegido se pierde. Se completa junto con harness/21.
+      // KAN-490: aplicar la Casa de Paz capturada (y el invitado_por). Si no se
+      // eligió CdP, la persona queda sin asignar (va a designación).
+      await asignarEntradaCdp(persona.id, iglesiaActivaId, cdp);
 
       toast.success('Persona creada.');
       setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);

@@ -61,8 +61,9 @@ export async function guardarMembresiaNuevos(
     como_llego: datos.comoLlego,
     discipulado_nivel: datos.discipuladoNivel,
     es_visita: datos.esVisita,
-    cdp_modo: datos.cdpModo,
-    invitador_persona_id: datos.invitadorPersonaId,
+    // KAN-490: el frontend resuelve la CdP final; invitador por id (sistema) o txt (libre).
+    invitador_persona_id: datos.invitadorEsLibre ? '' : datos.invitadorPersonaId,
+    invitador_txt: datos.invitadorEsLibre ? datos.invitadorNombre : '',
     casa_de_paz_id: datos.casaDePazId,
   };
   const { data, error } = await supabase.rpc('fn_guardar_membresia_nuevos', {
@@ -81,6 +82,8 @@ export interface CdpAsistencia {
   iglesia_id: string;
   iglesia_nombre: string;
   es_satelite: boolean;
+  /** KAN-490: líder vigente de la CdP, para buscar por líder (null si no tiene). */
+  lider_nombre: string | null;
 }
 
 /**
@@ -92,4 +95,27 @@ export async function listarCdpAsistencia(iglesiaId: string): Promise<CdpAsisten
   const { data, error } = await supabase.rpc('fn_listar_cdp_asistencia', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return (data as CdpAsistencia[]) ?? [];
+}
+
+/**
+ * KAN-490: aplica la Casa de Paz capturada (y el invitado_por) a una persona ya
+ * creada, en las puertas de entrada Altar/Bautismo/RSIL (fn_asignar_entrada_cdp).
+ * El frontend ya resolvió la casa_de_paz_id final (sugerida del invitador o
+ * elegida); si va vacía, la persona queda sin CdP (designación).
+ */
+export async function asignarEntradaCdp(
+  personaId: string,
+  iglesiaId: string,
+  datos: { invitadorPersonaId: string; invitadorNombre: string; invitadorEsLibre: boolean; casaDePazId: string },
+): Promise<void> {
+  const { error } = await supabase.rpc('fn_asignar_entrada_cdp', {
+    p_persona_id: personaId,
+    p_iglesia_id: iglesiaId,
+    p_payload: {
+      invitador_persona_id: datos.invitadorEsLibre ? '' : datos.invitadorPersonaId,
+      invitador_txt: datos.invitadorEsLibre ? datos.invitadorNombre : '',
+      casa_de_paz_id: datos.casaDePazId,
+    },
+  });
+  if (error) throw error;
 }
