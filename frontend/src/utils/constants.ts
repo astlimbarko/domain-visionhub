@@ -97,10 +97,13 @@ export const ROUTES = {
   // persona y registrar que paso al altar, con historial de fechas.
   AFIRMACION_ALTAR: '/afirmacion-altar',
   // harness/24: segundo proceso de Afirmación (Bautismo) -- mismo clon de
-  // Altar con proceso propio + botón "Llenar membresía" (pendiente, harness/21).
+  // Altar con proceso propio + botón "Llenar membresía" (ver AfirmacionBautismo).
   AFIRMACION_BAUTISMO: '/afirmacion-bautismo',
   // harness/24: tercer proceso de Afirmación (RSIL) -- clon de Bautismo.
   AFIRMACION_RSIL: '/afirmacion-rsil',
+  // KAN-488: "Membresía desde 0" -- membresía liviana para gente nueva
+  // captada, distinta de la membresía por link (AFIRMACION_PERSONAS).
+  AFIRMACION_MEMBRESIA_NUEVOS: '/afirmacion-membresia-nuevos',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

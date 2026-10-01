@@ -64,6 +64,8 @@ const AfirmacionAltar = lazy(() => import('@/pages/AfirmacionAltar').then((m) =>
 const AfirmacionBautismo = lazy(() => import('@/pages/AfirmacionBautismo').then((m) => ({ default: m.AfirmacionBautismo })));
 // harness/24: RSIL, clon de Bautismo con proceso propio.
 const AfirmacionRSIL = lazy(() => import('@/pages/AfirmacionRSIL').then((m) => ({ default: m.AfirmacionRSIL })));
+// KAN-488: Membresía desde 0 (liviana, gente nueva captada).
+const AfirmacionMembresiaNuevos = lazy(() => import('@/pages/AfirmacionMembresiaNuevos').then((m) => ({ default: m.AfirmacionMembresiaNuevos })));
 // KAN-405: accesible para CUALQUIER rol (no pasa por RutaAfirmacion) -- ver
 // ROUTES.COLABORAR en constants.ts y puedeAccederRuta en paneles-contexto.ts.
 const Colaborar = lazy(() => import('@/pages/Colaborar').then((m) => ({ default: m.Colaborar })));
@@ -345,6 +347,8 @@ function App() {
             <Route path={ROUTES.AFIRMACION_BAUTISMO} element={<RutaAfirmacion><AfirmacionBautismo /></RutaAfirmacion>} />
             {/* harness/24: RSIL (mismo guard de Afirmación que Altar/Bautismo). */}
             <Route path={ROUTES.AFIRMACION_RSIL} element={<RutaAfirmacion><AfirmacionRSIL /></RutaAfirmacion>} />
+            {/* KAN-488: Membresía desde 0 (mismo guard de Afirmación). */}
+            <Route path={ROUTES.AFIRMACION_MEMBRESIA_NUEVOS} element={<RutaAfirmacion><AfirmacionMembresiaNuevos /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
 
