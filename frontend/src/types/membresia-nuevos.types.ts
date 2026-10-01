@@ -8,23 +8,17 @@ import {
   type DatosBasicosPersonaValores,
 } from '@/components/personas/DatosBasicosPersonaFields';
 
-export type EsBautizado = '' | 'NO' | 'CATOLICA' | 'EVANGELICA' | 'CENTRO_VIDA';
-
 export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   ci: string;
   correo: string;
   estadoCivil: string;
   ocupacion: string;
   gradoInstruccion: string;
-  horarioContacto: string;
-  // Familia (cónyuge e hijos) -- v1 en texto simple
-  conyugeNombre: string;
-  hijos: string;
   // Proceso / evangelismo
   esVisita: boolean; // NC/RE es automático (persona nueva -> NC); solo se marca si es visita/simpatizante
-  esBautizado: EsBautizado;
-  bautismoIglesiaNombre: string; // "cuál iglesia" cuando el bautismo fue externo
-  categoriaEvangelismo: string; // catálogo tipo_evangelismo (1+1 / CDP / Elite)
+  // Bautismo, categoría de evangelismo, horario de contacto y familia se
+  // quitaron del form por decisión del owner (2026-10-01): el bautismo vive
+  // solo en el proceso Bautismo; evangelismo no entra en la membresía desde-0.
   comoLlego: string;
   // Preguntas livianas sobre vínculo con la iglesia
   yaAsisteIglesia: boolean;
@@ -51,13 +45,7 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   estadoCivil: '',
   ocupacion: '',
   gradoInstruccion: '',
-  horarioContacto: '',
-  conyugeNombre: '',
-  hijos: '',
   esVisita: false,
-  esBautizado: '',
-  bautismoIglesiaNombre: '',
-  categoriaEvangelismo: '',
   comoLlego: '',
   yaAsisteIglesia: false,
   trabajoMinisterio: false,
@@ -80,9 +68,8 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
   const textos = [
     d.primerNombre, d.segundoNombre, d.primerApellido, d.segundoApellido,
     d.telefonoNumero, d.sexo, d.fechaNacimiento, d.direccion,
-    d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion, d.horarioContacto,
-    d.conyugeNombre, d.hijos, d.esBautizado, d.bautismoIglesiaNombre,
-    d.categoriaEvangelismo, d.comoLlego, d.ministerioCual,
+    d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion,
+    d.comoLlego, d.ministerioCual,
     d.invitadorNombre, d.casaDePazNombre, d.cdpModo,
   ];
   if (textos.some((t) => t.trim() !== '')) return true;

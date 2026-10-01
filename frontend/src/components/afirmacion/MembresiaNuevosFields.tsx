@@ -14,7 +14,7 @@ import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import { useCasasDePazAfirmacion } from '@/hooks/useAfirmacion';
 import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
-import type { DatosMembresiaNuevos, EsBautizado } from '@/types/membresia-nuevos.types';
+import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 
 const ESTADOS_CIVILES = [
   ['SOLTERO', 'Soltero/a'],
@@ -22,19 +22,6 @@ const ESTADOS_CIVILES = [
   ['VIUDO', 'Viudo/a'],
   ['DIVORCIADO', 'Divorciado/a'],
   ['CONCUBINATO', 'Concubinato'],
-] as const;
-
-const BAUTIZADO_OPCIONES: [EsBautizado, string][] = [
-  ['NO', 'No está bautizado'],
-  ['CATOLICA', 'Sí — Iglesia Católica'],
-  ['EVANGELICA', 'Sí — Iglesia Evangélica'],
-  ['CENTRO_VIDA', 'Sí — Centro de Vida'],
-];
-
-const CATEGORIA_EVANGELISMO = [
-  ['UNO_A_UNO', '1+1'],
-  ['CDP', 'CdP'],
-  ['ELITE', 'Elite'],
 ] as const;
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -108,54 +95,13 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_horario">Horario de contacto</Label>
-            <Input id="mn_horario" className={CAMPO_ESTILO} placeholder="Ej. tardes, después de las 18h" value={valores.horarioContacto} onChange={(e) => set('horarioContacto', e.target.value)} />
-          </div>
         </div>
       </Seccion>
 
-      {/* Familia */}
-      <Seccion titulo="Familia">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_conyuge">Cónyuge (nombre)</Label>
-            <Input id="mn_conyuge" className={CAMPO_ESTILO} value={valores.conyugeNombre} onChange={(e) => set('conyugeNombre', e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_hijos">Hijos (nombres)</Label>
-            <Input id="mn_hijos" className={CAMPO_ESTILO} placeholder="Separados por coma" value={valores.hijos} onChange={(e) => set('hijos', e.target.value)} />
-          </div>
-        </div>
-      </Seccion>
-
-      {/* Proceso / evangelismo */}
+      {/* Proceso. Bautismo y categoría de evangelismo se quitaron (decisión del
+          owner 2026-10-01): el bautismo vive solo en el proceso Bautismo. */}
       <Seccion titulo="Proceso">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>¿Está bautizado?</Label>
-            <Select value={valores.esBautizado} onValueChange={(v) => set('esBautizado', v as EsBautizado)}>
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {BAUTIZADO_OPCIONES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {(valores.esBautizado === 'CATOLICA' || valores.esBautizado === 'EVANGELICA') && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mn_iglesia">¿Cuál iglesia?</Label>
-              <Input id="mn_iglesia" className={CAMPO_ESTILO} value={valores.bautismoIglesiaNombre} onChange={(e) => set('bautismoIglesiaNombre', e.target.value)} />
-            </div>
-          )}
-          <div className="flex flex-col gap-1.5">
-            <Label>Categoría de evangelismo</Label>
-            <Select value={valores.categoriaEvangelismo} onValueChange={(v) => set('categoriaEvangelismo', v)}>
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {CATEGORIA_EVANGELISMO.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_comollego">¿Cómo llegó a la iglesia?</Label>
             <Input id="mn_comollego" className={CAMPO_ESTILO} placeholder="Solo / alguien lo invitó (quién)" value={valores.comoLlego} onChange={(e) => set('comoLlego', e.target.value)} />

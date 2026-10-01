@@ -57,9 +57,6 @@ export async function guardarMembresiaNuevos(
     grado_instruccion: datos.gradoInstruccion,
     ocupacion: datos.ocupacion,
     telefono: componerTelefono(datos.telefonoPais, datos.telefonoNumero),
-    // esBautizado: '' (sin dato) | 'NO' | 'CATOLICA' | 'EVANGELICA' | 'CENTRO_VIDA'
-    bautizado: datos.esBautizado === '' ? undefined : datos.esBautizado !== 'NO',
-    bautizado_en_nuestra_iglesia: datos.esBautizado === 'CENTRO_VIDA' ? true : undefined,
     es_visita: datos.esVisita,
     cdp_modo: datos.cdpModo,
     invitador_persona_id: datos.invitadorPersonaId,
