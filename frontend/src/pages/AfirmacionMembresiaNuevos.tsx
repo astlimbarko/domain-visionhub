@@ -128,7 +128,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp }: { iglesi
         <IndicadorGuardado estado={estado} />
       </div>
 
-      <MembresiaNuevosFields valores={datos} onChange={setDatos} />
+      <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
       <div className="sticky bottom-0 z-10 flex gap-2 border-t border-border/60 bg-background/95 py-3 backdrop-blur">
         <Button type="button" variant="outline" className="gap-1.5" onClick={() => setConfirmarLimpiar(true)}>

@@ -31,10 +31,17 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   trabajoMinisterio: boolean;
   ministerioCual: string;
   enDiscipulado: boolean;
-  // CdP / afinidad (harness/23): quién lo invitó (deriva su CdP) o "Asignar"
-  // (sin afinidad -> queda pendiente de asignación por el líder de Afirmación).
+  // Casa de Paz (harness/23) -- 3 formas de definirla:
+  //  - 'INVITADOR': por afinidad; se elige la persona que lo invitó (real) y
+  //    de ahí se deriva su CdP.
+  //  - 'LISTA': se elige la CdP directamente de la lista de la iglesia.
+  //  - 'ASIGNAR': ninguna; el caso va a la sección de designaciones de CdP
+  //    (lo asigna el líder de Afirmación después).
+  cdpModo: '' | 'INVITADOR' | 'LISTA' | 'ASIGNAR';
+  invitadorPersonaId: string;
   invitadorNombre: string;
-  asignar: boolean;
+  casaDePazId: string;
+  casaDePazNombre: string;
 }
 
 export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
@@ -56,8 +63,11 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   trabajoMinisterio: false,
   ministerioCual: '',
   enDiscipulado: false,
+  cdpModo: '',
+  invitadorPersonaId: '',
   invitadorNombre: '',
-  asignar: false,
+  casaDePazId: '',
+  casaDePazNombre: '',
 };
 
 /**
@@ -72,10 +82,11 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
     d.telefonoNumero, d.sexo, d.fechaNacimiento, d.direccion,
     d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion, d.horarioContacto,
     d.conyugeNombre, d.hijos, d.esBautizado, d.bautismoIglesiaNombre,
-    d.categoriaEvangelismo, d.comoLlego, d.ministerioCual, d.invitadorNombre,
+    d.categoriaEvangelismo, d.comoLlego, d.ministerioCual,
+    d.invitadorNombre, d.casaDePazNombre, d.cdpModo,
   ];
   if (textos.some((t) => t.trim() !== '')) return true;
-  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio || d.enDiscipulado || d.asignar;
+  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio || d.enDiscipulado;
 }
 
 /** Mínimo para poder guardar la membresía real (crear la persona). */
