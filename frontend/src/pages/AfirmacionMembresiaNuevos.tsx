@@ -31,7 +31,7 @@ import { MembresiaNuevosFields } from '@/components/afirmacion/MembresiaNuevosFi
 import {
   DATOS_MEMBRESIA_NUEVOS_VACIO,
   hayContenidoRealMembresia,
-  membresiaNuevosValida,
+  camposObligatoriosFaltantes,
   porcentajeCompletadoMembresia,
   type DatosMembresiaNuevos,
 } from '@/types/membresia-nuevos.types';
@@ -42,6 +42,7 @@ import {
   guardarMembresiaNuevos,
   obtenerPersonaParaMembresia,
 } from '@/services/membresia-borrador.service';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
 
@@ -178,9 +179,17 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
   async function handleGuardar() {
     if (!iglesiaId || guardandoFinal) return;
+    const faltan = camposObligatoriosFaltantes(datos);
+    if (faltan.length > 0) {
+      toast.error(`Faltan campos obligatorios: ${faltan.join(', ')}.`);
+      return;
+    }
     setGuardandoFinal(true);
     try {
       const res = await guardarMembresiaNuevos(iglesiaId, datos);
+      // Correo de bienvenida (KAN-493): no-op si la persona no tiene correo o
+      // ya se le envió; nunca bloquea el alta (la función traga sus errores).
+      void notificarMembresiaCompletada(res.persona_id);
       // El borrador ya cumplió su función; se borra para no restaurarlo después.
       try {
         await eliminarBorradorMembresia(iglesiaId);
@@ -215,7 +224,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
     return <p className="text-sm text-muted-foreground">Elegí una iglesia para continuar.</p>;
   }
 
-  const puedeGuardar = membresiaNuevosValida(datos);
+  // El botón se habilita con el mínimo real (nombre/apellido/sexo); si faltan
+  // otros obligatorios, handleGuardar lo avisa con la lista puntual en vez de
+  // dejar el botón gris sin explicación.
+  const puedeGuardar = datos.primerNombre.trim() !== '' && datos.primerApellido.trim() !== '' && datos.sexo !== '';
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-1">

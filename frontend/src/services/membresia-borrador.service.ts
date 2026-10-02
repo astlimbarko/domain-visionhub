@@ -105,6 +105,9 @@ export async function guardarMembresiaNuevos(
     invitador_persona_id: datos.invitadorEsLibre ? '' : datos.invitadorPersonaId,
     invitador_txt: datos.invitadorEsLibre ? datos.invitadorNombre : '',
     casa_de_paz_id: datos.casaDePazId,
+    // UX 2026-10-02: Familia + Cónyuge (el cónyuge es un familiar con
+    // tipo_relacion_codigo='CONYUGE'). La RPC los inserta en referencia_familiar.
+    familiares: datos.familiares,
   };
   const { data, error } = await supabase.rpc('fn_guardar_membresia_nuevos', {
     p_iglesia_id: iglesiaId,

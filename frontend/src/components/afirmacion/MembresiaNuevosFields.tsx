@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPersonaFields';
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
+import { SeccionConyugeMembresia, SeccionFamiliaMembresia } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { SelectorCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
 import { useMinisterios } from '@/hooks/useMinisterios';
 import { useMotivosLlegada } from '@/hooks/usePersonas';
@@ -65,22 +66,22 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
     <div className="flex flex-col gap-6">
       {/* Datos básicos de la persona (reuso el componente compartido) */}
       <Seccion titulo="Datos de la persona">
-        <DatosBasicosPersonaFields valores={valores} onChange={(v) => onChange({ ...valores, ...v })} />
+        <DatosBasicosPersonaFields valores={valores} onChange={(v) => onChange({ ...valores, ...v })} marcarObligatorios />
       </Seccion>
 
       {/* Datos complementarios */}
       <Seccion titulo="Datos complementarios">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ci">Número de documento</Label>
+            <Label htmlFor="mn_ci">Número de documento *</Label>
             <Input id="mn_ci" className={CAMPO_ESTILO} placeholder="CI, pasaporte u otro documento" value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_correo">Correo</Label>
-            <Input id="mn_correo" type="email" className={CAMPO_ESTILO} value={valores.correo} onChange={(e) => set('correo', e.target.value)} />
+            <Input id="mn_correo" type="email" className={CAMPO_ESTILO} placeholder="Opcional — recibirá un correo de bienvenida" value={valores.correo} onChange={(e) => set('correo', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Estado civil</Label>
+            <Label>Estado civil *</Label>
             <Select value={valores.estadoCivil} onValueChange={(v) => set('estadoCivil', v)}>
               <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>
@@ -157,6 +158,20 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             </Select>
           </div>
         </div>
+      </Seccion>
+
+      {/* Familia + Cónyuge (UX 2026-10-02): se reusan las secciones de la
+          membresía extendida. Ambas operan solo sobre `familiares` (el cónyuge
+          es un familiar con tipo_relacion_codigo='CONYUGE'). */}
+      <Seccion titulo="Familia">
+        <SeccionConyugeMembresia
+          value={{ familiares: valores.familiares }}
+          onChange={(v) => set('familiares', v.familiares ?? [])}
+        />
+        <SeccionFamiliaMembresia
+          value={{ familiares: valores.familiares }}
+          onChange={(v) => set('familiares', v.familiares ?? [])}
+        />
       </Seccion>
 
       {/* Casa de Paz (KAN-490): selector unificado -- invitador (sistema o texto
