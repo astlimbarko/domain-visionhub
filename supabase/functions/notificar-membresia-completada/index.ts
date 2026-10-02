@@ -3,9 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 
 // Pedido explicito del owner (2026-08-21): al completar el formulario de
-// membresia (los 3 caminos -- registro publico por URL, registro interno de
-// Afirmacion, MembresiaObligatoria), el sistema debe avisar por correo al
-// que se escribio, dirigido al nombre de la persona.
+// membresia (los 3 caminos originales -- registro publico por URL, registro
+// interno de Afirmacion, MembresiaObligatoria -- y desde KAN-493 tambien
+// "Membresia desde 0"), el sistema debe avisar por correo al que se
+// escribio, dirigido al nombre de la persona.
 //
 // Callable SIN sesion a proposito -- el registro publico por URL es
 // anonimo, asi que no puede llamar una funcion que exija auth:"user" (mismo
@@ -18,6 +19,31 @@ import nodemailer from "nodemailer";
 // table persona"), asi que esta funcion usa el mismo patron de seguridad
 // que ya usa todo el registro anonimo (funcion angosta + clave anon
 // normal), en vez de depender del service role.
+//
+// KAN-493 (Membresía desde 0, Afirmación): este correo se reutiliza TAL
+// CUAL para el 4to flujo de alta de persona, sin crear ninguna función
+// nueva -- es genérico por personaId (no le importa qué pantalla creó la
+// persona). El correo es opcional en "Membresía desde 0" y
+// fn_notificar_membresia_datos ya exige `correo IS NOT NULL`, así que el
+// caso "sin correo" ya queda cubierto (no-op silencioso) sin tocar nada.
+// Contrato de invocación para quien integre el guardado de Membresía
+// desde 0 (fn_guardar_membresia_nuevos ya devuelve `persona_id` en su
+// jsonb de retorno):
+//   import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+//   await notificarMembresiaCompletada(resultado.persona_id); // nunca lanza, no bloquea el alta
+// Llamada directa equivalente (sin el helper):
+//   supabase.functions.invoke('notificar-membresia-completada', { body: { personaId: string } })
+// Secrets usados (ya configurados en el proyecto, sin cambios): BREVO_SMTP_USER, BREVO_SMTP_PASS.
+function armarTexto(personaNombre: string, iglesiaNombre: string): string {
+  return `¡Bienvenido/a, ${personaNombre}!
+
+Tu ficha de membresía en ${iglesiaNombre} quedó registrada correctamente. ¡Nos alegra tenerte con nosotros!
+
+Si no reconocés este registro, comunicate con quien administra el sistema en tu iglesia.
+
+Este es un mensaje automático. No responda a este correo.`;
+}
+
 function armarHtml(personaNombre: string, iglesiaNombre: string): string {
   return `<!doctype html>
 <html>
@@ -123,6 +149,7 @@ export default {
         to: correo,
         subject: `Tu membresía en ${iglesiaNombre} fue registrada`,
         html: armarHtml(personaNombre, iglesiaNombre),
+        text: armarTexto(personaNombre, iglesiaNombre),
       });
     } catch (e) {
       // El flag ya quedo en `true` (UPDATE atomico de fn_notificar_membresia_datos)
