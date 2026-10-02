@@ -30,6 +30,7 @@ import {
   DATOS_MEMBRESIA_NUEVOS_VACIO,
   hayContenidoRealMembresia,
   membresiaNuevosValida,
+  porcentajeCompletadoMembresia,
   type DatosMembresiaNuevos,
 } from '@/types/membresia-nuevos.types';
 import {
@@ -212,15 +213,35 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos de la persona…
         </div>
       ) : datos.personaExistenteId ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#30d158]/40 bg-[#30d158]/8 px-3.5 py-3">
-          <span className="flex items-center gap-2 text-sm">
-            <UserCheck className="h-4 w-4 text-[#30d158]" />
-            Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span> (ya registrada)
-          </span>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
-            Persona nueva
-          </Button>
-        </div>
+        (() => {
+          const pct = porcentajeCompletadoMembresia(datos);
+          const color = pct >= 80 ? '#34c759' : pct >= 50 ? '#30b0c7' : '#ff9500';
+          return (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                {/* Anillo de completitud (conic-gradient) con el % al centro. */}
+                <div
+                  className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, color-mix(in oklab, ${color} 16%, transparent) 0deg)` }}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card">
+                    <span className="text-[12px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="flex items-center gap-1.5 text-sm">
+                    <UserCheck className="h-4 w-4 text-[#30d158]" />
+                    Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span>
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Ficha {pct}% completa — rellená lo que falte y guardá.</span>
+                </div>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
+                Persona nueva
+              </Button>
+            </div>
+          );
+        })()
       ) : (
         <div className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3">
           <span className="text-xs font-medium text-muted-foreground">¿La persona ya está registrada? Buscala para completar su membresía:</span>
@@ -231,8 +252,8 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
       <div className="sticky bottom-0 z-10 flex gap-2 border-t border-border/60 bg-background/95 py-3 backdrop-blur">
-        <Button type="button" variant="outline" className="gap-1.5" onClick={() => setConfirmarLimpiar(true)}>
-          <Eraser className="h-4 w-4" /> Limpiar
+        <Button type="button" variant="destructive" className="gap-1.5 py-6 text-base" onClick={() => setConfirmarLimpiar(true)}>
+          <Eraser className="h-5 w-5" /> Comenzar de nuevo
         </Button>
         <Button type="button" className="flex-1 gap-1.5 py-6 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
           {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
@@ -243,7 +264,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       <Dialog open={confirmarLimpiar} onOpenChange={setConfirmarLimpiar}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Limpiar el formulario?</DialogTitle>
+            <DialogTitle>¿Comenzar de nuevo?</DialogTitle>
             <DialogDescription>
               Se borrará todo lo cargado y el borrador guardado, para empezar de cero. Esta acción no se puede deshacer.
             </DialogDescription>
@@ -253,7 +274,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
               <Button variant="outline">Cancelar</Button>
             </DialogClose>
             <Button variant="destructive" onClick={handleLimpiar}>
-              Sí, limpiar
+              Sí, comenzar de nuevo
             </Button>
           </DialogFooter>
         </DialogContent>

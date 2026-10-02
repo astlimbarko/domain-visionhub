@@ -14,7 +14,7 @@
 // se deriva (ver cdpModoDerivado): hay invitador real -> INVITADOR; hay CdP
 // explícita -> LISTA; nada -> ASIGNAR.
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CAMPO_ESTILO } from '@/lib/estilos';
@@ -51,6 +51,21 @@ export function cdpModoDerivado(d: DatosCasaDePaz): CdpModo {
   if (d.invitadorPersonaId) return 'INVITADOR';
   if (d.casaDePazId) return 'LISTA';
   return 'ASIGNAR';
+}
+
+/** Botón estándar "quitar": círculo gris suave con una X roja al centro. */
+function BotonQuitar({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-destructive transition-colors hover:bg-destructive/15"
+    >
+      <X className="h-4 w-4" strokeWidth={2.5} />
+    </button>
+  );
 }
 
 interface Props {
@@ -106,7 +121,7 @@ export function SelectorCasaDePaz({ valores, onChange, iglesiaId }: Props) {
               {valores.invitadorNombre}
               {valores.invitadorEsLibre && <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(no está en el sistema)</span>}
             </span>
-            <Button type="button" variant="ghost" size="sm" onClick={limpiarInvitador}>Cambiar</Button>
+            <BotonQuitar onClick={limpiarInvitador} label="Quitar invitador" />
           </div>
         ) : modoInvitador === 'buscar' ? (
           <>
@@ -154,7 +169,7 @@ export function SelectorCasaDePaz({ valores, onChange, iglesiaId }: Props) {
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5">
               <span className="truncate text-sm font-medium">{valores.casaDePazNombre}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => elegirCdp(null)}>Cambiar</Button>
+              <BotonQuitar onClick={() => elegirCdp(null)} label="Quitar Casa de Paz" />
             </div>
             {cdpSugerida && (
               <p className="text-[11px] text-muted-foreground">

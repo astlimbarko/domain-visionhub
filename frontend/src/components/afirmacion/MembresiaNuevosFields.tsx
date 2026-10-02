@@ -11,8 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPersonaFields';
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
 import { SelectorCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
+import { useMinisterios } from '@/hooks/useMinisterios';
 import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 import { DISCIPULADO_NIVEL_LABELS } from '@/types/persona.types';
+
+// Radix Select no permite value="" -- sentinela para la opción "Ninguno".
+const NINGUNO = '__NINGUNO__';
 
 const ESTADOS_CIVILES = [
   ['SOLTERO', 'Soltero/a'],
@@ -47,6 +51,9 @@ interface Props {
 }
 
 export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
+  // Lista de ministerios de la iglesia, para el combobox "¿cuál ministerio?".
+  const { data: ministerios = [] } = useMinisterios(valores.trabajoMinisterio ? iglesiaId : undefined);
+
   function set<K extends keyof DatosMembresiaNuevos>(campo: K, valor: DatosMembresiaNuevos[K]) {
     onChange({ ...valores, [campo]: valor });
   }
@@ -62,8 +69,8 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
       <Seccion titulo="Datos complementarios">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ci">CI</Label>
-            <Input id="mn_ci" className={CAMPO_ESTILO} value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
+            <Label htmlFor="mn_ci">Número de documento</Label>
+            <Input id="mn_ci" className={CAMPO_ESTILO} placeholder="CI, pasaporte u otro documento" value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_correo">Correo</Label>
@@ -113,15 +120,29 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
           <SiNo label="¿Ha trabajado en algún ministerio?" value={valores.trabajoMinisterio} onChange={(v) => set('trabajoMinisterio', v)} />
           {valores.trabajoMinisterio && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mn_min">¿Cuál ministerio?</Label>
-              <Input id="mn_min" className={CAMPO_ESTILO} value={valores.ministerioCual} onChange={(e) => set('ministerioCual', e.target.value)} />
+              <Label>¿Cuál ministerio?</Label>
+              <Select value={valores.ministerioCual} onValueChange={(v) => set('ministerioCual', v)}>
+                <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Elegí el ministerio" /></SelectTrigger>
+                <SelectContent>
+                  {ministerios.filter((m) => m.activo).map((m) => (
+                    <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                  ))}
+                  {ministerios.filter((m) => m.activo).length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">No hay ministerios cargados en esta iglesia.</div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           )}
           <div className="flex flex-col gap-1.5">
-            <Label>¿Está en discipulado? (nivel)</Label>
-            <Select value={valores.discipuladoNivel} onValueChange={(v) => set('discipuladoNivel', v)}>
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="No está en discipulado" /></SelectTrigger>
+            <Label>¿Está en algún discipulado?</Label>
+            <Select
+              value={valores.discipuladoNivel || NINGUNO}
+              onValueChange={(v) => set('discipuladoNivel', v === NINGUNO ? '' : v)}
+            >
+              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value={NINGUNO}>Ninguno</SelectItem>
                 {Object.entries(DISCIPULADO_NIVEL_LABELS).map(([v, l]) => (
                   <SelectItem key={v} value={v}>{l}</SelectItem>
                 ))}

@@ -83,3 +83,20 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
 export function membresiaNuevosValida(d: DatosMembresiaNuevos): boolean {
   return d.primerNombre.trim() !== '' && d.primerApellido.trim() !== '' && d.sexo !== '';
 }
+
+/**
+ * Porcentaje de completitud de la ficha (0-100), para mostrarlo al precargar
+ * una persona existente -- así se ve de un vistazo qué tan completa está y qué
+ * campos valdría la pena rellenar. Cuenta los campos "de identidad/membresía"
+ * que tienen valor sobre el total considerado.
+ */
+export function porcentajeCompletadoMembresia(d: DatosMembresiaNuevos): number {
+  const campos = [
+    d.primerNombre, d.primerApellido, d.sexo, d.fechaNacimiento,
+    d.telefonoNumero, d.direccion, d.ci, d.correo,
+    d.estadoCivil, d.ocupacion, d.gradoInstruccion, d.discipuladoNivel,
+    d.comoLlego, d.casaDePazId, d.invitadorNombre,
+  ];
+  const llenos = campos.filter((c) => (c ?? '').toString().trim() !== '').length;
+  return Math.round((llenos / campos.length) * 100);
+}
