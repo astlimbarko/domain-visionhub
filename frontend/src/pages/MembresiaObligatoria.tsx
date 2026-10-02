@@ -3,6 +3,7 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -304,6 +305,10 @@ export function MembresiaObligatoria({ invitacion }: Props) {
   const sexoActual = watch('sexo');
   const telefonoPaisActual = watch('telefono_pais');
   const telefonoNoAplica = watch('telefono_no_aplica');
+  // KAN-492: mismo criterio que DatosBasicosPersonaFields -- si el prefijo
+  // actual no está en la lista corta, estamos en modo "Otro país" (prefijo libre).
+  const telefonoPaisValor = telefonoPaisActual ?? '+591';
+  const paisConocido = PAISES_TELEFONO.some((p) => p.codigo === telefonoPaisValor);
   const estadoCivilActual = watch('estado_civil');
   const gradoActual = watch('grado_instruccion');
   const ocupacionNoAplica = watch('ocupacion_no_aplica');
@@ -504,9 +509,9 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                       </Label>
                       <div className="flex gap-2">
                         <Select
-                          value={telefonoPaisActual ?? '+591'}
+                          value={paisConocido ? telefonoPaisValor : 'OTRO'}
                           disabled={telefonoNoAplica}
-                          onValueChange={(v) => setValue('telefono_pais', v)}
+                          onValueChange={(v) => setValue('telefono_pais', v === 'OTRO' ? '' : v)}
                         >
                           <SelectTrigger className={cn('w-32 shrink-0', CAMPO_ESTILO)}>
                             {/* KAN-252: children explícitos -- en la casilla cerrada
@@ -517,8 +522,14 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                                 entra en un ancho angosto y termina achicando la
                                 bandera junto con el texto. */}
                             <SelectValue>
-                              <span className={cn('fi', `fi-${(PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso) ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                              {telefonoPaisActual ?? '+591'}
+                              {paisConocido ? (
+                                <>
+                                  <span className={cn('fi', `fi-${(PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisValor)?.iso) ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                                  {telefonoPaisValor}
+                                </>
+                              ) : (
+                                <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                              )}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -529,8 +540,21 @@ export function MembresiaObligatoria({ invitacion }: Props) {
                                 <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                               </SelectItem>
                             ))}
+                            <SelectItem value="OTRO">
+                              <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
+                        {!paisConocido && !telefonoNoAplica && (
+                          <Input
+                            inputMode="tel"
+                            placeholder="+971"
+                            aria-label="Código de país"
+                            className={cn('w-20 shrink-0', CAMPO_ESTILO)}
+                            value={telefonoPaisValor}
+                            onChange={(e) => setValue('telefono_pais', e.target.value.replace(/[^\d+]/g, ''))}
+                          />
+                        )}
                         <Input
                           id="telefono_numero"
                           inputMode="numeric"

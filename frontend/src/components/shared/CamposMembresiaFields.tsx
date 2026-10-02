@@ -6,6 +6,7 @@
  */
 import { useTranslation } from 'react-i18next';
 import type { FieldErrors, FieldValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import { Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { normalizarNombre } from '@/utils/normalizarNombre';
@@ -90,6 +91,11 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
   setValue,
 }: Props<T>) {
   const { t } = useTranslation();
+  // KAN-492: mismo criterio que DatosBasicosPersonaFields -- si el prefijo
+  // actual no está en la lista corta, estamos en modo "Otro país" (prefijo
+  // libre), para no limitar el teléfono a los países ya curados.
+  const telefonoPaisValor = telefonoPaisActual ?? '+591';
+  const paisConocido = PAISES_TELEFONO.some((p) => p.codigo === telefonoPaisValor);
 
   return (
     <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
@@ -180,13 +186,19 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
         <Label htmlFor="telefono_numero">Celular</Label>
         <div className="flex gap-2">
           <Select
-            value={telefonoPaisActual ?? '+591'}
-            onValueChange={(v) => setValue('telefono_pais' as never, v as never)}
+            value={paisConocido ? telefonoPaisValor : 'OTRO'}
+            onValueChange={(v) => setValue('telefono_pais' as never, (v === 'OTRO' ? '' : v) as never)}
           >
             <SelectTrigger className={cn('w-28 shrink-0 sm:w-32', CAMPO_ESTILO)}>
               <SelectValue>
-                <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                {telefonoPaisActual ?? '+591'}
+                {paisConocido ? (
+                  <>
+                    <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisValor)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                    {telefonoPaisValor}
+                  </>
+                ) : (
+                  <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                )}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -197,8 +209,21 @@ export function CamposMembresiaFields<T extends CamposMembresiaValues>({
                   <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                 </SelectItem>
               ))}
+              <SelectItem value="OTRO">
+                <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+              </SelectItem>
             </SelectContent>
           </Select>
+          {!paisConocido && (
+            <Input
+              inputMode="tel"
+              placeholder="+971"
+              aria-label="Código de país"
+              className={cn('w-20 shrink-0', CAMPO_ESTILO)}
+              value={telefonoPaisValor}
+              onChange={(e) => setValue('telefono_pais' as never, e.target.value.replace(/[^\d+]/g, '') as never)}
+            />
+          )}
           <Input
             id="telefono_numero"
             inputMode="numeric"

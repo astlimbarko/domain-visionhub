@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Check } from 'lucide-react';
+import { Check, Globe } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -131,6 +131,10 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, cdpId, 
   const telefonoPaisActual = watch('telefono_pais');
   const esSemilla = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_SEMILLA;
   const esElite = tipos.find((t) => t.id === tipoActual)?.codigo === CODIGO_ELITE;
+  // KAN-492: mismo criterio que DatosBasicosPersonaFields -- si el prefijo
+  // actual no está en la lista corta, estamos en modo "Otro país" (prefijo libre).
+  const telefonoPaisValor = telefonoPaisActual ?? '+591';
+  const paisConocido = PAISES_TELEFONO.some((p) => p.codigo === telefonoPaisValor);
 
   // KAN-407: mientras se completa el formulario, busca en segundo plano
   // (debounced) si ya existe alguien con un nombre muy parecido -- Semilla
@@ -399,13 +403,19 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, cdpId, 
                 <Label htmlFor="telefono_numero">Teléfono</Label>
                 <div className="flex gap-2">
                   <Select
-                    value={telefonoPaisActual ?? '+591'}
-                    onValueChange={(v) => setValue('telefono_pais', v)}
+                    value={paisConocido ? telefonoPaisValor : 'OTRO'}
+                    onValueChange={(v) => setValue('telefono_pais', v === 'OTRO' ? '' : v)}
                   >
                     <SelectTrigger className="w-28 shrink-0 sm:w-32">
                       <SelectValue>
-                        <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === (telefonoPaisActual ?? '+591'))?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                        {telefonoPaisActual ?? '+591'}
+                        {paisConocido ? (
+                          <>
+                            <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisValor)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                            {telefonoPaisValor}
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                        )}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -416,8 +426,21 @@ export function NuevoEvangelizadoDialog({ open, onOpenChange, iglesiaId, cdpId, 
                           <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                         </SelectItem>
                       ))}
+                      <SelectItem value="OTRO">
+                        <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {!paisConocido && (
+                    <Input
+                      inputMode="tel"
+                      placeholder="+971"
+                      aria-label="Código de país"
+                      className="w-20 shrink-0"
+                      value={telefonoPaisValor}
+                      onChange={(e) => setValue('telefono_pais', e.target.value.replace(/[^\d+]/g, ''))}
+                    />
+                  )}
                   <Input id="telefono_numero" inputMode="numeric" placeholder="Opcional" className="min-w-0 flex-1" {...register('telefono_numero')} />
                 </div>
                 {errors.telefono_numero && <p className="text-sm text-destructive">{errors.telefono_numero.message}</p>}
