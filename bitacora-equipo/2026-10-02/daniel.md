@@ -15,3 +15,6 @@
 - [ ] Falta: verificación visual en navegador real (sin `.env` con URL+anon key de Supabase en esta máquina) -- comparar contra los bocetos como pidió Daniel
 - [ ] Falta: simplificación conocida -- "Contactar ahora" no abre WhatsApp/llamada todavía (necesitaría exponer el teléfono de la persona en `fn_evangelista_historial`, no se tocó la base hoy a propósito)
 - [ ] Falta: Jira, entradas en `/avances`
+- [x] Commit + push de todo lo de Evangelista (pedido explícito de Gonzalo) -- rama `feat/kan427-434-evangelista-personal-2026-09-29` en GitHub, sin PR, sin mergear a `master`
+- [x] `git pull` en `master` -- entró bastante trabajo de Afirmación/Bautismo/Membresía (KAN-488/490) del 30/09 al 02/10; ver `CLAUDE.md`, nueva sección "Specs pendientes de Afirmación" (`harness/20-afirmacion-procesos-y-colaborar/`, `harness/21-altar-formulario-membresia-paralela/` -- esta la termina Matías)
+- [ ] Evangelismo queda en pausa -- Gonzalo todavía no asignó la tarea puntual de Afirmación para hoy a la noche
