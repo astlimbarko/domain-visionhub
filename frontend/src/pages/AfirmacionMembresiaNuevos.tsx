@@ -10,8 +10,10 @@
 // o buscándola en la pantalla. En ese modo se ACTUALIZA, no se crea una nueva.
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Save, Check, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
@@ -43,16 +45,34 @@ import {
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
 
-function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
-  if (estado === 'inactivo') return null;
+/**
+ * Disco flotante de autoguardado (estándar del proyecto, igual que el Reporte
+ * de CdP, KAN-435): abajo a la derecha, no clickeable, spinner mientras guarda
+ * y disco al confirmar; se desvanece solo ~1.6s después de guardado.
+ */
+function DiscoAutoguardado({ mostrar, estado }: { mostrar: boolean; estado: EstadoGuardado }) {
   return (
-    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-      {estado === 'guardando' ? (
-        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando…</>
-      ) : (
-        <><Check className="h-3.5 w-3.5 text-[#34c759]" /> Guardado</>
+    <AnimatePresence>
+      {mostrar && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.6 }}
+          transition={{ duration: 0.25 }}
+          className="pointer-events-none fixed right-5 bottom-5 z-50 flex h-11 w-11 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${TEAL} 22%, transparent)`,
+            boxShadow: `0 0 18px 3px color-mix(in oklab, ${TEAL} 55%, transparent)`,
+          }}
+        >
+          {estado === 'guardando' ? (
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: TEAL }} />
+          ) : (
+            <Save className="h-5 w-5" style={{ color: TEAL }} />
+          )}
+        </motion.div>
       )}
-    </span>
+    </AnimatePresence>
   );
 }
 
@@ -70,8 +90,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
   const [guardandoFinal, setGuardandoFinal] = useState(false);
   const [cargandoPersona, setCargandoPersona] = useState(false);
+  const [mostrarIndicador, setMostrarIndicador] = useState(false);
   const hidratado = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ocultarIndicadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Precarga de una persona EXISTENTE: trae sus datos de la base al formulario,
   // para verificar/corregir y confirmar. No crea una nueva (se actualiza).
@@ -116,15 +138,24 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   }, [iglesiaId]);
 
   // Autoguardado con debounce en la tabla borrador (no en las tablas reales).
+  // Muestra el disco flotante mientras guarda y lo desvanece ~1.6s después.
   useEffect(() => {
     if (!iglesiaId || !hidratado.current) return;
     if (!hayContenidoRealMembresia(datos)) return;
     setEstado('guardando');
+    setMostrarIndicador(true);
+    if (ocultarIndicadorRef.current) clearTimeout(ocultarIndicadorRef.current);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       guardarBorradorMembresia(iglesiaId, datos)
-        .then(() => setEstado('guardado'))
-        .catch(() => setEstado('inactivo'));
+        .then(() => {
+          setEstado('guardado');
+          ocultarIndicadorRef.current = setTimeout(() => setMostrarIndicador(false), 1600);
+        })
+        .catch(() => {
+          setEstado('inactivo');
+          setMostrarIndicador(false);
+        });
     }, 900);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -206,7 +237,6 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
               : 'Registrar la membresía de una persona nueva.'}
           </p>
         </div>
-        <IndicadorGuardado estado={estado} />
       </div>
 
       {/* harness/21 Req 1: banner de "persona existente" o buscador para
@@ -287,6 +317,8 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DiscoAutoguardado mostrar={mostrarIndicador} estado={estado} />
     </div>
   );
 }
