@@ -242,7 +242,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       )}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Membresía (Nuevos)</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Formulario de membresía</h1>
           <p className="text-sm text-muted-foreground">
             {datos.personaExistenteId
               ? 'Completá y verificá los datos de esta persona.'
