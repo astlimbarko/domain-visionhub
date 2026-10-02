@@ -3,8 +3,8 @@
 // borrador de reporte de CdP (KAN-435): el payload es todo el formulario como
 // JSON, no toca las tablas reales de persona hasta que se presiona "Guardar".
 import { supabase } from './supabase';
-import { componerTelefono } from '@/utils/paises-telefono';
-import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
+import { componerTelefono, desglosarTelefono } from '@/utils/paises-telefono';
+import { DATOS_MEMBRESIA_NUEVOS_VACIO, type DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 
 export async function guardarBorradorMembresia(iglesiaId: string, payload: DatosMembresiaNuevos): Promise<string> {
   const { data, error } = await supabase.rpc('fn_guardar_borrador_membresia', {
@@ -31,6 +31,45 @@ export interface MembresiaNuevosGuardada {
   nombre_completo: string;
   casa_de_paz_id: string | null;
   sin_casa_de_paz: boolean;
+  actualizada?: boolean;
+}
+
+/**
+ * harness/21 Req 1: trae los datos de una persona EXISTENTE mapeados a los
+ * campos del formulario de Membresía desde 0, para precargarlo (ej. al llegar
+ * desde el botón "Llenar membresía" de Bautismo, o al buscar a alguien ya
+ * registrado). El teléfono se separa en país + número con desglosarTelefono.
+ */
+export async function obtenerPersonaParaMembresia(personaId: string): Promise<DatosMembresiaNuevos> {
+  const { data, error } = await supabase.rpc('fn_obtener_persona_para_membresia', { p_persona_id: personaId });
+  if (error) throw error;
+  const d = data as Record<string, string | boolean>;
+  const tel = desglosarTelefono((d.telefono as string) || '');
+  return {
+    ...DATOS_MEMBRESIA_NUEVOS_VACIO,
+    personaExistenteId: (d.persona_id as string) ?? personaId,
+    primerNombre: (d.primer_nombre as string) || '',
+    segundoNombre: (d.segundo_nombre as string) || '',
+    primerApellido: (d.primer_apellido as string) || '',
+    segundoApellido: (d.segundo_apellido as string) || '',
+    sexo: ((d.sexo as string) || '') as DatosMembresiaNuevos['sexo'],
+    fechaNacimiento: (d.fecha_nacimiento as string) || '',
+    telefonoPais: tel.pais?.codigo ?? '+591',
+    telefonoNumero: tel.numero,
+    direccion: (d.direccion as string) || '',
+    ci: (d.ci as string) || '',
+    correo: (d.correo as string) || '',
+    estadoCivil: (d.estado_civil as string) || '',
+    ocupacion: (d.ocupacion as string) || '',
+    gradoInstruccion: (d.grado_instruccion as string) || '',
+    discipuladoNivel: (d.discipulado_nivel as string) || '',
+    comoLlego: (d.como_llego as string) || '',
+    invitadorPersonaId: (d.invitador_persona_id as string) || '',
+    invitadorNombre: (d.invitador_nombre as string) || '',
+    invitadorEsLibre: (d.invitador_es_libre as boolean) ?? false,
+    casaDePazId: (d.casa_de_paz_id as string) || '',
+    casaDePazNombre: (d.casa_de_paz_nombre as string) || '',
+  };
 }
 
 /**
@@ -45,6 +84,7 @@ export async function guardarMembresiaNuevos(
   datos: DatosMembresiaNuevos,
 ): Promise<MembresiaNuevosGuardada> {
   const payload = {
+    persona_id: datos.personaExistenteId,
     primer_nombre: datos.primerNombre,
     segundo_nombre: datos.segundoNombre,
     primer_apellido: datos.primerApellido,

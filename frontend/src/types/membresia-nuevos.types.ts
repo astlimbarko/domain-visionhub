@@ -9,6 +9,9 @@ import {
 } from '@/components/personas/DatosBasicosPersonaFields';
 
 export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
+  // harness/21 Req 1: si está seteado, es una persona EXISTENTE que se está
+  // completando (no se crea una nueva; se actualiza). '' = persona nueva.
+  personaExistenteId: string;
   ci: string;
   correo: string;
   estadoCivil: string;
@@ -39,6 +42,7 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
 
 export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   ...DATOS_BASICOS_PERSONA_VACIO,
+  personaExistenteId: '',
   ci: '',
   correo: '',
   estadoCivil: '',
