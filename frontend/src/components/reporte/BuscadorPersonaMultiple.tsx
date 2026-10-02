@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Plus, Search, UserPlus, X } from 'lucide-react';
+import { AlertTriangle, Check, Globe, Plus, Search, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
@@ -204,6 +204,9 @@ export function BuscadorPersonaMultiple({
   const [edadAproximadaNueva, setEdadAproximadaNueva] = useState('');
   // KAN-435: sin marcar por defecto -- solo NC si el líder lo confirma a propósito.
   const [aceptoACristoNueva, setAceptoACristoNueva] = useState(false);
+  // KAN-492: mismo criterio que DatosBasicosPersonaFields -- si el prefijo
+  // actual no está en la lista corta, estamos en modo "Otro país" (prefijo libre).
+  const paisConocidoNueva = PAISES_TELEFONO.some((p) => p.codigo === telefonoPaisNueva);
 
   // KAN-407: mismo mecanismo que EvangelismoPendientePanel -- mientras se
   // completa "Persona nueva", busca en segundo plano (debounced) si ya
@@ -591,11 +594,20 @@ export function BuscadorPersonaMultiple({
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Teléfono</Label>
               <div className="flex gap-2">
-                <Select value={telefonoPaisNueva} onValueChange={setTelefonoPaisNueva}>
+                <Select
+                  value={paisConocidoNueva ? telefonoPaisNueva : 'OTRO'}
+                  onValueChange={(v) => setTelefonoPaisNueva(v === 'OTRO' ? '' : v)}
+                >
                   <SelectTrigger className="w-28 shrink-0 sm:w-32">
                     <SelectValue>
-                      <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisNueva)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                      {telefonoPaisNueva}
+                      {paisConocidoNueva ? (
+                        <>
+                          <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPaisNueva)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                          {telefonoPaisNueva}
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                      )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -606,8 +618,21 @@ export function BuscadorPersonaMultiple({
                         <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                       </SelectItem>
                     ))}
+                    <SelectItem value="OTRO">
+                      <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                {!paisConocidoNueva && (
+                  <Input
+                    inputMode="tel"
+                    placeholder="+971"
+                    aria-label="Código de país"
+                    className="w-20 shrink-0"
+                    value={telefonoPaisNueva}
+                    onChange={(e) => setTelefonoPaisNueva(e.target.value.replace(/[^\d+]/g, ''))}
+                  />
+                )}
                 <Input
                   type="tel"
                   inputMode="numeric"
