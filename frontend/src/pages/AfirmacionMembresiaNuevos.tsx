@@ -5,13 +5,17 @@
 // las tablas reales (persona + detalle + dirección + CdP + estado SSVA) ya
 // está implementado (fn_guardar_membresia_nuevos). Reusable desde el portal de
 // Colaborar via props `iglesiaId` + `onVolver`.
-// PENDIENTE (harness/21 Req 1): precargar una persona EXISTENTE (ej. la que
-// llega desde el botón "Llenar membresía" de Bautismo) -- hoy abre en blanco.
+// harness/21 Req 1: puede abrirse para una persona EXISTENTE (precargada) —
+// desde el botón "Llenar membresía" de Bautismo (navigate con state.personaId)
+// o buscándola en la pantalla. En ese modo se ACTUALIZA, no se crea una nueva.
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Save, Eraser, Check, Loader2, ArrowLeft } from 'lucide-react';
+import { Save, Eraser, Check, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
+import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +37,7 @@ import {
   obtenerBorradorMembresia,
   eliminarBorradorMembresia,
   guardarMembresiaNuevos,
+  obtenerPersonaParaMembresia,
 } from '@/services/membresia-borrador.service';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
@@ -54,18 +59,45 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   const iglesiaDelStore = useAuthStore((s) => s.iglesiaActivaId);
   const iglesiaId = iglesiaIdProp ?? iglesiaDelStore;
 
+  const location = useLocation();
+  // harness/21 Req 1: la persona puede llegar precargada desde el botón "Llenar
+  // membresía" de Bautismo (navigate con state.personaId).
+  const personaDesdeNav = (location.state as { personaId?: string } | null)?.personaId ?? null;
+
   const [datos, setDatos] = useState<DatosMembresiaNuevos>(DATOS_MEMBRESIA_NUEVOS_VACIO);
   const [estado, setEstado] = useState<EstadoGuardado>('inactivo');
   const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
   const [guardandoFinal, setGuardandoFinal] = useState(false);
+  const [cargandoPersona, setCargandoPersona] = useState(false);
   const hidratado = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restaurar borrador al montar (solo si tiene contenido real -- lección
-  // KAN-443: un formulario en blanco no debe disparar "se restauró tu borrador").
+  // Precarga de una persona EXISTENTE: trae sus datos de la base al formulario,
+  // para verificar/corregir y confirmar. No crea una nueva (se actualiza).
+  async function precargarPersona(personaId: string) {
+    setCargandoPersona(true);
+    try {
+      const d = await obtenerPersonaParaMembresia(personaId);
+      setDatos(d);
+      setEstado('inactivo');
+      toast.info(`Completando la membresía de ${d.primerNombre} ${d.primerApellido}.`);
+    } catch {
+      toast.error('No se pudieron cargar los datos de esa persona.');
+    } finally {
+      setCargandoPersona(false);
+    }
+  }
+
+  // Al montar: si viene una persona por navegación (desde Bautismo), precargarla
+  // -- tiene prioridad sobre el borrador. Si no, restaurar el borrador (solo si
+  // tiene contenido real -- lección KAN-443: un form en blanco no dispara aviso).
   useEffect(() => {
     if (!iglesiaId || hidratado.current) return;
     hidratado.current = true;
+    if (personaDesdeNav) {
+      precargarPersona(personaDesdeNav);
+      return;
+    }
     obtenerBorradorMembresia(iglesiaId)
       .then((b) => {
         if (b && hayContenidoRealMembresia(b)) {
@@ -122,10 +154,11 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       }
       setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO);
       setEstado('inactivo');
+      const verbo = res.actualizada ? 'actualizada' : 'guardada';
       if (res.sin_casa_de_paz) {
-        toast.success(`Membresía guardada: ${res.nombre_completo}. Quedó sin Casa de Paz — aparecerá en designaciones.`);
+        toast.success(`Membresía ${verbo}: ${res.nombre_completo}. Quedó sin Casa de Paz — aparecerá en designaciones.`);
       } else {
-        toast.success(`Membresía guardada: ${res.nombre_completo}.`);
+        toast.success(`Membresía ${verbo}: ${res.nombre_completo}.`);
       }
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : '';
@@ -163,10 +196,37 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Membresía (Nuevos)</h1>
-          <p className="text-sm text-muted-foreground">Registrar la membresía de una persona nueva.</p>
+          <p className="text-sm text-muted-foreground">
+            {datos.personaExistenteId
+              ? 'Completá y verificá los datos de esta persona.'
+              : 'Registrar la membresía de una persona nueva.'}
+          </p>
         </div>
         <IndicadorGuardado estado={estado} />
       </div>
+
+      {/* harness/21 Req 1: banner de "persona existente" o buscador para
+          precargar a alguien ya registrado. */}
+      {cargandoPersona ? (
+        <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-3 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos de la persona…
+        </div>
+      ) : datos.personaExistenteId ? (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#30d158]/40 bg-[#30d158]/8 px-3.5 py-3">
+          <span className="flex items-center gap-2 text-sm">
+            <UserCheck className="h-4 w-4 text-[#30d158]" />
+            Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span> (ya registrada)
+          </span>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
+            Persona nueva
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3">
+          <span className="text-xs font-medium text-muted-foreground">¿La persona ya está registrada? Buscala para completar su membresía:</span>
+          <BuscadorPersona iglesiaId={iglesiaId} onSeleccionar={(p: PersonaBusqueda) => precargarPersona(p.id)} />
+        </div>
+      )}
 
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
