@@ -110,6 +110,9 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       .catch(() => {
         /* borrador inaccesible -- no bloquea el formulario */
       });
+    // Solo al montar (guard hidratado.current); personaDesdeNav/precargarPersona
+    // no van en deps a propósito para no re-disparar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iglesiaId]);
 
   // Autoguardado con debounce en la tabla borrador (no en las tablas reales).
