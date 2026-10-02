@@ -71,6 +71,12 @@ export interface NavItem {
    * propio Líder de Departamento, donde agrupar no suma nada (todo el menú
    * ya es ese departamento). */
   grupo?: string;
+  /** KAN-491: segundo nivel de agrupación, DENTRO de un `grupo` (ej. dentro de
+   * "Dpto. Afirmación", el subgrupo "Membresía por enlace" junta el formulario
+   * público antiguo + su URL + Casas de Paz). Ítems consecutivos con el mismo
+   * `subgrupo` se colapsan en un sub-acordeón anidado (ver GrupoNavAcordeon en
+   * AppShell.tsx). Solo tiene efecto si el ítem además tiene `grupo`. */
+  subgrupo?: string;
 }
 
 // ─── Configuración de rutas por rol ──────────────────────────────────────────
@@ -315,11 +321,14 @@ const CATALOGO_NAV: NavItem[] = [
   // así que necesitan su propia entrada de nav (antes solo la veía el Líder
   // de Departamento vía NAV_ITEMS_AFIRMACION, ortogonal a este catálogo).
   { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color, grupo: 'Dpto. Afirmación' },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Dpto. Afirmación' },
+  // KAN-491: los 3 items de "membresía por enlace" (formulario público antiguo
+  // + su URL + Casas de Paz) se agrupan en un sub-acordeón dentro de
+  // "Dpto. Afirmación" (segundo nivel). Mismo criterio que NAV_ITEMS_AFIRMACION.
+  { icon: UserPlus, label: 'Formulario de membresía (antiguos)', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
   // #32ade6 (systemCyan): antes compartía #5e5ce6 con "Gestión de Redes"
   // (regla de un color por sección, 2026-09-10).
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Dpto. Afirmación' },
-  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Dpto. Afirmación' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
+  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
   { icon: Users, label: 'Membresía Miembros (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6', grupo: 'Dpto. Afirmación' },
   // KAN-481: primer proceso de Afirmación (Altar).
   { icon: Church, label: 'Altar (Afirmación)', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482', grupo: 'Dpto. Afirmación' },
