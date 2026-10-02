@@ -12,6 +12,7 @@ import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPer
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
 import { SelectorCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
 import { useMinisterios } from '@/hooks/useMinisterios';
+import { useMotivosLlegada } from '@/hooks/usePersonas';
 import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 import { DISCIPULADO_NIVEL_LABELS } from '@/types/persona.types';
 
@@ -53,6 +54,8 @@ interface Props {
 export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
   // Lista de ministerios de la iglesia, para el combobox "¿cuál ministerio?".
   const { data: ministerios = [] } = useMinisterios(valores.trabajoMinisterio ? iglesiaId : undefined);
+  // Motivos de llegada (reusa el catálogo ya existente, igual que FichaLlegada).
+  const { data: motivosLlegada = [] } = useMotivosLlegada();
 
   function set<K extends keyof DatosMembresiaNuevos>(campo: K, valor: DatosMembresiaNuevos[K]) {
     onChange({ ...valores, [campo]: valor });
@@ -106,10 +109,14 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
       <Seccion titulo="Proceso">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_comollego">¿Cómo llegó a la iglesia?</Label>
-            <Input id="mn_comollego" className={CAMPO_ESTILO} placeholder="Solo / alguien lo invitó (quién)" value={valores.comoLlego} onChange={(e) => set('comoLlego', e.target.value)} />
+            <Label>¿Cómo llegó a la iglesia?</Label>
+            <Select value={valores.motivoLlegadaId} onValueChange={(v) => set('motivoLlegadaId', v)}>
+              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                {motivosLlegada.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <SiNo label="¿Es visita / simpatizante?" value={valores.esVisita} onChange={(v) => set('esVisita', v)} />
         </div>
       </Seccion>
 

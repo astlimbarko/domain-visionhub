@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Save, Eraser, Check, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { Save, Check, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
@@ -251,11 +251,16 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
-      <div className="sticky bottom-0 z-10 flex gap-2 border-t border-border/60 bg-background/95 py-3 backdrop-blur">
-        <Button type="button" variant="destructive" className="gap-1.5 py-6 text-base" onClick={() => setConfirmarLimpiar(true)}>
-          <Eraser className="h-5 w-5" /> Comenzar de nuevo
+      <div className="sticky bottom-0 z-10 flex items-stretch gap-2 py-3">
+        <Button
+          type="button"
+          variant="destructive"
+          className="w-28 shrink-0 whitespace-normal px-2 text-center text-[13px] font-semibold leading-tight"
+          onClick={() => setConfirmarLimpiar(true)}
+        >
+          Borrar y comenzar de nuevo
         </Button>
-        <Button type="button" className="flex-1 gap-1.5 py-6 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
+        <Button type="button" className="flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
           {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
           {guardandoFinal ? 'Guardando…' : 'Guardar membresía'}
         </Button>

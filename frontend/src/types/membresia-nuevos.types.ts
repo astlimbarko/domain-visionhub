@@ -22,7 +22,7 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   // Bautismo, categoría de evangelismo, horario de contacto y familia se
   // quitaron del form por decisión del owner (2026-10-01): el bautismo vive
   // solo en el proceso Bautismo; evangelismo no entra en la membresía desde-0.
-  comoLlego: string;
+  motivoLlegadaId: string;
   // Preguntas livianas sobre vínculo con la iglesia
   yaAsisteIglesia: boolean;
   trabajoMinisterio: boolean;
@@ -49,7 +49,7 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   ocupacion: '',
   gradoInstruccion: '',
   esVisita: false,
-  comoLlego: '',
+  motivoLlegadaId: '',
   yaAsisteIglesia: false,
   trabajoMinisterio: false,
   ministerioCual: '',
@@ -72,7 +72,7 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
     d.primerNombre, d.segundoNombre, d.primerApellido, d.segundoApellido,
     d.telefonoNumero, d.sexo, d.fechaNacimiento, d.direccion,
     d.ci, d.correo, d.estadoCivil, d.ocupacion, d.gradoInstruccion,
-    d.comoLlego, d.ministerioCual, d.discipuladoNivel,
+    d.motivoLlegadaId, d.ministerioCual, d.discipuladoNivel,
     d.invitadorNombre, d.casaDePazNombre,
   ];
   if (textos.some((t) => t.trim() !== '')) return true;
@@ -95,7 +95,7 @@ export function porcentajeCompletadoMembresia(d: DatosMembresiaNuevos): number {
     d.primerNombre, d.primerApellido, d.sexo, d.fechaNacimiento,
     d.telefonoNumero, d.direccion, d.ci, d.correo,
     d.estadoCivil, d.ocupacion, d.gradoInstruccion, d.discipuladoNivel,
-    d.comoLlego, d.casaDePazId, d.invitadorNombre,
+    d.motivoLlegadaId, d.casaDePazId, d.invitadorNombre,
   ];
   const llenos = campos.filter((c) => (c ?? '').toString().trim() !== '').length;
   return Math.round((llenos / campos.length) * 100);
