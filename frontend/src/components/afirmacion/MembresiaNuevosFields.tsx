@@ -90,11 +90,11 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ocupacion">Ocupación</Label>
+            <Label htmlFor="mn_ocupacion">Ocupación *</Label>
             <Input id="mn_ocupacion" className={CAMPO_ESTILO} value={valores.ocupacion} onChange={(e) => set('ocupacion', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Grado de instrucción</Label>
+            <Label>Grado de instrucción *</Label>
             <Select value={valores.gradoInstruccion} onValueChange={(v) => set('gradoInstruccion', v)}>
               <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>
@@ -110,7 +110,7 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
       <Seccion titulo="Proceso">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label>¿Cómo llegó a la iglesia?</Label>
+            <Label>¿Cómo llegó a la iglesia? *</Label>
             <Select value={valores.motivoLlegadaId} onValueChange={(v) => set('motivoLlegadaId', v)}>
               <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>

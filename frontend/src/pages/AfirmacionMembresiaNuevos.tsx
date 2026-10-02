@@ -296,7 +296,11 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
-      <div className="sticky bottom-0 z-10 flex gap-2 py-3">
+      {/* Barra de acciones al final del formulario (scroll único). No es sticky
+          a propósito: una barra sticky-bottom sin fondo opaco flota transparente
+          sobre los campos (tapa contenido); con fondo opaco se ve la "franja
+          blanca" que el owner pidió quitar. Al final del flujo evita ambos. */}
+      <div className="flex gap-2 pt-2">
         <Button
           type="button"
           variant="destructive"
