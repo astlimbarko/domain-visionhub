@@ -5,8 +5,10 @@
 // Diferencias respecto de Altar:
 //   (a) proceso_codigo 'BAUTISMO' en vez de 'ALTAR',
 //   (b) acento celeste-agua #30b0c7 en vez del azul #0071E3 de Altar,
-//   (c) NO tiene el botón "Llenar membresía" todavía -- ver el TODO de
-//       ConfirmarBautismo más abajo (harness/24 Req 5 / harness/21).
+//   (c) botón "Registrar y llenar membresía" (KAN-490): registra el bautismo y
+//       abre la Membresía desde 0 de esa persona (solo en el contexto normal de
+//       Afirmación, no en el portal de colaboradores). La PRECARGA de la persona
+//       existente en ese formulario queda pendiente (harness/21 Req 1).
 //
 // ⚠️ NO editar AfirmacionAltar.tsx para tocar esto: son copias independentes a
 // propósito. El rediseño visual unificado de Altar/Bautismo/RSIL (molde sin
@@ -363,8 +365,8 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
             </button>
             <div className="flex flex-col gap-5">
               <DatosBasicosPersonaFields valores={formNuevo} onChange={setFormNuevo} />
-              {/* harness/23 Req 1: la CdP de la persona nueva, con 3 modos. El
-               * guardado de lo elegido es el TODO de handleCrearYContinuar. */}
+              {/* KAN-490: Casa de Paz de la persona nueva (invitador + CdP). Se
+               * guarda en handleCrearYContinuar via asignarEntradaCdp. */}
               <SelectorCasaDePaz valores={cdp} onChange={setCdp} iglesiaId={iglesiaActivaId} />
             </div>
             <Button
