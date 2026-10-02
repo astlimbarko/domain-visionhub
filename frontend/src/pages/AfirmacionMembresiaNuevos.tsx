@@ -10,8 +10,10 @@
 // o buscándola en la pantalla. En ese modo se ACTUALIZA, no se crea una nueva.
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Save, Eraser, Check, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
@@ -29,7 +31,8 @@ import { MembresiaNuevosFields } from '@/components/afirmacion/MembresiaNuevosFi
 import {
   DATOS_MEMBRESIA_NUEVOS_VACIO,
   hayContenidoRealMembresia,
-  membresiaNuevosValida,
+  camposObligatoriosFaltantes,
+  porcentajeCompletadoMembresia,
   type DatosMembresiaNuevos,
 } from '@/types/membresia-nuevos.types';
 import {
@@ -39,19 +42,38 @@ import {
   guardarMembresiaNuevos,
   obtenerPersonaParaMembresia,
 } from '@/services/membresia-borrador.service';
+import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
 
-function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
-  if (estado === 'inactivo') return null;
+/**
+ * Disco flotante de autoguardado (estándar del proyecto, igual que el Reporte
+ * de CdP, KAN-435): abajo a la derecha, no clickeable, spinner mientras guarda
+ * y disco al confirmar; se desvanece solo ~1.6s después de guardado.
+ */
+function DiscoAutoguardado({ mostrar, estado }: { mostrar: boolean; estado: EstadoGuardado }) {
   return (
-    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-      {estado === 'guardando' ? (
-        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando…</>
-      ) : (
-        <><Check className="h-3.5 w-3.5 text-[#34c759]" /> Guardado</>
+    <AnimatePresence>
+      {mostrar && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.6 }}
+          transition={{ duration: 0.25 }}
+          className="pointer-events-none fixed right-5 bottom-5 z-50 flex h-11 w-11 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${TEAL} 22%, transparent)`,
+            boxShadow: `0 0 18px 3px color-mix(in oklab, ${TEAL} 55%, transparent)`,
+          }}
+        >
+          {estado === 'guardando' ? (
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: TEAL }} />
+          ) : (
+            <Save className="h-5 w-5" style={{ color: TEAL }} />
+          )}
+        </motion.div>
       )}
-    </span>
+    </AnimatePresence>
   );
 }
 
@@ -69,8 +91,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
   const [guardandoFinal, setGuardandoFinal] = useState(false);
   const [cargandoPersona, setCargandoPersona] = useState(false);
+  const [mostrarIndicador, setMostrarIndicador] = useState(false);
   const hidratado = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ocultarIndicadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Precarga de una persona EXISTENTE: trae sus datos de la base al formulario,
   // para verificar/corregir y confirmar. No crea una nueva (se actualiza).
@@ -109,18 +133,30 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       .catch(() => {
         /* borrador inaccesible -- no bloquea el formulario */
       });
+    // Solo al montar (guard hidratado.current); personaDesdeNav/precargarPersona
+    // no van en deps a propósito para no re-disparar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iglesiaId]);
 
   // Autoguardado con debounce en la tabla borrador (no en las tablas reales).
+  // Muestra el disco flotante mientras guarda y lo desvanece ~1.6s después.
   useEffect(() => {
     if (!iglesiaId || !hidratado.current) return;
     if (!hayContenidoRealMembresia(datos)) return;
     setEstado('guardando');
+    setMostrarIndicador(true);
+    if (ocultarIndicadorRef.current) clearTimeout(ocultarIndicadorRef.current);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       guardarBorradorMembresia(iglesiaId, datos)
-        .then(() => setEstado('guardado'))
-        .catch(() => setEstado('inactivo'));
+        .then(() => {
+          setEstado('guardado');
+          ocultarIndicadorRef.current = setTimeout(() => setMostrarIndicador(false), 1600);
+        })
+        .catch(() => {
+          setEstado('inactivo');
+          setMostrarIndicador(false);
+        });
     }, 900);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -143,9 +179,17 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
   async function handleGuardar() {
     if (!iglesiaId || guardandoFinal) return;
+    const faltan = camposObligatoriosFaltantes(datos);
+    if (faltan.length > 0) {
+      toast.error(`Faltan campos obligatorios: ${faltan.join(', ')}.`);
+      return;
+    }
     setGuardandoFinal(true);
     try {
       const res = await guardarMembresiaNuevos(iglesiaId, datos);
+      // Correo de bienvenida (KAN-493): no-op si la persona no tiene correo o
+      // ya se le envió; nunca bloquea el alta (la función traga sus errores).
+      void notificarMembresiaCompletada(res.persona_id);
       // El borrador ya cumplió su función; se borra para no restaurarlo después.
       try {
         await eliminarBorradorMembresia(iglesiaId);
@@ -180,7 +224,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
     return <p className="text-sm text-muted-foreground">Elegí una iglesia para continuar.</p>;
   }
 
-  const puedeGuardar = membresiaNuevosValida(datos);
+  // El botón se habilita con el mínimo real (nombre/apellido/sexo); si faltan
+  // otros obligatorios, handleGuardar lo avisa con la lista puntual en vez de
+  // dejar el botón gris sin explicación.
+  const puedeGuardar = datos.primerNombre.trim() !== '' && datos.primerApellido.trim() !== '' && datos.sexo !== '';
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-1">
@@ -195,14 +242,13 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       )}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Membresía (Nuevos)</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Formulario de membresía</h1>
           <p className="text-sm text-muted-foreground">
             {datos.personaExistenteId
               ? 'Completá y verificá los datos de esta persona.'
               : 'Registrar la membresía de una persona nueva.'}
           </p>
         </div>
-        <IndicadorGuardado estado={estado} />
       </div>
 
       {/* harness/21 Req 1: banner de "persona existente" o buscador para
@@ -212,15 +258,35 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos de la persona…
         </div>
       ) : datos.personaExistenteId ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#30d158]/40 bg-[#30d158]/8 px-3.5 py-3">
-          <span className="flex items-center gap-2 text-sm">
-            <UserCheck className="h-4 w-4 text-[#30d158]" />
-            Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span> (ya registrada)
-          </span>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
-            Persona nueva
-          </Button>
-        </div>
+        (() => {
+          const pct = porcentajeCompletadoMembresia(datos);
+          const color = pct >= 80 ? '#34c759' : pct >= 50 ? '#30b0c7' : '#ff9500';
+          return (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                {/* Anillo de completitud (conic-gradient) con el % al centro. */}
+                <div
+                  className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, color-mix(in oklab, ${color} 16%, transparent) 0deg)` }}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card">
+                    <span className="text-[12px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="flex items-center gap-1.5 text-sm">
+                    <UserCheck className="h-4 w-4 text-[#30d158]" />
+                    Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span>
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Ficha {pct}% completa — rellená lo que falte y guardá.</span>
+                </div>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
+                Persona nueva
+              </Button>
+            </div>
+          );
+        })()
       ) : (
         <div className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3">
           <span className="text-xs font-medium text-muted-foreground">¿La persona ya está registrada? Buscala para completar su membresía:</span>
@@ -230,11 +296,20 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
-      <div className="sticky bottom-0 z-10 flex gap-2 border-t border-border/60 bg-background/95 py-3 backdrop-blur">
-        <Button type="button" variant="outline" className="gap-1.5" onClick={() => setConfirmarLimpiar(true)}>
-          <Eraser className="h-4 w-4" /> Limpiar
+      {/* Barra de acciones al final del formulario (scroll único). No es sticky
+          a propósito: una barra sticky-bottom sin fondo opaco flota transparente
+          sobre los campos (tapa contenido); con fondo opaco se ve la "franja
+          blanca" que el owner pidió quitar. Al final del flujo evita ambos. */}
+      <div className="flex gap-2 pt-2">
+        <Button
+          type="button"
+          variant="destructive"
+          className="h-14 w-32 shrink-0 whitespace-normal bg-destructive px-2 text-center text-[13px] font-semibold leading-tight text-white hover:bg-destructive/90"
+          onClick={() => setConfirmarLimpiar(true)}
+        >
+          Borrar y comenzar de nuevo
         </Button>
-        <Button type="button" className="flex-1 gap-1.5 py-6 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
+        <Button type="button" className="h-14 flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
           {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
           {guardandoFinal ? 'Guardando…' : 'Guardar membresía'}
         </Button>
@@ -243,7 +318,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       <Dialog open={confirmarLimpiar} onOpenChange={setConfirmarLimpiar}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Limpiar el formulario?</DialogTitle>
+            <DialogTitle>¿Comenzar de nuevo?</DialogTitle>
             <DialogDescription>
               Se borrará todo lo cargado y el borrador guardado, para empezar de cero. Esta acción no se puede deshacer.
             </DialogDescription>
@@ -253,11 +328,13 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
               <Button variant="outline">Cancelar</Button>
             </DialogClose>
             <Button variant="destructive" onClick={handleLimpiar}>
-              Sí, limpiar
+              Sí, comenzar de nuevo
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DiscoAutoguardado mostrar={mostrarIndicador} estado={estado} />
     </div>
   );
 }

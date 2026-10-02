@@ -71,6 +71,12 @@ export interface NavItem {
    * propio Líder de Departamento, donde agrupar no suma nada (todo el menú
    * ya es ese departamento). */
   grupo?: string;
+  /** KAN-491: segundo nivel de agrupación, DENTRO de un `grupo` (ej. dentro de
+   * "Dpto. Afirmación", el subgrupo "Membresía por enlace" junta el formulario
+   * público antiguo + su URL + Casas de Paz). Ítems consecutivos con el mismo
+   * `subgrupo` se colapsan en un sub-acordeón anidado (ver GrupoNavAcordeon en
+   * AppShell.tsx). Solo tiene efecto si el ítem además tiene `grupo`. */
+  subgrupo?: string;
 }
 
 // ─── Configuración de rutas por rol ──────────────────────────────────────────
@@ -315,11 +321,14 @@ const CATALOGO_NAV: NavItem[] = [
   // así que necesitan su propia entrada de nav (antes solo la veía el Líder
   // de Departamento vía NAV_ITEMS_AFIRMACION, ortogonal a este catálogo).
   { icon: LayoutDashboard, label: 'Afirmación', path: ROUTES.AFIRMACION, color: DEPARTAMENTO_META.AFIRMACION.color, grupo: 'Dpto. Afirmación' },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Dpto. Afirmación' },
+  // KAN-491: los 3 items de "membresía por enlace" (formulario público antiguo
+  // + su URL + Casas de Paz) se agrupan en un sub-acordeón dentro de
+  // "Dpto. Afirmación" (segundo nivel). Mismo criterio que NAV_ITEMS_AFIRMACION.
+  { icon: UserPlus, label: 'Formulario de membresía (antiguos)', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
   // #32ade6 (systemCyan): antes compartía #5e5ce6 con "Gestión de Redes"
   // (regla de un color por sección, 2026-09-10).
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Dpto. Afirmación' },
-  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Dpto. Afirmación' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
+  { icon: Home, label: 'Casas de Paz (Afirmación)', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Dpto. Afirmación', subgrupo: 'Membresía por enlace' },
   { icon: Users, label: 'Membresía Miembros (Afirmación)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6', grupo: 'Dpto. Afirmación' },
   // KAN-481: primer proceso de Afirmación (Altar).
   { icon: Church, label: 'Altar (Afirmación)', path: ROUTES.AFIRMACION_ALTAR, color: '#ff6482', grupo: 'Dpto. Afirmación' },
@@ -328,7 +337,7 @@ const CATALOGO_NAV: NavItem[] = [
   // harness/24: RSIL (Retiro de Sanidad Interior) -- tercer proceso.
   { icon: HeartPulse, label: 'RSIL (Afirmación)', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8', grupo: 'Dpto. Afirmación' },
   // KAN-488: "Membresía desde 0" para gente nueva captada (verde, distinto del teal de Bautismo).
-  { icon: UserPlus, label: 'Membresía Nuevos (Afirmación)', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158', grupo: 'Dpto. Afirmación' },
+  { icon: UserPlus, label: 'Form. de Membresía', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158', grupo: 'Dpto. Afirmación' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -348,15 +357,18 @@ const CATALOGO_NAV: NavItem[] = [
 // Afirmación no depende de rol_sistema_enum: se muestran segun
 // useEsLiderAfirmacion(), no segun RUTAS_POR_ROL. Se agregan aparte del
 // catalogo/obtenerNavItems para no romper la union RolUI existente.
-// Tres items separados en el nav principal (no una sola entrada con
-// sub-nav interno) -- decision del owner, 2026-07-26.
+// KAN-491: los 3 items de "membresía por enlace" (formulario público
+// antiguo + su URL + Casas de Paz) se agrupan con `grupo` en un acordeon
+// de segundo nivel (mismo mecanismo que agruparNavItems en AppShell.tsx,
+// KAN-411) -- el resto de los items de Afirmación quedan sueltos. El
+// "Dashboard" de arriba se dio de baja (la pantalla de entrada ahora es
+// una portada simple, ver pages/Afirmacion.tsx).
 
 export const NAV_ITEMS_AFIRMACION: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
+  { icon: UserPlus, label: 'Formulario de membresía (antiguos)', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Membresía por enlace' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Membresía por enlace' },
   // KAN-127: todas las Casas de Paz de la iglesia, organizadas por Red.
-  { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
+  { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Membresía por enlace' },
   // Plan panel Afirmación 2026-08-20, punto 3/4. KAN-488: renombrada a
   // "Miembros" para distinguirla de la nueva "Membresía (Nuevos)" (desde 0).
   { icon: Users, label: 'Membresía (Miembros)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
@@ -370,7 +382,7 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   // harness/24: RSIL -- registrar el retiro (historial de fechas).
   { icon: HeartPulse, label: 'RSIL', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8' },
   // KAN-488: "Membresía desde 0" -- membresía liviana para gente nueva captada.
-  { icon: UserPlus, label: 'Membresía (Nuevos)', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158' },
+  { icon: UserPlus, label: 'Form. de Membresía', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,

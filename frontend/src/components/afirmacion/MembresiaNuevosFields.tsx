@@ -10,9 +10,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatosBasicosPersonaFields } from '@/components/personas/DatosBasicosPersonaFields';
 import { GRADOS_INSTRUCCION } from '@/components/shared/CamposMembresiaFields';
+import { SeccionConyugeMembresia, SeccionFamiliaMembresia } from '@/components/shared/CamposMembresiaExtendidaFields';
 import { SelectorCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
+import { useMinisterios } from '@/hooks/useMinisterios';
+import { useMotivosLlegada } from '@/hooks/usePersonas';
 import type { DatosMembresiaNuevos } from '@/types/membresia-nuevos.types';
 import { DISCIPULADO_NIVEL_LABELS } from '@/types/persona.types';
+
+// Radix Select no permite value="" -- sentinela para la opción "Ninguno".
+const NINGUNO = '__NINGUNO__';
 
 const ESTADOS_CIVILES = [
   ['SOLTERO', 'Soltero/a'],
@@ -47,6 +53,11 @@ interface Props {
 }
 
 export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
+  // Lista de ministerios de la iglesia, para el combobox "¿cuál ministerio?".
+  const { data: ministerios = [] } = useMinisterios(valores.trabajoMinisterio ? iglesiaId : undefined);
+  // Motivos de llegada (reusa el catálogo ya existente, igual que FichaLlegada).
+  const { data: motivosLlegada = [] } = useMotivosLlegada();
+
   function set<K extends keyof DatosMembresiaNuevos>(campo: K, valor: DatosMembresiaNuevos[K]) {
     onChange({ ...valores, [campo]: valor });
   }
@@ -55,22 +66,22 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
     <div className="flex flex-col gap-6">
       {/* Datos básicos de la persona (reuso el componente compartido) */}
       <Seccion titulo="Datos de la persona">
-        <DatosBasicosPersonaFields valores={valores} onChange={(v) => onChange({ ...valores, ...v })} />
+        <DatosBasicosPersonaFields valores={valores} onChange={(v) => onChange({ ...valores, ...v })} marcarObligatorios />
       </Seccion>
 
       {/* Datos complementarios */}
       <Seccion titulo="Datos complementarios">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ci">CI</Label>
-            <Input id="mn_ci" className={CAMPO_ESTILO} value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
+            <Label htmlFor="mn_ci">Número de documento *</Label>
+            <Input id="mn_ci" className={CAMPO_ESTILO} placeholder="CI, pasaporte u otro documento" value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_correo">Correo</Label>
-            <Input id="mn_correo" type="email" className={CAMPO_ESTILO} value={valores.correo} onChange={(e) => set('correo', e.target.value)} />
+            <Input id="mn_correo" type="email" className={CAMPO_ESTILO} placeholder="Opcional — recibirá un correo de bienvenida" value={valores.correo} onChange={(e) => set('correo', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Estado civil</Label>
+            <Label>Estado civil *</Label>
             <Select value={valores.estadoCivil} onValueChange={(v) => set('estadoCivil', v)}>
               <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>
@@ -79,11 +90,11 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ocupacion">Ocupación</Label>
+            <Label htmlFor="mn_ocupacion">Ocupación *</Label>
             <Input id="mn_ocupacion" className={CAMPO_ESTILO} value={valores.ocupacion} onChange={(e) => set('ocupacion', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Grado de instrucción</Label>
+            <Label>Grado de instrucción *</Label>
             <Select value={valores.gradoInstruccion} onValueChange={(v) => set('gradoInstruccion', v)}>
               <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>
@@ -99,10 +110,14 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
       <Seccion titulo="Proceso">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_comollego">¿Cómo llegó a la iglesia?</Label>
-            <Input id="mn_comollego" className={CAMPO_ESTILO} placeholder="Solo / alguien lo invitó (quién)" value={valores.comoLlego} onChange={(e) => set('comoLlego', e.target.value)} />
+            <Label>¿Cómo llegó a la iglesia? *</Label>
+            <Select value={valores.motivoLlegadaId} onValueChange={(v) => set('motivoLlegadaId', v)}>
+              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                {motivosLlegada.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <SiNo label="¿Es visita / simpatizante?" value={valores.esVisita} onChange={(v) => set('esVisita', v)} />
         </div>
       </Seccion>
 
@@ -113,15 +128,29 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
           <SiNo label="¿Ha trabajado en algún ministerio?" value={valores.trabajoMinisterio} onChange={(v) => set('trabajoMinisterio', v)} />
           {valores.trabajoMinisterio && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mn_min">¿Cuál ministerio?</Label>
-              <Input id="mn_min" className={CAMPO_ESTILO} value={valores.ministerioCual} onChange={(e) => set('ministerioCual', e.target.value)} />
+              <Label>¿Cuál ministerio?</Label>
+              <Select value={valores.ministerioCual} onValueChange={(v) => set('ministerioCual', v)}>
+                <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="Elegí el ministerio" /></SelectTrigger>
+                <SelectContent>
+                  {ministerios.filter((m) => m.activo).map((m) => (
+                    <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                  ))}
+                  {ministerios.filter((m) => m.activo).length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">No hay ministerios cargados en esta iglesia.</div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           )}
           <div className="flex flex-col gap-1.5">
-            <Label>¿Está en discipulado? (nivel)</Label>
-            <Select value={valores.discipuladoNivel} onValueChange={(v) => set('discipuladoNivel', v)}>
-              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue placeholder="No está en discipulado" /></SelectTrigger>
+            <Label>¿Está en algún discipulado?</Label>
+            <Select
+              value={valores.discipuladoNivel || NINGUNO}
+              onValueChange={(v) => set('discipuladoNivel', v === NINGUNO ? '' : v)}
+            >
+              <SelectTrigger className={cn('w-full', CAMPO_ESTILO)}><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value={NINGUNO}>Ninguno</SelectItem>
                 {Object.entries(DISCIPULADO_NIVEL_LABELS).map(([v, l]) => (
                   <SelectItem key={v} value={v}>{l}</SelectItem>
                 ))}
@@ -129,6 +158,20 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             </Select>
           </div>
         </div>
+      </Seccion>
+
+      {/* Familia + Cónyuge (UX 2026-10-02): se reusan las secciones de la
+          membresía extendida. Ambas operan solo sobre `familiares` (el cónyuge
+          es un familiar con tipo_relacion_codigo='CONYUGE'). */}
+      <Seccion titulo="Familia">
+        <SeccionConyugeMembresia
+          value={{ familiares: valores.familiares }}
+          onChange={(v) => set('familiares', v.familiares ?? [])}
+        />
+        <SeccionFamiliaMembresia
+          value={{ familiares: valores.familiares }}
+          onChange={(v) => set('familiares', v.familiares ?? [])}
+        />
       </Seccion>
 
       {/* Casa de Paz (KAN-490): selector unificado -- invitador (sistema o texto

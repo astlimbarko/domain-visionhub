@@ -100,12 +100,32 @@ function agruparNavItems(items: NavItem[]): EntradaNav[] {
   return agrupado.flatMap((entrada) => (entrada.tipo === 'grupo' && entrada.items.length === 1 ? [{ tipo: 'item' as const, item: entrada.items[0] }] : [entrada]));
 }
 
-/** Header colapsable de un grupo -- mismo estilo que ya usaba el header fijo
- * de Dashboard con varios roles/sombreros (`text-[13px] font-semibold`), acá
- * además clickeable. Arranca abierto solo si la ruta activa está adentro del
- * grupo (para no esconder dónde está parado el usuario sin querer); después
- * de eso, el toggle manual del usuario manda. */
-function GrupoNavAcordeon({
+type SubEntrada = { tipo: 'item'; item: NavItem } | { tipo: 'subgrupo'; nombre: string; items: NavItem[] };
+
+/** KAN-491: segundo nivel de agrupación, DENTRO de un grupo ya abierto. Mismo
+ * criterio que agruparNavItems pero por `subgrupo` -- ítems consecutivos con el
+ * mismo `subgrupo` se colapsan en un sub-acordeón. Los que no tienen subgrupo
+ * quedan sueltos. No se aplana el subgrupo de 1 ítem: si el owner lo definió,
+ * se respeta la carpeta. */
+function agruparPorSubgrupo(items: NavItem[]): SubEntrada[] {
+  const out: SubEntrada[] = [];
+  for (const item of items) {
+    const ultimo = out[out.length - 1];
+    if (item.subgrupo && ultimo?.tipo === 'subgrupo' && ultimo.nombre === item.subgrupo) {
+      ultimo.items.push(item);
+    } else if (item.subgrupo) {
+      out.push({ tipo: 'subgrupo', nombre: item.subgrupo, items: [item] });
+    } else {
+      out.push({ tipo: 'item', item });
+    }
+  }
+  return out;
+}
+
+/** Sub-acordeón de segundo nivel (dentro de un GrupoNavAcordeon). Mismo estilo
+ * que el grupo pero con el chip más chico y la etiqueta en peso medio, para que
+ * se lea como una carpeta anidada y no compita con el header del departamento. */
+function SubgrupoNavAcordeon({
   nombre,
   items,
   oscuro,
@@ -117,6 +137,52 @@ function GrupoNavAcordeon({
   oscuro?: boolean;
   activo: boolean;
   renderItem: (item: NavItem) => ReactNode;
+}) {
+  const [abierto, setAbierto] = useState(activo);
+  const Icono = items[0].icon;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        className={cn(
+          'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors',
+          oscuro ? 'text-white/80 hover:bg-white/10' : 'text-foreground/80 hover:bg-sidebar-accent'
+        )}
+      >
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: `color-mix(in oklab, ${items[0].color} 13%, transparent)` }}
+        >
+          <Icono className="h-[16px] w-[16px]" style={{ color: items[0].color }} />
+        </span>
+        <span className="flex-1 truncate text-left">{nombre}</span>
+        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform', abierto && 'rotate-180', oscuro ? 'text-white/50' : 'text-muted-foreground')} />
+      </button>
+      {abierto && <div className="flex flex-col gap-0.5 pl-[30px]">{items.map(renderItem)}</div>}
+    </div>
+  );
+}
+
+/** Header colapsable de un grupo -- mismo estilo que ya usaba el header fijo
+ * de Dashboard con varios roles/sombreros (`text-[13px] font-semibold`), acá
+ * además clickeable. Arranca abierto solo si la ruta activa está adentro del
+ * grupo (para no esconder dónde está parado el usuario sin querer); después
+ * de eso, el toggle manual del usuario manda. */
+function GrupoNavAcordeon({
+  nombre,
+  items,
+  oscuro,
+  activo,
+  renderItem,
+  esRutaActiva,
+}: {
+  nombre: string;
+  items: NavItem[];
+  oscuro?: boolean;
+  activo: boolean;
+  renderItem: (item: NavItem) => ReactNode;
+  esRutaActiva: (path: string) => boolean;
 }) {
   const [abierto, setAbierto] = useState(activo);
   const Icono = items[0].icon;
@@ -139,7 +205,24 @@ function GrupoNavAcordeon({
         <span className="flex-1 truncate text-left">{nombre}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform', abierto && 'rotate-180', oscuro ? 'text-white/50' : 'text-muted-foreground')} />
       </button>
-      {abierto && <div className="flex flex-col gap-0.5 pl-[30px]">{items.map(renderItem)}</div>}
+      {abierto && (
+        <div className="flex flex-col gap-0.5 pl-[30px]">
+          {agruparPorSubgrupo(items).map((sub) =>
+            sub.tipo === 'item' ? (
+              renderItem(sub.item)
+            ) : (
+              <SubgrupoNavAcordeon
+                key={sub.nombre}
+                nombre={sub.nombre}
+                items={sub.items}
+                oscuro={oscuro}
+                activo={sub.items.some((it) => esRutaActiva(it.path))}
+                renderItem={renderItem}
+              />
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -222,8 +305,9 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
     <nav className="flex flex-1 flex-col gap-0.5">
       {agruparNavItems(navItems).map((entrada) => {
         if (entrada.tipo === 'item') return renderItem(entrada.item);
-        const activoGrupo = entrada.items.some((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
-        return <GrupoNavAcordeon key={entrada.nombre} nombre={entrada.nombre} items={entrada.items} oscuro={oscuro} activo={activoGrupo} renderItem={renderItem} />;
+        const esRutaActiva = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
+        const activoGrupo = entrada.items.some((item) => esRutaActiva(item.path));
+        return <GrupoNavAcordeon key={entrada.nombre} nombre={entrada.nombre} items={entrada.items} oscuro={oscuro} activo={activoGrupo} renderItem={renderItem} esRutaActiva={esRutaActiva} />;
       })}
     </nav>
   );

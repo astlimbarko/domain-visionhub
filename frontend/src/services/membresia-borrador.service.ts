@@ -63,7 +63,7 @@ export async function obtenerPersonaParaMembresia(personaId: string): Promise<Da
     ocupacion: (d.ocupacion as string) || '',
     gradoInstruccion: (d.grado_instruccion as string) || '',
     discipuladoNivel: (d.discipulado_nivel as string) || '',
-    comoLlego: (d.como_llego as string) || '',
+    motivoLlegadaId: (d.motivo_llegada_id as string) || '',
     invitadorPersonaId: (d.invitador_persona_id as string) || '',
     invitadorNombre: (d.invitador_nombre as string) || '',
     invitadorEsLibre: (d.invitador_es_libre as boolean) ?? false,
@@ -98,13 +98,16 @@ export async function guardarMembresiaNuevos(
     ocupacion: datos.ocupacion,
     telefono: componerTelefono(datos.telefonoPais, datos.telefonoNumero),
     direccion: datos.direccion,
-    como_llego: datos.comoLlego,
+    motivo_llegada_id: datos.motivoLlegadaId,
     discipulado_nivel: datos.discipuladoNivel,
     es_visita: datos.esVisita,
     // KAN-490: el frontend resuelve la CdP final; invitador por id (sistema) o txt (libre).
     invitador_persona_id: datos.invitadorEsLibre ? '' : datos.invitadorPersonaId,
     invitador_txt: datos.invitadorEsLibre ? datos.invitadorNombre : '',
     casa_de_paz_id: datos.casaDePazId,
+    // UX 2026-10-02: Familia + Cónyuge (el cónyuge es un familiar con
+    // tipo_relacion_codigo='CONYUGE'). La RPC los inserta en referencia_familiar.
+    familiares: datos.familiares,
   };
   const { data, error } = await supabase.rpc('fn_guardar_membresia_nuevos', {
     p_iglesia_id: iglesiaId,

@@ -7,6 +7,7 @@
 // MembresiaObligatoria.tsx).
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,9 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
   const [enviando, setEnviando] = useState(false);
 
   const { data: ministerios = [], isLoading: cargandoMinisterios } = useMinisterios(faltaMinisterio ? iglesiaId : undefined);
+  // KAN-492: mismo criterio que DatosBasicosPersonaFields -- si el prefijo
+  // actual no está en la lista corta, estamos en modo "Otro país" (prefijo libre).
+  const paisConocido = PAISES_TELEFONO.some((p) => p.codigo === telefonoPais);
 
   function alternarMinisterio(id: string, marcado: boolean) {
     setMinisterioNinguno(false);
@@ -103,11 +107,21 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
                   espacio real para tipear. Se achica el selector en móvil
                   (w-24) y el número toma el resto con flex-1/min-w-0. */}
               <div className="flex gap-2">
-                <Select value={telefonoPais} disabled={telefonoNoTiene} onValueChange={setTelefonoPais}>
+                <Select
+                  value={paisConocido ? telefonoPais : 'OTRO'}
+                  disabled={telefonoNoTiene}
+                  onValueChange={(v) => setTelefonoPais(v === 'OTRO' ? '' : v)}
+                >
                   <SelectTrigger className={cn('w-28 shrink-0 sm:w-32', CAMPO_ESTILO)}>
                     <SelectValue>
-                      <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPais)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                      {telefonoPais}
+                      {paisConocido ? (
+                        <>
+                          <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === telefonoPais)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                          {telefonoPais}
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                      )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -118,8 +132,21 @@ export function ActualizacionMembresiaModal({ iglesiaId, faltaTelefono, faltaMin
                         <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                       </SelectItem>
                     ))}
+                    <SelectItem value="OTRO">
+                      <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                {!paisConocido && !telefonoNoTiene && (
+                  <Input
+                    inputMode="tel"
+                    placeholder="+971"
+                    aria-label="Código de país"
+                    className={cn('w-20 shrink-0', CAMPO_ESTILO)}
+                    value={telefonoPais}
+                    onChange={(e) => setTelefonoPais(e.target.value.replace(/[^\d+]/g, ''))}
+                  />
+                )}
                 <Input
                   id="actualizacion_telefono"
                   inputMode="numeric"

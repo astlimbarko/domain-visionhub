@@ -99,6 +99,11 @@ export async function guardarActualizacionMinisterios(ministerioIds: string[]): 
 // MembresiaObligatoria), avisar por correo a la dirección escrita. Callable
 // sin sesión (el flujo público es anónimo) -- nunca bloquea el alta si
 // falla, mismo criterio que notificarAsignacionCargo* de estructura.service.ts.
+//
+// KAN-493: genérico por personaId, así que también sirve tal cual para
+// "Membresía desde 0" (4to flujo) -- llamar con el `persona_id` que devuelve
+// fn_guardar_membresia_nuevos apenas se guarda con éxito. Si la persona no
+// tiene correo cargado (es opcional ahí), la función de la base es no-op.
 export async function notificarMembresiaCompletada(personaId: string): Promise<void> {
   try {
     await supabase.functions.invoke('notificar-membresia-completada', { body: { personaId } });
