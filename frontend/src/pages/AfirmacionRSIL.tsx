@@ -9,8 +9,8 @@
 //       por eso acá no hay migración nueva ni cambios de esquema.
 //   (b) acento lavanda #8b7dd8, distinto del celeste #30b0c7 de Bautismo y
 //       del azul #0071E3 de Altar (un color suave por proceso, harness/24 Req 8),
-//   (c) NO tiene el botón "Llenar membresía" todavía -- ver el TODO de
-//       ConfirmarRSIL más abajo (harness/24 Req 5 / harness/21).
+//   (c) RSIL no lleva el botón "Llenar membresía" (ese puente es solo de
+//       Bautismo: todo el que se bautiza hace su membresía; RSIL es otro proceso).
 //
 // ⚠️ NO editar AfirmacionAltar.tsx ni AfirmacionBautismo.tsx para tocar esto:
 // son copias independientes a propósito. El rediseño visual unificado de
@@ -142,15 +142,8 @@ function ConfirmarRSIL({
           <Input id="rsil_fecha" type="date" max={HOY()} value={fecha} onChange={(e) => setFecha(e.target.value)} className={cnPl()} />
         </div>
       </div>
-      {/* harness/24 Req 5 -- PENDIENTE, no implementado a propósito (decisión
-       * del owner 2026-10-01): acá va el botón secundario "Llenar membresía"
-       * que, tras registrar el RSIL, abre la Membresía (Nuevos) de esta
-       * persona precargada. No se puede construir todavía porque la ruta
-       * ROUTES.AFIRMACION_MEMBRESIA_NUEVOS (/afirmacion-membresia-nuevos)
-       * aún NO existe en esta rama: vive en la rama de Membresía (harness/21),
-       * que además es la que tiene que definir cómo se precarga una persona
-       * YA EXISTENTE (harness/24 open-questions #1). Se agrega junto con esa
-       * integración; acá solo el registro del RSIL. */}
+      {/* RSIL no lleva botón "Llenar membresía" (a diferencia de Bautismo): ese
+       * puente a la Membresía desde 0 es propio del bautismo. Acá solo el registro. */}
       <div className="flex gap-2">
         <Button type="button" variant="outline" className="flex-1" onClick={onCancelar} disabled={registrar.isPending}>
           Cancelar
@@ -343,8 +336,8 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
             </button>
             <div className="flex flex-col gap-5">
               <DatosBasicosPersonaFields valores={formNuevo} onChange={setFormNuevo} />
-              {/* harness/23 Req 1: la CdP de la persona nueva, con 3 modos. El
-               * guardado de lo elegido es el TODO de handleCrearYContinuar. */}
+              {/* KAN-490: Casa de Paz de la persona nueva (invitador + CdP). Se
+               * guarda en handleCrearYContinuar via asignarEntradaCdp. */}
               <SelectorCasaDePaz valores={cdp} onChange={setCdp} iglesiaId={iglesiaActivaId} />
             </div>
             <Button

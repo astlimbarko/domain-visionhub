@@ -2,8 +2,11 @@
 // scroll, para registrar la membresía de gente nueva (distinta de la membresía
 // por link). Autoguardado en la tabla borrador (BD, 1 por usuario), restaura
 // con aviso al volver, y botón Limpiar con confirmación. El guardado final a
-// las tablas reales queda pendiente (depende de cerrar cómo se asigna la CdP,
-// harness/23). Reusable desde el portal de Colaborar via prop `iglesiaId`.
+// las tablas reales (persona + detalle + dirección + CdP + estado SSVA) ya
+// está implementado (fn_guardar_membresia_nuevos). Reusable desde el portal de
+// Colaborar via props `iglesiaId` + `onVolver`.
+// PENDIENTE (harness/21 Req 1): precargar una persona EXISTENTE (ej. la que
+// llega desde el botón "Llenar membresía" de Bautismo) -- hoy abre en blanco.
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Save, Eraser, Check, Loader2, ArrowLeft } from 'lucide-react';
