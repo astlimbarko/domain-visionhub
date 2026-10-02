@@ -15,7 +15,10 @@ Rama: `feat/membresia-mejoras-ux-2026-10-02`. Trabajo en paralelo con 3 agentes
 - [x] Faltaban 3 asteriscos (Ocupación, Grado, ¿Cómo llegó?) → corregidos
 - [x] Jira KAN-491 a 495 creados (495 = lentitud Colaboradores, reportado por el owner)
 - [x] Migración de /avances agregada (KAN-491/492/493/494)
-- [x] Build de producción + merge a master
-- [ ] Falta: comentar/mover estados en Jira (MCP de Atlassian se desconectó en el cierre)
+- [x] Build de producción + merge a master + push
+- [x] Jira KAN-491/492/493/494 comentados y movidos a "En revisión"; KAN-495 en "Tareas por hacer"
+- [x] Migraciones aplicadas a Supabase: Familia (referencia_familiar), motivo de llegada en precarga, /avances
+- [x] ZIP de deploy generado para subir a cPanel: visionhub-dist-2026-10-02.zip (2.57 MB, con .htaccess)
+- [ ] Deploy real: lo sube el owner a cPanel (public_html); CI/CD automático en pausa por facturación de GitHub
 - [ ] Pendiente: KAN-495 (investigar lentitud al abrir Colaboradores) — sin empezar
-- [ ] Deploy real: en pausa por facturación de GitHub; el equipo hace la revisión manual primero
+- [x] KAN-469 (demora al cerrar anuncio): el fix (cierre optimista) ya estaba en master; verificado en vivo que cierra en 1 frame → movido a Finalizada
