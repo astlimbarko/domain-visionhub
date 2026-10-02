@@ -11,6 +11,7 @@
 // ubicar a la persona. CI/correo/ministerio se completan despues, desde la
 // ficha completa -- mismo criterio de "completado progresivo" que ya usa
 // el resto del sistema.
+import { Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { normalizarNombre } from '@/utils/normalizarNombre';
@@ -55,6 +56,10 @@ interface Props {
 }
 
 export function DatosBasicosPersonaFields({ valores, onChange }: Props) {
+  // ¿El código de país actual es uno de la lista corta? Si no, estamos en modo
+  // "Otro país" (prefijo libre) -- KAN-490/UX: permitir cualquier país.
+  const paisConocido = PAISES_TELEFONO.some((p) => p.codigo === valores.telefonoPais);
+
   function set<K extends keyof DatosBasicosPersonaValores>(campo: K, valor: DatosBasicosPersonaValores[K]) {
     onChange({ ...valores, [campo]: valor });
   }
@@ -109,11 +114,20 @@ export function DatosBasicosPersonaFields({ valores, onChange }: Props) {
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="dbp_telefono_numero">Teléfono</Label>
         <div className="flex gap-2">
-          <Select value={valores.telefonoPais} onValueChange={(v) => set('telefonoPais', v)}>
-            <SelectTrigger className={cn('w-28 shrink-0 sm:w-32', CAMPO_ESTILO)}>
+          <Select
+            value={paisConocido ? valores.telefonoPais : 'OTRO'}
+            onValueChange={(v) => set('telefonoPais', v === 'OTRO' ? '' : v)}
+          >
+            <SelectTrigger className={cn('w-24 shrink-0 sm:w-28', CAMPO_ESTILO)}>
               <SelectValue>
-                <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === valores.telefonoPais)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
-                {valores.telefonoPais}
+                {paisConocido ? (
+                  <>
+                    <span className={cn('fi', `fi-${PAISES_TELEFONO.find((p) => p.codigo === valores.telefonoPais)?.iso ?? 'bo'}`, 'mr-1 shrink-0 rounded-[2px]')} />
+                    {valores.telefonoPais}
+                  </>
+                ) : (
+                  <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Otro</span>
+                )}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -124,8 +138,21 @@ export function DatosBasicosPersonaFields({ valores, onChange }: Props) {
                   <span className="ml-1.5 text-muted-foreground">{p.nombre}</span>
                 </SelectItem>
               ))}
+              <SelectItem value="OTRO">
+                <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Otro país</span>
+              </SelectItem>
             </SelectContent>
           </Select>
+          {!paisConocido && (
+            <Input
+              inputMode="tel"
+              placeholder="+971"
+              aria-label="Código de país"
+              className={cn('w-20 shrink-0', CAMPO_ESTILO)}
+              value={valores.telefonoPais}
+              onChange={(e) => set('telefonoPais', e.target.value.replace(/[^\d+]/g, ''))}
+            />
+          )}
           <Input
             id="dbp_telefono_numero"
             inputMode="numeric"
