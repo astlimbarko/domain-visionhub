@@ -251,16 +251,16 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
 
       <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
 
-      <div className="sticky bottom-0 z-10 flex items-stretch gap-2 py-3">
+      <div className="sticky bottom-0 z-10 flex gap-2 py-3">
         <Button
           type="button"
           variant="destructive"
-          className="w-28 shrink-0 whitespace-normal px-2 text-center text-[13px] font-semibold leading-tight"
+          className="h-14 w-32 shrink-0 whitespace-normal bg-destructive px-2 text-center text-[13px] font-semibold leading-tight text-white hover:bg-destructive/90"
           onClick={() => setConfirmarLimpiar(true)}
         >
           Borrar y comenzar de nuevo
         </Button>
-        <Button type="button" className="flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
+        <Button type="button" className="h-14 flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
           {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
           {guardandoFinal ? 'Guardando…' : 'Guardar membresía'}
         </Button>
