@@ -348,15 +348,18 @@ const CATALOGO_NAV: NavItem[] = [
 // Afirmación no depende de rol_sistema_enum: se muestran segun
 // useEsLiderAfirmacion(), no segun RUTAS_POR_ROL. Se agregan aparte del
 // catalogo/obtenerNavItems para no romper la union RolUI existente.
-// Tres items separados en el nav principal (no una sola entrada con
-// sub-nav interno) -- decision del owner, 2026-07-26.
+// KAN-491: los 3 items de "membresía por enlace" (formulario público
+// antiguo + su URL + Casas de Paz) se agrupan con `grupo` en un acordeon
+// de segundo nivel (mismo mecanismo que agruparNavItems en AppShell.tsx,
+// KAN-411) -- el resto de los items de Afirmación quedan sueltos. El
+// "Dashboard" de arriba se dio de baja (la pantalla de entrada ahora es
+// una portada simple, ver pages/Afirmacion.tsx).
 
 export const NAV_ITEMS_AFIRMACION: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.AFIRMACION, color: '#0071e3' },
-  { icon: UserPlus, label: 'Formulario de membresía', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759' },
-  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6' },
+  { icon: UserPlus, label: 'Formulario de membresía (antiguos)', path: ROUTES.AFIRMACION_FORMULARIO, color: '#34c759', grupo: 'Membresía por enlace' },
+  { icon: Link2, label: 'URL de membresía', path: ROUTES.AFIRMACION_URLS, color: '#32ade6', grupo: 'Membresía por enlace' },
   // KAN-127: todas las Casas de Paz de la iglesia, organizadas por Red.
-  { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0' },
+  { icon: Home, label: 'Casas de Paz', path: ROUTES.AFIRMACION_CASAS_DE_PAZ, color: '#0aa5c0', grupo: 'Membresía por enlace' },
   // Plan panel Afirmación 2026-08-20, punto 3/4. KAN-488: renombrada a
   // "Miembros" para distinguirla de la nueva "Membresía (Nuevos)" (desde 0).
   { icon: Users, label: 'Membresía (Miembros)', path: ROUTES.AFIRMACION_PERSONAS, color: '#5856d6' },
