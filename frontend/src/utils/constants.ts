@@ -27,6 +27,20 @@ export const ROUTES = {
   HISTORIAL_ASISTENCIA: '/historial-asistencia',
   CALENDARIO: '/calendario',
   EVANGELISMO: '/evangelismo',
+  // KAN-433: panel personal del rol Evangelista (KAN-426/427) -- distinto y
+  // con permisos separados del módulo de Evangelismo de CdP (ROUTES.EVANGELISMO
+  // arriba) y del Departamento de Evangelismo. Accesible para CUALQUIER RolUI
+  // que tenga la capacidad ortogonal `fn_es_evangelista_en` (ver
+  // useEsEvangelista) -- mismo criterio de "excepción universal" que
+  // ROUTES.CUENTA en paneles-contexto.ts.
+  EVANGELISTA: '/evangelista',
+  EVANGELISTA_NUEVO: '/evangelista/nuevo',
+  EVANGELISTA_HISTORIAL: '/evangelista/historial',
+  EVANGELISTA_SEGUIMIENTO: '/evangelista/persona/:evangelismoId',
+  // KAN-434: panel "Crear credencial para Evangelista" -- visible solo para
+  // quien pasa `fn_puede_otorgar_evangelista` (chequeo propio adentro de la
+  // página, no por RolUI).
+  EVANGELISTA_CREDENCIALES: '/evangelista/credenciales',
   // Roster completo de evangelizados de la iglesia (Supervisor/Pastor/
   // Departamento de Evangelismo), con filtros, paginación y exportación --
   // mismo patrón que AFIRMACION_PERSONAS.
@@ -126,6 +140,10 @@ export function rutaConstructorResumen(iglesiaId: string) {
 
 export function rutaReporteEditar(reporteId: string) {
   return `/reportes/${reporteId}/editar`;
+}
+
+export function rutaEvangelistaSeguimiento(evangelismoId: string) {
+  return `/evangelista/persona/${evangelismoId}`;
 }
 
 /**

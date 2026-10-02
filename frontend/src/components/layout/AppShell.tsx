@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
+import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { useMiTitulo } from '@/hooks/useMiTitulo';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useVolverAlConstructor } from '@/hooks/useVolverAlConstructor';
+import { useEsEvangelista } from '@/hooks/useEvangelistaPersonal';
 import type { NavItem } from '@/utils/permisos';
 import { obtenerPanelContexto } from '@/utils/paneles-contexto';
 import { NotificacionesBell } from '@/components/layout/NotificacionesBell';
@@ -48,6 +49,28 @@ function ColaborarFooter({ onClick, className, oscuro }: { onClick?: () => void;
     >
       <Handshake className="h-4 w-4 shrink-0" />
       <span className="truncate">Colaborar</span>
+    </Link>
+  );
+}
+
+// KAN-433: panel personal de Evangelista -- ítem fijo al pie del menú
+// lateral, mismo lugar/estilo que ColaborarFooter, pero condicional (solo
+// para quien tiene la capacidad `fn_es_evangelista_en`, sin importar su
+// RolUI estructural -- ver useEsEvangelista). Color propio (ámbar/fuego,
+// paleta de evangelista-colores.ts) para distinguirse del resto de ítems.
+function EvangelistaFooter({ onClick, className }: { onClick?: () => void; className?: string }) {
+  return (
+    <Link
+      to={ROUTES.EVANGELISTA}
+      onClick={onClick}
+      title="Mi panel de Evangelista"
+      className={cn(
+        'flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] font-medium text-[#D9480F] transition-colors hover:bg-[#FF7A1A]/10',
+        className
+      )}
+    >
+      <Flame className="h-4 w-4 shrink-0" />
+      <span className="truncate">Mi Evangelismo</span>
     </Link>
   );
 }
@@ -264,6 +287,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const volverAlConstructor = volverAlConstructorBase
     ? () => { setVolviendoAlConstructor(true); volverAlConstructorBase(); }
     : null;
+  const { data: esEvangelista } = useEsEvangelista();
   const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
@@ -427,6 +451,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={cn('flex flex-1 flex-col', colorNavbarRol && 'p-4')} style={colorNavbarRol ? estiloSidebarColor : undefined}>
           <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           <div className={cn('mt-2 flex flex-col gap-0.5 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            {esEvangelista && <EvangelistaFooter />}
             <ColaborarFooter oscuro={esOscuro} />
             <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />
           </div>
@@ -534,6 +559,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
           <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+            {esEvangelista && <EvangelistaFooter onClick={() => setMenuAbierto(false)} />}
             <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
             <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
           </div>
