@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useFichaPersonaStore } from '@/store/ficha-persona.store';
-import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
+import { EliminarRegistroProceso } from '@/components/afirmacion/EliminarRegistroProceso';
 import {
   DatosBasicosPersonaFields,
   DATOS_BASICOS_PERSONA_VACIO,
@@ -158,11 +158,6 @@ function cnPl() {
 export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; onVolver?: () => void } = {}) {
   const iglesiaDelStore = useAuthStore((s) => s.iglesiaActivaId);
   const iglesiaActivaId = iglesiaId ?? iglesiaDelStore;
-  const iglesias = useAuthStore((s) => s.iglesias);
-  const esLiderAfirmacion = useEsLiderAfirmacion();
-  const esOperativo = iglesias.find((i) => i.id === iglesiaActivaId)?.es_operativo ?? false;
-  const esPastor = iglesias.find((i) => i.id === iglesiaActivaId)?.es_pastor ?? false;
-  const puedeVerTodos = esOperativo || esPastor || esLiderAfirmacion;
 
   const [tab, setTab] = useState('buscar');
   const [personaSeleccionada, setPersonaSeleccionada] = useState<{ id: string; nombre_completo: string } | null>(null);
@@ -285,7 +280,7 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
               <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Nuevo</span>
             </TabsTrigger>
             <TabsTrigger value="datos" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
-              <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Datos</span>
+              <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Registro</span>
             </TabsTrigger>
           </TabsList>
 
@@ -402,7 +397,7 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
           </TabsContent>
 
           <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
-            <DatosAltar iglesiaId={iglesiaActivaId} puedeVerTodos={puedeVerTodos} />
+            <DatosAltar iglesiaId={iglesiaActivaId} />
           </TabsContent>
         </Tabs>
       </div>
@@ -410,11 +405,13 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
   );
 }
 
-/** Pestaña "Datos": sin boceto -- criterio propio. Colaborador raso ve solo
- * lo suyo (el RPC ya lo fuerza); Afirmación/operativo/Pastor ve todo, con
- * selector para filtrar por colaborador puntual, y en pantallas grandes
- * como tabla (columna "Colaborador") en vez de tarjetas. */
-function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTodos: boolean }) {
+/** Pestaña "Registro": todos los que entran acá (colaboradores incluidos) ven
+ * TODOS los registros de la iglesia y quién tomó cada dato -- el RPC ya no
+ * restringe al colaborador a lo suyo (cambio 2026-10-03). Se puede filtrar por
+ * un colaborador puntual; en pantallas grandes es tabla (columna
+ * "Colaborador"), en móvil tarjetas. Cada fila tiene botón para eliminar
+ * duplicados (responsabilidad de los propios colaboradores). */
+function DatosAltar({ iglesiaId }: { iglesiaId: string }) {
   const [colaboradorFiltro, setColaboradorFiltro] = useState<string>('TODOS');
   const [busqueda, setBusqueda] = useState('');
   const { data: historialCrudo = [], isLoading } = useHistorialProcesoAfirmacion(
@@ -456,7 +453,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground tabular-nums">{historial.length}</span> registro{historial.length === 1 ? '' : 's'} de Altar
         </p>
-        {puedeVerTodos && colaboradores.length > 1 && (
+        {colaboradores.length > 1 && (
           <Select value={colaboradorFiltro} onValueChange={setColaboradorFiltro}>
             <SelectTrigger className={`w-56 ${CAMPO_ESTILO}`}>
               <SelectValue placeholder="Ver de..." />
@@ -488,7 +485,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
         <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
           Sin resultados para esa búsqueda.
         </div>
-      ) : puedeVerTodos ? (
+      ) : (
         <div className="hidden overflow-x-auto rounded-xl border border-border/60 md:block">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-muted/40">
@@ -496,6 +493,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Persona</th>
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colaborador</th>
+                <th className="px-3 py-2.5 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -508,32 +506,42 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
                   <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
                   <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <div className="flex justify-end">
+                      <EliminarRegistroProceso registroId={r.id} nombre={r.nombre_completo} procesoCodigo="ALTAR" />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
 
-      <div className={puedeVerTodos ? 'flex flex-col gap-2 md:hidden' : 'flex flex-col gap-2'}>
+      <div className="flex flex-col gap-2 md:hidden">
         {historial.map((r) => (
-          <button
-            type="button"
+          <div
             key={r.id}
-            onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
-            className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 text-left hover:bg-muted/40"
+            className="flex items-center gap-2 rounded-xl border border-border/50 bg-card px-3 py-2.5 hover:bg-muted/40"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[11px] font-semibold text-[#0071E3]">
-              {r.nombre_completo.slice(0, 2).toUpperCase()}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{r.nombre_completo}</p>
-              <p className="text-[11px] text-muted-foreground">
-                {new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}
-                {puedeVerTodos && r.registrado_por_nombre && ` · ${r.registrado_por_nombre}`}
-              </p>
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[11px] font-semibold text-[#0071E3]">
+                {r.nombre_completo.slice(0, 2).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{r.nombre_completo}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}
+                  {r.registrado_por_nombre && ` · ${r.registrado_por_nombre}`}
+                </p>
+              </div>
+            </button>
+            <EliminarRegistroProceso registroId={r.id} nombre={r.nombre_completo} procesoCodigo="ALTAR" />
+          </div>
         ))}
       </div>
     </div>
