@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   buscarMembresiaAfirmacion,
+  eliminarProcesoAfirmacion,
   listarCasasDePazAfirmacion,
   listarEstados,
   listarLideresCdpAfirmacion,
@@ -140,6 +141,19 @@ export function useRegistrarProcesoAfirmacion() {
     onSuccess: (_data, { procesoCodigo, personaId }) => {
       qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-historial', procesoCodigo] });
       qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-estado', personaId, procesoCodigo] });
+    },
+  });
+}
+
+/** Soft-delete de un registro de proceso (quitar duplicados desde "Registro").
+ * Invalida el historial del proceso para que la fila desaparezca de la lista. */
+export function useEliminarProcesoAfirmacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ registroId }: { registroId: string; procesoCodigo: ProcesoAfirmacionCodigo }) =>
+      eliminarProcesoAfirmacion(registroId),
+    onSuccess: (_data, { procesoCodigo }) => {
+      qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-historial', procesoCodigo] });
     },
   });
 }

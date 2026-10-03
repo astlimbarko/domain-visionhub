@@ -288,3 +288,11 @@ export async function obtenerHistorialProcesoAfirmacion(
   if (error) throw error;
   return (data ?? []) as RegistroProcesoAfirmacion[];
 }
+
+/** Soft-delete de un registro de proceso (fila de persona_proceso_afirmacion),
+ * para que los propios colaboradores quiten duplicados desde la pestaña
+ * "Registro". No borra la persona. El permiso lo valida el backend. */
+export async function eliminarProcesoAfirmacion(registroId: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_afirmacion_eliminar_proceso', { p_id: registroId });
+  if (error) throw error;
+}
