@@ -9,5 +9,13 @@
 - [x] Aplicadas a producción TODAS las migraciones pendientes: KAN-497 (Afirmación) completo + Evangelismo (3 que faltaban). Sanidad verificada: 8 funciones clave OK.
 - [x] Build consolidado + ZIP: visionhub-dist-2026-10-03.zip (el owner ya lo subió a cPanel)
 - [x] Deploy: frontend subido por el owner; migraciones aplicadas por Claude. Todo en producción.
-- [ ] Pendiente a decidir (KAN-499): botón "Dar acceso / Invitar" para personas existentes SIN cuenta (ej. damaris) — hoy quedan sin acción. Workaround: "Invitar por correo".
+- [x] Fix RSIL/Altar/Bautismo/Membresía: colaborador no podía crear persona (RLS de persona/telefono/direccion no incluía colaboradores). Extendida RLS con fn_es_colaborador_activo_en('AFIRMACION'). Aplicado a prod, verificado. Desbloqueó a mirna/damaris registrando en vivo.
+- [x] "Dar acceso" para líder/sublíder sin cuenta: crea cuenta 12345678 (debe_cambiar) vinculada a la persona por id, sin duplicar. Edge function dar-acceso-persona + RPC fn_dar_acceso_persona. Correo visible + "Cambiar"→"Editar" en los 4 paneles. Damaris ya entró; Tamara con acceso creado.
+- [x] Juanita Ruby duplicada consolidada (dejada la cuenta útil rubivillagomez65, quitado el duplicado sin cuenta).
+- [x] Afirmación "Registro" (antes "Datos"): todos los colaboradores ven a todos + columna "quién registró" + botón eliminar registro duplicado (soft-delete del proceso, no la persona). Migración 20261003210000 aplicada a prod. Agente en worktree, mergeado.
+- [x] Auditoría RSIL vs Bautismo (evento de hoy, 4 Anillo): Excel en basura_no_leer/auditoria-rsil-bautismo-hoy.xlsx. Hallazgo: 104 personas en RSIL hoy vs 52 físicas → ~47 registros de más (no son duplicados por nombre). 73 sin Bautismo. Queda al equipo depurar con la pantalla Registro.
+- [x] Formulario de membresía imprimible (A4) en basura_no_leer/formulario-membresia-imprimible.html.
+- [x] ZIP final del día: visionhub-dist-2026-10-03-v3.zip (pendiente que el owner lo suba a cPanel).
+- [ ] Pendiente: registrar en Bautismo a los que faltan del evento (necesita criterio del equipo de quiénes son los 52 reales).
 - [ ] Coordinación: avisar entre devs cuando se toque la misma función SQL (git no detecta el solape semántico).
+- [ ] Jira: crear tickets de los fixes de hoy (RSIL colaborador, Dar acceso, Registro visibilidad) — se dejó para después por tokens.
