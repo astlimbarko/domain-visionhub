@@ -20,7 +20,6 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import { EliminarRegistroProceso } from '@/components/afirmacion/EliminarRegistroProceso';
 import {
@@ -42,11 +41,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
-import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
+import { crearPersona, agregarTelefono, agregarDireccion, obtenerPersonaDatosBasicos, actualizarPersonaBasicaAfirmacion } from '@/services/persona.service';
 import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
 import { buscarPersonasSimilares, type DatosNombreBusquedaSimilitud } from '@/services/casas-de-paz.service';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
+import { EdicionPersonaBasica } from '@/components/afirmacion/EdicionPersonaBasica';
+import { ResumenProcesoAfirmacion } from '@/components/afirmacion/ResumenProcesoAfirmacion';
+import { AMBAR } from '@/components/dashboard/DashboardUI';
 import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
@@ -185,6 +187,47 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
   // entró por otra puerta (Bautismo, Membresía, etc.).
   const [candidatosDuplicado, setCandidatosDuplicado] = useState<PersonaSimilar[]>([]);
   const [mostrarDuplicado, setMostrarDuplicado] = useState(false);
+  // Modo EDICIÓN (reemplaza al modal FichaPersonaSheet) -- ver AfirmacionAltar.
+  const [edicion, setEdicion] = useState<{ personaId: string; nombre: string } | null>(null);
+  const [edicionBloqueada, setEdicionBloqueada] = useState(true);
+
+  async function abrirEdicion(personaId: string, nombre: string) {
+    setEdicion({ personaId, nombre });
+    setEdicionBloqueada(true);
+    setTab('nuevo');
+    try {
+      setFormNuevo(await obtenerPersonaDatosBasicos(personaId));
+    } catch {
+      toast.error('No se pudieron cargar los datos de esa persona.');
+      cerrarEdicion();
+    }
+  }
+
+  function cerrarEdicion() {
+    setEdicion(null);
+    setEdicionBloqueada(true);
+    setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
+  }
+
+  async function guardarEdicion() {
+    if (!iglesiaActivaId || !edicion || !datosBasicosPersonaValidos(formNuevo)) return;
+    setGuardandoNuevo(true);
+    try {
+      await actualizarPersonaBasicaAfirmacion(iglesiaActivaId, edicion.personaId, formNuevo);
+      toast.success(`Datos actualizados: ${formNuevo.primerNombre} ${formNuevo.primerApellido}.`);
+      cerrarEdicion();
+      setTab('datos');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo actualizar la persona');
+    } finally {
+      setGuardandoNuevo(false);
+    }
+  }
+
+  function cambiarTab(v: string) {
+    if (v !== 'nuevo' && edicion) cerrarEdicion();
+    setTab(v);
+  }
 
   function datosBusquedaNombre(): DatosNombreBusquedaSimilitud {
     return {
@@ -256,9 +299,14 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
 
   return (
     <div className="relative flex flex-col gap-6 overflow-hidden rounded-3xl p-1">
+      {/* Fondo distinto en modo edición (ámbar) vs alta nueva (acento del proceso). */}
       <div
         className="pointer-events-none absolute inset-0 -z-10 rounded-3xl"
-        style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${ACENTO} 4%, transparent) 0%, color-mix(in oklab, ${ACENTO} 10%, transparent) 100%)` }}
+        style={{
+          background: edicion
+            ? `linear-gradient(180deg, color-mix(in oklab, ${AMBAR} 7%, transparent) 0%, color-mix(in oklab, ${AMBAR} 16%, transparent) 100%)`
+            : `linear-gradient(180deg, color-mix(in oklab, ${ACENTO} 4%, transparent) 0%, color-mix(in oklab, ${ACENTO} 10%, transparent) 100%)`,
+        }}
       />
       <div className="relative overflow-hidden rounded-3xl px-4 py-2 sm:px-6">
         <PalomaMarcaDeAgua />
@@ -271,7 +319,7 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
             <ArrowLeft className="h-4 w-4" /> Volver al portal
           </button>
         )}
-        <Tabs value={tab} onValueChange={setTab} className="relative">
+        <Tabs value={tab} onValueChange={cambiarTab} className="relative">
           <TabsList className="mx-auto max-w-md flex-nowrap">
             <TabsTrigger value="buscar" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
               <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Buscar</span>
@@ -351,6 +399,20 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
           {tab === 'buscar' && <OndasDecorativas />}
 
           <TabsContent value="nuevo" className="mx-auto w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
+            {edicion ? (
+              <EdicionPersonaBasica
+                acento="#8b7dd8"
+                nombre={edicion.nombre}
+                valores={formNuevo}
+                onChange={setFormNuevo}
+                bloqueado={edicionBloqueada}
+                onEditar={() => setEdicionBloqueada(false)}
+                onCancelar={() => { cerrarEdicion(); setTab('datos'); }}
+                onGuardar={guardarEdicion}
+                guardando={guardandoNuevo}
+              />
+            ) : (
+            <>
             <button
               type="button"
               onClick={() => setTab('buscar')}
@@ -392,10 +454,12 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
                 void crearPersonaNueva();
               }}
             />
+            </>
+            )}
           </TabsContent>
 
           <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
-            <DatosRSIL iglesiaId={iglesiaActivaId} />
+            <DatosRSIL iglesiaId={iglesiaActivaId} onEditar={abrirEdicion} />
           </TabsContent>
         </Tabs>
       </div>
@@ -408,7 +472,7 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
  * (el RPC ya no restringe al colaborador a lo suyo, cambio 2026-10-03), con
  * selector para filtrar por colaborador puntual, tabla con columna
  * "Colaborador" en pantallas grandes y botón para eliminar duplicados. */
-function DatosRSIL({ iglesiaId }: { iglesiaId: string }) {
+function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (personaId: string, nombre: string) => void }) {
   const [colaboradorFiltro, setColaboradorFiltro] = useState<string>('TODOS');
   const [busqueda, setBusqueda] = useState('');
   const { data: historialCrudo = [], isLoading } = useHistorialProcesoAfirmacion(
@@ -416,7 +480,6 @@ function DatosRSIL({ iglesiaId }: { iglesiaId: string }) {
     'RSIL',
     colaboradorFiltro === 'TODOS' ? undefined : colaboradorFiltro,
   );
-  const abrirFicha = useFichaPersonaStore((s) => s.abrir);
 
   // KAN-497 paso 11: busca SOLO entre las personas que ya aparecen en esta
   // pestaña (RSIL) -- no en Altar, Bautismo ni Membresía.
@@ -487,23 +550,25 @@ function DatosRSIL({ iglesiaId }: { iglesiaId: string }) {
           <table className="w-full border-collapse text-sm">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Persona</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colaborador</th>
-                <th className="px-3 py-2.5 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Acciones</th>
+                <th className="w-10 px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Persona</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colaborador</th>
+                <th className="px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {historial.map((r) => (
+              {historial.map((r, i) => (
                 <tr
                   key={r.id}
                   className="cursor-pointer border-t border-border/40 hover:bg-muted/40"
-                  onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
+                  onClick={() => onEditar(r.persona_id, r.nombre_completo)}
                 >
-                  <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td className="px-3 py-1.5 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</td>
+                  <td className="px-3 py-1.5 font-medium">{r.nombre_completo}</td>
+                  <td className="px-3 py-1.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end">
                       <EliminarRegistroProceso registroId={r.id} nombre={r.nombre_completo} procesoCodigo="RSIL" />
                     </div>
@@ -515,19 +580,19 @@ function DatosRSIL({ iglesiaId }: { iglesiaId: string }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-2 md:hidden">
-        {historial.map((r) => (
+      <div className="flex flex-col gap-1.5 md:hidden">
+        {historial.map((r, i) => (
           <div
             key={r.id}
-            className="flex items-center gap-2 rounded-xl border border-border/50 bg-card px-3 py-2.5 hover:bg-muted/40"
+            className="flex items-center gap-2 rounded-xl border border-border/50 bg-card px-3 py-2 hover:bg-muted/40"
           >
             <button
               type="button"
-              onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
+              onClick={() => onEditar(r.persona_id, r.nombre_completo)}
               className="flex min-w-0 flex-1 items-center gap-3 text-left"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8b7dd8]/12 text-[11px] font-semibold text-[#8b7dd8]">
-                {r.nombre_completo.slice(0, 2).toUpperCase()}
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#8b7dd8]/12 text-[11px] font-semibold text-[#8b7dd8] tabular-nums">
+                {i + 1}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{r.nombre_completo}</p>
@@ -541,6 +606,8 @@ function DatosRSIL({ iglesiaId }: { iglesiaId: string }) {
           </div>
         ))}
       </div>
+
+      <ResumenProcesoAfirmacion registros={historial} etiqueta="RSIL" />
     </div>
   );
 }

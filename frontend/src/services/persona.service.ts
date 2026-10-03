@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { componerTelefono, desglosarTelefono } from '@/utils/paises-telefono';
+import type { DatosBasicosPersonaValores } from '@/components/personas/DatosBasicosPersonaFields';
 import type {
   CensoFicha,
   DatosCensales,
@@ -158,6 +160,75 @@ export async function guardarDetalle(personaId: string, datos: Partial<DatosCens
 export async function toggleOculto(personaId: string, oculto: boolean) {
   const { error } = await supabase.from('persona').update({ oculto }).eq('id', personaId);
   if (error) throw error;
+}
+
+// ---- Afirmación: precarga + actualización de datos BÁSICOS de una persona ----
+// (puertas Altar/Bautismo/RSIL). El formulario liviano de esas puertas ahora
+// sirve también para EDITAR a una persona existente desde su pestaña "Registro"
+// (reemplaza al modal FichaPersonaSheet). Reusa RPCs ya desplegadas:
+//   - fn_obtener_persona_para_membresia (precarga básica, también usada por
+//     Membresía),
+//   - fn_editar_telefono_membresia (reemplazo limpio del celular principal,
+//     sin duplicar -- soft-delete + insert).
+// La identidad se actualiza directo (actualizarIdentidad) y la dirección
+// principal se hace upsert en el cliente con los helpers ya existentes. No
+// toca membresía/CdP/estado -- editar datos básicos no crea una membresía.
+
+export async function obtenerPersonaDatosBasicos(personaId: string): Promise<DatosBasicosPersonaValores> {
+  const { data, error } = await supabase.rpc('fn_obtener_persona_para_membresia', { p_persona_id: personaId });
+  if (error) throw error;
+  const d = (data ?? {}) as Record<string, string | boolean | null>;
+  const tel = desglosarTelefono((d.telefono as string) || '');
+  return {
+    primerNombre: (d.primer_nombre as string) || '',
+    segundoNombre: (d.segundo_nombre as string) || '',
+    primerApellido: (d.primer_apellido as string) || '',
+    segundoApellido: (d.segundo_apellido as string) || '',
+    telefonoPais: tel.pais?.codigo ?? '+591',
+    telefonoNumero: tel.numero,
+    sinCelular: tel.numero.trim() === '',
+    sexo: ((d.sexo as string) || '') as DatosBasicosPersonaValores['sexo'],
+    fechaNacimiento: (d.fecha_nacimiento as string) || '',
+    direccion: (d.direccion as string) || '',
+  };
+}
+
+export async function actualizarPersonaBasicaAfirmacion(
+  iglesiaId: string,
+  personaId: string,
+  v: DatosBasicosPersonaValores,
+): Promise<void> {
+  await actualizarIdentidad(personaId, {
+    primer_nombre: v.primerNombre.trim(),
+    segundo_nombre: v.segundoNombre.trim() || null,
+    primer_apellido: v.primerApellido.trim(),
+    segundo_apellido: v.segundoApellido.trim() || null,
+    sexo: v.sexo as 'M' | 'F',
+    fecha_nacimiento: v.fechaNacimiento || null,
+  });
+
+  const numero = v.sinCelular ? null : (componerTelefono(v.telefonoPais, v.telefonoNumero) ?? null);
+  const { error: errTel } = await supabase.rpc('fn_editar_telefono_membresia', {
+    p_persona_id: personaId,
+    p_iglesia_id: iglesiaId,
+    p_numero: numero,
+  });
+  if (errTel) throw errTel;
+
+  // Dirección principal: upsert en cliente (no hay RPC de edición de dirección).
+  const calle = v.direccion.trim();
+  const { data: asig } = await supabase
+    .from('direccion_asignacion')
+    .select('direccion_id')
+    .eq('persona_id', personaId)
+    .eq('es_principal', true)
+    .is('fecha_eliminacion', null)
+    .maybeSingle();
+  if (asig?.direccion_id) {
+    if (calle) await actualizarDireccion(asig.direccion_id as string, { calle });
+  } else if (calle) {
+    await agregarDireccion(iglesiaId, personaId, { calle }, true);
+  }
 }
 
 // ---- Direcciones ----
