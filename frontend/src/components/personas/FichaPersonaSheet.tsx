@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
+import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { useMisRoles } from '@/hooks/useDashboard';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { useMoverPersonaRed, usePersonaFicha, useToggleOculto } from '@/hooks/usePersonas';
@@ -122,7 +123,11 @@ export function FichaPersonaSheet({ personaId, onOpenChange }: Props) {
   // veía todo de solo lectura, sin poder tocar nada.
   const miPersonaId = useAuthStore((s) => s.personaId);
   const esUnoMismo = !!ficha && ficha.persona.id === miPersonaId;
-  const puedeEditar = esOperativo || esLiderDeSuRed || esUnoMismo;
+  // KAN-497 paso 9: ver nota en ficha-persona.store.ts -- si la ficha se abrió
+  // desde una fila que el viewer ya tiene permiso de ver en Datos/Registro de
+  // Afirmación, esa fila es "suya" (o es Afirmación, que ve y edita todo).
+  const permitirEdicionExtra = useFichaPersonaStore((s) => s.permitirEdicionExtra);
+  const puedeEditar = esOperativo || esLiderDeSuRed || esUnoMismo || permitirEdicionExtra;
   // KAN-408 (pedido explícito del owner): nombre completo, sexo y fecha de
   // nacimiento son un permiso MÁS ANGOSTO que el resto -- ni esUnoMismo ni
   // esLiderDeSuRed alcanzan para tocarlos, solo operativos (Pastor/

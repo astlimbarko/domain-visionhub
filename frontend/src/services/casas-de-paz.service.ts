@@ -238,6 +238,14 @@ export interface DatosNombreBusquedaSimilitud {
   segundo_nombre?: string;
   primer_apellido: string;
   segundo_apellido?: string;
+  /** KAN-497 paso 12: señales fuertes además del nombre -- CI/teléfono
+   * exactos pesan más que la similitud de nombre (ver fn_buscar_personas_
+   * similares). Opcionales: no todos los formularios piden CI (Bautismo/RSIL
+   * no lo tienen todavía). `telefono` va compuesto (ej. "+59170000000",
+   * mismo formato que `componerTelefono`), no el número suelto. */
+  ci?: string;
+  telefono?: string;
+  sexo?: 'M' | 'F' | '';
 }
 
 /**
@@ -252,13 +260,24 @@ export async function buscarPersonasSimilares(
   iglesiaId: string,
   datos: DatosNombreBusquedaSimilitud
 ): Promise<PersonaSimilar[]> {
-  if (!datos.primer_nombre.trim() || !datos.primer_apellido.trim()) return [];
+  // KAN-497 paso 12: antes exigía nombre + apellido -- ahora alcanza con
+  // CUALQUIER señal (nombre, CI o teléfono), para que una persona que ya
+  // cargó su documento o teléfono antes que el nombre completo también
+  // dispare la búsqueda ("mientras más lleno, más certero", pero sirve
+  // incluso con pocos datos).
+  const tieneNombre = datos.primer_nombre.trim() !== '' && datos.primer_apellido.trim() !== '';
+  const tieneCi = !!datos.ci?.trim();
+  const tieneTelefono = !!datos.telefono?.trim();
+  if (!tieneNombre && !tieneCi && !tieneTelefono) return [];
   const { data, error } = await supabase.rpc('fn_buscar_personas_similares', {
     p_iglesia_id: iglesiaId,
     p_primer_nombre: datos.primer_nombre.trim(),
     p_primer_apellido: datos.primer_apellido.trim(),
     p_segundo_nombre: datos.segundo_nombre?.trim() || null,
     p_segundo_apellido: datos.segundo_apellido?.trim() || null,
+    p_ci: datos.ci?.trim() || null,
+    p_telefono: datos.telefono?.trim() || null,
+    p_sexo: datos.sexo || null,
   });
   if (error) throw error;
   // Mismo motivo que enriquecerConOrigenCdp: el cliente de Supabase no está

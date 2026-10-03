@@ -5,10 +5,11 @@
 // Diferencias respecto de Altar:
 //   (a) proceso_codigo 'BAUTISMO' en vez de 'ALTAR',
 //   (b) acento celeste-agua #30b0c7 en vez del azul #0071E3 de Altar,
-//   (c) botón "Registrar y llenar membresía" (KAN-490): registra el bautismo y
-//       abre la Membresía desde 0 de esa persona (solo en el contexto normal de
-//       Afirmación, no en el portal de colaboradores). La PRECARGA de la persona
-//       existente en ese formulario queda pendiente (harness/21 Req 1).
+//   (c) KAN-497: el bautismo trabaja sobre la persona existente (chequea
+//       duplicados antes de crear), marca persona_detalle.bautizado y NO crea
+//       ni marca membresía. Después aparece "Rellenar formulario de membresía"
+//       (solo en el contexto normal de Afirmación, no en el portal de
+//       colaboradores), que abre el formulario con la misma persona precargada.
 //
 // ⚠️ NO editar AfirmacionAltar.tsx para tocar esto: son copias independentes a
 // propósito. El rediseño visual unificado de Altar/Bautismo/RSIL (molde sin
@@ -28,11 +29,7 @@ import {
   datosBasicosPersonaValidos,
   type DatosBasicosPersonaValores,
 } from '@/components/personas/DatosBasicosPersonaFields';
-import {
-  SelectorCasaDePaz,
-  DATOS_CASA_DE_PAZ_VACIO,
-  type DatosCasaDePaz,
-} from '@/components/afirmacion/SelectorCasaDePaz';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,9 +39,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
 import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
-import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
+import { buscarPersonasSimilares, type DatosNombreBusquedaSimilitud } from '@/services/casas-de-paz.service';
+import { marcarBautizadoAfirmacion } from '@/services/afirmacion.service';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -100,33 +98,40 @@ function OndasDecorativas() {
  * "Nuevo" (recién creada) -- misma UI, un solo lugar para el registro. */
 function ConfirmarBautismo({
   persona,
+  iglesiaId,
   onCancelar,
   onRegistrado,
   onLlenarMembresia,
 }: {
   persona: { id: string; nombre_completo: string };
+  iglesiaId: string;
   onCancelar: () => void;
   onRegistrado: () => void;
-  /** harness/24 Req 5: si viene, muestra "Llenar membresía" -- registra el
-   * bautismo y luego abre la Membresía desde 0 de esta persona. Solo en el
-   * contexto normal de Afirmación (no en el portal de colaboradores). */
+  /** KAN-497: después de registrar el bautismo aparece "Rellenar formulario de
+   * membresía" con la MISMA persona precargada. Solo en el contexto normal de
+   * Afirmación (no en el portal de colaboradores). */
   onLlenarMembresia?: (persona: { id: string; nombre_completo: string }) => void;
 }) {
   const [fecha, setFecha] = useState(HOY());
+  const [registrado, setRegistrado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const registrar = useRegistrarProcesoAfirmacion();
 
-  function confirmar(despues?: () => void) {
-    registrar.mutate(
-      { personaId: persona.id, procesoCodigo: 'BAUTISMO', fecha },
-      {
-        onSuccess: () => {
-          toast.success(`Bautismo registrado para ${persona.nombre_completo}.`);
-          if (despues) despues();
-          else onRegistrado();
-        },
-        onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo registrar el bautismo'),
-      },
-    );
+  // KAN-497: registrar el bautismo NO toca la membresía -- solo marca a la
+  // persona existente como bautizada (persona_detalle) y deja el registro del
+  // proceso. La membresía la completa el formulario de Membresía de Nuevos.
+  async function confirmar() {
+    setGuardando(true);
+    try {
+      await registrar.mutateAsync({ personaId: persona.id, procesoCodigo: 'BAUTISMO', fecha });
+      await marcarBautizadoAfirmacion(persona.id, iglesiaId, fecha);
+      toast.success(`Bautismo registrado para ${persona.nombre_completo}.`);
+      setRegistrado(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo registrar el bautismo');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -147,29 +152,27 @@ function ConfirmarBautismo({
           <Input id="bautismo_fecha" type="date" max={HOY()} value={fecha} onChange={(e) => setFecha(e.target.value)} className={cnPl()} />
         </div>
       </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={onCancelar} disabled={registrar.isPending}>
-          Cancelar
-        </Button>
-        <Button type="button" className="flex-1 gap-1.5" onClick={() => confirmar()} disabled={registrar.isPending}>
-          <CheckCircle2 className="h-4 w-4" />
-          {registrar.isPending ? 'Registrando...' : 'Registrar bautismo'}
-        </Button>
-      </div>
-      {/* harness/24 Req 5 (integración 2026-10-01): registra el bautismo y abre
-       * la Membresía desde 0 de esta persona. La precarga de la persona existente
-       * en ese formulario queda pendiente (harness/21) -- por ahora se pasa en el
-       * state de navegación para cuando se implemente. */}
-      {onLlenarMembresia && (
-        <Button
-          type="button"
-          variant="secondary"
-          className="gap-1.5"
-          onClick={() => confirmar(() => onLlenarMembresia(persona))}
-          disabled={registrar.isPending}
-        >
-          <UserPlus className="h-4 w-4" /> Registrar y llenar membresía
-        </Button>
+      {!registrado ? (
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" className="flex-1" onClick={onCancelar} disabled={guardando}>
+            Cancelar
+          </Button>
+          <Button type="button" className="flex-1 gap-1.5" onClick={confirmar} disabled={guardando}>
+            <CheckCircle2 className="h-4 w-4" />
+            {guardando ? 'Registrando...' : 'Registrar bautismo'}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {onLlenarMembresia && (
+            <Button type="button" className="gap-1.5" onClick={() => onLlenarMembresia(persona)}>
+              <UserPlus className="h-4 w-4" /> Rellenar formulario de membresía
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={onRegistrado}>
+            Listo, volver a Bautismo
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -206,14 +209,31 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
   const [personaSeleccionada, setPersonaSeleccionada] = useState<{ id: string; nombre_completo: string } | null>(null);
 
   const [formNuevo, setFormNuevo] = useState<DatosBasicosPersonaValores>(DATOS_BASICOS_PERSONA_VACIO);
-  // harness/23 Req 1: toda "puerta de entrada" captura la Casa de Paz de la
-  // persona nueva con 3 modos (por invitador/afinidad, de la lista, o
-  // ninguna -> designación).
-  const [cdp, setCdp] = useState<DatosCasaDePaz>(DATOS_CASA_DE_PAZ_VACIO);
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
+  // KAN-497: antes de crear una persona nueva, si ya existe alguien parecido
+  // se pregunta -- la idea es que Bautismo trabaje siempre sobre la persona
+  // existente y nunca cree un segundo registro.
+  const [candidatosDuplicado, setCandidatosDuplicado] = useState<PersonaSimilar[]>([]);
+  const [mostrarDuplicado, setMostrarDuplicado] = useState(false);
 
-  async function handleCrearYContinuar() {
-    if (!iglesiaActivaId || !datosBasicosPersonaValidos(formNuevo)) return;
+  // KAN-497 paso 12: suma teléfono y sexo como señales fuertes -- CI no está
+  // en este formulario (DatosBasicosPersonaFields no lo pide acá).
+  function datosBusquedaNombre(): DatosNombreBusquedaSimilitud {
+    return {
+      primer_nombre: formNuevo.primerNombre,
+      segundo_nombre: formNuevo.segundoNombre,
+      primer_apellido: formNuevo.primerApellido,
+      segundo_apellido: formNuevo.segundoApellido,
+      telefono: componerTelefono(formNuevo.telefonoPais, formNuevo.telefonoNumero),
+      sexo: formNuevo.sexo,
+    };
+  }
+
+  // KAN-497: la Casa de Paz / invitador NO se capturan acá -- son datos de
+  // membresía y los completa el formulario de Membresía de Nuevos. Antes este
+  // paso creaba membresía de CdP y por eso la persona aparecía como miembro.
+  async function crearPersonaNueva() {
+    if (!iglesiaActivaId) return;
     setGuardandoNuevo(true);
     try {
       const persona = await crearPersona({
@@ -234,13 +254,8 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
         await agregarDireccion(iglesiaActivaId, persona.id, { calle: formNuevo.direccion.trim() }, true);
       }
 
-      // KAN-490: aplicar la Casa de Paz capturada (y el invitado_por). Si no se
-      // eligió CdP, la persona queda sin asignar (va a designación).
-      await asignarEntradaCdp(persona.id, iglesiaActivaId, cdp);
-
       toast.success('Persona creada.');
       setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
-      setCdp(DATOS_CASA_DE_PAZ_VACIO);
       setPersonaSeleccionada({ id: persona.id, nombre_completo: `${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim() });
       setTab('buscar');
     } catch (e) {
@@ -248,6 +263,21 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
     } finally {
       setGuardandoNuevo(false);
     }
+  }
+
+  async function handleCrearYContinuar() {
+    if (!iglesiaActivaId || !datosBasicosPersonaValidos(formNuevo)) return;
+    try {
+      const similares = await buscarPersonasSimilares(iglesiaActivaId, datosBusquedaNombre());
+      if (similares.length > 0) {
+        setCandidatosDuplicado(similares);
+        setMostrarDuplicado(true);
+        return;
+      }
+    } catch {
+      /* si la búsqueda falla, no bloquea el alta */
+    }
+    await crearPersonaNueva();
   }
 
   if (!iglesiaActivaId) {
@@ -341,6 +371,7 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
               ) : (
                 <ConfirmarBautismo
                   persona={personaSeleccionada}
+                  iglesiaId={iglesiaActivaId}
                   onCancelar={() => setPersonaSeleccionada(null)}
                   onRegistrado={() => setPersonaSeleccionada(null)}
                   onLlenarMembresia={onLlenarMembresia}
@@ -365,9 +396,6 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
             </button>
             <div className="flex flex-col gap-5">
               <DatosBasicosPersonaFields valores={formNuevo} onChange={setFormNuevo} />
-              {/* KAN-490: Casa de Paz de la persona nueva (invitador + CdP). Se
-               * guarda en handleCrearYContinuar via asignarEntradaCdp. */}
-              <SelectorCasaDePaz valores={cdp} onChange={setCdp} iglesiaId={iglesiaActivaId} />
             </div>
             <Button
               type="button"
@@ -377,6 +405,22 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
             >
               <Save className="h-5 w-5" /> {guardandoNuevo ? 'Guardando...' : 'Guardar'}
             </Button>
+            <ConfirmarPosibleDuplicadoDialog
+              open={mostrarDuplicado}
+              onOpenChange={setMostrarDuplicado}
+              candidatos={candidatosDuplicado}
+              nombreTentativo={`${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim()}
+              onUsarExistente={(persona) => {
+                setMostrarDuplicado(false);
+                setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
+                setPersonaSeleccionada({ id: persona.id, nombre_completo: persona.nombre_completo });
+                setTab('buscar');
+              }}
+              onNoEsLaMisma={() => {
+                setMostrarDuplicado(false);
+                void crearPersonaNueva();
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
@@ -394,20 +438,31 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
  * pantallas grandes, tabla con columna "Colaborador" en vez de tarjetas. */
 function DatosBautismo({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTodos: boolean }) {
   const [colaboradorFiltro, setColaboradorFiltro] = useState<string>('TODOS');
-  const { data: historial = [], isLoading } = useHistorialProcesoAfirmacion(
+  const [busqueda, setBusqueda] = useState('');
+  const { data: historialCrudo = [], isLoading } = useHistorialProcesoAfirmacion(
     iglesiaId,
     'BAUTISMO',
     colaboradorFiltro === 'TODOS' ? undefined : colaboradorFiltro,
   );
   const abrirFicha = useFichaPersonaStore((s) => s.abrir);
 
+  // KAN-497 paso 11: busca SOLO entre las personas que ya aparecen en esta
+  // pestaña (Bautismo) -- no en Altar, RSIL ni Membresía. Cada módulo busca
+  // en su propia lista, mismo criterio que la pestaña "Registro" de
+  // Membresía (RegistroMembresiaNuevos.tsx).
+  const historial = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return historialCrudo;
+    return historialCrudo.filter((r) => r.nombre_completo.toLowerCase().includes(q));
+  }, [historialCrudo, busqueda]);
+
   const colaboradores = useMemo(() => {
     const mapa = new Map<string, string>();
-    for (const r of historial) {
+    for (const r of historialCrudo) {
       if (r.registrado_por && r.registrado_por_nombre) mapa.set(r.registrado_por, r.registrado_por_nombre);
     }
     return Array.from(mapa, ([id, nombre]) => ({ id, nombre }));
-  }, [historial]);
+  }, [historialCrudo]);
 
   if (isLoading) {
     return (
@@ -442,9 +497,20 @@ function DatosBautismo({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeV
         )}
       </div>
 
-      {historial.length === 0 ? (
+      {historialCrudo.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar persona en Bautismo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        </div>
+      )}
+
+      {historialCrudo.length === 0 ? (
         <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
           Todavía no hay bautismos registrados.
+        </div>
+      ) : historial.length === 0 ? (
+        <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+          Sin resultados para esa búsqueda.
         </div>
       ) : puedeVerTodos ? (
         <div className="hidden overflow-x-auto rounded-xl border border-border/60 md:block">
@@ -461,7 +527,7 @@ function DatosBautismo({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeV
                 <tr
                   key={r.id}
                   className="cursor-pointer border-t border-border/40 hover:bg-muted/40"
-                  onClick={() => abrirFicha(r.persona_id)}
+                  onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
                 >
                   <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
                   <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
@@ -478,7 +544,7 @@ function DatosBautismo({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeV
           <button
             type="button"
             key={r.id}
-            onClick={() => abrirFicha(r.persona_id)}
+            onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
             className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 text-left hover:bg-muted/40"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#30b0c7]/12 text-[11px] font-semibold text-[#30b0c7]">

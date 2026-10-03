@@ -44,8 +44,10 @@ import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
 import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
 import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
+import { buscarPersonasSimilares, type DatosNombreBusquedaSimilitud } from '@/services/casas-de-paz.service';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -183,9 +185,25 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
   // ninguna -> designación).
   const [cdp, setCdp] = useState<DatosCasaDePaz>(DATOS_CASA_DE_PAZ_VACIO);
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
+  // KAN-497 paso 12: busca coincidencias (nombre/teléfono/sexo -- CI no está
+  // en este formulario) antes de crear, para no duplicar a alguien que ya
+  // entró por otra puerta (Bautismo, Membresía, etc.).
+  const [candidatosDuplicado, setCandidatosDuplicado] = useState<PersonaSimilar[]>([]);
+  const [mostrarDuplicado, setMostrarDuplicado] = useState(false);
 
-  async function handleCrearYContinuar() {
-    if (!iglesiaActivaId || !datosBasicosPersonaValidos(formNuevo)) return;
+  function datosBusquedaNombre(): DatosNombreBusquedaSimilitud {
+    return {
+      primer_nombre: formNuevo.primerNombre,
+      segundo_nombre: formNuevo.segundoNombre,
+      primer_apellido: formNuevo.primerApellido,
+      segundo_apellido: formNuevo.segundoApellido,
+      telefono: componerTelefono(formNuevo.telefonoPais, formNuevo.telefonoNumero),
+      sexo: formNuevo.sexo,
+    };
+  }
+
+  async function crearPersonaNueva() {
+    if (!iglesiaActivaId) return;
     setGuardandoNuevo(true);
     try {
       const persona = await crearPersona({
@@ -220,6 +238,21 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
     } finally {
       setGuardandoNuevo(false);
     }
+  }
+
+  async function handleCrearYContinuar() {
+    if (!iglesiaActivaId || !datosBasicosPersonaValidos(formNuevo)) return;
+    try {
+      const similares = await buscarPersonasSimilares(iglesiaActivaId, datosBusquedaNombre());
+      if (similares.length > 0) {
+        setCandidatosDuplicado(similares);
+        setMostrarDuplicado(true);
+        return;
+      }
+    } catch {
+      /* si la búsqueda falla, no bloquea el alta */
+    }
+    await crearPersonaNueva();
   }
 
   if (!iglesiaActivaId) {
@@ -348,6 +381,22 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
             >
               <Save className="h-5 w-5" /> {guardandoNuevo ? 'Guardando...' : 'Guardar'}
             </Button>
+            <ConfirmarPosibleDuplicadoDialog
+              open={mostrarDuplicado}
+              onOpenChange={setMostrarDuplicado}
+              candidatos={candidatosDuplicado}
+              nombreTentativo={`${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim()}
+              onUsarExistente={(persona) => {
+                setMostrarDuplicado(false);
+                setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
+                setPersonaSeleccionada({ id: persona.id, nombre_completo: persona.nombre_completo });
+                setTab('buscar');
+              }}
+              onNoEsLaMisma={() => {
+                setMostrarDuplicado(false);
+                void crearPersonaNueva();
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
@@ -365,20 +414,29 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
  * pantallas grandes, tabla con columna "Colaborador" en vez de tarjetas. */
 function DatosRSIL({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTodos: boolean }) {
   const [colaboradorFiltro, setColaboradorFiltro] = useState<string>('TODOS');
-  const { data: historial = [], isLoading } = useHistorialProcesoAfirmacion(
+  const [busqueda, setBusqueda] = useState('');
+  const { data: historialCrudo = [], isLoading } = useHistorialProcesoAfirmacion(
     iglesiaId,
     'RSIL',
     colaboradorFiltro === 'TODOS' ? undefined : colaboradorFiltro,
   );
   const abrirFicha = useFichaPersonaStore((s) => s.abrir);
 
+  // KAN-497 paso 11: busca SOLO entre las personas que ya aparecen en esta
+  // pestaña (RSIL) -- no en Altar, Bautismo ni Membresía.
+  const historial = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return historialCrudo;
+    return historialCrudo.filter((r) => r.nombre_completo.toLowerCase().includes(q));
+  }, [historialCrudo, busqueda]);
+
   const colaboradores = useMemo(() => {
     const mapa = new Map<string, string>();
-    for (const r of historial) {
+    for (const r of historialCrudo) {
       if (r.registrado_por && r.registrado_por_nombre) mapa.set(r.registrado_por, r.registrado_por_nombre);
     }
     return Array.from(mapa, ([id, nombre]) => ({ id, nombre }));
-  }, [historial]);
+  }, [historialCrudo]);
 
   if (isLoading) {
     return (
@@ -413,9 +471,20 @@ function DatosRSIL({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTo
         )}
       </div>
 
-      {historial.length === 0 ? (
+      {historialCrudo.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar persona en RSIL..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        </div>
+      )}
+
+      {historialCrudo.length === 0 ? (
         <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
           Todavía no hay registros de RSIL.
+        </div>
+      ) : historial.length === 0 ? (
+        <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+          Sin resultados para esa búsqueda.
         </div>
       ) : puedeVerTodos ? (
         <div className="hidden overflow-x-auto rounded-xl border border-border/60 md:block">
@@ -432,7 +501,7 @@ function DatosRSIL({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTo
                 <tr
                   key={r.id}
                   className="cursor-pointer border-t border-border/40 hover:bg-muted/40"
-                  onClick={() => abrirFicha(r.persona_id)}
+                  onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
                 >
                   <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
                   <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
@@ -449,7 +518,7 @@ function DatosRSIL({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTo
           <button
             type="button"
             key={r.id}
-            onClick={() => abrirFicha(r.persona_id)}
+            onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
             className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 text-left hover:bg-muted/40"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8b7dd8]/12 text-[11px] font-semibold text-[#8b7dd8]">

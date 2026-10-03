@@ -58,6 +58,7 @@ export async function obtenerPersonaParaMembresia(personaId: string): Promise<Da
     telefonoNumero: tel.numero,
     direccion: (d.direccion as string) || '',
     ci: (d.ci as string) || '',
+    ciNoRecuerda: (d.ci_no_recuerda as boolean) ?? false,
     correo: (d.correo as string) || '',
     estadoCivil: (d.estado_civil as string) || '',
     ocupacion: (d.ocupacion as string) || '',
@@ -92,6 +93,7 @@ export async function guardarMembresiaNuevos(
     sexo: datos.sexo,
     fecha_nacimiento: datos.fechaNacimiento,
     ci: datos.ci,
+    ci_no_recuerda: datos.ciNoRecuerda,
     correo: datos.correo,
     estado_civil: datos.estadoCivil,
     grado_instruccion: datos.gradoInstruccion,
@@ -138,6 +140,20 @@ export async function listarCdpAsistencia(iglesiaId: string): Promise<CdpAsisten
   const { data, error } = await supabase.rpc('fn_listar_cdp_asistencia', { p_iglesia_id: iglesiaId });
   if (error) throw error;
   return (data as CdpAsistencia[]) ?? [];
+}
+
+/** KAN-497 paso 6: dirección principal y ciudad de cada Casa de Paz, indexadas
+ * por casa_de_paz_id (para el buscador). */
+export async function listarDireccionesPrincipalesCdp(
+  iglesiaId: string,
+): Promise<Record<string, { direccion: string | null; ciudad: string | null }>> {
+  const { data, error } = await supabase.rpc('fn_direccion_principal_cdp', { p_iglesia_id: iglesiaId });
+  if (error) throw error;
+  const mapa: Record<string, { direccion: string | null; ciudad: string | null }> = {};
+  for (const fila of (data as { casa_de_paz_id: string; direccion: string | null; ciudad: string | null }[]) ?? []) {
+    mapa[fila.casa_de_paz_id] = { direccion: fila.direccion, ciudad: fila.ciudad };
+  }
+  return mapa;
 }
 
 /**
