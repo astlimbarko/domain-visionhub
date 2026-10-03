@@ -116,6 +116,8 @@ export type CargoCensoFiltro = 'MINISTRO' | 'ANCIANO' | 'DIACONO';
 export type RangoEdadFiltro = 'NINOS' | 'ADOLESCENTES' | 'JOVENES' | 'ADULTOS' | 'MAYORES';
 
 export interface FiltrosMembresiaAfirmacion {
+  /** KAN-497 paso 8: solo personas con membresía completada (pestaña Miembros). */
+  soloMiembros?: boolean;
   redId?: string;
   casaDePazId?: string;
   estadoId?: string;
@@ -158,6 +160,7 @@ export async function buscarMembresiaAfirmacion(
     p_con_ministerio: filtros.conMinisterio ?? null,
     p_cargo_censo: filtros.cargoCenso ?? null,
     p_rango_edad: filtros.rangoEdad ?? null,
+    p_solo_miembros: filtros.soloMiembros ?? false,
   });
   if (error) throw error;
   const resultados = data ?? [];
@@ -215,7 +218,7 @@ export async function obtenerConfigRegistroUrlAfirmacion(iglesiaId: string): Pro
 // 20260927140000_kan481_altar_proceso_afirmacion.sql. Una sola persona
 // puede pasar por el mismo proceso mas de una vez (historial de fechas).
 
-export type ProcesoAfirmacionCodigo = 'ALTAR' | 'BAUTISMO' | 'RSIL' | 'FIESTA_BIENVENIDA';
+export type ProcesoAfirmacionCodigo = 'ALTAR' | 'BAUTISMO' | 'RSIL' | 'FIESTA_BIENVENIDA' | 'MEMBRESIA_NUEVOS';
 
 export interface EstadoProcesoAfirmacion {
   realizado: boolean;
@@ -242,6 +245,27 @@ export async function registrarProcesoAfirmacion(personaId: string, procesoCodig
   });
   if (error) throw error;
   return data as string;
+}
+
+/** KAN-497 paso 7: deja registrado quién cargó o actualizó a la persona desde el
+ * formulario de membresía (una fila por persona; se actualiza si ya existe). */
+export async function registrarMembresiaNuevosAfirmacion(personaId: string, iglesiaId: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_afirmacion_registrar_membresia_nuevos', {
+    p_persona_id: personaId,
+    p_iglesia_id: iglesiaId,
+  });
+  if (error) throw error;
+}
+
+/** KAN-497: marca a la persona existente como bautizada (persona_detalle), sin
+ * tocar su membresía. */
+export async function marcarBautizadoAfirmacion(personaId: string, iglesiaId: string, fecha: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_afirmacion_marcar_bautizado', {
+    p_persona_id: personaId,
+    p_iglesia_id: iglesiaId,
+    p_fecha: fecha,
+  });
+  if (error) throw error;
 }
 
 export async function obtenerEstadoProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo): Promise<EstadoProcesoAfirmacion> {

@@ -14,6 +14,8 @@ export interface DatosMembresiaNuevos extends DatosBasicosPersonaValores {
   // completando (no se crea una nueva; se actualiza). '' = persona nueva.
   personaExistenteId: string;
   ci: string;
+  /** KAN-497 paso 5: la persona no recuerda su CI -- cuenta como respuesta. */
+  ciNoRecuerda: boolean;
   correo: string;
   estadoCivil: string;
   ocupacion: string;
@@ -49,6 +51,7 @@ export const DATOS_MEMBRESIA_NUEVOS_VACIO: DatosMembresiaNuevos = {
   ...DATOS_BASICOS_PERSONA_VACIO,
   personaExistenteId: '',
   ci: '',
+  ciNoRecuerda: false,
   correo: '',
   estadoCivil: '',
   ocupacion: '',
@@ -83,7 +86,7 @@ export function hayContenidoRealMembresia(d: DatosMembresiaNuevos): boolean {
   ];
   if (textos.some((t) => t.trim() !== '')) return true;
   if ((d.familiares ?? []).length > 0) return true;
-  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio || d.sinCelular;
+  return d.esVisita || d.yaAsisteIglesia || d.trabajoMinisterio || d.sinCelular || d.ciNoRecuerda;
 }
 
 /**
@@ -101,9 +104,8 @@ export function camposObligatoriosFaltantes(d: DatosMembresiaNuevos): string[] {
   if (d.fechaNacimiento.trim() === '') faltan.push('Fecha de nacimiento');
   if (!d.sinCelular && d.telefonoNumero.trim() === '') faltan.push('Teléfono');
   if (d.direccion.trim() === '') faltan.push('Dirección');
-  if (d.ci.trim() === '') faltan.push('Número de documento');
+  if (!d.ciNoRecuerda && d.ci.trim() === '') faltan.push('Número de documento');
   if (d.estadoCivil.trim() === '') faltan.push('Estado civil');
-  if (d.ocupacion.trim() === '') faltan.push('Ocupación');
   if (d.gradoInstruccion.trim() === '') faltan.push('Grado de instrucción');
   if (d.motivoLlegadaId.trim() === '') faltan.push('¿Cómo llegó a la iglesia?');
   return faltan;

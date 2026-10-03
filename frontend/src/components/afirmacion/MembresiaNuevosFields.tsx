@@ -74,7 +74,23 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_ci">Número de documento *</Label>
-            <Input id="mn_ci" className={CAMPO_ESTILO} placeholder="CI, pasaporte u otro documento" value={valores.ci} onChange={(e) => set('ci', e.target.value)} />
+            <Input
+              id="mn_ci"
+              className={CAMPO_ESTILO}
+              placeholder="CI, pasaporte u otro documento"
+              value={valores.ci}
+              disabled={valores.ciNoRecuerda}
+              onChange={(e) => set('ci', e.target.value)}
+            />
+            {/* KAN-497 paso 5: "no lo recuerda" cuenta como respuesta válida.
+             * Al marcarla se limpia el número para no guardar datos viejos. */}
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox
+                checked={valores.ciNoRecuerda}
+                onCheckedChange={(v) => onChange({ ...valores, ciNoRecuerda: v === true, ci: v === true ? '' : valores.ci })}
+              />
+              No lo recuerda
+            </label>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mn_correo">Correo</Label>
@@ -90,7 +106,7 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mn_ocupacion">Ocupación *</Label>
+            <Label htmlFor="mn_ocupacion">Ocupación</Label>
             <Input id="mn_ocupacion" className={CAMPO_ESTILO} value={valores.ocupacion} onChange={(e) => set('ocupacion', e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -124,7 +140,7 @@ export function MembresiaNuevosFields({ valores, onChange, iglesiaId }: Props) {
       {/* Preguntas livianas sobre vínculo con la iglesia */}
       <Seccion titulo="Vínculo con la iglesia">
         <div className="flex flex-col gap-3">
-          <SiNo label="¿Ya asiste a la iglesia?" value={valores.yaAsisteIglesia} onChange={(v) => set('yaAsisteIglesia', v)} />
+          <SiNo label="¿Ya asiste a esta iglesia?" value={valores.yaAsisteIglesia} onChange={(v) => set('yaAsisteIglesia', v)} />
           <SiNo label="¿Ha trabajado en algún ministerio?" value={valores.trabajoMinisterio} onChange={(v) => set('trabajoMinisterio', v)} />
           {valores.trabajoMinisterio && (
             <div className="flex flex-col gap-1.5">

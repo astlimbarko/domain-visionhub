@@ -8,12 +8,35 @@
 // casaDePazId" (iglesia completa). El mismo componente, en modo scoped, es
 // lo que usa MembresiaCdp.tsx para Líder/Sublíder de CdP -- un cambio
 // visual acá se ve en las dos pantallas sin tocar 2 archivos.
+//
+// KAN-497 paso 8: pestaña "Registro" -- personas cargadas desde el formulario
+// de membresía de nuevos, con el colaborador que las tomó. Afirmación ve todo;
+// un colaborador ve solo lo suyo (lo resuelve el backend).
 import { useAuthStore } from '@/store/auth.store';
 import { MembresiaTabla } from '@/components/personas/MembresiaTabla';
+import { RegistroMembresiaNuevos } from '@/components/afirmacion/RegistroMembresiaNuevos';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function AfirmacionPersonas() {
   const iglesiaActivaId = useAuthStore((s) => s.iglesiaActivaId) ?? undefined;
   const iglesiaNombre = useAuthStore((s) => s.iglesias.find((i) => i.id === iglesiaActivaId)?.nombre) ?? 'Centro de Vida';
 
-  return <MembresiaTabla iglesiaId={iglesiaActivaId} iglesiaNombre={iglesiaNombre} />;
+  if (!iglesiaActivaId) {
+    return <MembresiaTabla iglesiaId={iglesiaActivaId} iglesiaNombre={iglesiaNombre} />;
+  }
+
+  return (
+    <Tabs defaultValue="miembros" className="flex flex-col gap-4">
+      <TabsList className="self-start">
+        <TabsTrigger value="miembros">Miembros</TabsTrigger>
+        <TabsTrigger value="registro">Registro</TabsTrigger>
+      </TabsList>
+      <TabsContent value="miembros" className="mt-0">
+        <MembresiaTabla iglesiaId={iglesiaActivaId} iglesiaNombre={iglesiaNombre} soloMiembros />
+      </TabsContent>
+      <TabsContent value="registro" className="mt-0">
+        <RegistroMembresiaNuevos iglesiaId={iglesiaActivaId} />
+      </TabsContent>
+    </Tabs>
+  );
 }

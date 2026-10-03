@@ -36,9 +36,11 @@ import { CAMPO_ESTILO } from '@/lib/estilos';
 import { componerTelefono } from '@/utils/paises-telefono';
 import { crearPersona, agregarTelefono, agregarDireccion } from '@/services/persona.service';
 import { asignarEntradaCdp } from '@/services/membresia-borrador.service';
+import { buscarPersonasSimilares, type DatosNombreBusquedaSimilitud } from '@/services/casas-de-paz.service';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { SelectorCasaDePaz, DATOS_CASA_DE_PAZ_VACIO, type DatosCasaDePaz } from '@/components/afirmacion/SelectorCasaDePaz';
 import { useHistorialProcesoAfirmacion, useRegistrarProcesoAfirmacion } from '@/hooks/useAfirmacion';
-import type { PersonaBusqueda } from '@/types/casas-de-paz.types';
+import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -169,9 +171,48 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
   // KAN-490 (harness/23 Req 1): capturar la Casa de Paz también en Altar.
   const [cdp, setCdp] = useState<DatosCasaDePaz>(DATOS_CASA_DE_PAZ_VACIO);
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
+  // KAN-497 paso 10: "Guardar" en Nuevo ya es la intención explícita de
+  // registrar a esta persona en Altar -- antes, después de crear, igual había
+  // que confirmar de nuevo en ConfirmarAltar (2 pasos para una sola acción).
+  // La pestaña "Buscar" (persona existente) mantiene su único paso de
+  // confirmación tal cual -- ahí sí hace falta elegir fecha/revisar antes de
+  // registrar a alguien que no se acaba de cargar en el momento.
+  const registrarAltar = useRegistrarProcesoAfirmacion();
+  // KAN-497 paso 12: antes de crear una persona nueva, si ya existe alguien
+  // parecido se pregunta -- mismo patrón ya usado en Bautismo/RSIL/Membresía.
+  const [candidatosDuplicado, setCandidatosDuplicado] = useState<PersonaSimilar[]>([]);
+  const [mostrarDuplicado, setMostrarDuplicado] = useState(false);
+
+  // CI no está en este formulario (DatosBasicosPersonaFields no lo pide acá,
+  // igual que Bautismo/RSIL) -- la búsqueda queda en nombre + teléfono + sexo.
+  function datosBusquedaNombre(): DatosNombreBusquedaSimilitud {
+    return {
+      primer_nombre: formNuevo.primerNombre,
+      segundo_nombre: formNuevo.segundoNombre,
+      primer_apellido: formNuevo.primerApellido,
+      segundo_apellido: formNuevo.segundoApellido,
+      telefono: componerTelefono(formNuevo.telefonoPais, formNuevo.telefonoNumero),
+      sexo: formNuevo.sexo,
+    };
+  }
 
   async function handleCrearYContinuar() {
     if (!iglesiaActivaId || !datosBasicosPersonaValidos(formNuevo)) return;
+    try {
+      const similares = await buscarPersonasSimilares(iglesiaActivaId, datosBusquedaNombre());
+      if (similares.length > 0) {
+        setCandidatosDuplicado(similares);
+        setMostrarDuplicado(true);
+        return;
+      }
+    } catch {
+      /* si la búsqueda falla, no bloquea el alta */
+    }
+    await crearPersonaNueva();
+  }
+
+  async function crearPersonaNueva() {
+    if (!iglesiaActivaId) return;
     setGuardandoNuevo(true);
     try {
       const persona = await crearPersona({
@@ -195,10 +236,17 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
       // KAN-490: aplicar la Casa de Paz capturada (y el invitado_por).
       await asignarEntradaCdp(persona.id, iglesiaActivaId, cdp);
 
-      toast.success('Persona creada.');
+      const nombreCompleto = `${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim();
+      try {
+        await registrarAltar.mutateAsync({ personaId: persona.id, procesoCodigo: 'ALTAR', fecha: HOY() });
+        toast.success(`Altar registrado para ${nombreCompleto}.`);
+      } catch (e) {
+        // La persona ya quedó creada -- se puede registrar el Altar después
+        // buscándola en la pestaña "Buscar", no se pierde el alta.
+        toast.error(e instanceof Error ? e.message : 'La persona se creó, pero no se pudo registrar el Altar. Buscala en "Buscar" para intentar de nuevo.');
+      }
       setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
       setCdp(DATOS_CASA_DE_PAZ_VACIO);
-      setPersonaSeleccionada({ id: persona.id, nombre_completo: `${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim() });
       setTab('buscar');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo crear la persona');
@@ -334,6 +382,23 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
             >
               <Save className="h-5 w-5" /> {guardandoNuevo ? 'Guardando...' : 'Guardar'}
             </Button>
+            <ConfirmarPosibleDuplicadoDialog
+              open={mostrarDuplicado}
+              onOpenChange={setMostrarDuplicado}
+              candidatos={candidatosDuplicado}
+              nombreTentativo={`${formNuevo.primerNombre} ${formNuevo.primerApellido}`.trim()}
+              onUsarExistente={(persona) => {
+                setMostrarDuplicado(false);
+                setFormNuevo(DATOS_BASICOS_PERSONA_VACIO);
+                setCdp(DATOS_CASA_DE_PAZ_VACIO);
+                setPersonaSeleccionada({ id: persona.id, nombre_completo: persona.nombre_completo });
+                setTab('buscar');
+              }}
+              onNoEsLaMisma={() => {
+                setMostrarDuplicado(false);
+                void crearPersonaNueva();
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="datos" className="mx-auto w-full max-w-md sm:max-w-3xl xl:max-w-4xl">
@@ -351,20 +416,29 @@ export function AfirmacionAltar({ iglesiaId, onVolver }: { iglesiaId?: string; o
  * como tabla (columna "Colaborador") en vez de tarjetas. */
 function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerTodos: boolean }) {
   const [colaboradorFiltro, setColaboradorFiltro] = useState<string>('TODOS');
-  const { data: historial = [], isLoading } = useHistorialProcesoAfirmacion(
+  const [busqueda, setBusqueda] = useState('');
+  const { data: historialCrudo = [], isLoading } = useHistorialProcesoAfirmacion(
     iglesiaId,
     'ALTAR',
     colaboradorFiltro === 'TODOS' ? undefined : colaboradorFiltro,
   );
   const abrirFicha = useFichaPersonaStore((s) => s.abrir);
 
+  // KAN-497 paso 11: busca SOLO entre las personas que ya aparecen en esta
+  // pestaña (Altar) -- no en Bautismo, RSIL ni Membresía.
+  const historial = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return historialCrudo;
+    return historialCrudo.filter((r) => r.nombre_completo.toLowerCase().includes(q));
+  }, [historialCrudo, busqueda]);
+
   const colaboradores = useMemo(() => {
     const mapa = new Map<string, string>();
-    for (const r of historial) {
+    for (const r of historialCrudo) {
       if (r.registrado_por && r.registrado_por_nombre) mapa.set(r.registrado_por, r.registrado_por_nombre);
     }
     return Array.from(mapa, ([id, nombre]) => ({ id, nombre }));
-  }, [historial]);
+  }, [historialCrudo]);
 
   if (isLoading) {
     return (
@@ -399,9 +473,20 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
         )}
       </div>
 
-      {historial.length === 0 ? (
+      {historialCrudo.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar persona en Altar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        </div>
+      )}
+
+      {historialCrudo.length === 0 ? (
         <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
           Todavía no hay registros de Altar.
+        </div>
+      ) : historial.length === 0 ? (
+        <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+          Sin resultados para esa búsqueda.
         </div>
       ) : puedeVerTodos ? (
         <div className="hidden overflow-x-auto rounded-xl border border-border/60 md:block">
@@ -418,7 +503,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
                 <tr
                   key={r.id}
                   className="cursor-pointer border-t border-border/40 hover:bg-muted/40"
-                  onClick={() => abrirFicha(r.persona_id)}
+                  onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
                 >
                   <td className="px-3 py-2.5 font-medium">{r.nombre_completo}</td>
                   <td className="px-3 py-2.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
@@ -435,7 +520,7 @@ function DatosAltar({ iglesiaId, puedeVerTodos }: { iglesiaId: string; puedeVerT
           <button
             type="button"
             key={r.id}
-            onClick={() => abrirFicha(r.persona_id)}
+            onClick={() => abrirFicha(r.persona_id, { permitirEdicionExtra: true })}
             className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 text-left hover:bg-muted/40"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/12 text-[11px] font-semibold text-[#0071E3]">

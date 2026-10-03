@@ -9,7 +9,7 @@ import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CAMPO_ESTILO } from '@/lib/estilos';
 import { Input } from '@/components/ui/input';
-import { listarCdpAsistencia, type CdpAsistencia } from '@/services/membresia-borrador.service';
+import { listarCdpAsistencia, listarDireccionesPrincipalesCdp, type CdpAsistencia } from '@/services/membresia-borrador.service';
 
 interface Props {
   iglesiaId: string;
@@ -31,17 +31,29 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
     enabled: !!iglesiaId,
   });
 
+  // KAN-497 paso 6: dirección principal y ciudad de cada Casa de Paz, para
+  // buscar también por esos datos. Si falla, el buscador sigue con lo demás.
+  const { data: direcciones = {} } = useQuery({
+    queryKey: ['afirmacion', 'cdp-direcciones', iglesiaId],
+    queryFn: () => listarDireccionesPrincipalesCdp(iglesiaId),
+    enabled: !!iglesiaId,
+  });
+
   const filtrados = useMemo(() => {
     const q = texto.trim().toLowerCase();
     if (!q) return cdps;
-    return cdps.filter(
-      (c) =>
+    return cdps.filter((c) => {
+      const dir = direcciones[c.casa_de_paz_id];
+      return (
         c.casa_de_paz_etiqueta.toLowerCase().includes(q) ||
         (c.red_nombre ?? '').toLowerCase().includes(q) ||
         (c.lider_nombre ?? '').toLowerCase().includes(q) ||
-        c.iglesia_nombre.toLowerCase().includes(q),
-    );
-  }, [cdps, texto]);
+        c.iglesia_nombre.toLowerCase().includes(q) ||
+        (dir?.direccion ?? '').toLowerCase().includes(q) ||
+        (dir?.ciudad ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [cdps, texto, direcciones]);
 
   // Agrupadas por Red (requisito del owner: "clasificadas por Redes").
   const grupos = useMemo(() => {
@@ -75,7 +87,7 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
         <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className={cn('pl-8', CAMPO_ESTILO)}
-          placeholder="Buscar Casa de Paz por nombre, Red o iglesia..."
+          placeholder="Buscar por nombre, Red, líder, dirección o ciudad..."
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onFocus={() => setAbierto(true)}

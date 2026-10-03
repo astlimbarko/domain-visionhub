@@ -495,9 +495,11 @@ interface Props {
   iglesiaNombre: string;
   titulo?: string;
   descripcion?: string;
+  /** KAN-497 paso 8: solo personas con membresía completada (Afirmación › Miembros). */
+  soloMiembros?: boolean;
 }
 
-export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, iglesiaNombre, titulo = 'Membresía', descripcion }: Props) {
+export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, iglesiaNombre, titulo = 'Membresía', descripcion, soloMiembros = false }: Props) {
   const scoped = !!casaDePazId;
   const queryClient = useQueryClient();
   const [textoInput, setTextoInput] = useState('');
@@ -602,6 +604,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
   // filas por esto. El combobox sigue existiendo, ya no filtra la tabla.
   const filtros: FiltrosMembresiaAfirmacion = useMemo(
     () => ({
+      soloMiembros,
       redId: redIdFiltro,
       casaDePazId: casaDePazIdFiltro,
       estadoId: estadoIdFiltro,
@@ -626,6 +629,7 @@ export function MembresiaTabla({ iglesiaId, casaDePazId, casaDePazEtiqueta, igle
       conMinisterioFiltro,
       cargoCensoFiltro,
       rangoEdadFiltro,
+      soloMiembros,
     ]
   );
 

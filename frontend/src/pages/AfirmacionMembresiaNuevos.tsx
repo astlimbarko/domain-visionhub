@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Save, Loader2, ArrowLeft, UserCheck } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, UserCheck, XCircle } from 'lucide-react';
 import { TEAL } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,13 @@ import {
   obtenerPersonaParaMembresia,
 } from '@/services/membresia-borrador.service';
 import { notificarMembresiaCompletada } from '@/services/membresia-extendida.service';
+import { buscarPersonasSimilares } from '@/services/casas-de-paz.service';
+import { registrarMembresiaNuevosAfirmacion } from '@/services/afirmacion.service';
+import { RegistroMembresiaNuevos } from '@/components/afirmacion/RegistroMembresiaNuevos';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
+import { componerTelefono } from '@/utils/paises-telefono';
+import type { PersonaSimilar } from '@/types/casas-de-paz.types';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
 
@@ -89,7 +96,16 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   const [datos, setDatos] = useState<DatosMembresiaNuevos>(DATOS_MEMBRESIA_NUEVOS_VACIO);
   const [estado, setEstado] = useState<EstadoGuardado>('inactivo');
   const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
+  const [confirmarQuitarPersona, setConfirmarQuitarPersona] = useState(false);
+  const [pestana, setPestana] = useState<'nuevo' | 'registro'>('nuevo');
   const [guardandoFinal, setGuardandoFinal] = useState(false);
+  // KAN-497: aviso de posible persona ya existente antes de crear una nueva.
+  const [mostrarDuplicado, setMostrarDuplicado] = useState(false);
+  const [candidatosDuplicado, setCandidatosDuplicado] = useState<PersonaSimilar[]>([]);
+  const [duplicadoDescartado, setDuplicadoDescartado] = useState(false);
+  useEffect(() => {
+    setDuplicadoDescartado(false);
+  }, [datos.primerNombre, datos.segundoNombre, datos.primerApellido, datos.segundoApellido]);
   const [cargandoPersona, setCargandoPersona] = useState(false);
   const [mostrarIndicador, setMostrarIndicador] = useState(false);
   const hidratado = useRef(false);
@@ -142,7 +158,15 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   // Muestra el disco flotante mientras guarda y lo desvanece ~1.6s después.
   useEffect(() => {
     if (!iglesiaId || !hidratado.current) return;
-    if (!hayContenidoRealMembresia(datos)) return;
+    if (!hayContenidoRealMembresia(datos)) {
+      // Formulario vacío: no hay nada que guardar. Sin ocultar el disco acá, si
+      // estaba en "guardando" (el usuario borró todo antes de los 900 ms) queda
+      // girando para siempre -- la limpieza de arriba canceló el temporizador.
+      if (ocultarIndicadorRef.current) clearTimeout(ocultarIndicadorRef.current);
+      setEstado('inactivo');
+      setMostrarIndicador(false);
+      return;
+    }
     setEstado('guardando');
     setMostrarIndicador(true);
     if (ocultarIndicadorRef.current) clearTimeout(ocultarIndicadorRef.current);
@@ -177,6 +201,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
     toast.success('Formulario limpio, listo para empezar de cero.');
   }
 
+  // KAN-497: si la persona todavía no está precargada (es "nueva" para este
+  // form), antes de crearla se busca si ya existe alguien con ese nombre --
+  // típicamente un bautizado registrado desde Bautismo, que ya tiene persona
+  // creada. Sin este chequeo se insertaba una segunda persona igual.
   async function handleGuardar() {
     if (!iglesiaId || guardandoFinal) return;
     const faltan = camposObligatoriosFaltantes(datos);
@@ -184,9 +212,44 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       toast.error(`Faltan campos obligatorios: ${faltan.join(', ')}.`);
       return;
     }
+    if (!datos.personaExistenteId && !duplicadoDescartado) {
+      try {
+        // KAN-497 paso 12: CI y teléfono exactos pesan más que el nombre
+        // (ver fn_buscar_personas_similares) -- acá sí hay CI, a diferencia
+        // de Bautismo/RSIL.
+        const similares = await buscarPersonasSimilares(iglesiaId, {
+          primer_nombre: datos.primerNombre,
+          segundo_nombre: datos.segundoNombre,
+          primer_apellido: datos.primerApellido,
+          segundo_apellido: datos.segundoApellido,
+          ci: datos.ciNoRecuerda ? undefined : datos.ci,
+          telefono: componerTelefono(datos.telefonoPais, datos.telefonoNumero),
+          sexo: datos.sexo,
+        });
+        if (similares.length > 0) {
+          setCandidatosDuplicado(similares);
+          setMostrarDuplicado(true);
+          return;
+        }
+      } catch {
+        /* si la búsqueda falla, no bloquea el alta -- mismo criterio que el borrador */
+      }
+    }
+    await guardarFinal();
+  }
+
+  async function guardarFinal() {
+    if (!iglesiaId || guardandoFinal) return;
     setGuardandoFinal(true);
     try {
       const res = await guardarMembresiaNuevos(iglesiaId, datos);
+      // KAN-497 paso 7: deja registrado quién cargó / actualizó a la persona.
+      // No bloquea el guardado: la membresía ya quedó en la base.
+      try {
+        await registrarMembresiaNuevosAfirmacion(res.persona_id, iglesiaId);
+      } catch {
+        toast.error('La membresía se guardó, pero no se pudo registrar quién la cargó.');
+      }
       // Correo de bienvenida (KAN-493): no-op si la persona no tiene correo o
       // ya se le envió; nunca bloquea el alta (la función traga sus errores).
       void notificarMembresiaCompletada(res.persona_id);
@@ -198,6 +261,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       }
       setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO);
       setEstado('inactivo');
+      setDuplicadoDescartado(false);
       const verbo = res.actualizada ? 'actualizada' : 'guardada';
       if (res.sin_casa_de_paz) {
         toast.success(`Membresía ${verbo}: ${res.nombre_completo}. Quedó sin Casa de Paz — aparecerá en designaciones.`);
@@ -240,6 +304,15 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           <ArrowLeft className="h-4 w-4" /> Volver al portal
         </button>
       )}
+      <Tabs value={pestana} onValueChange={(v) => setPestana(v as 'nuevo' | 'registro')} className="flex flex-col gap-6">
+        <TabsList className="self-start">
+          <TabsTrigger value="nuevo">Nuevo</TabsTrigger>
+          <TabsTrigger value="registro">Registro</TabsTrigger>
+        </TabsList>
+        <TabsContent value="registro" className="mt-0">
+          <RegistroMembresiaNuevos iglesiaId={iglesiaId} />
+        </TabsContent>
+        <TabsContent value="nuevo" className="mt-0 flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Formulario de membresía</h1>
@@ -281,9 +354,18 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
                   <span className="text-[11px] text-muted-foreground">Ficha {pct}% completa — rellená lo que falte y guardá.</span>
                 </div>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => { setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO); setEstado('inactivo'); }}>
-                Persona nueva
-              </Button>
+              {/* KAN-497 seguimiento: quitar la persona elegida por error. Solo
+               * desvincula a la persona; los demás campos del formulario se
+               * mantienen. Pide confirmación antes. */}
+              <button
+                type="button"
+                aria-label="Quitar a esta persona"
+                title="Quitar a esta persona"
+                onClick={() => setConfirmarQuitarPersona(true)}
+                className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
             </div>
           );
         })()
@@ -315,6 +397,31 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
         </Button>
       </div>
 
+      <Dialog open={confirmarQuitarPersona} onOpenChange={setConfirmarQuitarPersona}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Quitar a esta persona?</DialogTitle>
+            <DialogDescription>
+              Se desvincula a {datos.primerNombre} {datos.primerApellido} de este formulario. Los demás datos quedan como están. Si la persona ya existe, al guardar el sistema te avisará antes de crear otra.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setDatos((prev) => ({ ...prev, personaExistenteId: '' }));
+                setConfirmarQuitarPersona(false);
+              }}
+            >
+              Sí, quitar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={confirmarLimpiar} onOpenChange={setConfirmarLimpiar}>
         <DialogContent>
           <DialogHeader>
@@ -333,6 +440,25 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+        </TabsContent>
+      </Tabs>
+
+      <ConfirmarPosibleDuplicadoDialog
+        open={mostrarDuplicado}
+        onOpenChange={setMostrarDuplicado}
+        candidatos={candidatosDuplicado}
+        nombreTentativo={[datos.primerNombre, datos.segundoNombre, datos.primerApellido, datos.segundoApellido].filter(Boolean).join(' ')}
+        onUsarExistente={(persona) => {
+          setMostrarDuplicado(false);
+          precargarPersona(persona.id);
+        }}
+        onNoEsLaMisma={() => {
+          setDuplicadoDescartado(true);
+          setMostrarDuplicado(false);
+          void guardarFinal();
+        }}
+      />
 
       <DiscoAutoguardado mostrar={mostrarIndicador} estado={estado} />
     </div>
