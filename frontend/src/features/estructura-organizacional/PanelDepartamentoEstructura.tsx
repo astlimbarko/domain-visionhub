@@ -11,7 +11,6 @@ import {
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
-import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
 import { mensajeError } from './estructura.service';
@@ -185,12 +184,12 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
             </div>
             {esFuncional && lider && vigente && (
               <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
-                {pendiente ? (
-                  <BotonReenviarInvitacion entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
-                ) : (
-                  lider.correo && (
-                    <RestablecerContrasenaBoton correo={lider.correo} entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
-                  )
+                {/* 2026-10-03: este bloque es para un cargo VIGENTE real (las
+                    invitaciones pendientes van en el bloque de abajo). No se
+                    muestra "Reenviar invitación" -- si ya tiene cuenta,
+                    "Restablecer contraseña"; si no, ninguna acción de acceso. */}
+                {lider.tieneCuenta && lider.correo && (
+                  <RestablecerContrasenaBoton correo={lider.correo} entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
                 )}
                 <button
                   type="button"

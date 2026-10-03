@@ -57,9 +57,25 @@ interface DialogoCargo {
   exclusivo: boolean;
 }
 
+// Bug 2026-10-03: antes sólo leía `e.message` cuando `e instanceof Error`. Los
+// errores de supabase-js (rpc/postgREST) son objetos planos { message, code,
+// ... }, NO instancias de Error -- así que el mensaje real se descartaba y
+// siempre se veía el texto genérico (ocultó la causa del bug de sublíderes).
+// Ahora se extrae el message de cualquier objeto que lo tenga, y de los
+// errores de Postgres con formato "CODIGO_INTERNO: texto" se muestra sólo el
+// texto legible (nunca el código crudo ni mensajes técnicos tipo RLS).
+function mensajeDeError(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string') {
+    return (e as { message: string }).message;
+  }
+  return '';
+}
+
 function manejarErrorCargo(e: unknown, generico: string) {
-  const mensaje = e instanceof Error ? e.message : '';
-  toast.error(mensaje || generico);
+  const raw = mensajeDeError(e);
+  const legible = /^[A-Z_]+:\s*(.+)$/.exec(raw)?.[1];
+  toast.error(legible || generico);
 }
 
 export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, puedeEliminarPorCompleto, onClose }: Props) {
@@ -307,20 +323,18 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 {lider ? 'Cambiar' : 'Asignar'}
               </button>
             </div>
-            {lider && (lider.invitacionId || lider.membresiaPendiente || (lider.correo && lider.nombre)) && (
+            {/* 2026-10-03: "Reenviar invitación" SOLO si hay una invitación real
+                pendiente (invitacionId). A una persona existente agregada como
+                cargo NO se la invita (no tiene que aceptar nada), así que no
+                corresponde ese botón. Si ya tiene cuenta -> "Restablecer
+                contraseña"; si no tiene cuenta ni invitación -> ninguna acción. */}
+            {lider && (lider.invitacionId || (lider.tieneCuenta && lider.correo)) && (
               <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
-                {lider.invitacionId || lider.membresiaPendiente ? (
+                {lider.invitacionId ? (
                   <>
-                    <BotonReenviarInvitacion
-                      invitacionId={lider.invitacionId ?? undefined}
-                      entidad={lider.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: lider.id }}
-                    />
-                    {/* KAN-376 seguimiento (2026-09-13, pedido del owner): antes
-                        solo se podia reenviar el correo -- si el destinatario
-                        no puede/no llega a usarlo, ahora tambien se le puede
-                        asignar una contraseña fija sin esperar a que acepte la
-                        invitacion (usuarioId ya existe desde que se lo invito,
-                        aunque la Persona real recien se cree al aceptar). */}
+                    <BotonReenviarInvitacion invitacionId={lider.invitacionId} />
+                    {/* KAN-376: a una invitación pendiente también se le puede
+                        asignar una contraseña fija sin esperar a que acepte. */}
                     {lider.usuarioId && lider.correo && (
                       <RestablecerContrasenaBoton correo={lider.correo} entidad={{ cdpId: casaDePaz.id, personaId: lider.usuarioId }} />
                     )}
@@ -364,17 +378,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                     {casaDePaz.sublideres.map((sub) => (
                       <li key={sub.id} className="min-w-0">
                         <p className="truncate text-sm text-slate-900">{sub.etiqueta}</p>
-                        {sub.invitacionId || sub.membresiaPendiente ? (
+                        {/* 2026-10-03: "Reenviar invitación" SOLO con invitación
+                            real pendiente. Persona existente agregada como
+                            sublíder -> sin invitación. Con cuenta -> restablecer
+                            contraseña; sin cuenta ni invitación -> nada. */}
+                        {sub.invitacionId ? (
                           <div className="mt-0.5 flex items-center justify-between gap-2">
                             {sub.correo && <span className="truncate text-xs text-slate-500">{sub.correo}</span>}
                             <BotonReenviarInvitacion
-                              invitacionId={sub.invitacionId ?? undefined}
-                              entidad={sub.invitacionId ? undefined : { cdpId: casaDePaz.id, personaId: sub.id }}
+                              invitacionId={sub.invitacionId}
                               className="relative flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-semibold text-amber-700 before:absolute before:-inset-2 before:content-[''] hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
                             />
                           </div>
                         ) : (
-                          sub.correo && sub.nombre && (
+                          sub.correo && sub.tieneCuenta && (
                             <div className="mt-0.5 flex items-center justify-between gap-2">
                               <span className="truncate text-xs text-slate-500">{sub.correo}</span>
                               <RestablecerContrasenaBoton
