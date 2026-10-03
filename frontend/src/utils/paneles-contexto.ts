@@ -146,6 +146,13 @@ export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
       ruta === ROUTES.CUENTA ||
       ruta === ROUTES.CUENTA_MEMBRESIA ||
       ruta === ROUTES.CUENTA_CONTRASENA ||
+      // KAN-433: el panel de Evangelista es ortogonal al RolUI (cualquier
+      // rol puede tenerlo) -- mismo criterio de excepción universal que
+      // ROUTES.CUENTA arriba. El gate real (¿tiene la capacidad?) vive
+      // adentro de la página/ruta (RequiereCapacidad + useEsEvangelista en
+      // App.tsx), no acá.
+      ruta === ROUTES.EVANGELISTA ||
+      ruta.startsWith('/evangelista/') ||
       puedeAcceder(contexto.rolUI, ruta),
   };
 }

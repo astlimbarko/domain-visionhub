@@ -25,6 +25,7 @@ import { RequiereRol } from '@/components/layout/RequiereRol';
 import { RequiereCapacidad } from '@/components/layout/RequiereCapacidad';
 import { useEsLiderAfirmacion } from '@/hooks/useEsLiderAfirmacion';
 import { useEsLiderJovenes, useEsEncargadoMatrimonios } from '@/hooks/useRolesGlobales';
+import { useEsEvangelista, usePuedeOtorgarEvangelista } from '@/hooks/useEvangelistaPersonal';
 
 // Módulos menos visitados que Dashboard/Cuenta: se cargan bajo demanda para
 // que el bundle inicial no incluya código de páginas que la mayoría de
@@ -66,6 +67,12 @@ const AfirmacionBautismo = lazy(() => import('@/pages/AfirmacionBautismo').then(
 const AfirmacionRSIL = lazy(() => import('@/pages/AfirmacionRSIL').then((m) => ({ default: m.AfirmacionRSIL })));
 // KAN-488: Membresía desde 0 (liviana, gente nueva captada).
 const AfirmacionMembresiaNuevos = lazy(() => import('@/pages/AfirmacionMembresiaNuevos').then((m) => ({ default: m.AfirmacionMembresiaNuevos })));
+// KAN-427 a 434: panel personal de Evangelista.
+const Evangelista = lazy(() => import('@/pages/Evangelista').then((m) => ({ default: m.Evangelista })));
+const EvangelistaNuevo = lazy(() => import('@/pages/EvangelistaNuevo').then((m) => ({ default: m.EvangelistaNuevo })));
+const EvangelistaHistorial = lazy(() => import('@/pages/EvangelistaHistorial').then((m) => ({ default: m.EvangelistaHistorial })));
+const EvangelistaSeguimiento = lazy(() => import('@/pages/EvangelistaSeguimiento').then((m) => ({ default: m.EvangelistaSeguimiento })));
+const EvangelistaCredenciales = lazy(() => import('@/pages/EvangelistaCredenciales').then((m) => ({ default: m.EvangelistaCredenciales })));
 // KAN-405: accesible para CUALQUIER rol (no pasa por RutaAfirmacion) -- ver
 // ROUTES.COLABORAR en constants.ts y puedeAccederRuta en paneles-contexto.ts.
 const Colaborar = lazy(() => import('@/pages/Colaborar').then((m) => ({ default: m.Colaborar })));
@@ -108,6 +115,31 @@ function RutaMatrimonios({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={<CargandoPagina />}>
       <RequiereCapacidad permitido={esEncargadoMatrimonios}>{children}</RequiereCapacidad>
+    </Suspense>
+  );
+}
+
+// KAN-433: mismo patron que RutaAfirmacion -- capacidad ortogonal
+// (persona_evangelista, KAN-427), accesible para CUALQUIER RolUI. Dashboard/
+// Nuevo/Historial/Seguimiento comparten este mismo gate.
+function RutaEvangelista({ children }: { children: ReactNode }) {
+  const { data: esEvangelista, isLoading } = useEsEvangelista();
+  if (isLoading) return <CargandoPagina />;
+  return (
+    <Suspense fallback={<CargandoPagina />}>
+      <RequiereCapacidad permitido={!!esEvangelista}>{children}</RequiereCapacidad>
+    </Suspense>
+  );
+}
+
+// KAN-434: panel de alta de credenciales -- gate distinto (quien PUEDE
+// OTORGAR el rol, no quien ya lo tiene).
+function RutaEvangelistaCredenciales({ children }: { children: ReactNode }) {
+  const { data: puedeOtorgar, isLoading } = usePuedeOtorgarEvangelista();
+  if (isLoading) return <CargandoPagina />;
+  return (
+    <Suspense fallback={<CargandoPagina />}>
+      <RequiereCapacidad permitido={!!puedeOtorgar}>{children}</RequiereCapacidad>
     </Suspense>
   );
 }
@@ -351,6 +383,11 @@ function App() {
             <Route path={ROUTES.AFIRMACION_MEMBRESIA_NUEVOS} element={<RutaAfirmacion><AfirmacionMembresiaNuevos /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
+            <Route path={ROUTES.EVANGELISTA} element={<RutaEvangelista><Evangelista /></RutaEvangelista>} />
+            <Route path={ROUTES.EVANGELISTA_NUEVO} element={<RutaEvangelista><EvangelistaNuevo /></RutaEvangelista>} />
+            <Route path={ROUTES.EVANGELISTA_HISTORIAL} element={<RutaEvangelista><EvangelistaHistorial /></RutaEvangelista>} />
+            <Route path={ROUTES.EVANGELISTA_SEGUIMIENTO} element={<RutaEvangelista><EvangelistaSeguimiento /></RutaEvangelista>} />
+            <Route path={ROUTES.EVANGELISTA_CREDENCIALES} element={<RutaEvangelistaCredenciales><EvangelistaCredenciales /></RutaEvangelistaCredenciales>} />
 
             {/* Anuncios (KAN-101): la pagina se autoprotege leyendo su propia
                 capacidad vía fn_anuncio_mi_capacidad. Item de nav en
