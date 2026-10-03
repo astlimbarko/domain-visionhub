@@ -19,7 +19,9 @@
 - [x] Instalé y logueé GitHub CLI (`gh`) en esta máquina (cuenta DanielMorales21)
 - [x] Commit + push + PR abierto: https://github.com/astlimbarko/domain-visionhub/pull/150
 - [x] Jira KAN-497: comentado con el detalle completo y movido a "En revisión"
-- [x] Levanté el contenedor Docker del frontend (`docker compose up`, responde en localhost:5174) -- sin `.env` real todavía, el login no funciona
-- [ ] Falta: la clave anónima de Supabase (o el token de Gonzalo) para poder loguearse y verificar todo en vivo
-- [ ] Falta: aplicar las 9 migraciones nuevas de hoy (`supabase/migrations/20261003*`)
+- [x] Levanté el contenedor Docker del frontend (`docker compose up`, responde en localhost:5174)
+- [x] Daniel pasó la anon key real de Supabase -- cargada en `frontend/.env` (gitignored, no se commitea), contenedor reiniciado. Verificada contra `/auth/v1/settings` (200 OK, config real del proyecto) -- la app ya puede loguearse de verdad en localhost:5174
+- [ ] Falta: que Daniel confirme que puede loguearse y probar el flujo en vivo (Bautismo → Membresía, una sola persona)
+- [ ] Falta: aplicar las 9 migraciones nuevas de hoy (`supabase/migrations/20261003*`) -- sigue bloqueado por el token de Supabase CLI vencido, distinto de la anon key
 - [ ] Falta: decidir qué hacer con los 3 hallazgos de la auditoría SaaS (paso 13)
+- [ ] Falta: que Gonzalo revise y mergee el PR #150
