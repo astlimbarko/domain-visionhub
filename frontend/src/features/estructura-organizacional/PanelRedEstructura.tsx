@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useInvitacionLider';
 import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
+import { BotonDarAcceso } from './BotonDarAcceso';
 import { textoLegibleSobre } from './contraste';
 import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -163,7 +164,7 @@ function ResumenCargo({
             disabled={procesando}
             className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {responsable ? 'Cambiar' : 'Asignar'}
+            {responsable ? 'Editar' : 'Asignar'}
           </button>
         )}
       </div>
@@ -242,12 +243,14 @@ function ResumenCargo({
             </>
           ) : (
             <>
-              {/* 2026-10-03: sin invitación real pendiente no se muestra
-                  "Reenviar invitación" (una persona existente se agrega como
-                  cargo sin invitación). Con cuenta -> "Restablecer contraseña";
-                  sin cuenta -> ninguna acción de acceso. */}
-              {responsable.tieneCuenta && responsable.correo && (
-                <RestablecerContrasenaBoton correo={responsable.correo} entidad={{ redId, personaId: responsable.id }} />
+              {/* 2026-10-03: con cuenta -> Restablecer contraseña; sin cuenta ni
+                  invitación -> Dar acceso (crea cuenta 12345678). */}
+              {responsable.tieneCuenta ? (
+                responsable.correo && (
+                  <RestablecerContrasenaBoton correo={responsable.correo} entidad={{ redId, personaId: responsable.id }} />
+                )
+              ) : (
+                <BotonDarAcceso personaId={responsable.id} correo={responsable.correo} />
               )}
               <button
                 type="button"

@@ -63,6 +63,25 @@ export async function invitarLider(
   return data;
 }
 
+/**
+ * 2026-10-03: "Dar acceso" a una persona que YA existe pero no tiene cuenta
+ * (ej. sublíder/líder asignado como persona existente). Crea la cuenta con una
+ * contraseña directa (por defecto 12345678, se cambia al entrar) y la vincula a
+ * la persona por su id -- sin crear un duplicado. Reusa la edge function
+ * dar-acceso-persona.
+ */
+export async function darAccesoPersona(
+  personaId: string,
+  correo: string,
+  contrasena?: string,
+): Promise<{ usuarioId: string; correo: string }> {
+  const { data, error } = await supabase.functions.invoke('dar-acceso-persona', {
+    body: { personaId, correo, contrasena },
+  });
+  if (error) throw await extraerError(error);
+  return data;
+}
+
 export async function obtenerInvitacionesDepartamento(iglesiaId: string): Promise<InvitacionDepartamento[]> {
   const { data, error } = await supabase.rpc('fn_listar_invitaciones_departamento', { p_iglesia_id: iglesiaId });
   if (error) throw error;

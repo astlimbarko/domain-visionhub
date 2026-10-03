@@ -279,7 +279,13 @@ export function AsignarCargoDialog({
                 <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm">
                   <span className="flex min-w-0 items-center gap-2">
                     <AvatarPersona nombre={etiquetaCargoVigente(v)} color={COLORES_AVATAR[i % COLORES_AVATAR.length]} size="sm" />
-                    <span className="truncate">{etiquetaCargoVigente(v)}</span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate">{etiquetaCargoVigente(v)}</span>
+                      {/* 2026-10-03: correo debajo del nombre, como en el panel. */}
+                      {v.correo && v.nombre_completo.trim() && (
+                        <span className="truncate text-[11px] text-muted-foreground">{v.correo}</span>
+                      )}
+                    </span>
                   </span>
                   <Button
                     type="button"

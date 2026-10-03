@@ -16,6 +16,7 @@ import {
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
 import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
+import { BotonDarAcceso } from './BotonDarAcceso';
 import { notificarAsignacionCargoCdp } from './estructura.service';
 import { textoLegibleSobre } from './contraste';
 import type { CargoCdpCodigo, PersonaBusqueda } from '@/types/casas-de-paz.types';
@@ -320,15 +321,14 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 onClick={() => setDialogoCargo({ codigo: 'LIDER_CDP', titulo: 'Líder de Casa de Paz', exclusivo: true })}
                 className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                {lider ? 'Cambiar' : 'Asignar'}
+                {lider ? 'Editar' : 'Asignar'}
               </button>
             </div>
-            {/* 2026-10-03: "Reenviar invitación" SOLO si hay una invitación real
-                pendiente (invitacionId). A una persona existente agregada como
-                cargo NO se la invita (no tiene que aceptar nada), así que no
-                corresponde ese botón. Si ya tiene cuenta -> "Restablecer
-                contraseña"; si no tiene cuenta ni invitación -> ninguna acción. */}
-            {lider && (lider.invitacionId || (lider.tieneCuenta && lider.correo)) && (
+            {/* 2026-10-03 cascada de acción del líder:
+                - invitación real pendiente -> Reenviar invitación (+ restablecer)
+                - ya tiene cuenta -> Restablecer contraseña
+                - sin cuenta ni invitación -> Dar acceso (crea cuenta 12345678) */}
+            {lider && (
               <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
                 {lider.invitacionId ? (
                   <>
@@ -339,8 +339,12 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                       <RestablecerContrasenaBoton correo={lider.correo} entidad={{ cdpId: casaDePaz.id, personaId: lider.usuarioId }} />
                     )}
                   </>
+                ) : lider.tieneCuenta ? (
+                  lider.correo && (
+                    <RestablecerContrasenaBoton correo={lider.correo} entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
+                  )
                 ) : (
-                  <RestablecerContrasenaBoton correo={lider.correo as string} entidad={{ cdpId: casaDePaz.id, personaId: lider.id }} />
+                  <BotonDarAcceso personaId={lider.id} correo={lider.correo} />
                 )}
               </div>
             )}
@@ -358,7 +362,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 onClick={() => setDialogoCargo({ codigo: 'ANFITRION', titulo: 'Anfitrión de Casa de Paz', exclusivo: true })}
                 className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                {anfitrion ? 'Cambiar' : 'Asignar'}
+                {anfitrion ? 'Editar' : 'Asignar'}
               </button>
             </div>
             {/* KAN-278: Anfitrión no es un rol de acceso -- no se invita con
@@ -378,30 +382,31 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                     {casaDePaz.sublideres.map((sub) => (
                       <li key={sub.id} className="min-w-0">
                         <p className="truncate text-sm text-slate-900">{sub.etiqueta}</p>
-                        {/* 2026-10-03: "Reenviar invitación" SOLO con invitación
-                            real pendiente. Persona existente agregada como
-                            sublíder -> sin invitación. Con cuenta -> restablecer
-                            contraseña; sin cuenta ni invitación -> nada. */}
-                        {sub.invitacionId ? (
-                          <div className="mt-0.5 flex items-center justify-between gap-2">
-                            {sub.correo && <span className="truncate text-xs text-slate-500">{sub.correo}</span>}
+                        {/* Correo siempre visible debajo del nombre (como el
+                            líder), si lo tiene cargado. */}
+                        {sub.correo && <p className="truncate text-xs text-slate-500">{sub.correo}</p>}
+                        {/* 2026-10-03 cascada de acción por responsable:
+                            - invitación real pendiente -> Reenviar invitación
+                            - ya tiene cuenta -> Restablecer contraseña
+                            - sin cuenta ni invitación -> Dar acceso (crea cuenta 12345678) */}
+                        <div className="mt-0.5 flex items-center justify-end gap-2">
+                          {sub.invitacionId ? (
                             <BotonReenviarInvitacion
                               invitacionId={sub.invitacionId}
                               className="relative flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-semibold text-amber-700 before:absolute before:-inset-2 before:content-[''] hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
                             />
-                          </div>
-                        ) : (
-                          sub.correo && sub.tieneCuenta && (
-                            <div className="mt-0.5 flex items-center justify-between gap-2">
-                              <span className="truncate text-xs text-slate-500">{sub.correo}</span>
+                          ) : sub.tieneCuenta ? (
+                            sub.correo && (
                               <RestablecerContrasenaBoton
                                 correo={sub.correo}
                                 entidad={{ cdpId: casaDePaz.id, personaId: sub.id }}
                                 className="relative shrink-0 cursor-pointer text-[11px] font-semibold text-slate-500 before:absolute before:-inset-2 before:content-[''] hover:text-blue-700"
                               />
-                            </div>
-                          )
-                        )}
+                            )
+                          ) : (
+                            <BotonDarAcceso personaId={sub.id} correo={sub.correo} />
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>

@@ -3,6 +3,7 @@ import {
   cancelarInvitacionLider,
   completarMembresia,
   corregirCorreoInvitacionLider,
+  darAccesoPersona,
   descartarCuentaHuerfana,
   invitarLider,
   listarCuentasHuerfanas,
@@ -49,6 +50,18 @@ export function useInvitarLider() {
       queryClient.invalidateQueries({ queryKey: ['estructura', 'invitaciones-departamento'] });
       // KAN-424: si esto reparó una cuenta huérfana, sale de ese listado.
       queryClient.invalidateQueries({ queryKey: ['admin', 'cuentas-huerfanas'] });
+    },
+  });
+}
+
+export function useDarAccesoPersona() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, correo, contrasena }: { personaId: string; correo: string; contrasena?: string }) =>
+      darAccesoPersona(personaId, correo, contrasena),
+    onSuccess: () => {
+      // Refrescar la estructura para que la persona pase a "con cuenta".
+      queryClient.invalidateQueries({ queryKey: ['estructura-organizacional'] });
     },
   });
 }

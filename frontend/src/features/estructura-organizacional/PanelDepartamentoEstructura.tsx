@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
+import { BotonDarAcceso } from './BotonDarAcceso';
 import { useCargoVigenteDepartamento, useQuitarCargoDepartamento } from '@/hooks/usePanelSupervisor';
 import { useCancelarInvitacionLider, useInvitacionesDepartamento, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
 import { AsignarLiderAfirmacionDialog } from './AsignarLiderAfirmacionDialog';
@@ -176,7 +177,7 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
                   onClick={() => setAsignando(true)}
                   className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                 >
-                  {lider ? 'Cambiar' : 'Asignar'}
+                  {lider ? 'Editar' : 'Asignar'}
                 </button>
               ) : (
                 <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-500">Próximamente</span>
@@ -184,12 +185,15 @@ export function PanelDepartamentoEstructura({ iglesiaId, departamento, otpRequer
             </div>
             {esFuncional && lider && vigente && (
               <div className="mt-3 flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
-                {/* 2026-10-03: este bloque es para un cargo VIGENTE real (las
-                    invitaciones pendientes van en el bloque de abajo). No se
-                    muestra "Reenviar invitación" -- si ya tiene cuenta,
-                    "Restablecer contraseña"; si no, ninguna acción de acceso. */}
-                {lider.tieneCuenta && lider.correo && (
-                  <RestablecerContrasenaBoton correo={lider.correo} entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
+                {/* 2026-10-03: cargo VIGENTE real (las invitaciones pendientes
+                    van en el bloque de abajo). Con cuenta -> Restablecer
+                    contraseña; sin cuenta -> Dar acceso (crea cuenta 12345678). */}
+                {lider.tieneCuenta ? (
+                  lider.correo && (
+                    <RestablecerContrasenaBoton correo={lider.correo} entidad={{ departamentoId: departamento.id, personaId: lider.id }} />
+                  )
+                ) : (
+                  <BotonDarAcceso personaId={lider.id} correo={lider.correo} />
                 )}
                 <button
                   type="button"
