@@ -283,84 +283,60 @@ export async function obtenerCargoVigenteCdp(cdpId: string, codigo: CargoCdpCodi
   return data ?? [];
 }
 
-const CARGOS_EXCLUSIVOS_RED: CargoRedCodigo[] = ['LIDER_RED', 'ENCARGADO_DEPARTAMENTOS_RED', 'ENCARGADO_MINISTERIO_RED'];
-const CARGOS_EXCLUSIVOS_CDP: CargoCdpCodigo[] = ['LIDER_CDP', 'ANFITRION'];
+// El cierre del cargo anterior en los exclusivos ahora lo hace la RPC
+// server-side (fn_asignar_cargo_cdp / fn_asignar_cargo_red), no el cliente --
+// por eso ya no se usan las listas CARGOS_EXCLUSIVOS_* acá.
 
 export async function asignarCargoRed(
-  iglesiaId: string,
+  _iglesiaId: string,
   redId: string,
   personaId: string,
   codigo: CargoRedCodigo,
   cargoId: string
 ): Promise<{ pendiente: boolean }> {
-  // Cambiar de Líder de Red pasa por el RPC server-side: si lo pide el
-  // Supervisor y la Red ya tiene Líder vigente, queda pendiente de su
-  // autorización en vez de aplicarse al instante (ver 58_solicitudes_estructura.sql).
-  // El resto de los cargos (encargados, etc.) sigue el camino directo de siempre.
-  if (codigo === 'LIDER_RED') {
-    const { data, error } = await supabase.rpc('fn_asignar_cargo_red', {
-      p_red_id: redId,
-      p_persona_id: personaId,
-      p_codigo: codigo,
-      p_cargo_id: cargoId,
-    });
-    if (error) throw error;
-    return { pendiente: data === null };
-  }
-
-  if (CARGOS_EXCLUSIVOS_RED.includes(codigo)) {
-    const vigentes = await obtenerCargoVigenteRed(redId, codigo);
-    for (const v of vigentes) {
-      const { error } = await supabase.from('red_cargo').update({ fecha_fin: aISO(new Date()) }).eq('id', v.id);
-      if (error) throw error;
-    }
-  }
-  const { error } = await supabase.from('red_cargo').insert({
-    iglesia_id: iglesiaId,
-    red_id: redId,
-    persona_id: personaId,
-    cargo_id: cargoId,
-    fecha_inicio: aISO(new Date()),
+  // Fix 2026-10-03 (mismo problema que asignarCargoCdp): TODOS los cargos de
+  // Red pasan por la RPC fn_asignar_cargo_red (SECURITY DEFINER), no solo
+  // LIDER_RED. Antes, sublíder/encargados se asignaban por INSERT directo
+  // sujeto a la RLS de red_cargo (que excluye a Pastor y Super Admin), así que
+  // asignar a una persona EXISTENTE les fallaba. La RPC ya tiene el permiso
+  // correcto y cierra el cargo anterior en los exclusivos. `data === null` =
+  // quedó pendiente de autorización (solicitud de cambio de Líder).
+  const { data, error } = await supabase.rpc('fn_asignar_cargo_red', {
+    p_red_id: redId,
+    p_persona_id: personaId,
+    p_codigo: codigo,
+    p_cargo_id: cargoId,
   });
   if (error) throw error;
-  return { pendiente: false };
+  return { pendiente: data === null };
 }
 
 export async function asignarCargoCdp(
-  iglesiaId: string,
+  _iglesiaId: string,
   cdpId: string,
   personaId: string,
   codigo: CargoCdpCodigo,
   cargoId: string
 ): Promise<{ pendiente: boolean }> {
-  // Cambiar de Líder de CdP -- mismo gate que asignarCargoRed, ver ahí.
-  if (codigo === 'LIDER_CDP') {
-    const { data, error } = await supabase.rpc('fn_asignar_cargo_cdp', {
-      p_cdp_id: cdpId,
-      p_persona_id: personaId,
-      p_codigo: codigo,
-      p_cargo_id: cargoId,
-    });
-    if (error) throw error;
-    return { pendiente: data === null };
-  }
-
-  if (CARGOS_EXCLUSIVOS_CDP.includes(codigo)) {
-    const vigentes = await obtenerCargoVigenteCdp(cdpId, codigo);
-    for (const v of vigentes) {
-      const { error } = await supabase.from('casa_de_paz_cargo').update({ fecha_fin: aISO(new Date()) }).eq('id', v.id);
-      if (error) throw error;
-    }
-  }
-  const { error } = await supabase.from('casa_de_paz_cargo').insert({
-    iglesia_id: iglesiaId,
-    casa_de_paz_id: cdpId,
-    persona_id: personaId,
-    cargo_id: cargoId,
-    fecha_inicio: aISO(new Date()),
+  // Fix 2026-10-03: TODOS los cargos de CdP (no solo LIDER_CDP) pasan por la
+  // RPC fn_asignar_cargo_cdp (SECURITY DEFINER). Antes, sublíder/anfitrión se
+  // asignaban por INSERT directo del cliente, sujeto a la política RLS de
+  // INSERT de casa_de_paz_cargo -- que NO permite al Pastor ni al Super Admin
+  // (solo Supervisor Visión en Acción / líder de la CdP / líder de la Red),
+  // así que asignar a una persona EXISTENTE les fallaba con "new row violates
+  // row-level security policy". La RPC ya tiene el permiso correcto
+  // (super admin + pastor + supervisor + líder de red), cierra el cargo
+  // anterior en los exclusivos (LIDER_CDP/ANFITRION) y crea el usuario_rol del
+  // sublíder. `data === null` = quedó pendiente de autorización (solicitud de
+  // cambio de Líder pedida por el Supervisor), igual que antes.
+  const { data, error } = await supabase.rpc('fn_asignar_cargo_cdp', {
+    p_cdp_id: cdpId,
+    p_persona_id: personaId,
+    p_codigo: codigo,
+    p_cargo_id: cargoId,
   });
   if (error) throw error;
-  return { pendiente: false };
+  return { pendiente: data === null };
 }
 
 export async function quitarCargoRed(cargoAsignacionId: string) {

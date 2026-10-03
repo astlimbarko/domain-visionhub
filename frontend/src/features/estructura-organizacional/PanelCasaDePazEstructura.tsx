@@ -57,9 +57,25 @@ interface DialogoCargo {
   exclusivo: boolean;
 }
 
+// Bug 2026-10-03: antes sólo leía `e.message` cuando `e instanceof Error`. Los
+// errores de supabase-js (rpc/postgREST) son objetos planos { message, code,
+// ... }, NO instancias de Error -- así que el mensaje real se descartaba y
+// siempre se veía el texto genérico (ocultó la causa del bug de sublíderes).
+// Ahora se extrae el message de cualquier objeto que lo tenga, y de los
+// errores de Postgres con formato "CODIGO_INTERNO: texto" se muestra sólo el
+// texto legible (nunca el código crudo ni mensajes técnicos tipo RLS).
+function mensajeDeError(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string') {
+    return (e as { message: string }).message;
+  }
+  return '';
+}
+
 function manejarErrorCargo(e: unknown, generico: string) {
-  const mensaje = e instanceof Error ? e.message : '';
-  toast.error(mensaje || generico);
+  const raw = mensajeDeError(e);
+  const legible = /^[A-Z_]+:\s*(.+)$/.exec(raw)?.[1];
+  toast.error(legible || generico);
 }
 
 export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrirAnadirSubliderAlAbrir, otpRequerido, puedeEliminarPorCompleto, onClose }: Props) {
