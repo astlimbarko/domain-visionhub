@@ -294,6 +294,7 @@ export async function obtenerEstructuraOrganizacional(
             // cuenta ya creada y quedar igual "perdido" a medio formulario
             // sin que esto lo reflejara (mostraba el punto verde igual).
             membresiaPendiente: !persona.usuario_id || !persona.membresia_completada,
+            tieneCuenta: !!persona.usuario_id,
           },
         ];
       }),
@@ -323,6 +324,9 @@ export async function obtenerEstructuraOrganizacional(
     correo: invitacion.correo,
     etiqueta: invitacion.correo,
     membresiaPendiente: true,
+    // Es una invitación pendiente real (todavía sin cuenta/persona): la UI la
+    // muestra como "Reenviar invitación" por su invitacionId, no por tieneCuenta.
+    tieneCuenta: false,
     invitacionId: invitacion.id,
     usuarioId: invitacion.usuario_id,
   });
@@ -360,6 +364,8 @@ export async function obtenerEstructuraOrganizacional(
         // página 1 sin completar; membresia_completada=false sigue siendo
         // cierto aunque ya haya nombre cargado (páginas 2 en adelante).
         membresiaPendiente: !nombre || usuario.membresia_completada === false,
+        // Vienen de fn_listar_usuarios (usuario_rol) -> ya tienen cuenta.
+        tieneCuenta: true,
       };
     });
     const principal = personaIdPrincipal ? personas.get(personaIdPrincipal) : null;

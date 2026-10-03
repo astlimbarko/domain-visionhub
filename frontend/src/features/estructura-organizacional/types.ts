@@ -15,6 +15,14 @@ export interface PersonaEstructura {
   correo: string | null;
   etiqueta: string;
   membresiaPendiente: boolean;
+  /** 2026-10-03: si la persona ya tiene cuenta (usuario_id). Separado de
+   * `membresiaPendiente` -- que mezcla "sin cuenta" + "ficha incompleta" -- para
+   * que la UI no muestre "Reenviar invitación" a gente que ya está en el sistema.
+   * "Reenviar invitación" solo aplica cuando hay una invitación real pendiente
+   * (`invitacionId`); una persona existente se agrega como cargo sin invitación
+   * (no tiene que aceptar nada). Con cuenta y sin invitación -> "Restablecer
+   * contraseña"; sin cuenta y sin invitación -> ninguna acción. */
+  tieneCuenta?: boolean;
   invitacionId?: string | null;
   /** KAN-376 seguimiento: usuario_id de la invitación pendiente -- permite
    * usar "Restablecer contraseña" (KAN-278) antes de que exista una Persona

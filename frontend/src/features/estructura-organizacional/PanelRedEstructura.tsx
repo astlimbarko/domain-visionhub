@@ -26,7 +26,6 @@ import {
 } from '@/hooks/useInvitacionLider';
 import { useCiudades, useGuardarDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
-import { BotonReenviarInvitacion } from './BotonReenviarInvitacion';
 import { textoLegibleSobre } from './contraste';
 import { mensajeError, notificarAsignacionCargoRed } from './estructura.service';
 import {
@@ -243,12 +242,12 @@ function ResumenCargo({
             </>
           ) : (
             <>
-              {responsable.membresiaPendiente ? (
-                <BotonReenviarInvitacion entidad={{ redId, personaId: responsable.id }} />
-              ) : (
-                responsable.correo && (
-                  <RestablecerContrasenaBoton correo={responsable.correo} entidad={{ redId, personaId: responsable.id }} />
-                )
+              {/* 2026-10-03: sin invitación real pendiente no se muestra
+                  "Reenviar invitación" (una persona existente se agrega como
+                  cargo sin invitación). Con cuenta -> "Restablecer contraseña";
+                  sin cuenta -> ninguna acción de acceso. */}
+              {responsable.tieneCuenta && responsable.correo && (
+                <RestablecerContrasenaBoton correo={responsable.correo} entidad={{ redId, personaId: responsable.id }} />
               )}
               <button
                 type="button"
