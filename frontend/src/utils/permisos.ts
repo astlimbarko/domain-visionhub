@@ -338,6 +338,7 @@ const CATALOGO_NAV: NavItem[] = [
   { icon: HeartPulse, label: 'RSIL (Afirmación)', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8', grupo: 'Dpto. Afirmación' },
   // KAN-488: "Membresía desde 0" para gente nueva captada (verde, distinto del teal de Bautismo).
   { icon: UserPlus, label: 'Form. de Membresía', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158', grupo: 'Dpto. Afirmación' },
+  { icon: Calendar, label: 'Eventos', path: ROUTES.AFIRMACION_EVENTOS, color: '#0071e3', grupo: 'Dpto. Afirmación' },
   { icon: Footprints, label: 'Visitas', path: ROUTES.VISITAS, color: '#a2845e' },
   { icon: Wallet, label: 'Finanzas', path: ROUTES.FINANZAS, color: '#00c7be' },
   { icon: Settings, label: 'Panel del Supervisor', path: ROUTES.PANEL_SUPERVISOR, color: '#8e8e93' },
@@ -383,6 +384,7 @@ export const NAV_ITEMS_AFIRMACION: NavItem[] = [
   { icon: HeartPulse, label: 'RSIL', path: ROUTES.AFIRMACION_RSIL, color: '#8b7dd8' },
   // KAN-488: "Membresía desde 0" -- membresía liviana para gente nueva captada.
   { icon: UserPlus, label: 'Form. de Membresía', path: ROUTES.AFIRMACION_MEMBRESIA_NUEVOS, color: '#30d158' },
+  { icon: Calendar, label: 'Eventos', path: ROUTES.AFIRMACION_EVENTOS, color: '#0071e3' },
 ];
 
 // Roles globales de solo lectura (2026-08-02): un item de nav cada uno,
