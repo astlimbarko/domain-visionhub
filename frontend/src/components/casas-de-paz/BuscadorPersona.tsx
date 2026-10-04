@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useBuscarPersonas } from '@/hooks/useCasasDePaz';
@@ -49,12 +49,27 @@ function DetalleResultado({ p }: { p: PersonaBusqueda }) {
 export function BuscadorPersona({ iglesiaId, onSeleccionar, excluirIds = [], cdpId }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
   const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, texto, undefined, cdpId);
   const filtrados = resultados.filter((p) => !excluirIds.includes(p.id));
   const mostrarDropdown = abierto && texto.trim().length >= 2;
 
+  // onBlur + setTimeout perdía el tap en celular (el cierre del teclado por
+  // el blur ganaba la carrera contra el onMouseDown de selección). Cierra
+  // solo al tocar afuera, sin depender de timing.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
+
   return (
-    <div className="relative flex flex-col gap-1.5">
+    <div className="relative flex flex-col gap-1.5" ref={contenedorRef}>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -63,7 +78,6 @@ export function BuscadorPersona({ iglesiaId, onSeleccionar, excluirIds = [], cdp
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
           autoComplete="off"
         />
       </div>
@@ -77,7 +91,7 @@ export function BuscadorPersona({ iglesiaId, onSeleccionar, excluirIds = [], cdp
             <button
               key={p.id}
               type="button"
-              onMouseDown={() => {
+              onClick={() => {
                 onSeleccionar(p);
                 setTexto('');
                 setAbierto(false);

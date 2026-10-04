@@ -421,7 +421,7 @@ export function BuscadorPersonaMultiple({
           <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-muted/60 px-3 py-1.5">
               <span className="text-xs font-medium text-muted-foreground">{titulo}</span>
-              <button type="button" onMouseDown={() => setAbierto(false)} className="text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => setAbierto(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -449,7 +449,7 @@ export function BuscadorPersonaMultiple({
                     <button
                       key={p.id}
                       type="button"
-                      onMouseDown={() => {
+                      onClick={() => {
                         onSeleccionarGlobal?.(p);
                         setTexto('');
                         onTextoCambia?.('');
@@ -476,7 +476,7 @@ export function BuscadorPersonaMultiple({
                     permitirAgregarNueva && texto.trim() ? (
                       <button
                         type="button"
-                        onMouseDown={abrirFormNueva}
+                        onClick={abrirFormNueva}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary hover:bg-accent"
                       >
                         <UserPlus className="h-4 w-4" />

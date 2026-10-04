@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTodosLosTemas } from '@/hooks/useReporte';
@@ -20,14 +20,29 @@ interface Props {
 export function BuscadorTemaCampo({ iglesiaId, onSeleccionar, className }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
   const { data: temas = [] } = useTodosLosTemas(iglesiaId);
 
   const normalizado = texto.trim().toLowerCase();
   const resultados = normalizado.length >= 2 ? temas.filter((t) => t.nombre.toLowerCase().includes(normalizado)).slice(0, 20) : [];
   const mostrarDropdown = abierto && normalizado.length >= 2;
 
+  // Mismo motivo que BuscadorPersonaCampo: onBlur + setTimeout perdía el tap
+  // en celular (el blur por el cierre del teclado ganaba la carrera). Cierra
+  // solo al tocar afuera, sin depender de timing.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
+
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative', className)} ref={contenedorRef}>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
@@ -39,7 +54,6 @@ export function BuscadorTemaCampo({ iglesiaId, onSeleccionar, className }: Props
             setAbierto(true);
           }}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
           autoComplete="off"
         />
       </div>
@@ -54,7 +68,7 @@ export function BuscadorTemaCampo({ iglesiaId, onSeleccionar, className }: Props
                 <button
                   key={t.id}
                   type="button"
-                  onMouseDown={() => {
+                  onClick={() => {
                     onSeleccionar(t.libro_id, t.id);
                     setTexto('');
                     setAbierto(false);
