@@ -12,8 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Save, Loader2, ArrowLeft, UserCheck, XCircle } from 'lucide-react';
-import { TEAL } from '@/components/dashboard/DashboardUI';
+import { Save, Loader2, ArrowLeft, Pencil, UserCheck, XCircle } from 'lucide-react';
+import { TEAL, AMBAR } from '@/components/dashboard/DashboardUI';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
@@ -107,6 +107,10 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
     setDuplicadoDescartado(false);
   }, [datos.primerNombre, datos.segundoNombre, datos.primerApellido, datos.segundoApellido]);
   const [cargandoPersona, setCargandoPersona] = useState(false);
+  // Modo edición: al precargar una persona existente, el formulario arranca
+  // BLOQUEADO (igual que las otras 3 puertas) -- el botón rojo "Editar" lo
+  // desbloquea. Alta de persona nueva: nunca bloqueado.
+  const [bloqueado, setBloqueado] = useState(false);
   const [mostrarIndicador, setMostrarIndicador] = useState(false);
   const hidratado = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,6 +124,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       const d = await obtenerPersonaParaMembresia(personaId);
       setDatos(d);
       setEstado('inactivo');
+      setBloqueado(true);
       toast.info(`Completando la membresía de ${d.primerNombre} ${d.primerApellido}.`);
     } catch {
       toast.error('No se pudieron cargar los datos de esa persona.');
@@ -191,6 +196,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
     setConfirmarLimpiar(false);
     setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO);
     setEstado('inactivo');
+    setBloqueado(false);
     if (iglesiaId) {
       try {
         await eliminarBorradorMembresia(iglesiaId);
@@ -262,6 +268,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
       setDatos(DATOS_MEMBRESIA_NUEVOS_VACIO);
       setEstado('inactivo');
       setDuplicadoDescartado(false);
+      setBloqueado(false);
       const verbo = res.actualizada ? 'actualizada' : 'guardada';
       if (res.sin_casa_de_paz) {
         toast.success(`Membresía ${verbo}: ${res.nombre_completo}. Quedó sin Casa de Paz — aparecerá en designaciones.`);
@@ -292,9 +299,18 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
   // otros obligatorios, handleGuardar lo avisa con la lista puntual en vez de
   // dejar el botón gris sin explicación.
   const puedeGuardar = datos.primerNombre.trim() !== '' && datos.primerApellido.trim() !== '' && datos.sexo !== '';
+  // Editando a una persona existente: fondo ámbar sutil (igual que las otras 3
+  // puertas) para distinguir de un alta nueva de un vistazo.
+  const enEdicion = !!datos.personaExistenteId;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-1">
+    <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl p-1">
+      {enEdicion && (
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 rounded-3xl"
+          style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${AMBAR} 7%, transparent) 0%, color-mix(in oklab, ${AMBAR} 16%, transparent) 100%)` }}
+        />
+      )}
       {onVolver && (
         <button
           type="button"
@@ -310,7 +326,13 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           <TabsTrigger value="registro">Registro</TabsTrigger>
         </TabsList>
         <TabsContent value="registro" className="mt-0">
-          <RegistroMembresiaNuevos iglesiaId={iglesiaId} />
+          <RegistroMembresiaNuevos
+            iglesiaId={iglesiaId}
+            onEditar={(id) => {
+              setPestana('nuevo');
+              void precargarPersona(id);
+            }}
+          />
         </TabsContent>
         <TabsContent value="nuevo" className="mt-0 flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
@@ -351,21 +373,37 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
                     <UserCheck className="h-4 w-4 text-[#30d158]" />
                     Completando a <span className="font-semibold">{datos.primerNombre} {datos.primerApellido}</span>
                   </span>
-                  <span className="text-[11px] text-muted-foreground">Ficha {pct}% completa — rellená lo que falte y guardá.</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {bloqueado
+                      ? 'Datos bloqueados — tocá "Editar" para corregirlos. Se actualiza la misma persona.'
+                      : `Ficha ${pct}% completa — rellená lo que falte y guardá.`}
+                  </span>
                 </div>
               </div>
-              {/* KAN-497 seguimiento: quitar la persona elegida por error. Solo
-               * desvincula a la persona; los demás campos del formulario se
-               * mantienen. Pide confirmación antes. */}
-              <button
-                type="button"
-                aria-label="Quitar a esta persona"
-                title="Quitar a esta persona"
-                onClick={() => setConfirmarQuitarPersona(true)}
-                className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {bloqueado && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 bg-destructive text-white hover:bg-destructive/90"
+                    onClick={() => setBloqueado(false)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Editar
+                  </Button>
+                )}
+                {/* KAN-497 seguimiento: quitar la persona elegida por error. Solo
+                 * desvincula a la persona; los demás campos del formulario se
+                 * mantienen. Pide confirmación antes. */}
+                <button
+                  type="button"
+                  aria-label="Quitar a esta persona"
+                  title="Quitar a esta persona"
+                  onClick={() => setConfirmarQuitarPersona(true)}
+                  className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           );
         })()
@@ -376,7 +414,11 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
         </div>
       )}
 
-      <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
+      {/* fieldset disabled bloquea todos los campos de una sola vez en modo
+          edición, hasta que se toque "Editar". */}
+      <fieldset disabled={bloqueado} className="m-0 border-0 p-0">
+        <MembresiaNuevosFields valores={datos} onChange={setDatos} iglesiaId={iglesiaId} />
+      </fieldset>
 
       {/* Barra de acciones al final del formulario (scroll único). No es sticky
           a propósito: una barra sticky-bottom sin fondo opaco flota transparente
@@ -391,7 +433,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
         >
           Borrar y comenzar de nuevo
         </Button>
-        <Button type="button" className="h-14 flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal} onClick={handleGuardar}>
+        <Button type="button" className="h-14 flex-1 gap-1.5 text-base" disabled={!puedeGuardar || guardandoFinal || bloqueado} onClick={handleGuardar}>
           {guardandoFinal ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
           {guardandoFinal ? 'Guardando…' : 'Guardar membresía'}
         </Button>
@@ -413,6 +455,7 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
               variant="destructive"
               onClick={() => {
                 setDatos((prev) => ({ ...prev, personaExistenteId: '' }));
+                setBloqueado(false);
                 setConfirmarQuitarPersona(false);
               }}
             >
