@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useBuscarPersonas } from '@/hooks/useCasasDePaz';
@@ -27,11 +27,29 @@ interface Props {
  */
 export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiarTexto, onSeleccionar, placeholder, edadMinima, cdpId }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
   const { data: resultados = [], isFetching } = useBuscarPersonas(iglesiaId, valor, edadMinima, cdpId);
   const mostrarDropdown = abierto && !seleccionado && valor.trim().length >= 2;
 
+  // Antes cerraba por onBlur + setTimeout(150) -- en celular, tocar un
+  // resultado dispara el cierre del teclado (blur) antes de que el tap
+  // llegue a seleccionar algo, así que el toque se perdía y se sentía como
+  // que no pasaba nada (reportado por el owner, 2026-10-04). Mismo patrón
+  // de "cerrar solo al tocar afuera" que ya usan BuscadorPersonaMultiple y
+  // EvangelismoPendientePanel -- no depende de ninguna carrera de eventos.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={contenedorRef}>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
         <Input
@@ -43,7 +61,6 @@ export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiar
             setAbierto(true);
           }}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
           autoComplete="off"
         />
         {seleccionado && (
@@ -63,7 +80,10 @@ export function BuscadorPersonaCampo({ iglesiaId, valor, seleccionado, onCambiar
                 <button
                   key={p.id}
                   type="button"
-                  onMouseDown={() => onSeleccionar(p)}
+                  onClick={() => {
+                    onSeleccionar(p);
+                    setAbierto(false);
+                  }}
                   className="block w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                 >
                   {p.nombre_completo}

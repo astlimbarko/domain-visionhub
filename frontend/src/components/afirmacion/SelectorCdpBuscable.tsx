@@ -3,7 +3,7 @@
 // de la iglesia Y de sus satélites/hijas, agrupadas por Red, con buscador por
 // nombre/Red/iglesia (fn_listar_cdp_asistencia). Mismo patrón que BuscadorPersona
 // (Input + lista filtrada en cliente; la lista es acotada por iglesia+satélites).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,21 @@ interface Props {
 export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSeleccionar }: Props) {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  // onBlur + setTimeout perdía el tap en celular (el cierre del teclado por
+  // el blur ganaba la carrera contra el onMouseDown de selección). Cierra
+  // solo al tocar afuera, sin depender de timing.
+  useEffect(() => {
+    if (!abierto) return;
+    function alTocarFuera(e: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setAbierto(false);
+      }
+    }
+    document.addEventListener('pointerdown', alTocarFuera);
+    return () => document.removeEventListener('pointerdown', alTocarFuera);
+  }, [abierto]);
 
   const { data: cdps = [], isLoading } = useQuery({
     queryKey: ['afirmacion', 'cdp-asistencia', iglesiaId],
@@ -82,7 +97,7 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
   }
 
   return (
-    <div className="relative flex flex-col gap-1.5">
+    <div className="relative flex flex-col gap-1.5" ref={contenedorRef}>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -91,7 +106,6 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onFocus={() => setAbierto(true)}
-          onBlur={() => setTimeout(() => setAbierto(false), 150)}
           autoComplete="off"
         />
       </div>
@@ -110,7 +124,7 @@ export function SelectorCdpBuscable({ iglesiaId, valorId, valorEtiqueta, onSelec
                 <button
                   key={c.casa_de_paz_id}
                   type="button"
-                  onMouseDown={() => {
+                  onClick={() => {
                     onSeleccionar(c);
                     setTexto('');
                     setAbierto(false);
