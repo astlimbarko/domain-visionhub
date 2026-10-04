@@ -912,6 +912,33 @@ export function Reportes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reporteExistente, modoEdicion]);
 
+  // KAN-422/KAN-435 dejan el modal como único lugar donde se resuelve "¿es
+  // menor?", pero solo se encola cuando ALGUIEN AGREGA a una persona en esta
+  // sesión (toggleAsistente/agregarAsistenteNuevo/agregarAsistenteExistente)
+  // -- la precarga de edición de arriba nunca llama a encolarSiFaltaFecha,
+  // así que un asistente que ya estaba guardado sin fecha de nacimiento Y sin
+  // es_menor contestado (reporte viejo, de antes de este modal) se precarga
+  // "resuelto" en apariencia y el reporte se manda igual: el backend lo
+  // rechaza con ASISTENCIA_EDAD_INDEFINIDA sin decir quién es, porque el
+  // frontend nunca llegó a preguntar. Efecto aparte (no el de arriba) porque
+  // necesita esperar a que `miembros` termine de cargar para decidir si cada
+  // asistente precargado tiene o no fecha de nacimiento conocida.
+  const [colaPrecargadaEdicion, setColaPrecargadaEdicion] = useState(false);
+  useEffect(() => {
+    if (!modoEdicion || !reporteExistente || !formPrecargado || colaPrecargadaEdicion || cargandoMiembros) return;
+    for (const a of reporteExistente.asistentes) {
+      if (a.esMenor !== undefined) continue;
+      const miembro = miembros.find((m) => m.persona_id === a.personaId);
+      if (miembro) {
+        encolarSiFaltaFecha(a.personaId, miembro.nombre_completo, miembro.tiene_fecha_nacimiento);
+      } else if (a.nombreCompleto) {
+        encolarSiFaltaFecha(a.personaId, a.nombreCompleto, false);
+      }
+    }
+    setColaPrecargadaEdicion(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modoEdicion, reporteExistente, formPrecargado, cargandoMiembros, miembros, colaPrecargadaEdicion]);
+
   function cambiarTextoDisertador(texto: string) {
     setDisertadorNombre(texto);
     setValue('disertador_id', '');

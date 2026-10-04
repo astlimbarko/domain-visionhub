@@ -86,7 +86,7 @@ export function ModalFechaNacimientoFaltante({
     <>
       <Dialog open={open && paso === 'fecha'} onOpenChange={(v) => !v && limpiarYCerrar(() => onOpenChange(false))}>
         <DialogContent
-          className="max-w-sm"
+          className="max-w-sm border-2 border-red-500"
           showCloseButton={false}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -106,8 +106,13 @@ export function ModalFechaNacimientoFaltante({
             <DialogTitle className="sr-only">Falta la fecha de nacimiento</DialogTitle>
             <SeccionIconHeader icon={Cake} color={MORADO} titulo="¿Cuándo nació?" />
             <DialogDescription className="pt-1">
-              <span className="font-medium text-foreground">{nombrePersona}</span> todavía no tiene fecha de
-              nacimiento registrada, indicala para completar su ficha.
+              {/* Pedido explícito del owner: no alcanza con decir que hay un
+                  error, tiene que quedar clarísimo DE QUIÉN -- contorno rojo
+                  en todo el modal + nombre remarcado también en rojo. */}
+              <span className="rounded-md border border-red-500 bg-red-500/10 px-1.5 py-0.5 font-semibold text-red-700 dark:text-red-400">
+                {nombrePersona}
+              </span>{' '}
+              todavía no tiene fecha de nacimiento registrada, indicala para completar su ficha.
             </DialogDescription>
           </DialogHeader>
 
@@ -170,7 +175,7 @@ export function ModalFechaNacimientoFaltante({
 
       <Dialog open={open && paso === 'es_menor'} onOpenChange={(v) => !v && limpiarYCerrar(() => onOpenChange(false))}>
         <DialogContent
-          className="max-w-sm"
+          className="max-w-sm border-2 border-red-500"
           showCloseButton={false}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -195,6 +200,9 @@ export function ModalFechaNacimientoFaltante({
               descripcion={`${nombrePersona} -- ni la fecha ni la edad aproximada se conocen`}
             />
           </DialogHeader>
+          <p className="rounded-md border border-red-500 bg-red-500/10 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+            Falta resolver esto para poder enviar el reporte.
+          </p>
 
           <p className="text-sm text-muted-foreground">Al menos decinos si es menor de {edadMinima} años:</p>
 
