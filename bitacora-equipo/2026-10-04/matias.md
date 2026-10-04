@@ -7,4 +7,5 @@
 - [x] Merge local a master + push a origin/master (sin `gh`, mismo flujo de siempre)
 - [x] Migración de /avances aplicada en producción (owner pasó token nuevo de Supabase) + marcada en el historial de migraciones
 - [x] Encontrado (sin arreglar, fuera de alcance): el historial de migraciones está desincronizado en masa desde el 05-sep -- casi todo lo del último mes y medio no está registrado en `schema_migrations`, aunque sí esté aplicado. Anotado en memoria para no usar `--include-all` a ciegas
+- [x] Fix: buscadores desplegables (Reportes CdP + otros 5) perdían el tap de selección en celular con el teclado abierto -- cambiado onBlur+setTimeout por "cerrar al tocar afuera" y onMouseDown por onClick; deployado, migración de /avances aplicada
 - [ ] Ticket de Jira: sin crear (bloqueado por OAuth de Atlassian pendiente, ver memoria)
