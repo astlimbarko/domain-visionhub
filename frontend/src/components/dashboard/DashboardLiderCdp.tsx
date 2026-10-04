@@ -29,6 +29,19 @@ import { CardIndicadorPastel } from './CardIndicadorPastel';
 import { CumplimientoReportesChart } from './CumplimientoReportesChart';
 import { IndiceFidelidadRing } from './IndiceFidelidadRing';
 import { RangoFechasPopover, type RangoFechas } from './RangoFechasPopover';
+// Mismo motivo que los de arriba: solo íconos de lucide-react + DonutRing,
+// no recharts -- cargarlos bajo demanda (como se hacía antes) no ahorraba
+// nada real y sí generaba un salto de layout visible en celular, porque el
+// Skeleton del fallback de Suspense nunca tiene exactamente la misma altura
+// que el gráfico real: al llegar el chunk, toda la página se corría
+// (reportado por el owner en "Composición por sexo", mismo patrón en los
+// otros 5). Import estático = sin ese salto.
+import { CompromisoPersonasChart } from './CompromisoPersonasChart';
+import { SeguimientoChart } from './SeguimientoChart';
+import { ComposicionSexoChart } from './ComposicionSexoChart';
+import { ComposicionEdadChart } from './ComposicionEdadChart';
+import { MinisteriosChart } from './MinisteriosChart';
+import { AntiguedadInactividadChart } from './AntiguedadInactividadChart';
 import {
   useDashboardLiderCdp,
   useDashboardSubliderCdp,
@@ -60,16 +73,6 @@ const EvangelismoComparativoChart = lazy(() =>
 const EstadosMiembrosChart = lazy(() => import('./EstadosMiembrosChart').then((m) => ({ default: m.EstadosMiembrosChart })));
 const TendenciaAsistenciaChart = lazy(() =>
   import('./TendenciaAsistenciaChart').then((m) => ({ default: m.TendenciaAsistenciaChart }))
-);
-const CompromisoPersonasChart = lazy(() =>
-  import('./CompromisoPersonasChart').then((m) => ({ default: m.CompromisoPersonasChart }))
-);
-const SeguimientoChart = lazy(() => import('./SeguimientoChart').then((m) => ({ default: m.SeguimientoChart })));
-const ComposicionSexoChart = lazy(() => import('./ComposicionSexoChart').then((m) => ({ default: m.ComposicionSexoChart })));
-const ComposicionEdadChart = lazy(() => import('./ComposicionEdadChart').then((m) => ({ default: m.ComposicionEdadChart })));
-const MinisteriosChart = lazy(() => import('./MinisteriosChart').then((m) => ({ default: m.MinisteriosChart })));
-const AntiguedadInactividadChart = lazy(() =>
-  import('./AntiguedadInactividadChart').then((m) => ({ default: m.AntiguedadInactividadChart }))
 );
 const TestimoniosTendenciaChart = lazy(() =>
   import('./TestimoniosTendenciaChart').then((m) => ({ default: m.TestimoniosTendenciaChart }))
@@ -641,41 +644,33 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
                 descripcion="% del total que llegó a cada hito -- una barra corta es una oportunidad, no un error"
               />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
-                  <CompromisoPersonasChart
-                    pctBautizados={conteosAccesoRapido.pctBautizados}
-                    pctConMinisterio={conteosAccesoRapido.pctConMinisterio}
-                    pctMembresiaFormal={conteosAccesoRapido.pctMembresiaFormal}
-                    pctAfirmados={conteosAccesoRapido.pctAfirmados}
-                  />
-                </Suspense>
+                <CompromisoPersonasChart
+                  pctBautizados={conteosAccesoRapido.pctBautizados}
+                  pctConMinisterio={conteosAccesoRapido.pctConMinisterio}
+                  pctMembresiaFormal={conteosAccesoRapido.pctMembresiaFormal}
+                  pctAfirmados={conteosAccesoRapido.pctAfirmados}
+                />
               </div>
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={UsersRound} color={AZUL} titulo="Composición por sexo" descripcion="Hombres y mujeres de tu Casa de Paz" />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-                  <ComposicionSexoChart hombres={composicionSexo.hombres} mujeres={composicionSexo.mujeres} />
-                </Suspense>
+                <ComposicionSexoChart hombres={composicionSexo.hombres} mujeres={composicionSexo.mujeres} />
               </div>
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={Baby} color={AMBAR} titulo="Composición por edad" descripcion="Rangos etarios de tu gente" />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
-                  <ComposicionEdadChart rangos={composicionEdad} />
-                </Suspense>
+                <ComposicionEdadChart rangos={composicionEdad} />
               </div>
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={Layers} color={VERDE_INDICADOR} titulo="Ministerios con más gente" descripcion="Qué ministerios concentran más personas" />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-56 w-full rounded-xl" />}>
-                  <MinisteriosChart ministerios={ministeriosTop} />
-                </Suspense>
+                <MinisteriosChart ministerios={ministeriosTop} />
               </div>
             </section>
           </div>
@@ -700,25 +695,21 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={HeartHandshake} color={MORADO} titulo="A quiénes seguir de cerca" descripcion="Quiénes necesitan una acción pastoral concreta" />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
-                  <SeguimientoChart
-                    inactivos={alertas.inactivos?.length ?? 0}
-                    reconciliados={alertas.reconciliados?.length ?? 0}
-                    simpatizantes={conteosAccesoRapido.simpatizantes}
-                    pctInactivos={pctsSeguimiento.pctInactivos}
-                    pctReconciliados={pctsSeguimiento.pctReconciliados}
-                    pctSimpatizantes={pctsSeguimiento.pctSimpatizantes}
-                  />
-                </Suspense>
+                <SeguimientoChart
+                  inactivos={alertas.inactivos?.length ?? 0}
+                  reconciliados={alertas.reconciliados?.length ?? 0}
+                  simpatizantes={conteosAccesoRapido.simpatizantes}
+                  pctInactivos={pctsSeguimiento.pctInactivos}
+                  pctReconciliados={pctsSeguimiento.pctReconciliados}
+                  pctSimpatizantes={pctsSeguimiento.pctSimpatizantes}
+                />
               </div>
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
               <TarjetaHeader icon={UserCheck} color={MORADO} titulo="Antigüedad de la inactividad" descripcion="Hace cuánto que los inactivos no vienen" />
               <div className="p-5">
-                <Suspense fallback={<Skeleton className="h-52 w-full rounded-xl" />}>
-                  <AntiguedadInactividadChart rangos={antiguedadInactividad} />
-                </Suspense>
+                <AntiguedadInactividadChart rangos={antiguedadInactividad} />
               </div>
             </section>
 
