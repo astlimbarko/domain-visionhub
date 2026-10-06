@@ -149,6 +149,46 @@ export async function actualizarReunionCdp(cdpId: string, diaReunion: number | n
   if (error) throw error;
 }
 
+/**
+ * Actualiza día/hora de reunión de la CdP DEJANDO HISTORIAL de quién cambió y
+ * cuándo (pedido del owner desde el panel del Constructor). A diferencia de
+ * `actualizarReunionCdp` (update directo), esto va por RPC SECURITY DEFINER
+ * `fn_cdp_actualizar_horario` -- esa función es la que escribe la fila de
+ * historial además de actualizar la tabla, por eso NO se hace el update
+ * directo acá. (La RPC la crea el equipo de backend; mientras no exista, esta
+ * llamada falla y el toast de error del diálogo lo refleja.)
+ */
+export async function actualizarHorarioCdp(cdpId: string, diaReunion: number | null, horaReunion: string | null) {
+  const { error } = await supabase.rpc('fn_cdp_actualizar_horario', {
+    p_cdp_id: cdpId,
+    p_dia: diaReunion,
+    p_hora: horaReunion,
+  });
+  if (error) throw error;
+}
+
+/** Una entrada del historial de cambios de horario de una CdP
+ * (fn_cdp_historial_horario), más nuevo primero. */
+export interface HorarioCdpCambio {
+  /** 0=domingo … 6=sábado, o null si ese cambio lo dejó sin definir. */
+  dia_reunion: number | null;
+  /** 'HH:MM:SS' o null. */
+  hora_reunion: string | null;
+  /** Nombre de quien hizo el cambio (null si no se pudo resolver). */
+  cambiado_por_nombre: string | null;
+  /** timestamptz ISO del cambio. */
+  fecha_cambio: string;
+}
+
+/** KAN (horario con historial): lista de cambios de día/hora de una CdP. La RPC
+ * `fn_cdp_historial_horario` la crea el equipo de backend; mientras no exista,
+ * la query falla y el historial simplemente no se muestra. */
+export async function obtenerHistorialHorarioCdp(cdpId: string): Promise<HorarioCdpCambio[]> {
+  const { data, error } = await supabase.rpc('fn_cdp_historial_horario', { p_cdp_id: cdpId });
+  if (error) throw error;
+  return (data ?? []) as HorarioCdpCambio[];
+}
+
 /** Baja lógica: la tabla `casa_de_paz` bloquea el DELETE físico (trigger), así
  * que se desactiva y se marca `fecha_eliminacion` a la vez. Va por RPC
  * (SECURITY DEFINER) en vez de un UPDATE directo porque el trigger que cierra

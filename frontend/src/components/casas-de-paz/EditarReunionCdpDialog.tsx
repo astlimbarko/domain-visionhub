@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useActualizarReunionCdp } from '@/hooks/useCasasDePaz';
+import { useActualizarHorarioCdp, useActualizarReunionCdp } from '@/hooks/useCasasDePaz';
 
 /** 0=domingo … 6=sábado (getDay() de JS, espejo del CHECK en la BD). */
 export const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as const;
@@ -31,12 +31,18 @@ interface Props {
   cdpId: string;
   diaReunion: number | null;
   horaReunion: string | null;
+  /** Cuando es true, guarda vía RPC `fn_cdp_actualizar_horario` dejando
+   * historial de quién cambió y cuándo (panel del Constructor). Por defecto
+   * usa el update directo de siempre (Perfil de CdP del Sublíder). */
+  conHistorial?: boolean;
 }
 
-export function EditarReunionCdpDialog({ open, onOpenChange, cdpId, diaReunion, horaReunion }: Props) {
+export function EditarReunionCdpDialog({ open, onOpenChange, cdpId, diaReunion, horaReunion, conHistorial = false }: Props) {
   const [dia, setDia] = useState<string>(SIN_DIA);
   const [hora, setHora] = useState('');
-  const actualizar = useActualizarReunionCdp();
+  const actualizarDirecto = useActualizarReunionCdp();
+  const actualizarConHistorial = useActualizarHorarioCdp();
+  const actualizar = conHistorial ? actualizarConHistorial : actualizarDirecto;
 
   useEffect(() => {
     if (!open) return;

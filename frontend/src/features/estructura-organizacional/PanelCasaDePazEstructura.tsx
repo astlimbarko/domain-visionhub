@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { MapPin, RefreshCw, X } from 'lucide-react';
+import { CalendarClock, MapPin, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AsignarCargoDialog, type DatosPersonaDirecta } from '@/components/casas-de-paz/AsignarCargoDialog';
 import { DomicilioAnfitrionDialog } from '@/components/casas-de-paz/DomicilioAnfitrionDialog';
+import { EditarReunionCdpDialog, DIAS_SEMANA } from '@/components/casas-de-paz/EditarReunionCdpDialog';
 import { ConfirmarQuitarDialog } from '@/components/shared/ConfirmarQuitarDialog';
 import { RestablecerContrasenaBoton } from '@/components/shared/RestablecerContrasenaBoton';
 import { useCancelarInvitacionLider, useInvitacionesLider, useInvitarLider, useReenviarInvitacionLider } from '@/hooks/useInvitacionLider';
@@ -11,7 +12,9 @@ import {
   useAsignarCargoCdp,
   useCargoVigenteCdp,
   useCargos,
+  useCdpPerfil,
   useDomicilioCdp,
+  useHistorialHorarioCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
@@ -88,6 +91,8 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const colorTexto = textoLegibleSobre(color);
   const [dialogoCargo, setDialogoCargo] = useState<DialogoCargo | null>(null);
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
+  const [mostrarReunion, setMostrarReunion] = useState(false);
+  const [mostrarHistorialHorario, setMostrarHistorialHorario] = useState(false);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [otpEliminar, setOtpEliminar] = useState('');
   const eliminarCdp = useEliminarCasaDePazEstructura(iglesiaId);
@@ -114,6 +119,20 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     dialogoCargo?.codigo ?? 'LIDER_CDP',
   );
   const { data: domicilio } = useDomicilioCdp(casaDePaz.id);
+  // El horario (día/hora de reunión) no viene en CasaDePazEstructura -- se lee
+  // del Perfil (fn_mi_cdp_perfil), igual que hace el Perfil del Sublíder.
+  const { data: perfilCdp } = useCdpPerfil(casaDePaz.id);
+  const diaReunion = perfilCdp?.dia_reunion ?? null;
+  const horaReunion = perfilCdp?.hora_reunion ?? null;
+  const tieneHorario = diaReunion !== null || !!horaReunion;
+  const textoHorario = [
+    diaReunion !== null ? DIAS_SEMANA[diaReunion] : null,
+    horaReunion ? horaReunion.slice(0, 5) : null,
+  ].filter(Boolean).join(' · ');
+  const { data: historialHorario = [], isLoading: cargandoHistorialHorario } = useHistorialHorarioCdp(
+    casaDePaz.id,
+    mostrarHistorialHorario,
+  );
   const asignarCargo = useAsignarCargoCdp(iglesiaId);
   const quitarCargo = useQuitarCargoCdp();
   const invitarLider = useInvitarLider();
@@ -148,13 +167,13 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     : '¿Eliminar esta Casa de Paz de la base de datos?';
 
   useEffect(() => {
-    if (dialogoCargo || mostrarDomicilio || confirmandoEliminar) return;
+    if (dialogoCargo || mostrarDomicilio || mostrarReunion || confirmandoEliminar) return;
     const cerrarConEscape = (evento: KeyboardEvent) => {
       if (evento.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', cerrarConEscape);
     return () => window.removeEventListener('keydown', cerrarConEscape);
-  }, [onClose, dialogoCargo, mostrarDomicilio, confirmandoEliminar]);
+  }, [onClose, dialogoCargo, mostrarDomicilio, mostrarReunion, confirmandoEliminar]);
 
   const invalidarEstructura = () => queryClient.invalidateQueries({ queryKey: ['estructura-organizacional', iglesiaId] });
 
@@ -253,7 +272,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
       <button
         type="button"
         aria-label="Cerrar detalle de Casa de Paz"
-        onClick={() => { if (!dialogoCargo && !mostrarDomicilio) onClose(); }}
+        onClick={() => { if (!dialogoCargo && !mostrarDomicilio && !mostrarReunion) onClose(); }}
         className="absolute inset-0 z-20 cursor-default bg-slate-950/15 backdrop-blur-[1px]"
       />
       <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[90%] overflow-y-auto rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-3xl">
@@ -353,27 +372,6 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Anfitrión</p>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{anfitrion?.etiqueta ?? 'Sin asignar'}</p>
-                {anfitrion?.correo && anfitrion.nombre && <p className="truncate text-xs text-slate-500">{anfitrion.correo}</p>}
-              </div>
-              <button
-                type="button"
-                onClick={() => setDialogoCargo({ codigo: 'ANFITRION', titulo: 'Anfitrión de Casa de Paz', exclusivo: true })}
-                className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                {anfitrion ? 'Editar' : 'Asignar'}
-              </button>
-            </div>
-            {/* KAN-278: Anfitrión no es un rol de acceso -- no se invita con
-                cuenta nueva (ver invitable={} en AsignarCargoDialog más abajo)
-                y si esta misma persona tiene cuenta real es por otro cargo
-                que sí la otorga, donde ya se ve la acción correspondiente. */}
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
                 <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Sublíderes</p>
                 {casaDePaz.sublideres.length === 0 ? (
                   <p className="mt-1 text-sm text-slate-500">Sin sublíderes todavía.</p>
@@ -417,9 +415,30 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 onClick={() => setDialogoCargo({ codigo: 'SUBLIDER_CDP', titulo: 'Sublíderes de Casa de Paz', exclusivo: false })}
                 className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                + Añadir
+                {casaDePaz.sublideres.length > 0 ? 'Editar' : '+ Añadir'}
               </button>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Anfitrión</p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{anfitrion?.etiqueta ?? 'Sin asignar'}</p>
+                {anfitrion?.correo && anfitrion.nombre && <p className="truncate text-xs text-slate-500">{anfitrion.correo}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDialogoCargo({ codigo: 'ANFITRION', titulo: 'Anfitrión de Casa de Paz', exclusivo: true })}
+                className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                {anfitrion ? 'Editar' : 'Asignar'}
+              </button>
+            </div>
+            {/* KAN-278: Anfitrión no es un rol de acceso -- no se invita con
+                cuenta nueva (ver invitable={} en AsignarCargoDialog más abajo)
+                y si esta misma persona tiene cuenta real es por otro cargo
+                que sí la otorga, donde ya se ve la acción correspondiente. */}
           </section>
 
           {invitacionesPendientes.length > 0 && (
@@ -482,6 +501,66 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
               >
                 {domicilio ? 'Editar' : 'Añadir'}
               </button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><CalendarClock className="h-4 w-4" /></span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Horario de reunión</p>
+                  <p className="mt-1 truncate text-sm text-slate-700">
+                    {tieneHorario ? textoHorario : 'Horario pendiente'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMostrarReunion(true)}
+                className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                {tieneHorario ? 'Editar' : 'Añadir'}
+              </button>
+            </div>
+            {/* Historial de cambios de horario (quién y cuándo). El backend
+                (fn_cdp_historial_horario) lo crea el equipo de Claude -- si la
+                RPC todavía no existe, la query falla y simplemente no se
+                muestra nada acá. */}
+            <div className="mt-3 border-t border-slate-100 pt-2">
+              <button
+                type="button"
+                onClick={() => setMostrarHistorialHorario((v) => !v)}
+                className="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-blue-700"
+              >
+                {mostrarHistorialHorario ? 'Ocultar historial' : 'Ver historial de cambios'}
+              </button>
+              {mostrarHistorialHorario && (
+                <div className="mt-2">
+                  {cargandoHistorialHorario ? (
+                    <p className="text-[11px] text-slate-400">Cargando…</p>
+                  ) : historialHorario.length === 0 ? (
+                    <p className="text-[11px] text-slate-400">Sin cambios registrados todavía.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5">
+                      {historialHorario.map((cambio, i) => (
+                        <li key={i} className="text-[11px] text-slate-500">
+                          <span className="font-semibold text-slate-700">
+                            {[
+                              cambio.dia_reunion !== null ? DIAS_SEMANA[cambio.dia_reunion] : null,
+                              cambio.hora_reunion ? cambio.hora_reunion.slice(0, 5) : null,
+                            ].filter(Boolean).join(' · ') || 'Sin definir'}
+                          </span>
+                          {' — '}
+                          {cambio.cambiado_por_nombre || 'Alguien'}
+                          {', '}
+                          {new Date(cambio.fecha_cambio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -574,6 +653,17 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
           cdpId={casaDePaz.id}
           iglesiaId={iglesiaId}
           domicilio={domicilio}
+        />
+      )}
+
+      {mostrarReunion && (
+        <EditarReunionCdpDialog
+          open
+          onOpenChange={setMostrarReunion}
+          cdpId={casaDePaz.id}
+          diaReunion={diaReunion}
+          horaReunion={horaReunion}
+          conHistorial
         />
       )}
     </>
