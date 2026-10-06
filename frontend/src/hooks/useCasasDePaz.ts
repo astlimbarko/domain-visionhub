@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  actualizarHorarioCdp,
   actualizarReunionCdp,
+  obtenerHistorialHorarioCdp,
   asignarCargoCdp,
   asignarCargoRed,
   buscarPersonas,
@@ -281,5 +283,33 @@ export function useActualizarReunionCdp() {
     mutationFn: ({ cdpId, diaReunion, horaReunion }: { cdpId: string; diaReunion: number | null; horaReunion: string | null }) =>
       actualizarReunionCdp(cdpId, diaReunion, horaReunion),
     onSuccess: invalidar,
+  });
+}
+
+/** Igual que useActualizarReunionCdp pero vía RPC con historial
+ * (fn_cdp_actualizar_horario) -- usado desde el panel del Constructor, donde
+ * el owner quiere registrar quién cambió el horario y cuándo. */
+export function useActualizarHorarioCdp() {
+  const queryClient = useQueryClient();
+  const invalidar = useInvalidarEstructura();
+  return useMutation({
+    mutationFn: ({ cdpId, diaReunion, horaReunion }: { cdpId: string; diaReunion: number | null; horaReunion: string | null }) =>
+      actualizarHorarioCdp(cdpId, diaReunion, horaReunion),
+    onSuccess: (_data, variables) => {
+      invalidar();
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'historial-horario-cdp', variables.cdpId] });
+    },
+  });
+}
+
+/** Historial de cambios de día/hora de reunión de una CdP. `activo` lo controla
+ * el llamador (solo tiene sentido pedirlo cuando se despliega el historial en
+ * el panel, no en cada apertura). */
+export function useHistorialHorarioCdp(cdpId: string | undefined, activo: boolean) {
+  return useQuery({
+    queryKey: ['estructura', 'historial-horario-cdp', cdpId],
+    queryFn: () => obtenerHistorialHorarioCdp(cdpId as string),
+    enabled: !!cdpId && activo,
+    staleTime: 1000 * 60,
   });
 }
