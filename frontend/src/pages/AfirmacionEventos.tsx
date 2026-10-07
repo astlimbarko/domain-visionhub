@@ -6,7 +6,6 @@ import { ROUTES } from '@/utils/constants';
 import { DashboardHero } from '@/components/dashboard/DashboardUI';
 import { ProximamentePlaceholder } from '@/components/shared/ProximamentePlaceholder';
 import { TarjetaHeader } from '@/components/shared/SeccionPerfil';
-import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -22,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CAMPO_ESTILO } from '@/lib/estilos';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { useAuthStore } from '@/store/auth.store';
 import { useTiposEvento, useEventosAfirmacion, useCrearEventoAfirmacion } from '@/hooks/useAfirmacionEventos';
 import type { EventoAfirmacion } from '@/types/afirmacion-eventos.types';
 
@@ -98,8 +97,10 @@ export function AfirmacionEventos() {
   return (
     <div className="flex flex-col gap-6">
       <DashboardHero
-        titulo="Eventos de Afirmación"
-        subtitulo="Agrupar registros por evento para ver el alcance de cada actividad"
+        icon={Calendar}
+        eyebrow="Dpto. Afirmación"
+        title="Eventos de Afirmación"
+        subtitle="Agrupar registros por evento para ver el alcance de cada actividad"
         actions={
           <Button onClick={() => setModalAbierto(true)} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -123,7 +124,7 @@ export function AfirmacionEventos() {
         <div className="flex flex-col gap-6">
           {activos.length > 0 && (
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={Calendar} color="#0071e3" titulo="Eventos activos/recientes" />
+              <TarjetaHeader icon={Calendar} color="#0071e3" titulo="Eventos activos/recientes" descripcion="En curso o próximos" />
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activos.map((evento) => (
                   <EventoCard key={evento.id} evento={evento} onClick={() => navigate(`${ROUTES.AFIRMACION_EVENTOS}/${evento.id}`)} />
@@ -133,7 +134,7 @@ export function AfirmacionEventos() {
           )}
           {pasados.length > 0 && (
             <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <TarjetaHeader icon={Calendar} color="#8e8e93" titulo="Eventos pasados" />
+              <TarjetaHeader icon={Calendar} color="#8e8e93" titulo="Eventos pasados" descripcion="Ya finalizados" />
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pasados.map((evento) => (
                   <EventoCard key={evento.id} evento={evento} onClick={() => navigate(`${ROUTES.AFIRMACION_EVENTOS}/${evento.id}`)} />
@@ -177,5 +178,27 @@ export function AfirmacionEventos() {
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="fin">Fecha fin</Label>
                 <Input id="fin" type="date" className={CAMPO_ESTILO} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
- 
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="desc">Descripción</Label>
+              <Textarea id="desc" className={CAMPO_ESTILO} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Opcional" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setModalAbierto(false)} disabled={crearEvento.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={guardar}
+              disabled={crearEvento.isPending || !titulo.trim() || !tipoEventoId || !fechaInicio}
+            >
+              {crearEvento.isPending ? 'Creando…' : 'Crear evento'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

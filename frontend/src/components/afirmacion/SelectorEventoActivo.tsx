@@ -3,7 +3,7 @@ import { Calendar } from 'lucide-react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEventosAfirmacion } from '@/hooks/useAfirmacionEventos';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { useAuthStore } from '@/store/auth.store';
 import { useEventoAfirmacionActivo } from '@/stores/useEventoAfirmacionActivo';
 
 export function SelectorEventoActivo() {

@@ -31,9 +31,13 @@ export type FilaHistorialProcesoConEvento = {
   registrado_por_nombre: string | null;
 };
 
-export enum ProcesoAfirmacionCodigo {
-  ALTAR = 'ALTAR',
-  BAUTISMO = 'BAUTISMO',
-  RSIL = 'RSIL',
-  MEMBRESIA_NUEVOS = 'MEMBRESIA_NUEVOS',
-}
+// const object + type (no `enum`): el proyecto compila con erasableSyntaxOnly,
+// que prohíbe enums. Permite usarlo como valor (ProcesoAfirmacionCodigo.ALTAR)
+// y como tipo (: ProcesoAfirmacionCodigo), igual que un enum.
+export const ProcesoAfirmacionCodigo = {
+  ALTAR: 'ALTAR',
+  BAUTISMO: 'BAUTISMO',
+  RSIL: 'RSIL',
+  MEMBRESIA_NUEVOS: 'MEMBRESIA_NUEVOS',
+} as const;
+export type ProcesoAfirmacionCodigo = (typeof ProcesoAfirmacionCodigo)[keyof typeof ProcesoAfirmacionCodigo];

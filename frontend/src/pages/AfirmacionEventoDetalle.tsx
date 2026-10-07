@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEventoDetalle, useHistorialProcesoConEvento } from '@/hooks/useAfirmacionEventos';
 import { KpiMosaico } from '@/components/dashboard/DashboardUI';
 import { AZUL, VERDE, AMBAR, MORADO } from '@/components/dashboard/DashboardUI';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { useAuthStore } from '@/store/auth.store';
 import { ProcesoAfirmacionCodigo } from '@/types/afirmacion-eventos.types';
 
 export function AfirmacionEventoDetalle() {
@@ -27,8 +27,10 @@ export function AfirmacionEventoDetalle() {
   return (
     <div className="flex flex-col gap-6">
       <DashboardHero
-        titulo={evento?.titulo || 'Detalle del evento'}
-        subtitulo={evento ? `${evento.tipo_nombre} • ${evento.fecha_inicio}${evento.fecha_fin ? ` → ${evento.fecha_fin}` : ''}` : ''}
+        icon={Calendar}
+        eyebrow="Evento de Afirmación"
+        title={evento?.titulo || 'Detalle del evento'}
+        subtitle={evento ? `${evento.tipo_nombre} • ${evento.fecha_inicio}${evento.fecha_fin ? ` → ${evento.fecha_fin}` : ''}` : ''}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => navigate(ROUTES.AFIRMACION_EVENTOS)} className="gap-2">

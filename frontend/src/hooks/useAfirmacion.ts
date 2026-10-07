@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEventoAfirmacionActivo } from '@/stores/useEventoAfirmacionActivo';
 import {
   buscarMembresiaAfirmacion,
   eliminarProcesoAfirmacion,
@@ -135,9 +136,12 @@ export function useEstadisticasPersonasAfirmacion(
 
 export function useRegistrarProcesoAfirmacion() {
   const qc = useQueryClient();
+  // Evento activo (si el usuario eligió uno en el selector): el registro nuevo
+  // queda tagueado a ese evento. Si no hay ninguno, va sin evento (null).
+  const eventoId = useEventoAfirmacionActivo((s) => s.eventoId);
   return useMutation({
     mutationFn: ({ personaId, procesoCodigo, fecha }: { personaId: string; procesoCodigo: ProcesoAfirmacionCodigo; fecha: string }) =>
-      registrarProcesoAfirmacion(personaId, procesoCodigo, fecha),
+      registrarProcesoAfirmacion(personaId, procesoCodigo, fecha, eventoId),
     onSuccess: (_data, { procesoCodigo, personaId }) => {
       qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-historial', procesoCodigo] });
       qc.invalidateQueries({ queryKey: ['afirmacion', 'proceso-estado', personaId, procesoCodigo] });
@@ -167,9 +171,12 @@ export function useEstadoProcesoAfirmacion(personaId: string | undefined, proces
 }
 
 export function useHistorialProcesoAfirmacion(iglesiaId: string | undefined, procesoCodigo: ProcesoAfirmacionCodigo, registradoPor?: string) {
+  // Si hay un evento activo seleccionado, la lista de la pestaña "Registro" se
+  // filtra a ese evento; si no, muestra todo (comportamiento de siempre).
+  const eventoId = useEventoAfirmacionActivo((s) => s.eventoId);
   return useQuery({
-    queryKey: ['afirmacion', 'proceso-historial', procesoCodigo, iglesiaId, registradoPor],
-    queryFn: () => obtenerHistorialProcesoAfirmacion(iglesiaId as string, procesoCodigo, registradoPor),
+    queryKey: ['afirmacion', 'proceso-historial', procesoCodigo, iglesiaId, registradoPor, eventoId],
+    queryFn: () => obtenerHistorialProcesoAfirmacion(iglesiaId as string, procesoCodigo, registradoPor, eventoId),
     enabled: !!iglesiaId,
     // Pestaña "Datos" de Altar (pedido explícito del owner, 2026-09-29): siempre
     // trae lo último al abrirla -- otro colaborador puede haber registrado

@@ -231,17 +231,22 @@ export interface RegistroProcesoAfirmacion {
   id: string;
   persona_id: string;
   nombre_completo: string;
+  /** Fecha de nacimiento de la persona (para calcular la edad en la tabla). null si no cargada. */
+  fecha_nacimiento: string | null;
   fecha: string;
   fecha_creacion: string;
   registrado_por: string | null;
   registrado_por_nombre: string | null;
 }
 
-export async function registrarProcesoAfirmacion(personaId: string, procesoCodigo: ProcesoAfirmacionCodigo, fecha: string): Promise<string> {
+export async function registrarProcesoAfirmacion(
+  personaId: string, procesoCodigo: ProcesoAfirmacionCodigo, fecha: string, eventoId?: string | null,
+): Promise<string> {
   const { data, error } = await supabase.rpc('fn_afirmacion_registrar_proceso', {
     p_persona_id: personaId,
     p_proceso_codigo: procesoCodigo,
     p_fecha: fecha,
+    p_evento_id: eventoId ?? null,
   });
   if (error) throw error;
   return data as string;
@@ -279,11 +284,13 @@ export async function obtenerHistorialProcesoAfirmacion(
   iglesiaId: string,
   procesoCodigo: ProcesoAfirmacionCodigo,
   registradoPor?: string,
+  eventoId?: string | null,
 ): Promise<RegistroProcesoAfirmacion[]> {
   const { data, error } = await supabase.rpc('fn_afirmacion_historial_proceso', {
     p_iglesia_id: iglesiaId,
     p_proceso_codigo: procesoCodigo,
     p_registrado_por: registradoPor ?? null,
+    p_evento_id: eventoId ?? null,
   });
   if (error) throw error;
   return (data ?? []) as RegistroProcesoAfirmacion[];

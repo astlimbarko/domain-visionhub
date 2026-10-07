@@ -19,6 +19,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Calendar, CheckCircle2, Save, Search, UserPlus } from 'lucide-react';
+import { calcularEdad } from '@/utils/edad';
 import { useAuthStore } from '@/store/auth.store';
 import { BuscadorPersona } from '@/components/casas-de-paz/BuscadorPersona';
 import { EliminarRegistroProceso } from '@/components/afirmacion/EliminarRegistroProceso';
@@ -320,6 +321,8 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
             <ArrowLeft className="h-4 w-4" /> Volver al portal
           </button>
         )}
+        <div className="mb-3 flex justify-end"><SelectorEventoActivoCompacto /></div>
+
         <Tabs value={tab} onValueChange={cambiarTab} className="relative">
           <TabsList className="mx-auto max-w-md flex-nowrap">
             <TabsTrigger value="buscar" className="flex-1 gap-1 px-2 text-xs sm:gap-1.5 sm:px-4 sm:text-[13.5px]">
@@ -553,6 +556,7 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
               <tr>
                 <th className="w-10 px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">#</th>
                 <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Persona</th>
+                <th className="px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Edad</th>
                 <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
                 <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colaborador</th>
                 <th className="px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Acciones</th>
@@ -567,7 +571,8 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
                 >
                   <td className="px-3 py-1.5 text-right text-xs text-muted-foreground tabular-nums">{i + 1}</td>
                   <td className="px-3 py-1.5 font-medium">{r.nombre_completo}</td>
-                  <td className="px-3 py-1.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{r.fecha_nacimiento ? calcularEdad(r.fecha_nacimiento) : '—'}</td>
+                  <td className="px-3 py-1.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')} · {new Date(r.fecha_creacion).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'})}</td>
                   <td className="px-3 py-1.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
                   <td className="px-3 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end">
@@ -598,7 +603,8 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{r.nombre_completo}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')}
+                  {new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')} · {new Date(r.fecha_creacion).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'})}
+                  {r.fecha_nacimiento && ` · ${calcularEdad(r.fecha_nacimiento)} años`}
                   {r.registrado_por_nombre && ` · ${r.registrado_por_nombre}`}
                 </p>
               </div>

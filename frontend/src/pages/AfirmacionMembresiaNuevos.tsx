@@ -321,6 +321,8 @@ export function AfirmacionMembresiaNuevos({ iglesiaId: iglesiaIdProp, onVolver }
           <ArrowLeft className="h-4 w-4" /> Volver al portal
         </button>
       )}
+      <div className="flex justify-end"><SelectorEventoActivoCompacto /></div>
+
       <Tabs value={pestana} onValueChange={(v) => setPestana(v as 'nuevo' | 'registro')} className="flex flex-col gap-6">
         <TabsList className="self-start">
           <TabsTrigger value="nuevo">Nuevo</TabsTrigger>
