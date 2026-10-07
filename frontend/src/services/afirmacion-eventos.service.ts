@@ -44,7 +44,8 @@ export async function obtenerDetalleEventoAfirmacion(eventoId: string): Promise<
     p_evento_id: eventoId,
   });
   if (error) throw error;
-  return data as EventoAfirmacion | null;
+  // La RPC devuelve un setof (array de 1 fila), no un objeto: tomar la primera.
+  return ((data ?? []) as EventoAfirmacion[])[0] ?? null;
 }
 
 export async function obtenerHistorialProcesoConEvento(

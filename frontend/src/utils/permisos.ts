@@ -251,6 +251,13 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
   // rebotaba la navegación directa de vuelta a ROUTES.AFIRMACION -- bug real
   // encontrado en vivo verificando este mismo ticket.
   ROUTES.AFIRMACION_COLABORADORES,
+  // Panel de Eventos de Afirmación (2026-10-07): mismo caso que
+  // AFIRMACION_COLABORADORES -- el ítem está en el menú (NAV_ITEMS_AFIRMACION)
+  // pero sin estas rutas acá el guard de PrivateLayout rebotaba al hacer clic
+  // en "Eventos" (y al abrir el detalle de un evento), dejando la pantalla
+  // "sin nada". El detalle lleva :eventoId, por eso la plantilla con el param.
+  ROUTES.AFIRMACION_EVENTOS,
+  ROUTES.AFIRMACION_EVENTOS_DETALLE,
   ROUTES.EVANGELISMO,
   ROUTES.EVANGELISMO_PERSONAS,
   ROUTES.EVANGELISMO_REDES,
