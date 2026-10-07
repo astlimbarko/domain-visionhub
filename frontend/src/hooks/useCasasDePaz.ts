@@ -4,6 +4,7 @@ import {
   actualizarReunionCdp,
   obtenerHistorialHorarioCdp,
   obtenerHistorialLiderCdp,
+  obtenerHorarioCdp,
   asignarCargoCdp,
   asignarCargoRed,
   buscarPersonas,
@@ -304,6 +305,7 @@ export function useActualizarHorarioCdp() {
       // natural (2026-10-07: el dato persistía bien pero el panel seguía
       // mostrando el estado anterior hasta recargar).
       queryClient.invalidateQueries({ queryKey: ['estructura', 'cdp-perfil', variables.cdpId] });
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'cdp-horario', variables.cdpId] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'historial-horario-cdp', variables.cdpId] });
     },
   });
@@ -317,6 +319,15 @@ export function useHistorialHorarioCdp(cdpId: string | undefined, activo: boolea
     queryKey: ['estructura', 'historial-horario-cdp', cdpId],
     queryFn: () => obtenerHistorialHorarioCdp(cdpId as string),
     enabled: !!cdpId && activo,
+    staleTime: 1000 * 60,
+  });
+}
+
+export function useHorarioCdp(cdpId: string | undefined) {
+  return useQuery({
+    queryKey: ['estructura', 'cdp-horario', cdpId],
+    queryFn: () => obtenerHorarioCdp(cdpId as string),
+    enabled: !!cdpId,
     staleTime: 1000 * 60,
   });
 }

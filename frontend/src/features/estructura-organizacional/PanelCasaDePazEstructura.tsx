@@ -12,7 +12,7 @@ import {
   useAsignarCargoCdp,
   useCargoVigenteCdp,
   useCargos,
-  useCdpPerfil,
+  useHorarioCdp,
   useDomicilioCdp,
   useHistorialHorarioCdp,
   useHistorialLiderCdp,
@@ -121,11 +121,14 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
     dialogoCargo?.codigo ?? 'LIDER_CDP',
   );
   const { data: domicilio } = useDomicilioCdp(casaDePaz.id);
-  // El horario (día/hora de reunión) no viene en CasaDePazEstructura -- se lee
-  // del Perfil (fn_mi_cdp_perfil), igual que hace el Perfil del Sublíder.
-  const { data: perfilCdp } = useCdpPerfil(casaDePaz.id);
-  const diaReunion = perfilCdp?.dia_reunion ?? null;
-  const horaReunion = perfilCdp?.hora_reunion ?? null;
+  // El horario (día/hora de reunión) no viene en CasaDePazEstructura. Se lee con
+  // fn_cdp_horario_actual (NO fn_mi_cdp_perfil): el perfil exige ser miembro de
+  // la CdP y tiraba PERFIL_FUERA_DE_ALCANCE para un admin/pastor que navega el
+  // organigrama, así que el horario nunca se mostraba aunque estuviera guardado
+  // (bug 2026-10-07). Esta RPC lo deja leer con permiso de constructor.
+  const { data: horarioCdp } = useHorarioCdp(casaDePaz.id);
+  const diaReunion = horarioCdp?.dia_reunion ?? null;
+  const horaReunion = horarioCdp?.hora_reunion ?? null;
   const tieneHorario = diaReunion !== null || !!horaReunion;
   const textoHorario = [
     diaReunion !== null ? DIAS_SEMANA[diaReunion] : null,

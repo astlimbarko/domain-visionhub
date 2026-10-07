@@ -189,6 +189,19 @@ export async function obtenerHistorialHorarioCdp(cdpId: string): Promise<Horario
   return (data ?? []) as HorarioCdpCambio[];
 }
 
+/** Día/hora de reunión VIGENTE de una CdP, leído con permiso de constructor
+ * (super admin/pastor/supervisor/líder de red/líder de CdP). A diferencia de
+ * fn_mi_cdp_perfil, NO exige ser miembro de la CdP -- por eso el panel del
+ * organigrama usa esta y no el perfil (2026-10-07: el perfil tiraba
+ * PERFIL_FUERA_DE_ALCANCE para un admin que no es de esa CdP, y el horario
+ * nunca se mostraba aunque estuviera guardado). */
+export async function obtenerHorarioCdp(cdpId: string): Promise<{ dia_reunion: number | null; hora_reunion: string | null }> {
+  const { data, error } = await supabase.rpc('fn_cdp_horario_actual', { p_cdp_id: cdpId });
+  if (error) throw error;
+  const fila = (data ?? [])[0] as { dia_reunion: number | null; hora_reunion: string | null } | undefined;
+  return { dia_reunion: fila?.dia_reunion ?? null, hora_reunion: fila?.hora_reunion ?? null };
+}
+
 /** Una entrada del historial de LÍDER de una CdP (fn_cdp_historial_lider), más
  * nuevo primero. Cada persona que fue líder, desde/hasta cuándo y quién la
  * designó. */
