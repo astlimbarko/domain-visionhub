@@ -118,6 +118,9 @@ export const ROUTES = {
   // KAN-488: "Membresía desde 0" -- membresía liviana para gente nueva
   // captada, distinta de la membresía por link (AFIRMACION_PERSONAS).
   AFIRMACION_MEMBRESIA_NUEVOS: '/afirmacion-membresia-nuevos',
+  // Panel de Eventos de Afirmación
+  AFIRMACION_EVENTOS: '/afirmacion-eventos',
+  AFIRMACION_EVENTOS_DETALLE: '/afirmacion-eventos/:eventoId',
   // Roles globales de solo lectura, ortogonales al RolUI (2026-08-02): mismo
   // patron que Afirmación, un item de nav propio cada uno.
   JOVENES: '/jovenes',

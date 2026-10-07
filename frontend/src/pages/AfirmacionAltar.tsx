@@ -1,3 +1,4 @@
+import { SelectorEventoActivoCompacto } from '@/components/afirmacion/SelectorEventoActivoCompacto';
 // KAN-481: primer proceso de Afirmacion. Boceto de referencia en
 // basura_no_leer/afirmacion1.png (pestaña Buscar) y afirmacion2.png
 // (pestaña Nuevo) -- pestaña Datos sin boceto, criterio propio (ver nota

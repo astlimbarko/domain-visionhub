@@ -67,6 +67,8 @@ const AfirmacionBautismo = lazy(() => import('@/pages/AfirmacionBautismo').then(
 const AfirmacionRSIL = lazy(() => import('@/pages/AfirmacionRSIL').then((m) => ({ default: m.AfirmacionRSIL })));
 // KAN-488: Membresía desde 0 (liviana, gente nueva captada).
 const AfirmacionMembresiaNuevos = lazy(() => import('@/pages/AfirmacionMembresiaNuevos').then((m) => ({ default: m.AfirmacionMembresiaNuevos })));
+const AfirmacionEventos = lazy(() => import('@/pages/AfirmacionEventos').then((m) => ({ default: m.AfirmacionEventos })));
+const AfirmacionEventoDetalle = lazy(() => import('@/pages/AfirmacionEventoDetalle').then((m) => ({ default: m.AfirmacionEventoDetalle })));
 // KAN-427 a 434: panel personal de Evangelista.
 const Evangelista = lazy(() => import('@/pages/Evangelista').then((m) => ({ default: m.Evangelista })));
 const EvangelistaNuevo = lazy(() => import('@/pages/EvangelistaNuevo').then((m) => ({ default: m.EvangelistaNuevo })));
@@ -381,6 +383,8 @@ function App() {
             <Route path={ROUTES.AFIRMACION_RSIL} element={<RutaAfirmacion><AfirmacionRSIL /></RutaAfirmacion>} />
             {/* KAN-488: Membresía desde 0 (mismo guard de Afirmación). */}
             <Route path={ROUTES.AFIRMACION_MEMBRESIA_NUEVOS} element={<RutaAfirmacion><AfirmacionMembresiaNuevos /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_EVENTOS} element={<RutaAfirmacion><AfirmacionEventos /></RutaAfirmacion>} />
+            <Route path={ROUTES.AFIRMACION_EVENTOS_DETALLE} element={<RutaAfirmacion><AfirmacionEventoDetalle /></RutaAfirmacion>} />
             <Route path={ROUTES.JOVENES} element={<RutaJovenes><Jovenes /></RutaJovenes>} />
             <Route path={ROUTES.MATRIMONIOS} element={<RutaMatrimonios><Matrimonios /></RutaMatrimonios>} />
             <Route path={ROUTES.EVANGELISTA} element={<RutaEvangelista><Evangelista /></RutaEvangelista>} />

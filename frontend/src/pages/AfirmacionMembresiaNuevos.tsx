@@ -50,6 +50,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfirmarPosibleDuplicadoDialog } from '@/components/shared/ConfirmarPosibleDuplicadoDialog';
 import { componerTelefono } from '@/utils/paises-telefono';
 import type { PersonaSimilar } from '@/types/casas-de-paz.types';
+import { SelectorEventoActivoCompacto } from '@/components/afirmacion/SelectorEventoActivoCompacto';
 
 type EstadoGuardado = 'inactivo' | 'guardando' | 'guardado';
 
