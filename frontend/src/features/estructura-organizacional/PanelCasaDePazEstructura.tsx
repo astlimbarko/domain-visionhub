@@ -15,6 +15,7 @@ import {
   useCdpPerfil,
   useDomicilioCdp,
   useHistorialHorarioCdp,
+  useHistorialLiderCdp,
   useQuitarCargoCdp,
 } from '@/hooks/useCasasDePaz';
 import { useEliminarCasaDePazEstructura, useReactivarCasaDePazEstructura } from './useEstructuraOrganizacional';
@@ -93,6 +94,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const [mostrarDomicilio, setMostrarDomicilio] = useState(false);
   const [mostrarReunion, setMostrarReunion] = useState(false);
   const [mostrarHistorialHorario, setMostrarHistorialHorario] = useState(false);
+  const [mostrarHistorialLider, setMostrarHistorialLider] = useState(false);
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
   const [otpEliminar, setOtpEliminar] = useState('');
   const eliminarCdp = useEliminarCasaDePazEstructura(iglesiaId);
@@ -132,6 +134,10 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
   const { data: historialHorario = [], isLoading: cargandoHistorialHorario } = useHistorialHorarioCdp(
     casaDePaz.id,
     mostrarHistorialHorario,
+  );
+  const { data: historialLider = [], isLoading: cargandoHistorialLider } = useHistorialLiderCdp(
+    casaDePaz.id,
+    mostrarHistorialLider,
   );
   const asignarCargo = useAsignarCargoCdp(iglesiaId);
   const quitarCargo = useQuitarCargoCdp();
@@ -340,7 +346,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 onClick={() => setDialogoCargo({ codigo: 'LIDER_CDP', titulo: 'Líder de Casa de Paz', exclusivo: true })}
                 className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                {lider ? 'Editar' : 'Asignar'}
+                {lider ? 'Editar' : 'Añadir'}
               </button>
             </div>
             {/* 2026-10-03 cascada de acción del líder:
@@ -367,6 +373,40 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 )}
               </div>
             )}
+            {/* 2026-10-04: historial de líderes de esta CdP (cada persona que la
+                lideró, desde/hasta cuándo y quién la designó). El dato ya vive
+                en casa_de_paz_cargo (fn_cdp_historial_lider). */}
+            <div className="mt-3 border-t border-slate-100 pt-2">
+              <button
+                type="button"
+                onClick={() => setMostrarHistorialLider((v) => !v)}
+                className="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-blue-700"
+              >
+                {mostrarHistorialLider ? 'Ocultar historial' : 'Ver historial de líderes'}
+              </button>
+              {mostrarHistorialLider && (
+                <div className="mt-2">
+                  {cargandoHistorialLider ? (
+                    <p className="text-[11px] text-slate-400">Cargando…</p>
+                  ) : historialLider.length === 0 ? (
+                    <p className="text-[11px] text-slate-400">Sin cambios registrados todavía.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5">
+                      {historialLider.map((cambio, i) => (
+                        <li key={i} className="text-[11px] text-slate-500">
+                          <span className="font-semibold text-slate-700">{cambio.persona_nombre}</span>
+                          {cambio.vigente && <span className="ml-1 font-semibold text-green-600">(actual)</span>}
+                          {' — desde '}
+                          {new Date(cambio.fecha_inicio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {cambio.fecha_fin ? ` hasta ${new Date(cambio.fecha_fin).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                          {cambio.designado_por_nombre ? `, designado por ${cambio.designado_por_nombre}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -432,7 +472,7 @@ export function PanelCasaDePazEstructura({ iglesiaId, casaDePaz, colorRed, abrir
                 onClick={() => setDialogoCargo({ codigo: 'ANFITRION', titulo: 'Anfitrión de Casa de Paz', exclusivo: true })}
                 className="shrink-0 cursor-pointer rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                {anfitrion ? 'Editar' : 'Asignar'}
+                {anfitrion ? 'Editar' : 'Añadir'}
               </button>
             </div>
             {/* KAN-278: Anfitrión no es un rol de acceso -- no se invita con

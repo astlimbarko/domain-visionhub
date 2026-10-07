@@ -3,6 +3,7 @@ import {
   actualizarHorarioCdp,
   actualizarReunionCdp,
   obtenerHistorialHorarioCdp,
+  obtenerHistorialLiderCdp,
   asignarCargoCdp,
   asignarCargoRed,
   buscarPersonas,
@@ -297,6 +298,12 @@ export function useActualizarHorarioCdp() {
       actualizarHorarioCdp(cdpId, diaReunion, horaReunion),
     onSuccess: (_data, variables) => {
       invalidar();
+      // El panel del Constructor muestra el día/hora leyendo el perfil de la CdP
+      // (useCdpPerfil -> fn_mi_cdp_perfil). Se invalida explícito para que el
+      // horario recién guardado se vea de inmediato sin esperar un refetch
+      // natural (2026-10-07: el dato persistía bien pero el panel seguía
+      // mostrando el estado anterior hasta recargar).
+      queryClient.invalidateQueries({ queryKey: ['estructura', 'cdp-perfil', variables.cdpId] });
       queryClient.invalidateQueries({ queryKey: ['estructura', 'historial-horario-cdp', variables.cdpId] });
     },
   });
@@ -309,6 +316,15 @@ export function useHistorialHorarioCdp(cdpId: string | undefined, activo: boolea
   return useQuery({
     queryKey: ['estructura', 'historial-horario-cdp', cdpId],
     queryFn: () => obtenerHistorialHorarioCdp(cdpId as string),
+    enabled: !!cdpId && activo,
+    staleTime: 1000 * 60,
+  });
+}
+
+export function useHistorialLiderCdp(cdpId: string | undefined, activo: boolean) {
+  return useQuery({
+    queryKey: ['estructura', 'historial-lider-cdp', cdpId],
+    queryFn: () => obtenerHistorialLiderCdp(cdpId as string),
     enabled: !!cdpId && activo,
     staleTime: 1000 * 60,
   });

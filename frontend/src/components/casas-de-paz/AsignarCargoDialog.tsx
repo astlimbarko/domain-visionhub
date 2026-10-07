@@ -251,15 +251,24 @@ export function AsignarCargoDialog({
     }
   }
 
+  // 2026-10-04 (pedido del owner): para un cargo EXCLUSIVO (Líder/Anfitrión) que
+  // YA tiene a alguien (vigente o invitación pendiente), el "slot" está ocupado:
+  // el modal muestra SOLO a esa persona con su X, sin el buscador ni "invitar por
+  // correo" (esos campos son para cuando no hay nadie). Para cambiarla hay que
+  // quitarla con la X primero -- ahí el slot queda libre y reaparece el picker.
+  const slotOcupado = exclusivo && (vigentes.length > 0 || invitacionesPendientes.length > 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>
-            {exclusivo
-              ? 'Asignar una persona nueva reemplaza automáticamente a la actual.'
-              : 'Se puede asignar a varias personas a la vez.'}
+            {slotOcupado
+              ? 'Para designar a otra persona, primero quitá a la actual con la X.'
+              : exclusivo
+                ? 'Este cargo es para una sola persona.'
+                : 'Se puede asignar a varias personas a la vez.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -378,7 +387,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !aCancelarInvitacion && !personaExistente && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && !slotOcupado && invitable && (
             <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
               <button
                 type="button"
@@ -403,7 +412,7 @@ export function AsignarCargoDialog({
             </div>
           )}
 
-          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'buscar' && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && !slotOcupado && modo === 'buscar' && (
             personaElegida ? (
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                 <span className="truncate">{personaElegida.nombre_completo}</span>
@@ -421,7 +430,7 @@ export function AsignarCargoDialog({
             )
           )}
 
-          {!aQuitar && !aCancelarInvitacion && !personaExistente && modo === 'invitar' && invitable && (
+          {!aQuitar && !aCancelarInvitacion && !personaExistente && !slotOcupado && modo === 'invitar' && invitable && (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm text-muted-foreground">
                 Si todavía no existe en el sistema, se le invita por correo y deberá completar su membresía al
@@ -509,7 +518,7 @@ export function AsignarCargoDialog({
             </Button>
           </DialogFooter>
         ) : (
-          (modo === 'invitar' ? invitable : !!personaElegida) && (
+          !slotOcupado && (modo === 'invitar' ? invitable : !!personaElegida) && (
             <DialogFooter>
               {modo === 'buscar' ? (
                 <Button type="submit" disabled={asignando || !personaElegida || !pinValido}>

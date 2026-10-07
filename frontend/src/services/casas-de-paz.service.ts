@@ -189,6 +189,27 @@ export async function obtenerHistorialHorarioCdp(cdpId: string): Promise<Horario
   return (data ?? []) as HorarioCdpCambio[];
 }
 
+/** Una entrada del historial de LÍDER de una CdP (fn_cdp_historial_lider), más
+ * nuevo primero. Cada persona que fue líder, desde/hasta cuándo y quién la
+ * designó. */
+export interface LiderCdpCambio {
+  persona_nombre: string;
+  /** Nombre de quién designó a esa persona como líder (null si no se pudo resolver). */
+  designado_por_nombre: string | null;
+  fecha_inicio: string;
+  /** null = sigue siendo el líder vigente. */
+  fecha_fin: string | null;
+  vigente: boolean;
+}
+
+/** Historial de cambios de líder de una CdP (fn_cdp_historial_lider). El dato ya
+ * vive en casa_de_paz_cargo (fecha_inicio/fecha_fin por designación). */
+export async function obtenerHistorialLiderCdp(cdpId: string): Promise<LiderCdpCambio[]> {
+  const { data, error } = await supabase.rpc('fn_cdp_historial_lider', { p_cdp_id: cdpId });
+  if (error) throw error;
+  return (data ?? []) as LiderCdpCambio[];
+}
+
 /** Baja lógica: la tabla `casa_de_paz` bloquea el DELETE físico (trigger), así
  * que se desactiva y se marca `fecha_eliminacion` a la vez. Va por RPC
  * (SECURITY DEFINER) en vez de un UPDATE directo porque el trigger que cierra
