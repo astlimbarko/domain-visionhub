@@ -24,6 +24,29 @@ export type EventoAfirmacion = {
   total_membresia: number;
 };
 
+// Colaborador del evento: quién cargó gente (nombre + red + cuántos cargó).
+export type ColaboradorEvento = {
+  persona_id: string;
+  nombre_completo: string;
+  red_nombre: string | null;
+  cantidad: number;
+};
+
+// Persona de un bloque dentro del evento (datos principales para la vista
+// rápida y el export).
+export type PersonaBloqueEvento = {
+  registro_id: string;
+  persona_id: string;
+  nombre_completo: string;
+  fecha_nacimiento: string | null;
+  telefono: string | null;
+  fecha: string | null;
+  fecha_creacion: string;
+  invitado_por: string | null;
+  red_nombre: string | null;
+  lider_cdp: string | null;
+};
+
 // Actividades que se tildan al crear un evento. "Bautismo + Membresía" va
 // agrupado (pedido del owner 2026-10-08): un solo check activa las 2 puertas.
 // `procesos` son los proceso_codigo reales que quedan asociados al evento.

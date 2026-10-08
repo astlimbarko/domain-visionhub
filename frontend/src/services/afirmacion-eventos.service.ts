@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { TipoEvento, EventoAfirmacion, FilaHistorialProcesoConEvento } from '@/types/afirmacion-eventos.types';
+import type { TipoEvento, EventoAfirmacion, FilaHistorialProcesoConEvento, ColaboradorEvento, PersonaBloqueEvento } from '@/types/afirmacion-eventos.types';
 
 export async function listarTiposEvento(): Promise<TipoEvento[]> {
   const { data, error } = await supabase.rpc('fn_afirmacion_tipos_evento');
@@ -39,6 +39,43 @@ export async function crearEventoAfirmacion(
   });
   if (error) throw error;
   return data as string;
+}
+
+export async function editarEventoAfirmacion(
+  eventoId: string,
+  titulo: string,
+  fechaInicio: string,
+  fechaFin: string | null,
+  descripcion: string | null,
+  actividades: string[]
+): Promise<void> {
+  const { error } = await supabase.rpc('fn_afirmacion_editar_evento', {
+    p_evento_id: eventoId,
+    p_titulo: titulo,
+    p_fecha_inicio: fechaInicio,
+    p_fecha_fin: fechaFin,
+    p_descripcion: descripcion,
+    p_actividades: actividades,
+  });
+  if (error) throw error;
+}
+
+export async function obtenerColaboradoresEvento(eventoId: string): Promise<ColaboradorEvento[]> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_evento_colaboradores', { p_evento_id: eventoId });
+  if (error) throw error;
+  return (data ?? []) as ColaboradorEvento[];
+}
+
+export async function obtenerPersonasBloqueEvento(
+  eventoId: string,
+  procesoCodigos: string[]
+): Promise<PersonaBloqueEvento[]> {
+  const { data, error } = await supabase.rpc('fn_afirmacion_evento_personas', {
+    p_evento_id: eventoId,
+    p_proceso_codigos: procesoCodigos,
+  });
+  if (error) throw error;
+  return (data ?? []) as PersonaBloqueEvento[];
 }
 
 export async function obtenerDetalleEventoAfirmacion(eventoId: string): Promise<EventoAfirmacion | null> {
