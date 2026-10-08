@@ -5,9 +5,11 @@ import { useEventosAfirmacion } from '@/hooks/useAfirmacionEventos';
 import { useAuthStore } from '@/store/auth.store';
 import { useEventoAfirmacionActivo } from '@/stores/useEventoAfirmacionActivo';
 
-export function SelectorEventoActivoCompacto() {
+export function SelectorEventoActivoCompacto({ procesoCodigo }: { procesoCodigo?: string }) {
   const iglesiaId = useAuthStore((s) => s.iglesiaActivaId);
-  const { data: eventos = [] } = useEventosAfirmacion(iglesiaId, true);
+  // Solo eventos activos y que cubran esta puerta (actividad). Sin procesoCodigo
+  // (ej. uso genérico) muestra todos los activos.
+  const { data: eventos = [] } = useEventosAfirmacion(iglesiaId, true, procesoCodigo ?? null);
   const { eventoId, setEventoActivo } = useEventoAfirmacionActivo();
 
   const onChange = (v: string) => {

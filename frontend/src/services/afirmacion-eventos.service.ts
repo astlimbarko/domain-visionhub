@@ -9,11 +9,13 @@ export async function listarTiposEvento(): Promise<TipoEvento[]> {
 
 export async function listarEventosAfirmacion(
   iglesiaId: string,
-  soloActivos = false
+  soloActivos = false,
+  procesoCodigo: string | null = null
 ): Promise<EventoAfirmacion[]> {
   const { data, error } = await supabase.rpc('fn_afirmacion_listar_eventos', {
     p_iglesia_id: iglesiaId,
     p_solo_activos: soloActivos,
+    p_proceso_codigo: procesoCodigo,
   });
   if (error) throw error;
   return data ?? [];
@@ -22,18 +24,18 @@ export async function listarEventosAfirmacion(
 export async function crearEventoAfirmacion(
   iglesiaId: string,
   titulo: string,
-  tipoEventoId: string,
   fechaInicio: string,
   fechaFin: string | null,
-  descripcion: string | null
+  descripcion: string | null,
+  actividades: string[]
 ): Promise<string> {
   const { data, error } = await supabase.rpc('fn_afirmacion_crear_evento', {
     p_iglesia_id: iglesiaId,
     p_titulo: titulo,
-    p_tipo_evento_id: tipoEventoId,
     p_fecha_inicio: fechaInicio,
     p_fecha_fin: fechaFin,
     p_descripcion: descripcion,
+    p_actividades: actividades,
   });
   if (error) throw error;
   return data as string;

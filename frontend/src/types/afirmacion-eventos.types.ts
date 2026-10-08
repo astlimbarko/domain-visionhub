@@ -15,11 +15,23 @@ export type EventoAfirmacion = {
   fecha_fin: string | null;
   es_recurrente: boolean;
   activo: boolean;
+  /** Procesos que cubre el evento (ALTAR/RSIL/BAUTISMO/MEMBRESIA_NUEVOS).
+   * null = evento viejo sin restricción → aparece en todas las puertas. */
+  afirmacion_actividades: string[] | null;
   total_personas: number;
   total_rsil: number;
   total_bautismo: number;
   total_membresia: number;
 };
+
+// Actividades que se tildan al crear un evento. "Bautismo + Membresía" va
+// agrupado (pedido del owner 2026-10-08): un solo check activa las 2 puertas.
+// `procesos` son los proceso_codigo reales que quedan asociados al evento.
+export const ACTIVIDADES_EVENTO = [
+  { id: 'ALTAR', label: 'Altar', procesos: ['ALTAR'] },
+  { id: 'RSIL', label: 'RSIL', procesos: ['RSIL'] },
+  { id: 'BAUTISMO_MEMBRESIA', label: 'Bautismo + Membresía', procesos: ['BAUTISMO', 'MEMBRESIA_NUEVOS'] },
+] as const;
 
 export type FilaHistorialProcesoConEvento = {
   id: string;

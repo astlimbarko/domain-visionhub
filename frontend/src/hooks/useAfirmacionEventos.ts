@@ -10,8 +10,8 @@ import type { ProcesoAfirmacionCodigo } from '@/types/afirmacion-eventos.types';
 
 export const queryKeys = {
   tiposEvento: ['afirmacion', 'eventos', 'tipos'] as const,
-  eventos: (iglesiaId: string | null, soloActivos?: boolean) =>
-    ['afirmacion', 'eventos', iglesiaId, soloActivos] as const,
+  eventos: (iglesiaId: string | null, soloActivos?: boolean, procesoCodigo?: string | null) =>
+    ['afirmacion', 'eventos', iglesiaId, soloActivos, procesoCodigo ?? null] as const,
   eventoDetalle: (eventoId: string | null) => ['afirmacion', 'eventos', 'detalle', eventoId] as const,
   historial: (
     iglesiaId: string | null,
@@ -28,10 +28,14 @@ export function useTiposEvento() {
   });
 }
 
-export function useEventosAfirmacion(iglesiaId: string | null, soloActivos = false) {
+export function useEventosAfirmacion(
+  iglesiaId: string | null,
+  soloActivos = false,
+  procesoCodigo: string | null = null
+) {
   return useQuery({
-    queryKey: queryKeys.eventos(iglesiaId, soloActivos),
-    queryFn: () => listarEventosAfirmacion(iglesiaId as string, soloActivos),
+    queryKey: queryKeys.eventos(iglesiaId, soloActivos, procesoCodigo),
+    queryFn: () => listarEventosAfirmacion(iglesiaId as string, soloActivos, procesoCodigo),
     enabled: !!iglesiaId,
   });
 }
@@ -49,18 +53,18 @@ export function useCrearEventoAfirmacion(iglesiaId: string | null) {
   return useMutation({
     mutationFn: (params: {
       titulo: string;
-      tipoEventoId: string;
       fechaInicio: string;
       fechaFin: string | null;
       descripcion: string | null;
+      actividades: string[];
     }) =>
       crearEventoAfirmacion(
         iglesiaId as string,
         params.titulo,
-        params.tipoEventoId,
         params.fechaInicio,
         params.fechaFin,
-        params.descripcion
+        params.descripcion,
+        params.actividades
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['afirmacion', 'eventos', iglesiaId] });
