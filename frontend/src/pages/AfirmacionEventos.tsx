@@ -141,6 +141,18 @@ export function AfirmacionEventos() {
         subtitle="Agrupar registros por evento para ver el alcance de cada actividad"
       />
 
+      {/* Qué son los eventos (pedido del owner 2026-10-08): explicar el para qué
+          en la propia pantalla, en lenguaje simple. */}
+      <div className="rounded-2xl border border-[#0071E3]/20 bg-[#0071E3]/5 p-4 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">¿Para qué sirven los eventos?</p>
+        <p className="mt-1">
+          Un evento es una <span className="font-medium text-foreground">etiqueta</span> para una actividad puntual
+          (por ejemplo un “Bautismo Global”). Cuando registrás personas con un evento activo, quedan agrupadas ahí,
+          y podés ver <span className="font-medium text-foreground">cuánta gente alcanzó esa actividad</span> por
+          separado — sin que se mezcle con el total acumulado de siempre. Así buscás y filtrás mucho más fácil.
+        </p>
+      </div>
+
       {/* Botón de acción resaltado, debajo del Hero y alineado a la izquierda
           (pedido del owner 2026-10-08). Color sólido de Afirmación para que
           destaque; el className sobrescribe la variante global del Button. */}

@@ -33,11 +33,14 @@ export function AfirmacionEventoDetalle() {
         subtitle={evento ? `${evento.tipo_nombre} • ${evento.fecha_inicio}${evento.fecha_fin ? ` → ${evento.fecha_fin}` : ''}` : ''}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate(ROUTES.AFIRMACION_EVENTOS)} className="gap-2">
+            <Button
+              onClick={() => navigate(ROUTES.AFIRMACION_EVENTOS)}
+              className="gap-2 bg-white text-[#0b2a4a] shadow-sm hover:bg-white/90 border-transparent"
+            >
               <ArrowLeft className="h-4 w-4" />
               Volver a eventos
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild className="bg-white/15 text-white shadow-sm hover:bg-white/25 border border-white/30">
               <Link to={ROUTES.AFIRMACION_ALTAR}>Ver todo (sin filtrar)</Link>
             </Button>
           </div>
