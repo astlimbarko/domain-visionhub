@@ -20,6 +20,11 @@ export function iglesiaCorta(nombre: string | null): string {
   return nombre.replace(/^Centro de Vida\s+/i, '').trim() || nombre;
 }
 
+/** Orden alfabético por nombre completo (como la planilla a mano). */
+function ordenarAlfabetico(personas: PersonaBloqueEvento[]): PersonaBloqueEvento[] {
+  return [...personas].sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo, 'es'));
+}
+
 function aFila(p: PersonaBloqueEvento, i: number): string[] {
   return [
     String(i + 1),
@@ -51,7 +56,7 @@ export function exportarEventoBloquePdf(
   autoTable(doc, {
     startY: 64,
     head: [COLUMNAS],
-    body: personas.map(aFila),
+    body: ordenarAlfabetico(personas).map(aFila),
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [0, 113, 227] },
     margin: { left: 40, right: 40 },
@@ -67,7 +72,7 @@ export function exportarEventoBloqueXls(
 ): void {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const encabezado = COLUMNAS.map((c) => `<th style="background:#0071E3;color:#fff;border:1px solid #ccc;padding:4px">${esc(c)}</th>`).join('');
-  const filas = personas
+  const filas = ordenarAlfabetico(personas)
     .map((p, i) => `<tr>${aFila(p, i).map((v) => `<td style="border:1px solid #ccc;padding:4px">${esc(v)}</td>`).join('')}</tr>`)
     .join('');
   const html =
