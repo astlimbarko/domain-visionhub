@@ -3,22 +3,16 @@ import autoTable from 'jspdf-autotable';
 import { calcularEdad } from './edad';
 import type { PersonaBloqueEvento } from '@/types/afirmacion-eventos.types';
 
-/** Nombre abreviado para columnas de persona-referencia (quién invitó, líder
- * de CdP): primer nombre + inicial del segundo token. Pedido del owner
- * (2026-10-08): "solo nombres, y su primer apellido letra inicial". */
-function nombreAbreviado(nombre: string | null): string {
-  if (!nombre) return '—';
-  const partes = nombre.trim().split(/\s+/);
-  if (partes.length === 1) return partes[0];
-  return `${partes[0]} ${partes[1][0]}.`;
-}
+// Formato de reporte "planilla" (pedido del owner 2026-10-08): mismas columnas
+// que la hoja de registro que usan a mano -- N°, Nombre, Edad, Celular, Quién lo
+// trajo, Red, Iglesia. Sin fecha/hora ni líder (eso queda en la vista en
+// pantalla). "Quién lo trajo" va con el nombre completo, como en su planilla.
+const COLUMNAS = ['N°', 'Nombre completo', 'Edad', 'Celular', 'Quién lo trajo', 'Red', 'Iglesia'];
 
-function fechaHora(creacion: string): string {
-  const d = new Date(creacion);
-  return `${d.toLocaleDateString('es-BO')} ${d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`;
+/** Fecha larga en español: "2026-10-03" → "3 de octubre de 2026". */
+function fechaLarga(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-
-const COLUMNAS = ['#', 'Fecha y hora', 'Nombre completo', 'Edad', 'Teléfono', 'Invitó', 'Red', 'Líder de CdP', 'Iglesia'];
 
 /** Nombre corto de la iglesia para la tabla ("Centro de Vida Montero" → "Montero"). */
 export function iglesiaCorta(nombre: string | null): string {
@@ -29,13 +23,11 @@ export function iglesiaCorta(nombre: string | null): string {
 function aFila(p: PersonaBloqueEvento, i: number): string[] {
   return [
     String(i + 1),
-    fechaHora(p.fecha_creacion),
     p.nombre_completo,
     p.fecha_nacimiento ? String(calcularEdad(p.fecha_nacimiento)) : '—',
     p.telefono ?? '—',
-    nombreAbreviado(p.invitado_por),
+    p.invitado_por ?? '—',
     p.red_nombre ?? '—',
-    nombreAbreviado(p.lider_cdp),
     iglesiaCorta(p.iglesia_origen),
   ];
 }
@@ -52,10 +44,10 @@ export function exportarEventoBloquePdf(
 ): void {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   doc.setFontSize(14);
-  doc.text(opciones.evento, 40, 36);
+  doc.text(`${opciones.evento} — ${fechaLarga(opciones.fechaEvento)}`, 40, 36);
   doc.setFontSize(10);
   doc.setTextColor(110);
-  doc.text(`${opciones.bloque} · ${opciones.fechaEvento} · ${personas.length} personas`, 40, 52);
+  doc.text(`Hoja de ${opciones.bloque} · ${personas.length} personas`, 40, 52);
   autoTable(doc, {
     startY: 64,
     head: [COLUMNAS],
@@ -80,8 +72,8 @@ export function exportarEventoBloqueXls(
     .join('');
   const html =
     `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>` +
-    `<h3>${esc(opciones.evento)}</h3>` +
-    `<p>${esc(opciones.bloque)} · ${esc(opciones.fechaEvento)} · ${personas.length} personas</p>` +
+    `<h3>${esc(opciones.evento)} — ${esc(fechaLarga(opciones.fechaEvento))}</h3>` +
+    `<p>Hoja de ${esc(opciones.bloque)} · ${personas.length} personas</p>` +
     `<table border="1"><thead><tr>${encabezado}</tr></thead><tbody>${filas}</tbody></table></body></html>`;
   const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel' });
   const url = URL.createObjectURL(blob);
