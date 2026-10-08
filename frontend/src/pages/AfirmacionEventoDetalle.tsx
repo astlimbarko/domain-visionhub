@@ -23,7 +23,7 @@ import { useFichaPersonaStore } from '@/store/ficha-persona.store';
 import { ACTIVIDADES_EVENTO } from '@/types/afirmacion-eventos.types';
 import type { EventoAfirmacion } from '@/types/afirmacion-eventos.types';
 import { calcularEdad } from '@/utils/edad';
-import { exportarEventoBloquePdf, exportarEventoBloqueXls } from '@/utils/exportarEventoBloque';
+import { exportarEventoBloquePdf, exportarEventoBloqueXls, iglesiaCorta } from '@/utils/exportarEventoBloque';
 
 // Bloques posibles. "Bautismo + Membresía" agrupa 2 procesos (pedido del owner).
 const BLOQUES_DEF = [
@@ -87,6 +87,14 @@ function BloquePersonas({
     const d = new Date(c);
     return `${d.toLocaleDateString('es-BO')} ${d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`;
   };
+  // Resumen "de dónde es quién": personas por iglesia (madre + satélites).
+  const porIglesia = Object.entries(
+    personas.reduce<Record<string, number>>((acc, p) => {
+      const k = iglesiaCorta(p.iglesia_origen);
+      acc[k] = (acc[k] ?? 0) + 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1] - a[1]);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -116,11 +124,22 @@ function BloquePersonas({
           <p className="text-sm text-muted-foreground">Sin registros en este evento.</p>
         ) : (
           <div className="overflow-x-auto">
+            {/* Resumen de dónde es quién (madre + satélites) */}
+            {porIglesia.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Por iglesia:</span>
+                {porIglesia.map(([igl, n]) => (
+                  <span key={igl} className="rounded-full bg-muted px-2.5 py-1 font-medium">
+                    {igl}: <span className="tabular-nums">{n}</span>
+                  </span>
+                ))}
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr>
-                  {['#', 'Fecha y hora', 'Nombre completo', 'Edad', 'Teléfono', 'Invitó', 'Red', 'Líder de CdP', ''].map((h) => (
-                    <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{h}</th>
+                  {['#', 'Fecha y hora', 'Nombre completo', 'Edad', 'Teléfono', 'Invitó', 'Red', 'Líder de CdP', 'Iglesia', ''].map((h, idx) => (
+                    <th key={h || `col-${idx}`} className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -135,6 +154,7 @@ function BloquePersonas({
                     <td className="px-3 py-1.5">{abreviar(p.invitado_por)}</td>
                     <td className="px-3 py-1.5">{p.red_nombre ?? '—'}</td>
                     <td className="px-3 py-1.5">{abreviar(p.lider_cdp)}</td>
+                    <td className="px-3 py-1.5 whitespace-nowrap">{iglesiaCorta(p.iglesia_origen)}</td>
                     <td className="px-3 py-1.5 text-right">
                       <Button size="icon-sm" variant="ghost" title="Editar persona" onClick={() => abrirFicha(p.persona_id, { permitirEdicionExtra: true })}>
                         <Pencil className="h-4 w-4" />

@@ -45,6 +45,8 @@ export type PersonaBloqueEvento = {
   invitado_por: string | null;
   red_nombre: string | null;
   lider_cdp: string | null;
+  /** Iglesia donde se hizo el registro (madre o satélite) — para saber de dónde es. */
+  iglesia_origen: string | null;
 };
 
 // Actividades que se tildan al crear un evento. "Bautismo + Membresía" va

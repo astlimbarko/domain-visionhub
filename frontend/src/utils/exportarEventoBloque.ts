@@ -18,7 +18,13 @@ function fechaHora(creacion: string): string {
   return `${d.toLocaleDateString('es-BO')} ${d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-const COLUMNAS = ['#', 'Fecha y hora', 'Nombre completo', 'Edad', 'Teléfono', 'Invitó', 'Red', 'Líder de CdP'];
+const COLUMNAS = ['#', 'Fecha y hora', 'Nombre completo', 'Edad', 'Teléfono', 'Invitó', 'Red', 'Líder de CdP', 'Iglesia'];
+
+/** Nombre corto de la iglesia para la tabla ("Centro de Vida Montero" → "Montero"). */
+export function iglesiaCorta(nombre: string | null): string {
+  if (!nombre) return '—';
+  return nombre.replace(/^Centro de Vida\s+/i, '').trim() || nombre;
+}
 
 function aFila(p: PersonaBloqueEvento, i: number): string[] {
   return [
@@ -30,6 +36,7 @@ function aFila(p: PersonaBloqueEvento, i: number): string[] {
     nombreAbreviado(p.invitado_por),
     p.red_nombre ?? '—',
     nombreAbreviado(p.lider_cdp),
+    iglesiaCorta(p.iglesia_origen),
   ];
 }
 
