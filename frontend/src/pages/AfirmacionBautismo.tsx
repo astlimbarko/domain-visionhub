@@ -347,7 +347,7 @@ export function AfirmacionBautismo({ iglesiaId, onVolver }: { iglesiaId?: string
             <ArrowLeft className="h-4 w-4" /> Volver al portal
           </button>
         )}
-        <div className="mb-3 flex justify-end"><SelectorEventoActivoCompacto /></div>
+        <div className="mb-3 flex justify-end"><SelectorEventoActivoCompacto procesoCodigo="BAUTISMO" /></div>
 
         <Tabs value={tab} onValueChange={cambiarTab} className="relative">
           <TabsList className="mx-auto max-w-md flex-nowrap">
