@@ -19,7 +19,11 @@ Rama de trabajo: `feat/afirmacion-eventos-modal-actividades` (sale de master). N
 
 ## Otros
 - [x] Quitado el botón "Mi Evangelismo" del menú lateral (owner: pasa a ser ROL completo que maneja Daniel; funcionalidad de fondo intacta). Commiteado en master (1177ed8).
-- [ ] Pendiente: mergear `feat/afirmacion-eventos-modal-actividades` a master + /avances + build + ZIP a cPanel (sigue solo en localhost).
-- [ ] Pendiente: dedup profundo de ~5 personas cargadas como 2 fichas distintas (más delicado).
-- [ ] Pendiente (aparte): KAN-500 (guardar persona existente Bautismo/Membresía).
-- [ ] Jira: falta registrar ticket del Panel de Eventos (MCP no se tocó en esta sesión por tokens).
+- [x] PR #151 MERGEADO a master (merge 7d16164) — todo Afirmación en master. Verificado: experimento codex/front-v2 NO está en master (ni un archivo TailAdmin).
+- [x] `/avances` v2 aplicado a prod (changelog del Panel de Eventos).
+- [x] Jira KAN-509 creado (Panel de Eventos), movido a "En revisión" con comentario. Reporter/assignee Gonzalo.
+- [x] Revisado KAN-500 (bug de Daniel): error intermitente al continuar persona existente desde el buscador en Bautismo/Membresía. Hipótesis: `fn_afirmacion_marcar_bautizado` valida con iglesia_id del cliente. Sin empezar.
+- [ ] Pendiente: **desplegar el front a cPanel (ZIP)** — único paso del Panel de Eventos que falta (backend ya en vivo).
+- [ ] Pendiente: dedup profundo de ~5 fichas de persona duplicadas.
+- [ ] Pendiente (aparte): KAN-500.
+- [ ] Aviso a Matías: sincronizar su rama de Envío con master (tocamos Altar + código/esquema compartido).
