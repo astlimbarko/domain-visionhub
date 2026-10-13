@@ -371,7 +371,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   // borran los items del catalogo, "por si se usan en el futuro" -- ver
   // paneles-contexto.ts). Solo escritorio: en mobile no hay un sidebar fijo
   // que robe espacio, sigue mostrando el drawer normal.
-  const ocultarSidebarDesktop = contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO';
+  // KAN-433 (2026-10-13): mismo criterio -- el panel personal de Evangelista
+  // es minimalista y se navega solo (ver EvangelistaSubHeader), el sidebar
+  // de escritorio no aporta nada ahí tampoco.
+  const ocultarSidebarDesktop =
+    (contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO') ||
+    contextoActivo?.rolUI === 'EVANGELISTA';
   const colorNavbarRol = panelContexto?.colorNavbar;
   const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;

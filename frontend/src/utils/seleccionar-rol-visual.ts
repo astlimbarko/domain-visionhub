@@ -8,8 +8,9 @@
  * tocar la fuente de verdad de permisos/roles.
  */
 import type { LucideIcon } from 'lucide-react';
-import { Heart, HeartHandshake, Home, Settings, Share2, ShieldCheck, UserPlus, Users } from 'lucide-react';
+import { Flame, Heart, HeartHandshake, Home, Settings, Share2, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import type { RolUI } from '@/utils/permisos';
+import { EVANGELISTA_COLOR } from '@/utils/evangelista-colores';
 
 export type FilaRolKind = Exclude<RolUI, 'SIN_ROL'>;
 
@@ -34,6 +35,9 @@ export const FILA_ROL_VISUAL: Record<FilaRolKind, FilaRolVisual> = {
   LIDER_DEPARTAMENTO: { titulo: 'Dpto. de Afirmación', icon: UserPlus, bgIcono: '#e9e4fb', colorIcono: '#7c3aed' },
   LIDER_JOVENES: { titulo: 'Líder de Jóvenes', icon: Users, bgIcono: '#fff2df', colorIcono: '#c76a00' },
   ENCARGADO_MATRIMONIOS: { titulo: 'Encargado de Matrimonios', icon: Heart, bgIcono: '#fde8ef', colorIcono: '#c6285b' },
+  // KAN-433 (2026-10-13): paleta propia del módulo (evangelista-colores.ts),
+  // no la genérica -- mismo ícono que tenía el botón removido del AppShell.
+  EVANGELISTA: { titulo: 'Mi Evangelismo', icon: Flame, bgIcono: '#fdece0', colorIcono: EVANGELISTA_COLOR.NARANJA_OSCURO },
 };
 
 /** Color neutro de respaldo para el punto de Red cuando no tiene color configurado (default '#FFFFFF' en BD). */

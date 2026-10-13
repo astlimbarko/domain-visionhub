@@ -162,6 +162,14 @@ function construirOpcionesIglesia(iglesia: IglesiaAccesible, roles: MisRolesDash
     });
   }
 
+  if (iglesia.es_evangelista) {
+    const v = FILA_ROL_VISUAL.EVANGELISTA;
+    opciones.push({
+      key: `EVANGELISTA:${iglesiaId}`, rolUI: 'EVANGELISTA', contexto: { clave: `EVANGELISTA:${iglesiaId}`, rolUI: 'EVANGELISTA', alcance: 'IGLESIA', iglesiaId },
+      titulo: v.titulo, icon: v.icon, bgIcono: v.bgIcono, colorIcono: v.colorIcono, lineas: [], iglesiaId, iglesiaNombre,
+    });
+  }
+
   return opciones;
 }
 

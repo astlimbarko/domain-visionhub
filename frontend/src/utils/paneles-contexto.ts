@@ -4,12 +4,14 @@ import {
   NAV_ITEMS_AFIRMACION,
   NAV_ITEM_EVANGELISMO,
   NAV_ITEM_EVANGELISMO_PERSONAS,
+  NAV_ITEM_EVANGELISTA,
   NAV_ITEM_JOVENES,
   NAV_ITEM_MATRIMONIOS,
   obtenerNavItems,
   puedeAcceder,
   type NavItem,
 } from '@/utils/permisos';
+import { EVANGELISTA_COLOR } from '@/utils/evangelista-colores';
 import { ROUTES, rutaConstructorResumen } from '@/utils/constants';
 
 export const COLORES_NAVBAR_CONTEXTO = {
@@ -25,6 +27,8 @@ export const COLORES_NAVBAR_CONTEXTO = {
   ENCARGADO_MATRIMONIOS: '#FFFAFA',
   // Reservado para el futuro panel de calendario; todavía no es un RolUI.
   ENCARGADO_CALENDARIO: '#6D28D9',
+  // KAN-433 (2026-10-13): paleta propia del módulo, no la genérica.
+  EVANGELISTA: EVANGELISTA_COLOR.NARANJA,
 } as const;
 
 export interface PanelContexto {
@@ -53,6 +57,7 @@ function tituloContexto(contexto: ContextoActivo): string {
   if (contexto.rolUI === 'LIDER_CDP') return 'Líder de Casa de Paz';
   if (contexto.rolUI === 'SUBLIDER_CDP') return 'Sublíder de Casa de Paz';
   if (contexto.rolUI === 'LIDER_JOVENES') return 'Líder de Jóvenes';
+  if (contexto.rolUI === 'EVANGELISTA') return 'Mi Evangelismo';
   return 'Encargado de Matrimonios';
 }
 
@@ -69,6 +74,7 @@ function navContexto(contexto: ContextoActivo): NavItem[] {
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return [NAV_ITEM_JOVENES];
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return [NAV_ITEM_MATRIMONIOS];
+  if (contexto.rolUI === 'EVANGELISTA') return [NAV_ITEM_EVANGELISTA];
   const items = obtenerNavItems(contexto.rolUI);
   // Pastor y Supervisor tienen una sola iglesia activa bien definida (a
   // diferencia de Super Admin, que administra varias): ambos reciben su
@@ -100,6 +106,7 @@ function rutaInicialContexto(contexto: ContextoActivo): string {
   }
   if (contexto.rolUI === 'LIDER_JOVENES') return ROUTES.JOVENES;
   if (contexto.rolUI === 'ENCARGADO_MATRIMONIOS') return ROUTES.MATRIMONIOS;
+  if (contexto.rolUI === 'EVANGELISTA') return ROUTES.EVANGELISTA;
   return ROUTES.DASHBOARD;
 }
 
@@ -142,17 +149,15 @@ export function obtenerPanelContexto(contexto: ContextoActivo): PanelContexto {
     // para todos", sin importar rol. KAN-405 ("Colaborar") quedó fuera de
     // PrivateLayout (ver App.tsx) -- pantalla propia, sin panel/sidebar, no
     // pasa por este guard, no hace falta agregarla acá.
+    // KAN-433 (2026-10-13): el panel de Evangelista dejó de ser una excepción
+    // universal acá -- ahora solo se llega a /evangelista/* habiendo elegido
+    // el rol EVANGELISTA en el selector (RUTAS_POR_ROL en permisos.ts). El
+    // gate real (¿tiene la capacidad?) sigue viviendo adentro de la página
+    // (RequiereCapacidad + useEsEvangelista en App.tsx).
     puedeAccederRuta: (ruta) =>
       ruta === ROUTES.CUENTA ||
       ruta === ROUTES.CUENTA_MEMBRESIA ||
       ruta === ROUTES.CUENTA_CONTRASENA ||
-      // KAN-433: el panel de Evangelista es ortogonal al RolUI (cualquier
-      // rol puede tenerlo) -- mismo criterio de excepción universal que
-      // ROUTES.CUENTA arriba. El gate real (¿tiene la capacidad?) vive
-      // adentro de la página/ruta (RequiereCapacidad + useEsEvangelista en
-      // App.tsx), no acá.
-      ruta === ROUTES.EVANGELISTA ||
-      ruta.startsWith('/evangelista/') ||
       puedeAcceder(contexto.rolUI, ruta),
   };
 }

@@ -30,9 +30,13 @@ import {
   Droplets,
   // harness/24: RSIL (mismo icono que la tarjeta RSIL del portal).
   HeartPulse,
+  // KAN-433 (2026-10-13): Evangelista personal -- mismo ícono que ya usaba
+  // el botón removido del AppShell (EvangelistaFooter, commit 1177ed8).
+  Flame,
 } from 'lucide-react';
 import { ROUTES } from '@/utils/constants';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
+import { EVANGELISTA_COLOR } from '@/utils/evangelista-colores';
 import type { LucideIcon } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -51,6 +55,11 @@ export type RolUI =
   | 'LIDER_DEPARTAMENTO'
   | 'LIDER_JOVENES'
   | 'ENCARGADO_MATRIMONIOS'
+  // KAN-433 (2026-10-13): antes era ortogonal al RolUI (excepción universal
+  // en paneles-contexto.ts + botón fijo en el pie del menú) -- pedido del
+  // owner: pasa a ser un RolUI más, elegible desde "Seleccionar rol", mismo
+  // criterio que LIDER_JOVENES/ENCARGADO_MATRIMONIOS arriba.
+  | 'EVANGELISTA'
   | 'SIN_ROL';
 
 export interface NavItem {
@@ -264,6 +273,18 @@ const RUTAS_LIDER_DEPARTAMENTO: string[] = [
 ];
 const RUTAS_LIDER_JOVENES: string[] = [ROUTES.JOVENES];
 const RUTAS_ENCARGADO_MATRIMONIOS: string[] = [ROUTES.MATRIMONIOS];
+// KAN-433: las 5 pantallas del panel personal de Evangelista. El gate real
+// (¿tiene la capacidad?) sigue viviendo en RutaEvangelista/useEsEvangelista
+// (App.tsx) -- esto solo decide si el contexto EVANGELISTA puede navegar
+// hacia ellas (antes era una excepción universal en paneles-contexto.ts,
+// alcanzable desde cualquier rol; ahora requiere haber elegido este rol).
+const RUTAS_EVANGELISTA: string[] = [
+  ROUTES.EVANGELISTA,
+  ROUTES.EVANGELISTA_NUEVO,
+  ROUTES.EVANGELISTA_HISTORIAL,
+  ROUTES.EVANGELISTA_SEGUIMIENTO,
+  ROUTES.EVANGELISTA_CREDENCIALES,
+];
 
 // KAN-388 (2026-09-17, pedido explícito del owner): /avances es de acceso
 // solo por URL directa (no aparece en CATALOGO_NAV), pero cualquier rol de
@@ -280,6 +301,7 @@ const RUTAS_POR_ROL: Record<RolUI, string[]> = {
   LIDER_DEPARTAMENTO: [...RUTAS_LIDER_DEPARTAMENTO, ROUTES.AVANCES],
   LIDER_JOVENES: [...RUTAS_LIDER_JOVENES, ROUTES.AVANCES],
   ENCARGADO_MATRIMONIOS: [...RUTAS_ENCARGADO_MATRIMONIOS, ROUTES.AVANCES],
+  EVANGELISTA: [...RUTAS_EVANGELISTA, ROUTES.AVANCES],
   // Sin rutas propias: quien no tiene rol de sistema solo ve lo que le dé
   // una capacidad ortogonal (Afirmación) o /cuenta.
   SIN_ROL: [],
@@ -405,6 +427,12 @@ export const NAV_ITEM_EVANGELISMO: NavItem = { icon: HeartHandshake, label: 'Eva
 export const NAV_ITEM_EVANGELISMO_PERSONAS: NavItem = { icon: Users, label: 'Personas evangelizadas', path: ROUTES.EVANGELISMO_PERSONAS, color: DEPARTAMENTO_META.EVANGELISMO.color };
 export const NAV_ITEM_JOVENES: NavItem = { icon: Users, label: 'Jóvenes', path: ROUTES.JOVENES, color: '#ff9500' };
 export const NAV_ITEM_MATRIMONIOS: NavItem = { icon: Heart, label: 'Matrimonios', path: ROUTES.MATRIMONIOS, color: '#ff375f' };
+// KAN-433: único ítem del contexto EVANGELISTA (panel minimalista propio,
+// con su propia navegación interna -- ver EvangelistaSubHeader) -- sirve
+// sobre todo para el menú mobile, volver al dashboard desde cualquier
+// subpantalla. El sidebar de escritorio se oculta para este contexto
+// (AppShell.tsx, mismo criterio que Dpto. de Evangelismo).
+export const NAV_ITEM_EVANGELISTA: NavItem = { icon: Flame, label: 'Mi Evangelismo', path: ROUTES.EVANGELISTA, color: EVANGELISTA_COLOR.NARANJA };
 
 // ─── Funciones públicas ──────────────────────────────────────────────────────
 

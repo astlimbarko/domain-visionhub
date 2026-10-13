@@ -113,6 +113,15 @@ export function construirContextosDisponibles({
     });
   }
 
+  if (iglesia.es_evangelista) {
+    contextos.push({
+      clave: `EVANGELISTA:${iglesia.id}`,
+      rolUI: 'EVANGELISTA',
+      alcance: 'IGLESIA',
+      iglesiaId: iglesia.id,
+    });
+  }
+
   return contextos;
 }
 

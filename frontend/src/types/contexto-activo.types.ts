@@ -37,7 +37,8 @@ export type ContextoActivo =
       cdpId: string;
     })
   | (ContextoBase<'LIDER_JOVENES', 'IGLESIA'> & { iglesiaId: string })
-  | (ContextoBase<'ENCARGADO_MATRIMONIOS', 'IGLESIA'> & { iglesiaId: string });
+  | (ContextoBase<'ENCARGADO_MATRIMONIOS', 'IGLESIA'> & { iglesiaId: string })
+  | (ContextoBase<'EVANGELISTA', 'IGLESIA'> & { iglesiaId: string });
 
 export function contextoPerteneceAIglesia(
   contexto: ContextoActivo,
