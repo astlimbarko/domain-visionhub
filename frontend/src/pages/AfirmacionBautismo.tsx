@@ -48,6 +48,7 @@ import { IndicadorCruceProceso } from '@/components/afirmacion/IndicadorCrucePro
 import { AMBAR } from '@/components/dashboard/DashboardUI';
 import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 import { SelectorEventoActivoCompacto } from '@/components/afirmacion/SelectorEventoActivoCompacto';
+import { ExportRegistroBotones } from '@/components/afirmacion/ExportRegistroBotones';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -568,6 +569,7 @@ function DatosBautismo({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (
             </SelectContent>
           </Select>
         )}
+        <ExportRegistroBotones registros={historial} proceso="Bautismo" />
       </div>
 
       {historialCrudo.length > 0 && (

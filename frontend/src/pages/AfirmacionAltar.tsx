@@ -1,4 +1,5 @@
 import { SelectorEventoActivoCompacto } from '@/components/afirmacion/SelectorEventoActivoCompacto';
+import { ExportRegistroBotones } from '@/components/afirmacion/ExportRegistroBotones';
 // KAN-481: primer proceso de Afirmacion. Boceto de referencia en
 // basura_no_leer/afirmacion1.png (pestaña Buscar) y afirmacion2.png
 // (pestaña Nuevo) -- pestaña Datos sin boceto, criterio propio (ver nota
@@ -540,6 +541,7 @@ function DatosAltar({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (per
             </SelectContent>
           </Select>
         )}
+        <ExportRegistroBotones registros={historial} proceso="Altar" />
       </div>
 
       {historialCrudo.length > 0 && (
