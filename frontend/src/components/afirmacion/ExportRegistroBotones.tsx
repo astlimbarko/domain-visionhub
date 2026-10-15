@@ -10,7 +10,7 @@ export function ExportRegistroBotones({ registros, proceso }: { registros: Regis
   const vacio = registros.length === 0;
   return (
     <div className="flex items-center gap-2">
-      <Button size="sm" variant="outline" className="gap-1.5" disabled={vacio} onClick={() => exportarRegistroProcesoPdf(registros, { proceso })}>
+      <Button size="sm" variant="outline" className="gap-1.5" disabled={vacio} onClick={() => { void exportarRegistroProcesoPdf(registros, { proceso }); }}>
         <FileText className="h-4 w-4" /> PDF
       </Button>
       <Button size="sm" variant="outline" className="gap-1.5" disabled={vacio} onClick={() => exportarRegistroProcesoXls(registros, { proceso })}>

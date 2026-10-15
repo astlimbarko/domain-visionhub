@@ -105,7 +105,7 @@ function BloquePersonas({
         descripcion={`${personas.length} personas registradas en este evento`}
         accion={
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5" disabled={personas.length === 0} onClick={() => exportarEventoBloquePdf(personas, opcExport)}>
+            <Button size="sm" variant="outline" className="gap-1.5" disabled={personas.length === 0} onClick={() => { void exportarEventoBloquePdf(personas, opcExport); }}>
               <FileText className="h-4 w-4" /> PDF
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" disabled={personas.length === 0} onClick={() => exportarEventoBloqueXls(personas, opcExport)}>

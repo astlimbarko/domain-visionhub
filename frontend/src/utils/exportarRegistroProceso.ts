@@ -1,7 +1,9 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { calcularEdad } from './edad';
 import type { RegistroProcesoAfirmacion } from '@/services/afirmacion.service';
+
+// jsPDF se importa DINÁMICAMENTE dentro del export (no al tope): es una librería
+// pesada y, al ser las puertas lazy, cargarla en el módulo engordaba el chunk de
+// Altar/Bautismo/RSIL y los hacía lentos al abrir. Así solo se baja al tocar PDF.
 
 // Export de la pestaña "Registro" de las puertas (Altar / Bautismo / RSIL).
 // Formato simple = lo que ya muestra la tabla (pedido del owner 2026-10-09).
@@ -39,7 +41,9 @@ function nombreArchivo(proceso: string): string {
   return `Registro_${limpio}_${hoy}`;
 }
 
-export function exportarRegistroProcesoPdf(registros: RegistroProcesoAfirmacion[], opciones: { proceso: string }): void {
+export async function exportarRegistroProcesoPdf(registros: RegistroProcesoAfirmacion[], opciones: { proceso: string }): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
   doc.setFontSize(14);
   doc.text(`Registro de ${opciones.proceso}`, 40, 40);
