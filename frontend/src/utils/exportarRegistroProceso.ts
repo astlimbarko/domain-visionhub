@@ -41,6 +41,22 @@ function nombreArchivo(proceso: string): string {
   return `Registro_${limpio}_${hoy}`;
 }
 
+/** Descarga un Blob con un nombre de archivo explícito (método estándar). */
+function descargarArchivo(blob: Blob, nombre: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 0);
+}
+
 export async function exportarRegistroProcesoPdf(registros: RegistroProcesoAfirmacion[], opciones: { proceso: string }): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const autoTable = (await import('jspdf-autotable')).default;
@@ -58,7 +74,7 @@ export async function exportarRegistroProcesoPdf(registros: RegistroProcesoAfirm
     headStyles: { fillColor: [0, 113, 227] },
     margin: { left: 40, right: 40 },
   });
-  doc.save(`${nombreArchivo(opciones.proceso)}.pdf`);
+  descargarArchivo(doc.output('blob'), `${nombreArchivo(opciones.proceso)}.pdf`);
 }
 
 export function exportarRegistroProcesoXls(registros: RegistroProcesoAfirmacion[], opciones: { proceso: string }): void {
@@ -73,12 +89,5 @@ export function exportarRegistroProcesoXls(registros: RegistroProcesoAfirmacion[
     `<p>Generado: ${esc(fechaLarga(new Date()))} · ${registros.length} personas</p>` +
     `<table border="1"><thead><tr>${th}</tr></thead><tbody>${filas}</tbody></table></body></html>`;
   const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${nombreArchivo(opciones.proceso)}.xls`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  descargarArchivo(blob, `${nombreArchivo(opciones.proceso)}.xls`);
 }
