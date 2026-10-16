@@ -52,6 +52,7 @@ import { ResumenProcesoAfirmacion } from '@/components/afirmacion/ResumenProceso
 import { AMBAR } from '@/components/dashboard/DashboardUI';
 import type { PersonaBusqueda, PersonaSimilar } from '@/types/casas-de-paz.types';
 import { SelectorEventoActivoCompacto } from '@/components/afirmacion/SelectorEventoActivoCompacto';
+import { ExportRegistroBotones } from '@/components/afirmacion/ExportRegistroBotones';
 
 const ID_TIPO_TELEFONO_CELULAR = '878224d1-afb2-4d67-acbb-5478e00a68fb';
 const HOY = () => new Date().toISOString().slice(0, 10);
@@ -532,6 +533,7 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
             </SelectContent>
           </Select>
         )}
+        <ExportRegistroBotones registros={historial} proceso="RSIL" />
       </div>
 
       {historialCrudo.length > 0 && (
@@ -559,6 +561,8 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
                 <th className="px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Edad</th>
                 <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Fecha</th>
                 <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colaborador</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Quién lo invitó</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Red</th>
                 <th className="px-3 py-2 text-right text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Acciones</th>
               </tr>
             </thead>
@@ -574,6 +578,8 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
                   <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{r.fecha_nacimiento ? calcularEdad(r.fecha_nacimiento) : '—'}</td>
                   <td className="px-3 py-1.5 tabular-nums">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')} · {new Date(r.fecha_creacion).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'})}</td>
                   <td className="px-3 py-1.5 text-muted-foreground">{r.registrado_por_nombre ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{r.invitado_por ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{r.red_nombre ?? '—'}</td>
                   <td className="px-3 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end">
                       <EliminarRegistroProceso registroId={r.id} nombre={r.nombre_completo} procesoCodigo="RSIL" />
@@ -606,6 +612,8 @@ function DatosRSIL({ iglesiaId, onEditar }: { iglesiaId: string; onEditar: (pers
                   {new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-BO')} · {new Date(r.fecha_creacion).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'})}
                   {r.fecha_nacimiento && ` · ${calcularEdad(r.fecha_nacimiento)} años`}
                   {r.registrado_por_nombre && ` · ${r.registrado_por_nombre}`}
+                  {r.invitado_por && ` · invitó: ${r.invitado_por}`}
+                  {r.red_nombre && ` · ${r.red_nombre}`}
                 </p>
               </div>
             </button>

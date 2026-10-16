@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { calcularEdad } from './edad';
 import type { PersonaBloqueEvento } from '@/types/afirmacion-eventos.types';
 
@@ -43,10 +41,14 @@ function nombreArchivo(evento: string, fechaEvento: string, bloque: string): str
   return `${limpio(evento)}_${fechaEvento}_${limpio(bloque)}`;
 }
 
-export function exportarEventoBloquePdf(
+export async function exportarEventoBloquePdf(
   personas: PersonaBloqueEvento[],
   opciones: { evento: string; fechaEvento: string; bloque: string }
-): void {
+): Promise<void> {
+  // jsPDF se importa dinámicamente (librería pesada) para no engordar el chunk
+  // del detalle de evento; solo se baja al tocar "PDF".
+  const { jsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   doc.setFontSize(14);
   doc.text(`${opciones.evento} — ${fechaLarga(opciones.fechaEvento)}`, 40, 36);
