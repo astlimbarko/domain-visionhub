@@ -237,6 +237,10 @@ export interface RegistroProcesoAfirmacion {
   fecha_creacion: string;
   registrado_por: string | null;
   registrado_por_nombre: string | null;
+  /** Quién invitó a la persona (de persona_llegada). null si no hay dato. */
+  invitado_por: string | null;
+  /** Red de la Casa de Paz principal de la persona. null si no tiene. */
+  red_nombre: string | null;
 }
 
 export async function registrarProcesoAfirmacion(

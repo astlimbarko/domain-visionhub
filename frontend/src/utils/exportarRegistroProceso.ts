@@ -7,7 +7,7 @@ import type { RegistroProcesoAfirmacion } from '@/services/afirmacion.service';
 
 // Export de la pestaña "Registro" de las puertas (Altar / Bautismo / RSIL).
 // Formato simple = lo que ya muestra la tabla (pedido del owner 2026-10-09).
-const COLUMNAS = ['N°', 'Nombre completo', 'Edad', 'Fecha', 'Hora', 'Colaborador'];
+const COLUMNAS = ['N°', 'Nombre completo', 'Edad', 'Fecha', 'Hora', 'Colaborador', 'Quién lo invitó', 'Red'];
 
 function fechaCorta(iso: string | null): string {
   if (!iso) return '—';
@@ -32,6 +32,8 @@ function aFila(r: RegistroProcesoAfirmacion, i: number): string[] {
     fechaCorta(r.fecha),
     horaDe(r.fecha_creacion),
     r.registrado_por_nombre ?? '—',
+    r.invitado_por ?? '—',
+    r.red_nombre ?? '—',
   ];
 }
 
