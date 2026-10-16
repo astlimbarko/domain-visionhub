@@ -62,7 +62,10 @@ function descargarArchivo(blob: Blob, nombre: string): void {
 export async function exportarRegistroProcesoPdf(registros: RegistroProcesoAfirmacion[], opciones: { proceso: string }): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const autoTable = (await import('jspdf-autotable')).default;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  // Landscape: con 8 columnas en vertical quedaba apretado y los nombres largos
+  // (ej. "quién lo invitó") se partían demasiado. autoTable igual envuelve el
+  // texto y crece el alto de fila si hace falta.
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   doc.setFontSize(14);
   doc.text(`Registro de ${opciones.proceso}`, 40, 40);
   doc.setFontSize(10);
