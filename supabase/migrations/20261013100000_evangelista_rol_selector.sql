@@ -9,6 +9,14 @@
 -- DROP + CREATE (no CREATE OR REPLACE): Postgres no permite reemplazar una
 -- función cambiando la lista de columnas de su RETURNS TABLE (mismo gotcha
 -- que 20260925140000_kan442_fn_mis_iglesias_detalle_padre.sql).
+--
+-- OJO (encontrado al aplicar esta migración, 2026-10-16): la función ya
+-- devolvía una columna `es_lider_envio` (via fn_es_lider_envio_en, Depto.
+-- "ENVIO") que NO existe en ningún archivo de este repo -- se aplicó
+-- directo contra la base real por otra persona del equipo, sin migración
+-- (mismo patrón ya documentado de "migraciones aisladas"). Se preserva
+-- acá tal cual para no romperla, aunque el frontend de esta rama no la
+-- use todavía.
 DROP FUNCTION IF EXISTS public.fn_mis_iglesias_detalle();
 
 CREATE FUNCTION public.fn_mis_iglesias_detalle()
@@ -20,6 +28,7 @@ RETURNS TABLE(
   es_pastor BOOLEAN,
   es_lider_afirmacion BOOLEAN,
   es_lider_evangelismo BOOLEAN,
+  es_lider_envio BOOLEAN,
   es_lider_jovenes BOOLEAN,
   es_encargado_matrimonios BOOLEAN,
   es_evangelista BOOLEAN,
@@ -31,6 +40,7 @@ SET search_path TO 'public'
 AS $function$
   select i.id, i.nombre, i.ciudad, fn_es_operativo_en(i.id), fn_es_pastor_en(i.id),
          fn_es_lider_afirmacion_en(i.id), fn_es_lider_evangelismo_en(i.id),
+         fn_es_lider_envio_en(i.id),
          fn_es_lider_jovenes_en(i.id), fn_es_encargado_matrimonios_en(i.id),
          fn_es_evangelista_en(i.id), i.iglesia_padre_id
   from iglesia i
