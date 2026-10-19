@@ -980,6 +980,33 @@ export function Reportes() {
     });
   }
 
+  // Bug real (2026-10-18, Herland/Mariana/Mayuf): el chequeo de visitasNuevas
+  // en onSubmit/onSubmitMegafiesta nunca cubrió a un asistente YA EXISTENTE
+  // sin fecha de nacimiento y sin "es menor" resuelto -- puede llegar hasta
+  // el envío así restaurando un borrador autoguardado antes de contestar el
+  // modal (setAsistentes(new Map(p.asistentes)) no vuelve a encolar a
+  // nadie), o por cualquier otro gap futuro del mismo estilo. Sin este
+  // chequeo, fn_validar_asistencia rechaza TODO el insert de asistencia
+  // (ASISTENCIA_EDAD_INDEFINIDA) recién en el backend, el reporte entero se
+  // revierte en silencio (fn_revertir_reporte_cdp), y el líder reintenta sin
+  // saber a quién le falta contestar -- creando además personas duplicadas
+  // en cada reintento con visitas nuevas. Se vuelve a encolar en vez de solo
+  // avisar, para que el modal se abra y lo resuelva ahí mismo (mismo patrón
+  // que KAN-422/435).
+  function verificarAsistentesExistentesConEsMenorResuelto(): boolean {
+    for (const [personaId, v] of asistentes) {
+      if (v.esMenor !== undefined) continue;
+      const miembro = poolAsistenciaUnico.find((m) => m.persona_id === personaId);
+      const tieneFecha = miembro?.tiene_fecha_nacimiento ?? false;
+      if (tieneFecha) continue;
+      const nombre = miembro?.nombre_completo ?? asistentesNuevosExistentes.find((p) => p.id === personaId)?.nombre_completo ?? 'esta persona';
+      encolarSiFaltaFecha(personaId, nombre, false);
+      toast.error(`Indicá si ${nombre} es menor`);
+      return false;
+    }
+    return true;
+  }
+
   // KAN-16: checkbox "Asiste a esta CDP" por persona (inverso de esVisita).
   // No toca casa_de_paz_membresia -- solo cambia el valor que se guarda en
   // este registro de asistencia puntual.
@@ -1376,6 +1403,8 @@ export function Reportes() {
       }
     }
 
+    if (!verificarAsistentesExistentesConEsMenorResuelto()) return;
+
     const diezmoSinMonto = diezmos.find((d) => !(d.monto > 0));
     if (diezmoSinMonto) {
       toast.error(`Ingresá el monto del diezmo de ${diezmoSinMonto.nombre_completo}`);
@@ -1607,6 +1636,8 @@ export function Reportes() {
         return;
       }
     }
+
+    if (!verificarAsistentesExistentesConEsMenorResuelto()) return;
 
     try {
       if (!(await darDeBajaNoRealizadaPendienteSiHace())) return;
