@@ -165,7 +165,7 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
         // KAN-447 (pedido explícito del owner): teléfono para mostrarlo junto
         // al nombre de asistentes NC/RE -- mismo criterio "vigente/principal"
         // que persona_estado arriba, filtrado en el map de abajo.
-        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)), telefono_asignacion(es_principal, fecha_eliminacion, telefono:telefono_id(numero)))'
+        'persona_id, persona:persona_id(primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, edad_aproximada, persona_estado(fecha_fin, fecha_eliminacion, estado:estado_id(sigla)), telefono_asignacion(es_principal, fecha_eliminacion, telefono:telefono_id(numero)))'
       )
       .eq('casa_de_paz_id', casaDePazId)
       .is('fecha_fin', null),
@@ -197,7 +197,10 @@ export async function obtenerMiembrosCdp(casaDePazId: string): Promise<MiembroCd
       persona_id: r.persona_id,
       nombre_completo: nombre,
       tiene_fecha_nacimiento: !!p?.fecha_nacimiento,
-      edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : null,
+      // edad para clasificar adulto/menor: de la fecha de nacimiento, o si no
+      // hay, de la edad_aproximada (fix 2026-10-21) -- así una persona conocida
+      // sin fecha no queda sin clasificar y no rompe el reporte.
+      edad: p?.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) : (p?.edad_aproximada ?? null),
       estado_sigla: estadoObj?.sigla ?? null,
       telefono: telefonoObj?.numero ?? null,
     };

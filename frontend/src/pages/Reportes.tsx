@@ -930,7 +930,13 @@ export function Reportes() {
       if (a.esMenor !== undefined) continue;
       const miembro = miembros.find((m) => m.persona_id === a.personaId);
       if (miembro) {
-        encolarSiFaltaFecha(a.personaId, miembro.nombre_completo, miembro.tiene_fecha_nacimiento);
+        // Si se conoce la edad (fecha de nacimiento o aproximada), clasificar
+        // directo; solo encolar el modal si la edad es desconocida (fix 2026-10-21).
+        if (miembro.edad != null) {
+          cambiarEsMenorAsistente(a.personaId, miembro.edad < edadMinima);
+        } else {
+          encolarSiFaltaFecha(a.personaId, miembro.nombre_completo, miembro.tiene_fecha_nacimiento);
+        }
       } else if (a.nombreCompleto) {
         encolarSiFaltaFecha(a.personaId, a.nombreCompleto, false);
       }
@@ -964,10 +970,19 @@ export function Reportes() {
     if (seQuita) {
       quitarDeColaFechaNacimiento(personaId);
     } else {
-      // KAN-422: se agrega (no se quita) a alguien sin fecha de nacimiento
-      // -- se encola para preguntarle en el modal.
+      // Se agrega a alguien: si ya se conoce su edad (de fecha de nacimiento o
+      // de edad_aproximada, fix 2026-10-21) se clasifica directo adulto/menor;
+      // solo se encola el modal cuando la edad es realmente desconocida. Antes
+      // se encolaba a todo el que no tuviera fecha de nacimiento, y una persona
+      // con edad aproximada cargada quedaba sin clasificar -> rompía el reporte.
       const persona = poolAsistenciaUnico.find((m) => m.persona_id === personaId);
-      if (persona) encolarSiFaltaFecha(personaId, persona.nombre_completo, persona.tiene_fecha_nacimiento);
+      if (persona) {
+        if (persona.edad != null) {
+          cambiarEsMenorAsistente(personaId, persona.edad < edadMinima);
+        } else {
+          encolarSiFaltaFecha(personaId, persona.nombre_completo, persona.tiene_fecha_nacimiento);
+        }
+      }
     }
   }
 
@@ -1069,9 +1084,18 @@ export function Reportes() {
     });
     setAsistentesNuevosExistentes((prev) => [...prev, persona]);
     setTextoAsistenteNuevo('');
-    // KAN-422: este buscador nunca trae fecha de nacimiento -- se encola
-    // igual que un miembro sin fecha registrada.
-    encolarSiFaltaFecha(persona.id, persona.nombre_completo, false);
+    // El buscador ya trae la edad (de fecha_nacimiento o, si no hay, de la
+    // edad_aproximada -- fix 2026-10-21). Si se conoce, clasificamos directo
+    // (adulto/menor) sin abrir el modal; solo se encola cuando la edad es
+    // realmente desconocida. Antes se encolaba SIEMPRE, y una persona con edad
+    // aproximada cargada (ej. Leonardo, 43) quedaba sin clasificar si no se
+    // respondía el modal -> el backend rechazaba TODO el reporte
+    // (ASISTENCIA_EDAD_INDEFINIDA). Caso real Mariana Urquidi / Kairos.
+    if (persona.edad != null) {
+      cambiarEsMenorAsistente(persona.id, persona.edad < edadMinima);
+    } else {
+      encolarSiFaltaFecha(persona.id, persona.nombre_completo, false);
+    }
   }
 
   function quitarAsistenteExistente(personaId: string) {
