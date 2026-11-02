@@ -13,3 +13,7 @@
 - [x] Verifiqué en Chrome móvil el control arriba (menos de 60px desde el borde), ausencia de Acciones reales y alternancia de ambos temas. Lint sin errores/avisos.
 
 - [x] Guardé un punto de retorno solicitado por Gonzalo antes de rediseñar los cuatro accesos de Inicio. Frontend sin cambios; propuesta: botones amplios en cuadrícula 2 por 2.
+
+- [x] Reemplacé los accesos de Inicio por cuatro tarjetas grandes 2×2: Reporte de casa de paz (formulario oficial), Asistencia (pantalla existente), Evangelismo y Boletas deshabilitada con Próximamente. Eliminados Historial y Calendario de estos accesos, sin borrar sus secciones del menú. Conservado contexto de CdP en navegación.
+
+- [x] Verificación con respuestas interceptadas: cuatro tarjetas 2×2, altura mínima 150px, sin overflow en PC/tablet/móvil claro/oscuro; tres enlaces oficiales, Boletas deshabilitada y navegación a /reportes comprobada. Lint sin errores y sin errores JS. Siguiente paso: Gonzalo revisa los cuatro accesos en Inicio.

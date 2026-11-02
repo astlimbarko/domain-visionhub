@@ -187,3 +187,12 @@ body:has([data-preview-panel="lider-cdp-drawer"]) .MuiPaper-root:has([data-previ
 
 [data-preview-panel="lider-cdp"] [data-cdp-part$="header"]{padding-right:78px!important}
 body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:none}
+.leader-main-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px!important}
+.leader-shortcuts.leader-main-actions a,.leader-shortcuts.leader-main-actions button{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;min-height:156px;padding:22px 16px!important;background:var(--card);color:var(--foreground)!important;border:1px solid var(--border)!important;border-radius:18px;box-shadow:0 3px 12px rgb(20 35 55 / 4%);text-align:center;text-decoration:none;font:inherit}
+.leader-shortcuts.leader-main-actions a .shortcut-icon,.leader-shortcuts.leader-main-actions button .shortcut-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--primary);border:0;box-shadow:none}
+.leader-main-actions strong{font-size:15px;line-height:1.4;font-weight:650;max-width:100%;overflow-wrap:anywhere}
+.leader-shortcuts.leader-main-actions a:hover{background:var(--muted);border-color:var(--primary)!important;box-shadow:0 5px 16px rgb(20 35 55 / 8%)}
+.leader-shortcuts.leader-main-actions a:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+.leader-shortcuts.leader-main-actions button:disabled{cursor:default;box-shadow:none;color:var(--muted-foreground)!important}
+.leader-shortcuts.leader-main-actions button small{font-size:12px;line-height:1;margin-top:-7px;color:var(--muted-foreground)}
+@media(max-width:480px){.leader-main-actions{gap:12px!important}.leader-shortcuts.leader-main-actions a,.leader-shortcuts.leader-main-actions button{min-height:154px;padding:20px 12px!important}.leader-main-actions strong{font-size:14px}}

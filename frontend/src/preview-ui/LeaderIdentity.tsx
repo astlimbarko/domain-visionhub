@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3, MapPin, Users, ClipboardList, History } from 'lucide-react';
+import { CalendarDays, Clock3, MapPin, Users, ClipboardList, HeartHandshake, ReceiptText } from 'lucide-react';
 import { useCargoVigenteCdp, useCdpPerfil, useDomicilioCdp } from '@/hooks/useCasasDePaz';
 import { useFotoPerfilPath, useUrlFotoPerfil } from '@/hooks/usePersonaFoto';
 import { iniciales } from '@/components/shared/AvatarIniciales';
@@ -24,5 +24,12 @@ export function LeaderIdentity({ cdpId, color, red }: { cdpId: string; color: st
  {foto && <img src={foto} alt="" onError={e=>{e.currentTarget.style.display='none';}}/>}<span>{lider?.nombre_completo ? iniciales(lider.nombre_completo) : <Users/>}</span></Link>
  <div><div className="leader-caption">Líder de Casa de Paz</div><h1>{nombre}</h1><p className="leader-zone"><MapPin size={16}/>{domicilio?.zona || 'Zona sin registrar'}</p></div></div>
  <div className="leader-meeting"><span><CalendarDays size={17}/>{perfil?.dia_reunion != null ? dias[perfil.dia_reunion] : 'Día sin definir'}</span><span><Clock3 size={17}/>{perfil?.hora_reunion?.slice(0,5) || 'Horario sin definir'}</span></div>
- </section><nav className="leader-shortcuts" aria-label="Accesos de Casa de Paz">{[{label:'Reportar',path:ROUTES.REPORTES,Icon:ClipboardList},{label:'Personas',path:ROUTES.PERSONAS,Icon:Users},{label:'Historial',path:ROUTES.HISTORIAL_REPORTES,Icon:History},{label:'Calendario',path:ROUTES.CALENDARIO,Icon:CalendarDays}].map(({label,path,Icon})=><Link key={path} to={path}><span><Icon size={22}/></span>{label}</Link>)}</nav></>;
+ </section><nav className="leader-shortcuts leader-main-actions" aria-label="Accesos de Casa de Paz">
+ {[
+  {label:'Reporte de casa de paz',path:ROUTES.REPORTES,Icon:ClipboardList},
+  {label:'Asistencia',path:ROUTES.HISTORIAL_ASISTENCIA,Icon:Users},
+  {label:'Evangelismo',path:ROUTES.EVANGELISMO,Icon:HeartHandshake},
+ ].map(({label,path,Icon},index)=><Link key={path} to={path} state={{casaDePazId:cdpId}}><span className="shortcut-icon" style={index===0 ? {background,color:foreground} : undefined}><Icon size={28}/></span><strong>{label}</strong></Link>)}
+ <button type="button" disabled aria-label="Boletas, próximamente"><span className="shortcut-icon"><ReceiptText size={28}/></span><strong>Boletas</strong><small>Próximamente</small></button>
+ </nav></>;
 }
