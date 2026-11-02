@@ -1,7 +1,7 @@
 import { type ReactNode, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Home, ClipboardList, LayoutGrid, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
+import { LogOut, X, Home, ClipboardList, LayoutGrid, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -613,7 +613,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={(open)=>{setMenuAbierto(open);setMenuDragY(0);menuDragStart.current=null;}}>
-        <SheetContent data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
+        <SheetContent showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
@@ -634,7 +634,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
                 <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
               </div>
-              <span className="text-[15px] font-bold">{nombreMarca}</span>
+                            <span className="text-[15px] font-bold">{nombreMarca}</span>
+              {rolUI === 'LIDER_CDP' && <button type="button" className="cdp-menu-close" aria-label="Cerrar menú" onClick={()=>{setMenuAbierto(false);setMenuDragY(0);menuDragStart.current=null;}}><X size={20}/></button>}
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-1 flex-col overflow-y-auto p-4">

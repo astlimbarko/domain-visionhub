@@ -31,3 +31,7 @@
 - [x] Revisé el origen de red_color: consulta oficial usa la relación vigente casa_de_paz_red→red.color y el hero aplica ese valor directamente. Detecté que la capa blanca del avatar podía bajar contraste de iniciales (ejemplo #557755: 5.05:1 en hero pero 3.67:1 en avatar); eliminé esa capa y añadí margen al umbral para evitar redondeo del contraste MUI.
 
 - [x] Capturé y medí el hero con datos interceptados: cinco colores (verde, verde oscuro, amarillo, blanco, gris) en light/dark; fondo renderizado idéntico al hex recibido. Tras corrección, volví a medir textos, iconos e iniciales con #009B77, #557755 y #777777 en ambos temas: mínimos 5.95:1, 5.05:1 y 4.69:1. Capturas inspeccionadas y lint aprobado. No se verificó una cuenta real ni se modificaron colores de redes en Supabase.
+
+- [x] Alineé X dentro de la misma fila del nombre de iglesia, botón 44×44 y cabecera compacta próxima al tirador. Definí animación explícita del menú desde abajo (260ms entrada/180ms salida) sin animar layout; respeta reducción de movimiento. Mantiene cierre por arrastre y Escape.
+
+- [x] Medí alineación vertical X/título (diferencia menor a 2px) y animé en Chrome: animationName cdp-menu-enter, duración 0.26s; móvil/tablet ambos temas mantienen viewport completo, gesto corto/largo y X funcionales, sin errores JS. Capturas finales inspeccionadas; lint sin errores.
