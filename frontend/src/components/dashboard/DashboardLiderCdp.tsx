@@ -421,9 +421,10 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
   const { ninos, verdes, amarillos, rojos } = contadoresMiembros;
 
   return (
-    <div ref={contenedorRef} className="flex flex-col gap-6" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #F5F8FC 100%)' }}>
+    <div data-cdp-dashboard={esSublider ? undefined : 'lider'} ref={contenedorRef} className="flex flex-col gap-6" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #F5F8FC 100%)' }}>
       {/* ── Banner del dashboard: vuelto al original (pedido explícito del
              owner, 2026-09-08 -- no había que tocarlo) ──────────────────── */}
+      <div className={esSublider ? undefined : 'cdp-page-header card card-outline card-primary'}>
       <DashboardHero
         icon={Users}
         eyebrow="Casa de Paz"
@@ -448,11 +449,13 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
               contenedorRef={contenedorRef}
               nombreArchivo={`dashboard-cdp-${casa_de_paz.nombre ?? 'casa-de-paz'}`}
               variant="ghost"
-              className="h-9 shrink-0 gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+              className={esSublider ? "h-9 shrink-0 gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white" : "h-9 shrink-0 gap-1.5 rounded-lg border border-border bg-card px-3 text-foreground"}
             />
           </div>
         }
       />
+
+      </div>
 
       {/* ── Indicadores -- todas las cards son botones de acceso rápido,
              agrupadas en pestañas para más orden (pedido del owner) ───────── */}

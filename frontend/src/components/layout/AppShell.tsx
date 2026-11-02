@@ -296,7 +296,7 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
     }
 
     return (
-      <Link key={path} to={path} onClick={onNavigate}
+      <Link key={path} to={path} aria-current={activo ? 'page' : undefined} onClick={onNavigate}
         onMouseEnter={() => precargar(path)} onFocus={() => precargar(path)}
         className={cn(
           'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all',
@@ -372,8 +372,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // paneles-contexto.ts). Solo escritorio: en mobile no hay un sidebar fijo
   // que robe espacio, sigue mostrando el drawer normal.
   const ocultarSidebarDesktop = contextoActivo?.rolUI === 'LIDER_DEPARTAMENTO' && contextoActivo.departamentoCodigo === 'EVANGELISMO';
-  const colorNavbarRol = panelContexto?.colorNavbar;
-  const navbarClaro = panelContexto?.textoNavbarClaro ?? false;
+  const colorNavbarRol = rolUI === 'LIDER_CDP' ? undefined : panelContexto?.colorNavbar;
+  const navbarClaro = rolUI === 'LIDER_CDP' ? false : (panelContexto?.textoNavbarClaro ?? false);
   const estiloNavbarColor = colorNavbarRol ? { backgroundColor: colorNavbarRol } : undefined;
   const estiloSidebarColor = colorNavbarRol
     ? { backgroundColor: `color-mix(in oklab, ${colorNavbarRol} 10%, white)` }
@@ -474,7 +474,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp' : undefined} className="flex min-h-svh flex-col bg-background">
       {/* KAN-405: visible en TODA la app mientras el permiso de Colaborador
           esté por vencer -- no solo en /colaborar (ver ese componente). */}
       <ColaboradorAvisoVencimiento />
@@ -488,7 +488,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* El Super Admin trabaja directamente en Administración y abre cada
           organigrama desde su iglesia. Su menú lateral queda oculto en todos
           los tamaños hasta que exista un menú con nuevas funciones reales. */}
-      <aside
+      <aside data-cdp-part="sidebar"
         className={cn(
           'w-[250px] shrink-0 flex-col border-r',
           esOscuro || ocultarSidebarDesktop ? 'hidden' : 'hidden sm:flex',
@@ -526,7 +526,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Header mobile */}
-      <header
+      <header data-cdp-part="mobile-header"
         className={cn(
           'flex items-center justify-between border-b px-4 py-3 sm:hidden',
           esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/10' : 'border-sidebar-border bg-sidebar'
@@ -604,7 +604,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
-        <SheetContent
+        <SheetContent data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side="left"
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
@@ -670,7 +670,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className={cn('flex min-w-0 flex-1 flex-col', esOscuro && esPanelAdmin ? 'bg-[#12172a]' : 'bg-muted/80')}>
         {/* Barra superior delgada — solo en desktop; en móvil las acciones de
             cuenta viven en el pie del drawer. */}
-        <header
+        <header data-cdp-part="desktop-header"
           className={cn(
             'hidden items-center gap-4 border-b px-8 sm:flex',
             colorNavbarRol ? 'h-[52px]' : 'py-1.5',
@@ -794,7 +794,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-5 sm:p-8">{children}</main>
+        <main className={rolUI === 'LIDER_CDP' ? 'cdp-content flex-1' : 'flex-1 p-5 sm:p-8'}>{children}</main>
       </div>
       </div>
     </div>
