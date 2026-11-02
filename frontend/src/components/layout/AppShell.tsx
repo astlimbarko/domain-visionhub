@@ -639,7 +639,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
-            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
+            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={rolUI === 'LIDER_CDP' ? navItems.filter(item => item.path !== ROUTES.DASHBOARD) : navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
           <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             {rolUI !== 'LIDER_CDP' && <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />}

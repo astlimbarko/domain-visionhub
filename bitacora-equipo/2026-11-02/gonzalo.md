@@ -39,3 +39,5 @@
 - [x] Retiré las utilidades de padding heredadas de Bootstrap en la cabecera del líder que aún conservaban espacio extra; espaciado aplicado a la fila interior para acercarla al tirador.
 
 - [x] Medición final de cabecera compacta: título inicia antes de 65px desde arriba; X alineada (<2px), animación verificada en ambos temas y gestos/X correctos. Eliminada también la utilidad gap-4 heredada entre tirador y contenido.
+
+- [x] Retiré Inicio del menú desplegable móvil/tablet del líder para evitar duplicarlo. Se conservan Inicio en la barra inferior y en el sidebar de PC, y Dashboard como opción independiente. Sin cambios en rutas ni permisos.
