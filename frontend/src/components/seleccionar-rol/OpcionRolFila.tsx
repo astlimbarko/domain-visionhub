@@ -46,7 +46,7 @@ export function OpcionRolFila({ opcion, onSeleccionar }: Props) {
       onClick={onSeleccionar}
       onPointerDown={agregarRipple}
       style={vars}
-      className="group relative flex min-h-[52px] w-full items-center gap-2.5 overflow-hidden rounded-2xl border-2 border-transparent px-3.5 py-2 text-left transition-colors hover:bg-muted/70 active:border-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
+      className="role-option group relative flex min-h-[52px] w-full items-center gap-2.5 overflow-hidden rounded-2xl border-2 border-transparent px-3.5 py-2 text-left transition-colors hover:bg-muted/70 active:border-[var(--fila-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fila-color)]/50"
     >
       {ripples.map((r) => (
         <span

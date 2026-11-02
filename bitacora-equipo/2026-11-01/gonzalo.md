@@ -15,3 +15,8 @@
 
 - [x] Verificación final: oscuro sin scroll sobrante y Recuperar contraseña conserva overflow-y:scroll original; captura del login compacto inspeccionada.
 - [ ] Siguiente paso: Gonzalo verifica el centrado del login en su ventana de escritorio y continúa con el acceso.
+
+- [x] Mejoré el selector original después del login con tarjeta card/card-outline/card-primary de AdminLTE, roles distinguibles, foco de teclado, textos largos visibles y adaptación móvil/tablet. Conservé agrupación por iglesia, selección/contextos, permisos, ayuda y cierre de sesión.
+- [x] Detecté y corregí colisión de utilidades de espaciado de Bootstrap/AdminLTE con clases originales; retiradas únicamente esas clases del contenedor y controlado el espaciado desde el CSS de prueba.
+- [x] Capturas PC 1440x900, tablet 820x1180 y móvil 390x844 en claro/oscuro, con respuestas interceptadas; login, ayuda, transporte de solo lectura y logout local verificados. Lint de componentes sin errores. Sin backend/base de datos ni cambios en master/producción.
+- [ ] Siguiente paso: Gonzalo revisa visualmente el selector en localhost:5178 después de iniciar sesión y decide la próxima pantalla.

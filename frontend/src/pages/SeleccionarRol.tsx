@@ -91,7 +91,7 @@ export function SeleccionarRol() {
 
   return (
     <div
-      data-ui-page="roles" className="relative flex min-h-svh items-start justify-center overflow-hidden p-4 py-6 sm:items-center sm:p-6"
+      data-ui-page="roles" className="relative flex min-h-svh items-start justify-center overflow-hidden sm:items-center"
       style={{
         // KAN-191 (revisión): la primera versión eran manchas borrosas muy
         // tenues sobre un fondo casi blanco -- se veía "lavado" comparado con
@@ -115,7 +115,7 @@ export function SeleccionarRol() {
           DialogContent (dialog.tsx) para no depender de que la lista de
           roles siempre entre. Con 6-7 roles la tarjeta ya no empuja toda la
           página, hace scroll adentro y "Cerrar sesión" sigue siempre a mano. */}
-      <div className="scrollbar-minimal relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-card p-5 shadow-xl shadow-black/[0.06] sm:p-7">
+      <div className="card card-outline card-primary roles-card scrollbar-minimal relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-card shadow-xl shadow-black/[0.06]">
         {/* KAN-442 (feedback en vivo del owner, 2026-09-25): antes había un
             logo + nombre de iglesia arriba -- el nombre mostraba la iglesia
             "activa" residual de la sesión anterior, incoherente con que esta
@@ -125,7 +125,7 @@ export function SeleccionarRol() {
             interno del equipo, no algo para mostrarle a las iglesias. Con el
             avatar/iniciales de la persona (más abajo) alcanza; solo queda el
             botón de ayuda. */}
-        <div className="mb-4 flex items-center justify-end gap-2.5">
+        <div className="roles-toolbar mb-4 flex items-center justify-end gap-2.5">
           {/* KAN-193: abre la ayuda del selector de rol (multirol-help.jpeg).
               Hacer clic de nuevo sobre el mismo ícono vuelve a la lista de
               roles -- alternativa rápida al botón "Volver a mis roles". */}
@@ -144,7 +144,7 @@ export function SeleccionarRol() {
           <AyudaSeleccionarRol onVolver={() => setMostrandoAyuda(false)} />
         ) : (
           <>
-            <div className="flex flex-col items-center gap-1 text-center">
+            <div className="roles-welcome flex flex-col items-center gap-1 text-center">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[12px] font-bold text-white shadow-lg shadow-black/10">
                 {nombreCompleto ? iniciales(nombreCompleto) : null}
                 {/* Punto "en línea" (m.png) -- decorativo, no refleja presencia real. */}
@@ -162,7 +162,7 @@ export function SeleccionarRol() {
               <p className="mt-0.5 text-[12.5px] text-muted-foreground">Selecciona un rol para continuar</p>
             </div>
 
-            <div className="mt-3">
+            <div className="roles-options mt-3">
               {opcionesContextuales === undefined ? (
                 <div className="flex flex-col gap-3">
                   <Skeleton className="h-[60px] w-full rounded-2xl" />
@@ -173,7 +173,7 @@ export function SeleccionarRol() {
               )}
             </div>
 
-            <div className="mt-2.5 flex flex-col items-center gap-2">
+            <div className="roles-footer mt-2.5 flex flex-col items-center gap-2">
               <p className="text-center text-[11px] text-muted-foreground">
                 Podés cambiar de rol después desde tu perfil.
               </p>

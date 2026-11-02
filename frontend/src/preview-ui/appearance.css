@@ -42,3 +42,37 @@ html:has(.original-login){overflow-y:auto;scrollbar-gutter:auto}
   .original-login-card>.MuiTypography-caption:last-child{margin-top:12px}
 }
 @media(max-width:480px) and (max-height:760px){.original-login{padding:12px 14px}.original-login-card{padding:24px 22px}}
+
+/* AdminLTE card shell; original role buttons and selection handlers are preserved. */
+html:has([data-ui-page="roles"]){overflow-y:auto;scrollbar-gutter:auto}
+[data-ui-page="roles"]{min-height:100dvh;align-items:center;padding:32px 20px 88px;overflow:visible}
+[data-ui-page="roles"]>.roles-card{display:block;width:100%;max-width:640px;max-height:none;overflow:visible;margin:0;padding:28px 32px;border-top:4px solid var(--primary);background:var(--card);color:var(--foreground)}
+.roles-toolbar{margin-bottom:0}
+.roles-toolbar button{width:40px;height:40px}
+.roles-welcome{margin-top:-20px;padding:0 44px 24px}
+.roles-welcome>div{width:52px;height:52px;font-size:16px;box-shadow:none}
+.roles-welcome h1{font-size:26px;line-height:1.25;margin-top:12px;margin-bottom:0}
+.roles-welcome p{font-size:14px;line-height:1.5;margin-bottom:0}
+.roles-welcome p:last-child{margin-top:8px}
+.roles-options{margin-top:0}
+.roles-options .role-option{min-height:78px;padding:16px;gap:14px;border:1px solid var(--border);background:var(--card);margin-bottom:10px;box-shadow:0 1px 2px rgb(20 35 55 / 3%)}
+.roles-options .role-option:hover{background:var(--accent);border-color:var(--primary)}
+.roles-options .role-option:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+.roles-options .role-option:active{border-color:var(--primary);background:var(--accent)}
+.roles-options .role-option>span.flex{width:42px;height:42px;border-radius:10px}
+.roles-options .role-option>span.flex svg{width:21px;height:21px}
+.roles-options .role-option>img{width:42px;height:42px}
+.roles-options .role-option .line-clamp-1{display:block;-webkit-line-clamp:unset;white-space:normal;font-size:15px;line-height:1.45}
+.roles-options .role-option .truncate{white-space:normal;overflow:visible;overflow-wrap:anywhere;font-size:13px;line-height:1.5}
+.roles-options .role-option>svg{color:var(--primary);width:18px;height:18px}
+.roles-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:12px;gap:12px}
+.roles-footer p{font-size:12px;line-height:1.5;margin:0}
+.roles-footer button{min-height:44px;padding:10px 20px}
+@media(max-width:600px){
+ [data-ui-page="roles"]{padding:20px 14px 90px;align-items:flex-start}
+ [data-ui-page="roles"]>.roles-card{padding:18px 18px 24px;border-radius:12px}
+ .roles-welcome{padding:0 28px 22px;margin-top:-20px}
+ .roles-welcome h1{font-size:24px}
+ .roles-options .role-option{padding:14px 12px;gap:10px}
+}
+@media(prefers-reduced-motion:reduce){.role-option,.role-option *{animation:none!important;transition:none!important}}
