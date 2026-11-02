@@ -11,3 +11,5 @@
 - [x] Moví el control claro/oscuro arriba a la derecha y retiré todas sus etiquetas, incluida Acciones reales. Reservé espacio en la cabecera del líder para que no tape las acciones. Sin cambios en permisos ni transporte.
 
 - [x] Verifiqué en Chrome móvil el control arriba (menos de 60px desde el borde), ausencia de Acciones reales y alternancia de ambos temas. Lint sin errores/avisos.
+
+- [x] Guardé un punto de retorno solicitado por Gonzalo antes de rediseñar los cuatro accesos de Inicio. Frontend sin cambios; propuesta: botones amplios en cuadrícula 2 por 2.
