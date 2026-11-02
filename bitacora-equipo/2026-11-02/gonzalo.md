@@ -49,3 +49,5 @@
 - [x] Quité la reserva forzada de scrollbar solo en Inicio del líder; conserva desplazamiento cuando el contenido lo necesita, sin banda lateral artificial.
 
 - [x] QA interceptado PC/tablet/móvil claro/oscuro: hero en x=0, pegado a cabecera (y=65px), sin radio y con ancho idéntico a cabecera; sin overflow ni errores JS. Comprobación final móvil tras quitar gutter: hero y cabecera de 390px exactos. Siguiente paso: Gonzalo revisa este hero antes de continuar estética de PC.
+
+- [x] Cambié únicamente el botón inferior derecho del líder: Reportar → Calendario, con icono y ruta oficiales y estado activo correspondiente. El acceso Reporte de casa de paz de Inicio permanece intacto.
