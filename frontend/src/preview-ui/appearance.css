@@ -196,3 +196,16 @@ body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:no
 .leader-shortcuts.leader-main-actions button:disabled{cursor:default;box-shadow:none;color:var(--muted-foreground)!important}
 .leader-shortcuts.leader-main-actions button small{font-size:12px;line-height:1;margin-top:-7px;color:var(--muted-foreground)}
 @media(max-width:480px){.leader-main-actions{gap:12px!important}.leader-shortcuts.leader-main-actions a,.leader-shortcuts.leader-main-actions button{min-height:154px;padding:20px 12px!important}.leader-main-actions strong{font-size:14px}}
+/* Equal content slots keep all four actions centered, including long labels. */
+.leader-shortcuts.leader-main-actions>a,.leader-shortcuts.leader-main-actions>button{position:relative;justify-content:center;align-items:center;text-align:center;gap:12px}
+.leader-main-actions strong{display:flex;align-items:center;justify-content:center;min-height:42px;width:100%;margin:0;text-align:center}
+.leader-shortcuts.leader-main-actions>button small{position:absolute;bottom:10px;left:0;right:0;margin:0;text-align:center}
+.leader-main-actions{width:100%;margin-inline:auto;align-items:stretch;justify-items:stretch}
+@media(max-width:1023px) and (max-height:760px){
+ .leader-home{gap:18px}
+ .leader-shortcuts.leader-main-actions>a,.leader-shortcuts.leader-main-actions>button{min-height:128px;padding:12px!important;gap:6px}
+ .leader-shortcuts.leader-main-actions .shortcut-icon{width:48px;height:48px;flex-shrink:0}
+ .leader-shortcuts.leader-main-actions .shortcut-icon svg{width:25px;height:25px}
+ .leader-main-actions strong{min-height:40px;font-size:14px}
+ .leader-shortcuts.leader-main-actions>button small{bottom:6px;font-size:11px}
+}

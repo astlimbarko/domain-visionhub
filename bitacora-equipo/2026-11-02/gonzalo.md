@@ -17,3 +17,7 @@
 - [x] Reemplacé los accesos de Inicio por cuatro tarjetas grandes 2×2: Reporte de casa de paz (formulario oficial), Asistencia (pantalla existente), Evangelismo y Boletas deshabilitada con Próximamente. Eliminados Historial y Calendario de estos accesos, sin borrar sus secciones del menú. Conservado contexto de CdP en navegación.
 
 - [x] Verificación con respuestas interceptadas: cuatro tarjetas 2×2, altura mínima 150px, sin overflow en PC/tablet/móvil claro/oscuro; tres enlaces oficiales, Boletas deshabilitada y navegación a /reportes comprobada. Lint sin errores y sin errores JS. Siguiente paso: Gonzalo revisa los cuatro accesos en Inicio.
+
+- [x] Centré iconos y textos en las cuatro tarjetas con espacios de título iguales; Próximamente queda fuera del flujo para no desplazar Boletas. Ajusté altura/iconos en móvil y tablet de poca altura para dar espacio a la segunda fila sobre la barra inferior.
+
+- [x] Medí centros horizontales de los cuatro iconos y alineación vertical por fila en PC/tablet/móvil y 490×650, en claro/oscuro; sin desbordamiento horizontal ni errores JS. Capturas tomadas; enlaces originales conservados.
