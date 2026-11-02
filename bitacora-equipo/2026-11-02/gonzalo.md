@@ -7,3 +7,7 @@
 - [ ] Siguiente paso: Gonzalo revisa esta organización en 5178; luego adaptar tarjetas/gráficos del Dashboard, manteniendo cálculos, por etapas.
 
 - [x] Revisión TypeScript completa aprobada; capturas finales inspeccionadas y verificaciones de navegación repetidas después de los ajustes de contraste.
+
+- [x] Moví el control claro/oscuro arriba a la derecha y retiré todas sus etiquetas, incluida Acciones reales. Reservé espacio en la cabecera del líder para que no tape las acciones. Sin cambios en permisos ni transporte.
+
+- [x] Verifiqué en Chrome móvil el control arriba (menos de 60px desde el borde), ausencia de Acciones reales y alternancia de ambos temas. Lint sin errores/avisos.

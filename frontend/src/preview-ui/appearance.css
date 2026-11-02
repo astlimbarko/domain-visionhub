@@ -184,3 +184,6 @@ body:has(.original-login) [data-preview-status]{display:none!important}
 [data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"]>div:first-child{background:#181f25!important}
 
 body:has([data-preview-panel="lider-cdp-drawer"]) .MuiPaper-root:has([data-preview-status]){display:none}
+
+[data-preview-panel="lider-cdp"] [data-cdp-part$="header"]{padding-right:78px!important}
+body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:none}
