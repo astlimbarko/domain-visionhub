@@ -538,7 +538,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Header mobile */}
       <header data-cdp-part="mobile-header"
         className={cn(
-          'flex items-center justify-between border-b px-4 py-3 sm:hidden',
+          rolUI === 'LIDER_CDP' ? 'flex items-center justify-between border-b sm:hidden' : 'flex items-center justify-between border-b px-4 py-3 sm:hidden',
           esOscuro ? 'border-white/10 bg-[#0a0e1a]' : colorNavbarRol ? 'border-black/10' : 'border-sidebar-border bg-sidebar'
         )}
         style={estiloNavbarColor}

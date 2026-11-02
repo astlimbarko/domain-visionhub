@@ -58,3 +58,7 @@
 
 - [x] Verifiqué la foto con descarga Storage interceptada: el servicio original devuelve blob URL, la imagen carga y conserva enlace a Mi cuenta; no se sustituyeron fotos de usuarios. Capturas de diseño usan datos de prueba y fallback de iniciales. No fueron necesarias imágenes IA: ondas SVG e iconos existentes permiten adaptar la referencia sin assets pesados.
 - [ ] Siguiente paso: Gonzalo revisa la portada en su cuenta real en 5178; luego continuar con la apariencia AdminLTE del reporte sin perder sus campos ni validaciones.
+
+- [x] Añadí degradado derivado del color real de red, con contraste del texto validado en cada tono y onda inferior del mismo color. Portada con altura disponible y tarjetas 2×2 flexibles; compresión progresiva en ventanas bajas sin ocultar contenido. Mantiene scroll accesible solo en alturas extremas menores a 540px.
+
+- [x] QA interceptado en claro/oscuro: sin scroll horizontal ni vertical en 390×844, 320×740, 390×650, 360×600, tablet 820×1180 y PC 1440×1000. Tarjetas quedan sobre la barra inferior y comprobé que cada icono/título/etiqueta cabe dentro de su tarjeta en tamaños ajustados. Campana, tema, menú y perfil siguen funcionando; lint sin errores. Siguiente paso: Gonzalo verifica el ajuste en su móvil.
