@@ -35,3 +35,7 @@
 - [x] Alineé X dentro de la misma fila del nombre de iglesia, botón 44×44 y cabecera compacta próxima al tirador. Definí animación explícita del menú desde abajo (260ms entrada/180ms salida) sin animar layout; respeta reducción de movimiento. Mantiene cierre por arrastre y Escape.
 
 - [x] Medí alineación vertical X/título (diferencia menor a 2px) y animé en Chrome: animationName cdp-menu-enter, duración 0.26s; móvil/tablet ambos temas mantienen viewport completo, gesto corto/largo y X funcionales, sin errores JS. Capturas finales inspeccionadas; lint sin errores.
+
+- [x] Retiré las utilidades de padding heredadas de Bootstrap en la cabecera del líder que aún conservaban espacio extra; espaciado aplicado a la fila interior para acercarla al tirador.
+
+- [x] Medición final de cabecera compacta: título inicia antes de 65px desde arriba; X alineada (<2px), animación verificada en ambos temas y gestos/X correctos. Eliminada también la utilidad gap-4 heredada entre tirador y contenido.

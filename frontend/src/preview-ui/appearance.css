@@ -240,3 +240,4 @@ body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:no
 @keyframes cdp-menu-enter{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes cdp-menu-exit{from{transform:translateY(0)}to{transform:translateY(100%)}}
 @media(prefers-reduced-motion:reduce){[data-preview-panel="lider-cdp-drawer"][data-state]{animation:none!important;transition:none!important}}
+.cdp-menu-header [data-slot="sheet-title"]{padding:4px 16px 10px}

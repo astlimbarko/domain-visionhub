@@ -615,7 +615,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sheet open={menuAbierto} onOpenChange={(open)=>{setMenuAbierto(open);setMenuDragY(0);menuDragStart.current=null;}}>
         <SheetContent showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
-          className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
+          className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar', rolUI === 'LIDER_CDP' && 'gap-0')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
           // asi que estiloSidebarColor (10% mezclado con blanco -- pensado para
           // navbars de color claro) pisaba el bg-[#0a0e1a] del tema oscuro via
@@ -629,7 +629,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onPointerUp={e=>{const start=menuDragStart.current;menuDragStart.current=null;setMenuDragY(0);if(start && e.clientY-start.y>80 && e.clientY-start.y>Math.abs(e.clientX-start.x))setMenuAbierto(false);}}
             onPointerCancel={()=>{menuDragStart.current=null;setMenuDragY(0);}}><span/></div>}
           <div className={rolUI === 'LIDER_CDP' ? 'cdp-menu-scroll' : 'contents'}>
-          <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
+          <SheetHeader className={cn(rolUI === 'LIDER_CDP' ? 'cdp-menu-header border-b p-0' : 'border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
                 <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
