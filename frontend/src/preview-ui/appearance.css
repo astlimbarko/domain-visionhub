@@ -27,3 +27,18 @@ body[data-ui-preview="official"]{background:var(--background);color:var(--foregr
 [data-ui-page="roles"] .sm\:columns-2{columns:auto}
 [data-ui-page="roles"] button{border-radius:8px}
 @media(max-width:480px){[data-ui-page="roles"]>.scrollbar-minimal{padding:22px}}
+
+/* Login only: do not inherit the scrollbar reservation used by long forms. */
+html:has(.original-login){overflow-y:auto;scrollbar-gutter:auto}
+.original-login{min-height:100dvh;box-sizing:border-box}
+@media(max-height:760px){
+  .original-login{padding:12px 20px}
+  .original-login-card{padding:24px 30px}
+  .original-login-brand{margin-bottom:20px}
+  .original-login-brand img{width:40px;height:40px;margin-bottom:12px}
+  .original-login-form{gap:14px}
+  .original-login-form .MuiOutlinedInput-input{padding-top:13.5px;padding-bottom:13.5px}
+  .original-login-card .MuiDivider-root{margin-top:14px;margin-bottom:14px}
+  .original-login-card>.MuiTypography-caption:last-child{margin-top:12px}
+}
+@media(max-width:480px) and (max-height:760px){.original-login{padding:12px 14px}.original-login-card{padding:24px 22px}}

@@ -9,3 +9,9 @@
 - [x] QA en Chrome con respuestas interceptadas: login MUI light/dark, construcción de sesión oficial, iglesias/roles originales, sesión con clave aislada, bloqueo de INSERT/subida/RPC no permitida antes de red, logout limitado a scope=local y móvil sin desbordamiento. No se usaron cuentas ni contraseñas reales; capturas de fixtures inspeccionadas.
 - [x] Revisé consultas de lectura autorizadas como STABLE en SQL existente; no se ejecutó SQL, migración ni cambio de configuración. Ambiente usa solo URL/anon públicas locales ignoradas por Git.
 - [ ] Siguiente paso: Gonzalo inicia sesión por sí mismo en 5178, verifica su iglesia/rol reales y elige la siguiente pantalla para adaptar visualmente manteniendo su lógica. Las ramas de prueba nunca van a master ni producción.
+
+- [x] Corregí únicamente el CSS del login oficial en la rama real: quitada la reserva forzada de scrollbar solo cuando está el login; espaciado compacto en ventanas de poca altura. Se conserva scroll cuando el contenido realmente no cabe, sin overflow:hidden.
+- [x] Medí centrado horizontal/vertical sin desbordamiento en 1366x768, 1100x650 y 1024x600; móvil 390x844 sin scroll sobrante y 390x450 con scroll necesario. No se cambiaron handlers, campos, autenticación, backend ni base de datos.
+
+- [x] Verificación final: oscuro sin scroll sobrante y Recuperar contraseña conserva overflow-y:scroll original; captura del login compacto inspeccionada.
+- [ ] Siguiente paso: Gonzalo verifica el centrado del login en su ventana de escritorio y continúa con el acceso.
