@@ -15,7 +15,7 @@ export function LeaderIdentity({ cdpId, color, red }: { cdpId: string; color: st
  const {data: foto} = useUrlFotoPerfil(path);
  const personaId = useAuthStore(s=>s.personaId);
  const background = color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#19456b';
- const foreground = getContrastRatio(background, '#ffffff') >= 4.5 ? '#ffffff' : '#000000';
+ const foreground = getContrastRatio(background, '#ffffff') >= 4.6 ? '#ffffff' : '#000000';
  const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
  const nombre=lider?.nombre_completo || (isLoading ? 'Cargando líder…' : isError ? 'No se pudo cargar el líder' : 'Líder sin asignar');
  return <><section className="leader-identity" style={{background,color:foreground}} aria-label="Tu Casa de Paz">

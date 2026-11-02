@@ -27,3 +27,7 @@
 - [x] Menú del líder en móvil/tablet a pantalla completa sin espacio superior; tirador de 48px con gesto hacia abajo (umbral 80px), seguimiento visual del arrastre, cancelación/restauración para gestos cortos y conservación del cierre X. Scroll de opciones independiente del tirador.
 
 - [x] Verifiqué en Chrome con red interceptada móvil 390×844 y tablet 820×1180, claro/oscuro: panel en x=0/y=0 y tamaño exacto del viewport; arrastre corto no cierra, largo hacia abajo cierra y X sigue funcional. Sin errores JS; lint aprobado. Sin cambios en backend/datos/permisos. Siguiente paso: Gonzalo prueba el gesto en su móvil.
+
+- [x] Revisé el origen de red_color: consulta oficial usa la relación vigente casa_de_paz_red→red.color y el hero aplica ese valor directamente. Detecté que la capa blanca del avatar podía bajar contraste de iniciales (ejemplo #557755: 5.05:1 en hero pero 3.67:1 en avatar); eliminé esa capa y añadí margen al umbral para evitar redondeo del contraste MUI.
+
+- [x] Capturé y medí el hero con datos interceptados: cinco colores (verde, verde oscuro, amarillo, blanco, gris) en light/dark; fondo renderizado idéntico al hex recibido. Tras corrección, volví a medir textos, iconos e iniciales con #009B77, #557755 y #777777 en ambos temas: mínimos 5.95:1, 5.05:1 y 4.69:1. Capturas inspeccionadas y lint aprobado. No se verificó una cuenta real ni se modificaron colores de redes en Supabase.

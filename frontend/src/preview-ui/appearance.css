@@ -223,3 +223,5 @@ body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:no
  .cdp-menu-scroll{flex:1;min-height:0;max-height:none;padding-bottom:env(safe-area-inset-bottom)}
  [data-preview-panel="lider-cdp-drawer"]>[data-slot="sheet-close"]{top:52px;right:16px}
 }
+/* Keep fallback initials on the exact network color, without a contrast-reducing overlay. */
+.leader-avatar{background:transparent}
