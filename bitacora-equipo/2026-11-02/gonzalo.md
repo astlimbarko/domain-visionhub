@@ -21,3 +21,5 @@
 - [x] Centré iconos y textos en las cuatro tarjetas con espacios de título iguales; Próximamente queda fuera del flujo para no desplazar Boletas. Ajusté altura/iconos en móvil y tablet de poca altura para dar espacio a la segunda fila sobre la barra inferior.
 
 - [x] Medí centros horizontales de los cuatro iconos y alineación vertical por fila en PC/tablet/móvil y 490×650, en claro/oscuro; sin desbordamiento horizontal ni errores JS. Capturas tomadas; enlaces originales conservados.
+
+- [x] Ajusté también el espaciado del hero en ventanas bajas para dar más espacio vertical a las cuatro tarjetas, sin cambiar sus datos.
