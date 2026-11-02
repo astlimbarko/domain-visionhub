@@ -6,6 +6,7 @@ import './utils/i18n'
 import App from './App.tsx'
 import { AppearanceProvider } from './preview-ui/AppearanceProvider'
 import './preview-ui/appearance.css'
+import './preview-ui/leader-landing.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

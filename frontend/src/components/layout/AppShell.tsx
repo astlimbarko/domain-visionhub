@@ -1,3 +1,4 @@
+import { AppearanceToggle } from '@/preview-ui/AppearanceProvider';
 import { type ReactNode, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -608,6 +609,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )
           )}
           <NotificacionesBell />
+          {rolUI === 'LIDER_CDP' && <AppearanceToggle/>}
         </div>
       </header>
 
@@ -679,7 +681,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {rolUI === 'LIDER_CDP' && <nav className="cdp-bottom-nav" aria-label="Navegación del líder">
       <Link to={ROUTES.DASHBOARD} aria-current={location.pathname === ROUTES.DASHBOARD && !location.search.includes('vista=indicadores') ? 'page' : undefined}><Home size={23}/><span>Inicio</span></Link>
-      <button type="button" className="cdp-menu-launch" aria-expanded={menuAbierto} aria-label="Abrir menú del líder" onClick={()=>setMenuAbierto(true)}><span><LayoutGrid size={25}/></span>Menú</button>
+      <button type="button" className="cdp-menu-launch" aria-expanded={menuAbierto} aria-label="Abrir menú del líder" onClick={()=>setMenuAbierto(true)}><span><LayoutGrid size={25}/><strong>Menú</strong></span><span className="cdp-menu-small-label">Menú</span></button>
       <Link to={ROUTES.CALENDARIO} aria-current={location.pathname.startsWith(ROUTES.CALENDARIO) ? 'page' : undefined}><CalendarDays size={23}/><span>Calendario</span></Link></nav>}
       {/* Content */}
       {/* KAN-367 (2026-09-17, pedido del owner): bg-muted/30 -> /80. --muted
@@ -762,6 +764,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )
           )}
           <NotificacionesBell />
+          {rolUI === 'LIDER_CDP' && <AppearanceToggle/>}
           {/* modal={false} (2026-09-06, bug real reportado por el owner): por
               default Radix bloquea el scroll del body al abrir el menu y
               agrega su propia compensacion de ancho de scrollbar

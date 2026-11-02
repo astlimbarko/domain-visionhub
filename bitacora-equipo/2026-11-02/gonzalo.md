@@ -51,3 +51,10 @@
 - [x] QA interceptado PC/tablet/móvil claro/oscuro: hero en x=0, pegado a cabecera (y=65px), sin radio y con ancho idéntico a cabecera; sin overflow ni errores JS. Comprobación final móvil tras quitar gutter: hero y cabecera de 390px exactos. Siguiente paso: Gonzalo revisa este hero antes de continuar estética de PC.
 
 - [x] Cambié únicamente el botón inferior derecho del líder: Reportar → Calendario, con icono y ruta oficiales y estado activo correspondiente. El acceso Reporte de casa de paz de Inicio permanece intacto.
+
+- [x] Adapté la portada del líder al modelo: ondas SVG delimitando hero, insignia de red, separación del perfil, título Accesos rápidos, iconos y tarjetas con colores por sección, barra inferior con menú circular morado. Color de red conserva fondo sólido sin degradados/velos, por confirmación explícita de Gonzalo; foto y hooks oficiales sin sustituir.
+- [x] Reutilicé campana real NotificacionesBell y añadí selector de tema adyacente en las cabeceras del líder; control flotante oculto para evitar duplicación. Otros roles y login conservan su control.
+- [x] Capturas PC/tablet/móvil y 320px en ambos temas; sin overflow horizontal ni errores JS. Campana abre notificaciones oficiales interceptadas; tema adyacente y sin botón duplicado; menú completo conserva cierre. Fondo del hero coincide con red_color, background-image:none y filter:none. Lint y TypeScript completo aprobados.
+
+- [x] Verifiqué la foto con descarga Storage interceptada: el servicio original devuelve blob URL, la imagen carga y conserva enlace a Mi cuenta; no se sustituyeron fotos de usuarios. Capturas de diseño usan datos de prueba y fallback de iniciales. No fueron necesarias imágenes IA: ondas SVG e iconos existentes permiten adaptar la referencia sin assets pesados.
+- [ ] Siguiente paso: Gonzalo revisa la portada en su cuenta real en 5178; luego continuar con la apariencia AdminLTE del reporte sin perder sus campos ni validaciones.
