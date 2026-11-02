@@ -6,10 +6,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
-import { Label } from '@/components/ui/label';
+import { Button, TextField, IconButton, InputAdornment, Card, Typography, Divider, Box } from '@mui/material';
+import { Eye, EyeOff } from 'lucide-react';
+
+
+
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { iniciarSesion, iniciarSesionConGoogle } from '@/services/auth.service';
 import { construirSesionDesdeAuth } from '@/services/sesion.service';
@@ -61,85 +62,29 @@ export function Login() {
     catch { toast.error('No se pudo iniciar sesión con Google.'); }
   }
 
+  const [mostrarContrasena, setMostrarContrasena] = useState(false);
+  const { ref: correoRef, ...correoProps } = register('correo');
+  const { ref: contrasenaRef, ...contrasenaProps } = register('contrasena');
+
   return (
-    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-muted p-6">
-      {/* Fondo con un toque de color, bien sutil -- pedido del owner, 2026-08-03 ("solo un poco"). */}
-      <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-[0.12] blur-3xl" style={{ background: 'var(--chart-1)' }} aria-hidden="true" />
-      <div className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full opacity-[0.10] blur-3xl" style={{ background: 'var(--chart-4)' }} aria-hidden="true" />
-
-      {/* KAN-412: version discreta, no debe competir con el resto de la
-          pantalla -- texto muy chico, bajo contraste, abajo al centro. */}
-      <p className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 text-[10px] text-muted-foreground/40">
-        v{obtenerVersionApp()}
-      </p>
-
-      <div className="relative z-10 w-full max-w-[380px] rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
-        <div className="mb-8 flex flex-col items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-navy)] shadow-lg shadow-black/10">
-            <img src="/logo.png" alt="Centro de Vida" className="h-8 w-8 object-contain brightness-0 invert" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">{t('app.nombre')}</h1>
-            <p className="mt-1 text-[13px] text-muted-foreground">Iniciá sesión en tu cuenta</p>
-          </div>
+    <main className="original-login">
+      <Card variant="outlined" className="original-login-card">
+        <div className="original-login-brand">
+          <img src="/logo.png" alt="Centro de Vida" />
+          <Typography component="h1" variant="h5" fontWeight={700}>{t('app.nombre')}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Iniciá sesión en tu cuenta</Typography>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="correo" className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">{t('auth.correo')}</Label>
-            <Input id="correo" type="email" autoComplete="username" placeholder="tucorreo@ejemplo.com"
-              className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
-              {...register('correo')} />
-            {errors.correo && <p className="text-[11px] text-destructive">{errors.correo.message}</p>}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="contrasena" className="text-[12px] font-semibold tracking-wider text-muted-foreground uppercase">{t('auth.contrasena')}</Label>
-            <PasswordInput id="contrasena" autoComplete="current-password" placeholder="••••••••"
-              className="h-11 rounded-2xl border-border bg-muted/50 px-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
-              {...register('contrasena')} />
-          </div>
-
-          <Button type="submit" disabled={enviando}
-            className="mt-3 h-11 rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]">
-            {enviando ? t('acciones.cargando') : t('auth.iniciarSesion')}
-          </Button>
-
-          <Link to={ROUTES.RECUPERAR_CONTRASENA} className="mt-1 text-center text-[13px] font-medium text-primary transition-colors hover:text-primary/80">
-            ¿Olvidaste tu contraseña?
-          </Link>
+        <form onSubmit={handleSubmit(onSubmit)} className="original-login-form">
+          <TextField {...correoProps} inputRef={correoRef} id="correo" type="email" label={t('auth.correo')} autoComplete="username" fullWidth error={!!errors.correo} helperText={errors.correo?.message} />
+          <TextField {...contrasenaProps} inputRef={contrasenaRef} id="contrasena" type={mostrarContrasena ? 'text' : 'password'} label={t('auth.contrasena')} autoComplete="current-password" fullWidth error={!!errors.contrasena} helperText={errors.contrasena?.message} slotProps={{ input: { endAdornment: <InputAdornment position="end"><IconButton type="button" onClick={() => setMostrarContrasena(v => !v)} aria-label={mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'} edge="end">{mostrarContrasena ? <EyeOff size={20}/> : <Eye size={20}/>}</IconButton></InputAdornment> } }} />
+          <Button type="submit" disabled={enviando} variant="contained" fullWidth size="large" sx={{ py: 1.4 }}>{enviando ? t('acciones.cargando') : t('auth.iniciarSesion')}</Button>
+          <Button component={Link} to={ROUTES.RECUPERAR_CONTRASENA} size="small">¿Olvidaste tu contraseña?</Button>
         </form>
-
-        <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[11px] font-medium text-muted-foreground uppercase">o</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!GOOGLE_AUTH_HABILITADO}
-          title={GOOGLE_AUTH_HABILITADO ? undefined : 'Próximamente'}
-          onClick={onClickGoogle}
-          className="h-11 w-full gap-2.5 rounded-2xl border-border text-[14px] font-semibold text-foreground hover:bg-muted"
-        >
-          <GoogleIcon className="h-4.5 w-4.5" />
-          Continuar con Google
-        </Button>
-        {/*
-          Registro público cerrado (decisión del owner, 2026-07-30): toda
-          cuenta se crea por invitación. Google solo vincula una cuenta YA
-          invitada -- una cuenta de Google nueva sin invitación es rechazada
-          por Supabase sin ningún parámetro de error (el corte pasa antes de
-          emitir tokens, AuthCallback ni llega a montarse), así que no hay
-          forma de mostrar un mensaje reactivo en ese momento. Este aviso
-          preventivo evita la confusión de "aprieto el botón y no pasa nada".
-        */}
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">
-          Solo funciona si ya tenés una cuenta invitada al sistema.
-        </p>
-      </div>
-    </div>
+        <Divider sx={{ my: 2.5 }}><Typography variant="caption" color="text.secondary">o</Typography></Divider>
+        <Button type="button" variant="outlined" fullWidth disabled={!GOOGLE_AUTH_HABILITADO} onClick={onClickGoogle} startIcon={<Box sx={{display:'flex','& svg':{width:18,height:18}}}><GoogleIcon /></Box>} sx={{py:1.2}}>Continuar con Google</Button>
+        <Typography variant="caption" color="text.secondary" sx={{display:'block',textAlign:'center',mt:2}}>Solo funciona si ya tenés una cuenta invitada al sistema.</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{display:'block',textAlign:'center',mt:3,fontSize:10}}>v{obtenerVersionApp()}</Typography>
+      </Card>
+    </main>
   );
 }

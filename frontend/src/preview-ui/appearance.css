@@ -1,0 +1,29 @@
+/* Presentation-only skin for the original application. Original variables remain the component contract. */
+:root {
+  --background:#f1f4f8;--foreground:#1c2b41;--card:#fff;--card-foreground:#1c2b41;
+  --popover:#fff;--popover-foreground:#1c2b41;--primary:#2459c4;--primary-foreground:#fff;
+  --muted:#edf1f7;--muted-foreground:#526176;--secondary:#e8edf4;--secondary-foreground:#1c2b41;
+  --accent:#e8effc;--accent-foreground:#2459c4;--border:#d3dce8;--input:#899ab1;--ring:#2459c4;
+  --radius:.625rem;--sidebar:#fff;--sidebar-foreground:#1c2b41;--sidebar-border:#dce3ed;
+  --sidebar-accent:#e8effc;--sidebar-accent-foreground:#2459c4;--sidebar-primary:#2459c4;
+}
+.dark {
+  --background:#131b29;--foreground:#e9eef6;--card:#1d2839;--card-foreground:#e9eef6;
+  --popover:#1d2839;--popover-foreground:#e9eef6;--primary:#90b8ff;--primary-foreground:#132746;
+  --muted:#182335;--muted-foreground:#acbace;--secondary:#243248;--secondary-foreground:#e9eef6;
+  --accent:#293e5b;--accent-foreground:#c4d9ff;--border:#35445a;--input:#687d99;--ring:#90b8ff;
+  --sidebar:#1d2839;--sidebar-foreground:#e9eef6;--sidebar-border:#35445a;--sidebar-accent:#293e5b;--sidebar-accent-foreground:#c4d9ff;--sidebar-primary:#90b8ff;
+}
+body[data-ui-preview="official"]{background:var(--background);color:var(--foreground)}
+.original-login{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:32px 20px;background:var(--background)}
+.original-login-card{width:100%;max-width:430px;padding:34px;border-radius:14px!important;box-shadow:0 6px 30px rgb(20 35 55 / 5%)!important}
+.original-login-brand{text-align:center;margin-bottom:28px}.original-login-brand img{width:46px;height:46px;object-fit:contain;margin-bottom:15px}.original-login-form{display:flex;flex-direction:column;gap:20px}
+.original-login-form .MuiInputBase-input{box-shadow:none!important}.original-login-form .MuiInputLabel-root{line-height:1.25}
+@media(max-width:480px){.original-login{padding:18px 14px}.original-login-card{padding:28px 22px}}.original-login-brand img{margin:0 auto 15px}
+.dark .original-login-brand img{filter:brightness(1.8)}
+[data-ui-page="roles"]{background:var(--background)!important}
+[data-ui-page="roles"]>[aria-hidden="true"]{display:none}
+[data-ui-page="roles"]>.scrollbar-minimal{max-width:680px;border:1px solid var(--border);border-radius:14px;padding:30px;box-shadow:0 6px 30px rgb(20 35 55 / 5%)}
+[data-ui-page="roles"] .sm\:columns-2{columns:auto}
+[data-ui-page="roles"] button{border-radius:8px}
+@media(max-width:480px){[data-ui-page="roles"]>.scrollbar-minimal{padding:22px}}

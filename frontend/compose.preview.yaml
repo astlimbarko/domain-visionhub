@@ -1,0 +1,17 @@
+name: visionhub-ui-real-readonly
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.preview
+    ports:
+      - "127.0.0.1:5178:5174"
+    volumes:
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./index.html:/app/index.html:ro
+    env_file:
+      - ./.env.preview
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_APP_URL: "http://127.0.0.1:5178"

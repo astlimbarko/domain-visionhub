@@ -91,7 +91,7 @@ export function SeleccionarRol() {
 
   return (
     <div
-      className="relative flex min-h-svh items-start justify-center overflow-hidden p-4 py-6 sm:items-center sm:p-6"
+      data-ui-page="roles" className="relative flex min-h-svh items-start justify-center overflow-hidden p-4 py-6 sm:items-center sm:p-6"
       style={{
         // KAN-191 (revisión): la primera versión eran manchas borrosas muy
         // tenues sobre un fondo casi blanco -- se veía "lavado" comparado con
