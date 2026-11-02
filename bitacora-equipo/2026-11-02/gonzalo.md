@@ -43,3 +43,9 @@
 - [x] Retiré Inicio del menú desplegable móvil/tablet del líder para evitar duplicarlo. Se conservan Inicio en la barra inferior y en el sidebar de PC, y Dashboard como opción independiente. Sin cambios en rutas ni permisos.
 
 - [x] Guardé checkpoint solicitado por Gonzalo antes de cambiar el hero móvil a borde completo y sin esquinas redondeadas.
+
+- [x] Hero de Inicio del líder sin esquinas ni márgenes exteriores en móvil/tablet, pegado a cabecera y bordes del contenido. Accesos conservan margen. En PC hero contenido en el área principal con radio discreto de 12px. No cambia datos ni color de red.
+
+- [x] Quité la reserva forzada de scrollbar solo en Inicio del líder; conserva desplazamiento cuando el contenido lo necesita, sin banda lateral artificial.
+
+- [x] QA interceptado PC/tablet/móvil claro/oscuro: hero en x=0, pegado a cabecera (y=65px), sin radio y con ancho idéntico a cabecera; sin overflow ni errores JS. Comprobación final móvil tras quitar gutter: hero y cabecera de 390px exactos. Siguiente paso: Gonzalo revisa este hero antes de continuar estética de PC.

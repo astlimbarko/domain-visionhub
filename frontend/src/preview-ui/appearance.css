@@ -241,3 +241,13 @@ body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:no
 @keyframes cdp-menu-exit{from{transform:translateY(0)}to{transform:translateY(100%)}}
 @media(prefers-reduced-motion:reduce){[data-preview-panel="lider-cdp-drawer"][data-state]{animation:none!important;transition:none!important}}
 .cdp-menu-header [data-slot="sheet-title"]{padding:4px 16px 10px}
+
+/* Leader home: edge-to-edge identity on mobile; contained on desktop. */
+.leader-home>.leader-identity{border-radius:12px}
+@media(max-width:1023px){
+ .leader-home>.leader-identity{border-radius:0;margin:-20px -20px 0;box-shadow:none}
+}
+@media(max-width:480px){
+ .leader-home>.leader-identity{margin:-16px -12px 0}
+}
+html:has(.leader-home){overflow-y:auto;scrollbar-gutter:auto}
