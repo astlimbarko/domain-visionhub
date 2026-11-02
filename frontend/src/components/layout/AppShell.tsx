@@ -251,7 +251,9 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
   }
 
   function renderItem({ icon: Icon, label, path, color }: NavItem) {
-    const activo = location.pathname === path || location.pathname.startsWith(`${path}/`);
+    const [pathname, query] = path.split('?');
+    const inicioLider = contextoActivo?.rolUI === 'LIDER_CDP' && path === ROUTES.DASHBOARD;
+    const activo = (location.pathname === pathname || location.pathname.startsWith(`${pathname}/`)) && (query ? location.search === `?${query}` : !inicioLider || !location.search.includes('vista=indicadores'));
 
     // Chip de color vivo por sección: el ícono en su color sobre una pastilla
     // teñida. Se satura un poco más cuando la sección está activa.
@@ -264,7 +266,7 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
       </span>
     );
 
-    if (path === ROUTES.DASHBOARD && sombreros.length > 1) {
+    if (path === ROUTES.DASHBOARD && sombreros.length > 1 && contextoActivo?.rolUI !== 'LIDER_CDP') {
       return (
         <div key={path} className="flex flex-col gap-0.5">
           <div className={cn('flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold', oscuro ? 'text-white' : 'text-foreground')}>
@@ -387,7 +389,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const textoUsuario = nombreCompleto || correo || '';
   // El sidebar se obtiene exclusivamente del contexto elegido. Las demás
   // capacidades permanecen en el selector y nunca se suman a este menú.
-  const navItems = panelContexto?.navItems ?? [];
+  const officialNav = panelContexto?.navItems ?? [];
+  const navItems = rolUI === 'LIDER_CDP' ? [
+    {icon:Home,label:'Inicio',path:ROUTES.DASHBOARD,color:'#2459c4'},
+    ...officialNav.map(item=>item.path === ROUTES.DASHBOARD ? {...item,path:`${ROUTES.DASHBOARD}?vista=indicadores`} : item),
+    {icon:Handshake,label:'Colaborar',path:ROUTES.COLABORAR,color:'#526176'},
+  ] : officialNav;
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
   // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
@@ -519,8 +526,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={cn('flex flex-1 flex-col', colorNavbarRol && 'p-4')} style={colorNavbarRol ? estiloSidebarColor : undefined}>
           <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           <div className={cn('mt-2 flex flex-col gap-0.5 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
-            <ColaborarFooter oscuro={esOscuro} />
-            <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />
+            {rolUI !== 'LIDER_CDP' && <ColaborarFooter oscuro={esOscuro} />}
+            {rolUI !== 'LIDER_CDP' && <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />}
           </div>
         </div>
       </aside>
@@ -614,6 +621,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           // inalcanzable para Super Admin hasta este fix.
           style={esOscuro ? undefined : estiloSidebarColor}
         >
+          <div className={rolUI === 'LIDER_CDP' ? 'cdp-menu-scroll' : 'contents'}>
           <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
@@ -626,12 +634,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
           </div>
           <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
-            <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
-            <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />
+            {rolUI !== 'LIDER_CDP' && <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />}
+            {rolUI !== 'LIDER_CDP' && <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />}
           </div>
           <SheetFooter className="gap-1 p-3">
             <button
-              onClick={() => { setMenuAbierto(false); navigate(ROUTES.CUENTA); }}
+              data-cdp-account onClick={() => { setMenuAbierto(false); navigate(ROUTES.CUENTA); }}
               className={cn(
                 'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors',
                 esOscuro ? 'text-white hover:bg-white/10' : 'text-sidebar-foreground hover:bg-sidebar-accent'
@@ -654,14 +662,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={async () => { setMenuAbierto(false); await handleLogout(); }}
               className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
-              <LogOut className="h-4 w-4" /> Salir
+              <LogOut className="h-4 w-4" /> {rolUI === 'LIDER_CDP' ? 'Cerrar sesión' : 'Salir'}
             </button>
           </SheetFooter>
+          </div>
         </SheetContent>
       </Sheet>
 
       {rolUI === 'LIDER_CDP' && <nav className="cdp-bottom-nav" aria-label="Navegación del líder">
-      <Link to={ROUTES.DASHBOARD} aria-current={location.pathname === ROUTES.DASHBOARD ? 'page' : undefined}><Home size={23}/><span>Inicio</span></Link>
+      <Link to={ROUTES.DASHBOARD} aria-current={location.pathname === ROUTES.DASHBOARD && !location.search.includes('vista=indicadores') ? 'page' : undefined}><Home size={23}/><span>Inicio</span></Link>
       <button type="button" className="cdp-menu-launch" aria-expanded={menuAbierto} aria-label="Abrir menú del líder" onClick={()=>setMenuAbierto(true)}><span><LayoutGrid size={25}/></span>Menú</button>
       <Link to={ROUTES.REPORTES} aria-current={location.pathname.startsWith(ROUTES.REPORTES) ? 'page' : undefined}><ClipboardList size={23}/><span>Reportar</span></Link></nav>}
       {/* Content */}
@@ -792,7 +801,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onSelect={handleLogout}
                 className={cn('gap-2 text-destructive focus:text-destructive', esOscuro && 'focus:bg-destructive/20')}
               >
-                <LogOut className="h-4 w-4" /> Salir
+                <LogOut className="h-4 w-4" /> {rolUI === 'LIDER_CDP' ? 'Cerrar sesión' : 'Salir'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

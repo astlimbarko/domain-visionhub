@@ -163,3 +163,24 @@ html:has([data-ui-page="roles"]){overflow-y:auto;scrollbar-gutter:auto}
 }
 @media(max-width:480px){.leader-identity{padding:20px;border-radius:18px}.leader-avatar{width:64px;height:64px}.leader-person{gap:14px}.leader-red{margin-bottom:20px}.leader-meeting{gap:16px}.leader-shortcuts a{font-size:12px!important}}
 body:has(.original-login) [data-preview-status]{display:none!important}
+
+.leader-home{display:flex;flex-direction:column;gap:24px}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"]{--foreground:#f1f5f9;--muted-foreground:#d0d7df;--border:#34414b;--accent:#354955;--accent-foreground:#fff;--muted:#29343d;--primary:#fff;background:#181f25!important;color:#f1f5f9}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"]>div{background:#181f25!important}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"] nav a{color:#e4e9ee!important;box-shadow:none}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"] nav a>span:first-child{background:transparent!important}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"] nav svg{color:#f1f5f9!important}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"] nav a[aria-current="page"]{background:#354955!important;border-color:transparent;border-radius:24px;color:#fff!important}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"] nav a:hover{background:#29343d}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"]>div:last-child>div:last-child{display:none}
+.cdp-menu-scroll{display:block;overflow-y:auto;min-height:0;overscroll-behavior:contain;max-height:85dvh}
+.cdp-menu-scroll>[data-slot="sheet-header"]{padding-right:54px}
+.cdp-menu-scroll>div.flex{overflow:visible;flex:none}
+.cdp-menu-scroll>div.border-t{display:none}
+.cdp-menu-scroll>[data-slot="sheet-footer"]{margin-top:16px;border-top:1px solid var(--border);padding:16px!important}
+.cdp-menu-scroll [data-cdp-account]{display:none}
+[data-preview-panel="lider-cdp-drawer"]{overflow:hidden!important}
+@media(max-width:1023px){[data-preview-panel="lider-cdp-drawer"] nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+[data-preview-panel="lider-cdp"] [data-cdp-part="sidebar"]>div:first-child{background:#181f25!important}
+
+body:has([data-preview-panel="lider-cdp-drawer"]) .MuiPaper-root:has([data-preview-status]){display:none}

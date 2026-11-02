@@ -1,5 +1,6 @@
+import { LeaderHome } from '@/preview-ui/LeaderHome';
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
@@ -73,6 +74,7 @@ function DashboardContextual({ contexto, vistaInicial }: DashboardContextualProp
 }
 
 export function Dashboard() {
+  const [search] = useSearchParams();
   const { contextoActivo, contextosDisponibles } = useContextoActivo();
 
   if (!contextoActivo) {
@@ -94,6 +96,8 @@ export function Dashboard() {
       </div>
     );
   }
+
+  if (contextoActivo.rolUI === 'LIDER_CDP' && contextoActivo.alcance === 'CDP' && search.get('vista') !== 'indicadores') return <LeaderHome key={contextoActivo.clave} cdpId={contextoActivo.cdpId}/>;
 
   const vistaInicial = vistaInicialParaContexto(contextoActivo);
   if (!vistaInicial) {
