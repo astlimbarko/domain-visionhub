@@ -64,3 +64,7 @@
 - [x] QA interceptado en claro/oscuro: sin scroll horizontal ni vertical en 390×844, 320×740, 390×650, 360×600, tablet 820×1180 y PC 1440×1000. Tarjetas quedan sobre la barra inferior y comprobé que cada icono/título/etiqueta cabe dentro de su tarjeta en tamaños ajustados. Campana, tema, menú y perfil siguen funcionando; lint sin errores. Siguiente paso: Gonzalo verifica el ajuste en su móvil.
 
 - [x] Checkpoint solicitado por Gonzalo antes de refinar ondas SVG y simplificar la estética de portada.
+
+- [x] Rehice ondas SVG con curvas Bézier continuas; la franja y el borde inferior comparten exactamente el mismo trazado desplazado para evitar superposiciones irregulares. No se usan texturas ni filtros sobre datos/foto. Suavicé tipografía y sombras, tarjetas con acento discreto en esquina, flechas solo en enlaces funcionales e Inicio de contorno con indicador inferior. PC usa hero horizontal más bajo con horario a la derecha.
+
+- [x] QA final con capturas interceptadas PC/tablet/móvil y 600px de alto, ambos temas: sin scroll ni errores JS; Inicio tiene fill:none, flechas solo en tres enlaces, Boletas sin flecha, campana/tema/perfil/menú preservados. Capturas inspeccionadas y lint aprobado. SVG de curvas reconstruidas y estilos exclusivos de la rama de prueba. Siguiente paso: Gonzalo revisa la nueva portada y compara móvil y PC antes de continuar.
