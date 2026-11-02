@@ -62,3 +62,5 @@
 - [x] Añadí degradado derivado del color real de red, con contraste del texto validado en cada tono y onda inferior del mismo color. Portada con altura disponible y tarjetas 2×2 flexibles; compresión progresiva en ventanas bajas sin ocultar contenido. Mantiene scroll accesible solo en alturas extremas menores a 540px.
 
 - [x] QA interceptado en claro/oscuro: sin scroll horizontal ni vertical en 390×844, 320×740, 390×650, 360×600, tablet 820×1180 y PC 1440×1000. Tarjetas quedan sobre la barra inferior y comprobé que cada icono/título/etiqueta cabe dentro de su tarjeta en tamaños ajustados. Campana, tema, menú y perfil siguen funcionando; lint sin errores. Siguiente paso: Gonzalo verifica el ajuste en su móvil.
+
+- [x] Checkpoint solicitado por Gonzalo antes de refinar ondas SVG y simplificar la estética de portada.
