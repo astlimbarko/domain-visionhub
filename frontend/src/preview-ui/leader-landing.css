@@ -237,3 +237,30 @@ body:has([data-preview-panel="lider-cdp"]) [data-theme-toggle]{display:none!impo
 .dark .leader-home .leader-main-actions>a:nth-child(3)>.shortcut-icon{color:#dbb9ec}
 .leader-home .leader-main-actions>a:after,.leader-home .leader-main-actions>button:after{clip-path:ellipse(65% 55% at 115% 120%)}
 @media(min-width:1024px){.leader-home .leader-main-actions{max-height:440px}.leader-home .leader-main-actions strong{font-size:20px}}
+/* First report slice: the same restrained card system; no form logic changes. */
+[data-ui-report="leader"]{--report-line:var(--leader-line,var(--border));gap:22px;max-width:880px}
+[data-ui-report="leader"] .report-section{border:1px solid var(--report-line);border-radius:14px;background:var(--card);box-shadow:0 3px 10px rgb(25 45 36 / 4%);margin:0;min-width:0}
+[data-ui-report="leader"] [data-report-section-heading]>div{background:transparent!important;border-bottom:1px solid var(--report-line);gap:12px}
+[data-ui-report="leader"] [data-report-section-heading]>div>div>div:first-child{background:transparent!important;box-shadow:none!important;border-radius:8px;width:34px;height:34px}
+[data-ui-report="leader"] [data-report-section-heading] svg{color:var(--primary);width:22px;height:22px;stroke-width:1.7}
+[data-ui-report="leader"] [data-report-section-heading] p:first-child{color:var(--foreground)!important;font-weight:500;font-size:16px;line-height:1.35;margin:0 0 3px}
+[data-ui-report="leader"] [data-report-section-heading] p+p{font-size:12px;line-height:1.5;margin:0;color:var(--muted-foreground)}
+[data-ui-report="leader"] label{font-weight:500;line-height:1.4}
+[data-ui-report="leader"] input:not([type="checkbox"]),[data-ui-report="leader"] textarea,[data-ui-report="leader"] select{border-color:var(--input);border-radius:8px;box-shadow:none}
+[data-ui-report="leader"] textarea{min-height:110px}
+[data-ui-report="leader"] button{font-weight:500}
+[data-ui-report="leader"]>div:first-child{border-radius:14px;box-shadow:none;padding:22px}
+[data-ui-report="leader"]>div:first-child h1{font-size:27px;font-weight:650;letter-spacing:-.02em}
+[data-ui-report="leader"]>div:first-child .pointer-events-none{display:none}
+[data-ui-report="leader"]>div:first-child .h-16{width:48px;height:48px;border-radius:12px;box-shadow:none}
+.dark [data-ui-report="leader"] .report-section{box-shadow:0 3px 10px rgb(0 0 0 / 10%)}
+@layer adminlte{
+ [data-ui-report="leader"] [data-report-section-heading]>div{padding:16px 18px!important}
+ [data-ui-report="leader"] .report-section>.p-5{padding:20px!important}
+}
+@media(max-width:480px){
+ [data-ui-report="leader"]{gap:16px}
+ [data-ui-report="leader"]>div:first-child{padding:18px}
+ [data-ui-report="leader"]>div:first-child h1{font-size:24px}
+ [data-ui-report="leader"] .report-section{border-radius:12px}
+}

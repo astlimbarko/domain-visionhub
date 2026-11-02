@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -121,7 +121,10 @@ const esquema = z.object({
 type FormValues = z.infer<typeof esquema>;
 
 /** Wrapper estándar del design system para toda card de sección (ver skill frontend-style). */
-const CARD_SECCION = 'overflow-hidden rounded-2xl border border-border/60 bg-card';
+function ReportSectionHeader(props: ComponentProps<typeof TarjetaHeader>) {
+  return <div data-report-section-heading><TarjetaHeader {...props}/></div>;
+}
+const CARD_SECCION = 'report-section overflow-hidden rounded-2xl border border-border/60 bg-card';
 
 /**
  * KAN-367: rojo suave para "esto es un dato guardado que estás por editar" --
@@ -149,7 +152,7 @@ function claseCampoEdicion(enModoEdicion: boolean, dirty: boolean): string {
 // en pantallas chicas (móvil), tapando parte de los resultados. Bug real
 // reportado por el owner, 2026-09-03: "componentes sobrepuestos" en vista
 // móvil.
-const CARD_SECCION_CON_DESPLEGABLE = 'rounded-2xl border border-border/60 bg-card';
+const CARD_SECCION_CON_DESPLEGABLE = 'report-section rounded-2xl border border-border/60 bg-card';
 
 /** KAN-373 (2026-09-13): opción de "tema especial" siempre disponible en el
  * Select de Tema, sin importar el libro -- antes solo aparecía si el
@@ -1720,7 +1723,7 @@ export function Reportes() {
       <>
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
-            <TarjetaHeader
+            <ReportSectionHeader
               icon={Users}
               color={TEAL}
               titulo="Asistencia"
@@ -2001,7 +2004,7 @@ export function Reportes() {
       // KAN-367: Pastor / Supervisor de la Visión en Acción -- pueden pedir
       // autorización puntual (justificación + OTP) para editar igual.
       return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <div data-ui-report={contextoActivo?.rolUI === 'LIDER_CDP' ? 'leader' : undefined} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           <DashboardHero
             icon={ClipboardList}
             eyebrow="Editar reporte"
@@ -2044,7 +2047,7 @@ export function Reportes() {
     }
     if (!activado) {
       return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <div data-ui-report={contextoActivo?.rolUI === 'LIDER_CDP' ? 'leader' : undefined} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           <DashboardHero
             icon={ClipboardList}
             eyebrow="Editar reporte"
@@ -2093,7 +2096,7 @@ export function Reportes() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div data-ui-report={contextoActivo?.rolUI === 'LIDER_CDP' ? 'leader' : undefined} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <DashboardHero
         icon={ClipboardList}
         eyebrow={modoEdicion ? 'Editar reporte' : 'Reporte semanal'}
@@ -2383,7 +2386,7 @@ export function Reportes() {
               vez a nivel del consolidado, no por cada CdP). */}
           <section className={CARD_SECCION_CON_DESPLEGABLE}>
             <div className="overflow-hidden rounded-t-2xl">
-              <TarjetaHeader icon={CalendarDays} color={AZUL} titulo="Información general" descripcion="Fecha de la Megafiesta" />
+              <ReportSectionHeader icon={CalendarDays} color={AZUL} titulo="Información general" descripcion="Fecha de la Megafiesta" />
             </div>
             <div className="p-5">
               <div className="flex max-w-xs flex-col gap-1.5">
@@ -2429,7 +2432,7 @@ export function Reportes() {
         {/* Información General */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
-            <TarjetaHeader
+            <ReportSectionHeader
               icon={CalendarDays}
               color={AZUL}
               titulo="Información general"
@@ -2579,7 +2582,7 @@ export function Reportes() {
         {campos?.REPORTE_SALIO_EVANGELIZAR_VISIBLE && (
           <section className={CARD_SECCION_CON_DESPLEGABLE}>
             <div className="overflow-hidden rounded-t-2xl">
-              <TarjetaHeader
+              <ReportSectionHeader
                 icon={HeartHandshake}
                 color={DEPARTAMENTO_META.EVANGELISMO.color}
                 titulo="Evangelismo"
@@ -2635,7 +2638,7 @@ export function Reportes() {
         {/* Finanzas */}
         <section className={CARD_SECCION_CON_DESPLEGABLE}>
           <div className="overflow-hidden rounded-t-2xl">
-            <TarjetaHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
+            <ReportSectionHeader icon={DollarSign} color={VERDE} titulo="Finanzas" descripcion="Ofrendas y diezmos recogidos en la reunión" />
           </div>
           <div className="flex flex-col gap-5 p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -2801,7 +2804,7 @@ export function Reportes() {
             de esta misma tarjeta, como si fuera un campo más del formulario
             de testimonios. */}
         <section className={CARD_SECCION}>
-          <TarjetaHeader icon={MessageSquare} color={MARINO} titulo="Testimonios" descripcion="Lo que Dios hizo en esta reunión" />
+          <ReportSectionHeader icon={MessageSquare} color={MARINO} titulo="Testimonios" descripcion="Lo que Dios hizo en esta reunión" />
           <div className="flex flex-col gap-4 p-5">
             <div className="flex flex-col gap-2">
               {testimoniosCategorizados.map((t) => (
@@ -2873,7 +2876,7 @@ export function Reportes() {
         </section>
 
         <section className={CARD_SECCION}>
-          <TarjetaHeader
+          <ReportSectionHeader
             icon={Sparkles}
             color={MORADO}
             titulo={`¿Qué se desató en la CdP?${campos?.REPORTE_TESTIMONIOS_OBLIGATORIO ? ' *' : ''}`}

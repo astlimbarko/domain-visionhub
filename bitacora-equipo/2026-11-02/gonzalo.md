@@ -70,3 +70,8 @@
 - [x] QA final con capturas interceptadas PC/tablet/móvil y 600px de alto, ambos temas: sin scroll ni errores JS; Inicio tiene fill:none, flechas solo en tres enlaces, Boletas sin flecha, campana/tema/perfil/menú preservados. Capturas inspeccionadas y lint aprobado. SVG de curvas reconstruidas y estilos exclusivos de la rama de prueba. Siguiente paso: Gonzalo revisa la nueva portada y compara móvil y PC antes de continuar.
 
 - [x] Guardé checkpoint solicitado para conservar la variante de botones con acentos de color. Revisión visual y consideraciones sin cambiar el diseño.
+
+- [x] Primera prueba de apariencia del reporte real: tarjetas y títulos sobrios, iconos de contorno, bordes finos, sombras suaves y espaciado compacto. Agregué solo envoltorio visual de cabeceras y clases de sección; preservé props, campos, validaciones y handlers. Estilos acotados al contexto líder.
+
+- [x] Verifiqué reporte con red interceptada en PC/tablet/móvil claro/oscuro: cabeceras Información general, Asistencia, Finanzas y Testimonios, fecha, textarea y acción Enviar presentes; sin overflow ni errores JS. Prueba adicional con Evangelismo habilitado y variantes sin enviar reportes. Lint aprobado; diff confirma solo presentación, sin cambios en schemas, hooks ni handlers.
+- [ ] Siguiente paso: Gonzalo revisa el estilo del reporte y luego decidir adaptación de los campos con etiqueta flotante manteniendo validaciones.
