@@ -23,3 +23,7 @@
 - [x] Medí centros horizontales de los cuatro iconos y alineación vertical por fila en PC/tablet/móvil y 490×650, en claro/oscuro; sin desbordamiento horizontal ni errores JS. Capturas tomadas; enlaces originales conservados.
 
 - [x] Ajusté también el espaciado del hero en ventanas bajas para dar más espacio vertical a las cuatro tarjetas, sin cambiar sus datos.
+
+- [x] Menú del líder en móvil/tablet a pantalla completa sin espacio superior; tirador de 48px con gesto hacia abajo (umbral 80px), seguimiento visual del arrastre, cancelación/restauración para gestos cortos y conservación del cierre X. Scroll de opciones independiente del tirador.
+
+- [x] Verifiqué en Chrome con red interceptada móvil 390×844 y tablet 820×1180, claro/oscuro: panel en x=0/y=0 y tamaño exacto del viewport; arrastre corto no cierra, largo hacia abajo cierra y X sigue funcional. Sin errores JS; lint aprobado. Sin cambios en backend/datos/permisos. Siguiente paso: Gonzalo prueba el gesto en su móvil.

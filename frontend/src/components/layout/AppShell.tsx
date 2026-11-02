@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, Home, ClipboardList, LayoutGrid, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
@@ -324,6 +324,8 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const menuDragStart = useRef<{x:number;y:number} | null>(null);
+  const [menuDragY, setMenuDragY] = useState(0);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
   const correo = useAuthStore((s) => s.correo);
   const iglesias = useAuthStore((s) => s.iglesias);
@@ -610,7 +612,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Drawer mobile */}
-      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
+      <Sheet open={menuAbierto} onOpenChange={(open)=>{setMenuAbierto(open);setMenuDragY(0);menuDragStart.current=null;}}>
         <SheetContent data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
@@ -619,8 +621,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           // navbars de color claro) pisaba el bg-[#0a0e1a] del tema oscuro via
           // style inline. Nunca se habia notado porque el Sheet estaba
           // inalcanzable para Super Admin hasta este fix.
-          style={esOscuro ? undefined : estiloSidebarColor}
+          style={{...(esOscuro ? undefined : estiloSidebarColor), ...(rolUI === 'LIDER_CDP' && menuDragY > 0 ? {transform:'translateY('+menuDragY+'px)',transition:'none'} : {})}}
         >
+          {rolUI === 'LIDER_CDP' && <div className="cdp-menu-drag-handle" aria-hidden="true"
+            onPointerDown={e=>{menuDragStart.current={x:e.clientX,y:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}
+            onPointerMove={e=>{if(menuDragStart.current)setMenuDragY(Math.max(0,e.clientY-menuDragStart.current.y));}}
+            onPointerUp={e=>{const start=menuDragStart.current;menuDragStart.current=null;setMenuDragY(0);if(start && e.clientY-start.y>80 && e.clientY-start.y>Math.abs(e.clientX-start.x))setMenuAbierto(false);}}
+            onPointerCancel={()=>{menuDragStart.current=null;setMenuDragY(0);}}><span/></div>}
           <div className={rolUI === 'LIDER_CDP' ? 'cdp-menu-scroll' : 'contents'}>
           <SheetHeader className={cn('border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>

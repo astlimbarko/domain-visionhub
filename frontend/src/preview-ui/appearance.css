@@ -215,3 +215,11 @@ body:has([data-preview-panel="lider-cdp-drawer"]) [data-theme-toggle]{display:no
  .leader-home .leader-avatar{width:64px;height:64px}
  .leader-home .leader-meeting{margin-top:14px;padding-top:12px}
 }
+@media(max-width:1023px){
+ [data-preview-panel="lider-cdp-drawer"]{inset:0!important;width:100vw!important;max-width:none;height:100dvh!important;max-height:100dvh;margin:0;border-radius:0;padding:0!important;gap:0!important}
+ .cdp-menu-drag-handle{display:flex;align-items:center;justify-content:center;flex-shrink:0;height:48px;padding-top:env(safe-area-inset-top);touch-action:none;cursor:grab;background:var(--card);user-select:none}
+ .cdp-menu-drag-handle:active{cursor:grabbing}
+ .cdp-menu-drag-handle>span{width:48px;height:5px;border-radius:8px;background:var(--muted-foreground);opacity:.6}
+ .cdp-menu-scroll{flex:1;min-height:0;max-height:none;padding-bottom:env(safe-area-inset-bottom)}
+ [data-preview-panel="lider-cdp-drawer"]>[data-slot="sheet-close"]{top:52px;right:16px}
+}
