@@ -11,7 +11,7 @@ App.tsx, rutas, login handlers, validaciones, construcción de sesión, auth sto
 
 ## Restricción de esta prueba
 
-El cliente Supabase tiene un filtro de transporte independiente de los servicios: permite autenticación y consultas (RPC de lectura explícitamente listadas). Bloquea INSERT/UPDATE/DELETE, funciones de negocio no autorizadas, Edge Functions y subidas. No devuelve éxito ficticio: responde PREVIEW_READ_ONLY y muestra aviso. Esto es una protección frente a escrituras accidentales de esta UI, no sustituye RLS ni es una nueva política de seguridad del servidor.
+El cliente Supabase tiene un filtro de transporte independiente de los servicios. Para el contexto autenticado LIDER_CDP se habilitaron los servicios originales REST/Storage/Functions por autorización de Gonzalo; los permisos oficiales del servidor siguen siendo obligatorios. Para los demás contextos permite autenticación y consultas listadas y bloquea INSERT/UPDATE/DELETE, Edge Functions y subidas. No devuelve éxito ficticio: responde PREVIEW_READ_ONLY y muestra aviso. Esto es una protección frente a escrituras accidentales de esta UI, no sustituye RLS ni es una nueva política de seguridad del servidor.
 
 Iniciar sesión crea una sesión Auth real; el cierre se limita a la sesión local, sin cerrar las sesiones en producción. La sesión del navegador usa una clave propia. La aplicación conserva los controles oficiales de membresía/contraseña temporal: si requieren completar datos, las escrituras correspondientes estarán bloqueadas, sin saltarse el control.
 
@@ -27,3 +27,5 @@ El acceso por correo/contraseña mantiene su flujo oficial. Google depende de la
 
 Parar solo esta copia: docker compose -f compose.preview.yaml stop
 Las otras versiones continúan en 5174 (TailAdmin) y 5177 (maqueta AdminLTE/MUI).
+## Actualización autorizada 2026-11-01
+El contexto autenticado LIDER_CDP permite acciones reales de los servicios originales (REST/Storage/Functions), sujetas a permisos del servidor. Los demás contextos mantienen la restricción temporal. No probar escrituras contra producción automáticamente; interceptar toda red remota. La sesión conserva su clave aislada y logout local.

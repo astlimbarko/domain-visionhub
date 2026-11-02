@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/store/auth.store';
 /** Transport fence used only by the experimental frontend. Business services remain original. */
 const readRpcs = new Set([
   'fn_es_super_admin', 'fn_mis_iglesias_detalle', 'fn_mis_roles_dashboard', 'fn_mi_titulo',
@@ -20,6 +21,10 @@ export async function readOnlyFetch(input: RequestInfo | URL, init?: RequestInit
   const origin = new URL(import.meta.env.VITE_SUPABASE_URL).origin;
   const method = request.method.toUpperCase();
   let allowed = false;
+  // Owner authorized real leader actions only; server RLS remains authoritative.
+  const state = useAuthStore.getState();
+  const leader = state.isAuthenticated && state.contextoActivo?.rolUI === 'LIDER_CDP';
+  if (leader && url.origin === origin && (url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/storage/v1/object/') || url.pathname.startsWith('/functions/v1/'))) return fetch(request);
   if (url.origin === origin) {
     if (url.pathname === '/auth/v1/token' && method === 'POST') {
       allowed = ['password', 'refresh_token'].includes(url.searchParams.get('grant_type') ?? '');

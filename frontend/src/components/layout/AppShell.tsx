@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
+import { LogOut, Home, ClipboardList, LayoutGrid, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { precargarRuta } from '@/utils/precarga-rutas';
 import { Button } from '@/components/ui/button';
@@ -605,7 +605,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
         <SheetContent data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
-          side="left"
+          side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
           // asi que estiloSidebarColor (10% mezclado con blanco -- pensado para
@@ -660,6 +660,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SheetContent>
       </Sheet>
 
+      {rolUI === 'LIDER_CDP' && <nav className="cdp-bottom-nav" aria-label="Navegación del líder">
+      <Link to={ROUTES.DASHBOARD} aria-current={location.pathname === ROUTES.DASHBOARD ? 'page' : undefined}><Home size={23}/><span>Inicio</span></Link>
+      <button type="button" className="cdp-menu-launch" aria-expanded={menuAbierto} aria-label="Abrir menú del líder" onClick={()=>setMenuAbierto(true)}><span><LayoutGrid size={25}/></span>Menú</button>
+      <Link to={ROUTES.REPORTES} aria-current={location.pathname.startsWith(ROUTES.REPORTES) ? 'page' : undefined}><ClipboardList size={23}/><span>Reportar</span></Link></nav>}
       {/* Content */}
       {/* KAN-367 (2026-09-17, pedido del owner): bg-muted/30 -> /80. --muted
           es un gris muy pálido (#f5f5f7); a /30-/50 no se notaba casi nada

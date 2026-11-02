@@ -1,3 +1,4 @@
+import { LeaderIdentity } from '@/preview-ui/LeaderIdentity';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -424,7 +425,8 @@ export function DashboardLiderCdp({ casaDePazId, esSublider = false }: Props) {
     <div data-cdp-dashboard={esSublider ? undefined : 'lider'} ref={contenedorRef} className="flex flex-col gap-6" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #F5F8FC 100%)' }}>
       {/* ── Banner del dashboard: vuelto al original (pedido explícito del
              owner, 2026-09-08 -- no había que tocarlo) ──────────────────── */}
-      <div className={esSublider ? undefined : 'cdp-page-header card card-outline card-primary'}>
+      {!esSublider && <LeaderIdentity cdpId={casaDePazId} color={casa_de_paz.red_color} red={casa_de_paz.red} />}
+      <div className={esSublider ? undefined : 'cdp-page-header leader-filters card card-outline card-primary'}>
       <DashboardHero
         icon={Users}
         eyebrow="Casa de Paz"

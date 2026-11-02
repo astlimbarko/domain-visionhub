@@ -1,8 +1,11 @@
+import { useAuthStore } from '@/store/auth.store';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, Chip, IconButton, Paper, Snackbar, ThemeProvider, createTheme } from '@mui/material';
 import { Moon, Sun, ShieldCheck } from 'lucide-react';
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const leader = useAuthStore(s => s.contextoActivo?.rolUI === 'LIDER_CDP');
+  const hasContext = useAuthStore(s => !!s.contextoActivo);
   const [mode, setMode] = useState<'light' | 'dark'>(() => localStorage.getItem('visionhub-ui-real-mode') === 'dark' ? 'dark' : 'light');
   const [blocked, setBlocked] = useState(false);
   const theme = useMemo(() => createTheme({
@@ -12,5 +15,5 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }), [mode]);
   useEffect(() => { document.documentElement.classList.toggle('dark', mode === 'dark'); document.documentElement.dataset.bsTheme = mode; document.body.dataset.uiPreview = 'official'; localStorage.setItem('visionhub-ui-real-mode', mode); }, [mode]);
   useEffect(() => { const onBlocked = () => setBlocked(true); window.addEventListener('preview-write-blocked', onBlocked); return () => window.removeEventListener('preview-write-blocked', onBlocked); }, []);
-  return <ThemeProvider theme={theme}>{children}<Paper variant="outlined" sx={{ position: 'fixed', bottom: 14, right: 14, zIndex: 1400, p: .5, display: 'flex', alignItems: 'center', gap: .5 }}><Chip size="small" icon={<ShieldCheck size={16} />} label="Solo lectura" variant="outlined"/><IconButton aria-label={mode === 'light' ? 'Activar tema oscuro' : 'Activar tema claro'} onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}>{mode === 'light' ? <Moon size={19}/> : <Sun size={19}/>}</IconButton></Paper><Snackbar open={blocked} autoHideDuration={6500} onClose={() => setBlocked(false)}><Alert severity="info" onClose={() => setBlocked(false)}>Acción bloqueada: esta vista solo permite consultar. No se enviaron cambios.</Alert></Snackbar></ThemeProvider>;
+  return <ThemeProvider theme={theme}>{children}<Paper variant="outlined" sx={{ position: 'fixed', bottom: leader ? 90 : 14, right: 14, zIndex: 1400, p: .5, display: 'flex', alignItems: 'center', gap: .5 }}>{hasContext && <Chip data-preview-status size="small" icon={<ShieldCheck size={16} />} label={leader ? "Acciones reales" : hasContext ? "Solo lectura" : "Prueba local"} variant="outlined"/>}<IconButton aria-label={mode === 'light' ? 'Activar tema oscuro' : 'Activar tema claro'} onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}>{mode === 'light' ? <Moon size={19}/> : <Sun size={19}/>}</IconButton></Paper><Snackbar open={blocked} autoHideDuration={6500} onClose={() => setBlocked(false)}><Alert severity="info" onClose={() => setBlocked(false)}>Acción bloqueada: esta vista solo permite consultar. No se enviaron cambios.</Alert></Snackbar></ThemeProvider>;
 }
