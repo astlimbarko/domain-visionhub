@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useOpcionesRolContextuales, type OpcionRolContextual } from '@/hooks/useOpcionesRolContextuales';
 import { useMisRoles } from '@/hooks/useDashboard';
+import { useFotoPerfilPath, useUrlFotoPerfil } from '@/hooks/usePersonaFoto';
 import { cerrarSesion } from '@/services/auth.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GrupoOpcionesRol } from '@/components/seleccionar-rol/GrupoOpcionesRol';
@@ -32,6 +33,10 @@ export function SeleccionarRol() {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
+  const personaId = useAuthStore((s) => s.personaId);
+  const { data: fotoPath } = useFotoPerfilPath(personaId ?? undefined);
+  const { data: fotoUrl } = useUrlFotoPerfil(fotoPath);
+  const [fotoFallida, setFotoFallida] = useState<string | null>(null);
   const correo = useAuthStore((s) => s.correo);
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const setIglesiaActiva = useAuthStore((s) => s.setIglesiaActiva);
@@ -147,6 +152,14 @@ export function SeleccionarRol() {
             <div className="roles-welcome flex flex-col items-center gap-1 text-center">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[12px] font-bold text-white shadow-lg shadow-black/10">
                 {nombreCompleto ? iniciales(nombreCompleto) : null}
+                {fotoUrl && fotoFallida !== fotoUrl && (
+                  <img
+                    src={fotoUrl}
+                    alt={`Foto de perfil de ${nombreCompleto ?? 'usuario'}`}
+                    className="absolute inset-0 h-full w-full rounded-full object-cover"
+                    onError={() => setFotoFallida(fotoUrl)}
+                  />
+                )}
                 {/* Punto "en línea" (m.png) -- decorativo, no refleja presencia real. */}
                 <span
                   className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-[var(--chart-2)]"

@@ -46,7 +46,7 @@ html:has(.original-login){overflow-y:auto;scrollbar-gutter:auto}
 /* AdminLTE card shell; original role buttons and selection handlers are preserved. */
 html:has([data-ui-page="roles"]){overflow-y:auto;scrollbar-gutter:auto}
 [data-ui-page="roles"]{min-height:100dvh;align-items:center;padding:32px 20px 88px;overflow:visible}
-[data-ui-page="roles"]>.roles-card{display:block;width:100%;max-width:640px;max-height:none;overflow:visible;margin:0;padding:28px 32px;border-top:4px solid var(--primary);background:var(--card);color:var(--foreground)}
+[data-ui-page="roles"]>.roles-card{display:block;width:100%;max-width:640px;max-height:none;overflow:visible;margin:0;padding:28px 32px;border-top:1px solid var(--border);background:var(--card);color:var(--foreground)}
 .roles-toolbar{margin-bottom:0}
 .roles-toolbar button{width:40px;height:40px}
 .roles-welcome{margin-top:-20px;padding:0 44px 24px}
