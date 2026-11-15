@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { LeaderMobileMenuContext, LEADER_MOBILE_QUERY } from '@/preview-ui/mobile-cdp/menu-context';
 import '@/preview-ui/mobile-cdp/mobile-shell.css';
@@ -528,14 +529,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           // siendo 2 elementos separados en el DOM.
           <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-black/10 px-4" style={estiloNavbarColor}>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
-              <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
+              <img src={withBasePath("/logo.png")} alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
             </div>
             <span className={cn('truncate text-[15px] font-bold tracking-tight', navbarClaro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
           </div>
         ) : (
           <div className="mb-6 flex items-center gap-3 px-3 pt-1">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-navy)]">
-              <img src="/logo.png" alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
+              <img src={withBasePath("/logo.png")} alt={nombreMarca} className="h-5 w-5 object-contain brightness-0 invert" />
             </div>
             <span className={cn('text-[15px] font-bold tracking-tight', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>{nombreMarca}</span>
           </div>
@@ -571,7 +572,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
-            <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
+            <img src={withBasePath("/logo.png")} alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
           </div>
           {/* Con navbar de color propio (hoy Lider de Red), el header movil
               dice el cargo -- no el nombre de la iglesia (pedido del owner,
@@ -648,7 +649,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SheetHeader className={cn(rolUI === 'LIDER_CDP' ? 'cdp-menu-header border-b p-0' : 'border-b px-5 py-4', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             <SheetTitle className={cn('flex items-center gap-3', esOscuro ? 'text-white' : 'text-sidebar-foreground')}>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand-navy)]">
-                <img src="/logo.png" alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
+                <img src={withBasePath("/logo.png")} alt={nombreMarca} className="h-4.5 w-4.5 object-contain brightness-0 invert" />
               </div>
                             <span className="text-[15px] font-bold">{nombreMarca}</span>
               {rolUI === 'LIDER_CDP' && <button type="button" className="cdp-menu-close" aria-label="Cerrar menú" onClick={()=>{setMenuAbierto(false);setMenuDragY(0);menuDragStart.current=null;}}><X size={20}/></button>}

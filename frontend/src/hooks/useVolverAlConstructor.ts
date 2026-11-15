@@ -1,9 +1,10 @@
+import { AUTH_STORAGE_KEY, withBasePath } from '@/utils/base-path';
 import { useContextoActivo } from '@/hooks/useContextoActivo';
 import { useSoloLectura } from '@/hooks/useSoloLectura';
 import { rutaEstructuraOrganizacional } from '@/utils/constants';
 
 /** Debe coincidir exacto con `persist({ name: ... })` en auth.store.ts. */
-const CLAVE_STORAGE_AUTH = 'visionhub-auth';
+const CLAVE_STORAGE_AUTH = AUTH_STORAGE_KEY;
 
 /**
  * KAN-339: handler de "Volver al Constructor" para Super Admin en modo
@@ -50,6 +51,6 @@ export function useVolverAlConstructor(): (() => void) | null {
       // igual entra a Estructura, el contexto se resuelve de nuevo desde
       // cero (Super Admin siempre tiene acceso al Constructor).
     }
-    window.location.href = iglesiaId ? rutaEstructuraOrganizacional(iglesiaId) : '/administracion';
+    window.location.href = withBasePath(iglesiaId ? rutaEstructuraOrganizacional(iglesiaId) : '/administracion');
   };
 }

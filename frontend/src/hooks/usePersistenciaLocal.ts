@@ -26,7 +26,7 @@ export function usePersistenciaLocal<T>(
     if (!storageKey || yaLeido.current) return;
     yaLeido.current = true;
     try {
-      const guardado = window.localStorage.getItem(storageKey);
+      const guardado = window.localStorage.getItem(`front2:${storageKey}`);
       if (guardado) {
         hayPendiente.current = true;
         setPendiente(JSON.parse(guardado) as T);
@@ -43,7 +43,7 @@ export function usePersistenciaLocal<T>(
     // formulario vacío/en blanco que se está mostrando mientras tanto.
     if (!storageKey || hayPendiente.current) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(valor));
+      window.localStorage.setItem(`front2:${storageKey}`, JSON.stringify(valor));
     } catch {
       // idem arriba
     }
@@ -66,7 +66,7 @@ export function usePersistenciaLocal<T>(
 
 export function limpiarPersistenciaLocal(storageKey: string) {
   try {
-    window.localStorage.removeItem(storageKey);
+    window.localStorage.removeItem(`front2:${storageKey}`);
   } catch {
     // idem arriba
   }

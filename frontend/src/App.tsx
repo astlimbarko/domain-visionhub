@@ -192,7 +192,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path={ROUTES.REGISTRO_PUBLICO} element={<RegistroPublico />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />

@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 // harness/24: proceso de Afirmación "RSIL" (Retiro de Sanidad Interior).
 // Clon de AfirmacionBautismo.tsx (que a su vez es clon de AfirmacionAltar.tsx,
 // KAN-481) -- mismas 3 pestañas (Buscar / Nuevo / Datos), mismo backend
@@ -70,7 +71,7 @@ const ACENTO = '#8b7dd8';
 function PalomaMarcaDeAgua() {
   return (
     <img
-      src="/logo_centro_de_vida.svg"
+      src={withBasePath("/logo_centro_de_vida.svg")}
       alt=""
       aria-hidden="true"
       className="pointer-events-none absolute -right-10 -bottom-10 h-[300px] max-h-[300px] w-[300px] max-w-[300px] opacity-[0.07] dark:opacity-[0.1]"
@@ -346,7 +347,7 @@ export function AfirmacionRSIL({ iglesiaId, onVolver }: { iglesiaId?: string; on
                 <div className="flex flex-col items-center gap-6 py-4 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[var(--brand-navy)] bg-white p-1 shadow-sm dark:bg-card">
-                      <img src="/logo_centro_de_vida.svg" alt="Centro de Vida" className="h-full w-full" />
+                      <img src={withBasePath("/logo_centro_de_vida.svg")} alt="Centro de Vida" className="h-full w-full" />
                     </span>
                     <h1 className="text-2xl font-black tracking-tight text-[var(--brand-navy)]">RSIL</h1>
                     <p className="text-sm text-muted-foreground">Registro y seguimiento del Retiro de Sanidad Interior</p>

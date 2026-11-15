@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { EVANGELISTA_COLOR } from '@/utils/evangelista-colores';
@@ -26,7 +27,7 @@ export function EvangelistaBanner({ nombre, racha, accion }: Props) {
       style={{ backgroundColor: EVANGELISTA_COLOR.NARANJA }}
     >
       <img
-        src="/evangelista-personal-banner.jpg"
+        src={withBasePath("/evangelista-personal-banner.jpg")}
         alt=""
         onLoad={() => setBannerCargado(true)}
         // object-left: el boceto no pide mostrar el 100% del ancho de la
@@ -44,7 +45,7 @@ export function EvangelistaBanner({ nombre, racha, accion }: Props) {
             <p className="truncate text-[13px] text-white/80">{nombre}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-sm">
-            <img src="/icono-fuego-racha.svg" alt="" className="h-5 w-5" />
+            <img src={withBasePath("/icono-fuego-racha.svg")} alt="" className="h-5 w-5" />
             <span className="text-sm font-bold whitespace-nowrap">{racha} {racha === 1 ? 'día' : 'días'}</span>
           </div>
         </div>

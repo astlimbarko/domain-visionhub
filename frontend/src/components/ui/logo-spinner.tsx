@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 /**
  * Spinner de carga con el logo de la iglesia -- versión "sonar": el sello
  * navy respira suavemente mientras dos anillos se expanden y se desvanecen
@@ -43,7 +44,7 @@ export function LogoSpinner({ size = 72, className }: { size?: number; className
           }}
         >
           <img
-            src="/logo.png"
+            src={withBasePath("/logo.png")}
             alt=""
             className="object-contain brightness-0 invert"
             style={{ width: logo, height: logo }}
@@ -89,7 +90,7 @@ export function AppErrorScreen({ onReintentar, onCerrarSesion }: { onReintentar:
         className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg shadow-black/10"
         style={{ background: 'var(--brand-navy)' }}
       >
-        <img src="/logo.png" alt="" className="h-9 w-9 object-contain brightness-0 invert" aria-hidden="true" />
+        <img src={withBasePath("/logo.png")} alt="" className="h-9 w-9 object-contain brightness-0 invert" aria-hidden="true" />
       </div>
       <div>
         <p className="text-[15px] font-semibold text-foreground">No se pudo conectar</p>

@@ -4,12 +4,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.preview
+    command: ['npm', 'run', 'dev', '--', '--base=/v2/', '--host', '0.0.0.0']
     ports:
       - "127.0.0.1:5178:5174"
     volumes:
       - ./src:/app/src:ro
       - ./public:/app/public:ro
       - ./index.html:/app/index.html:ro
+      - ./scripts:/app/scripts:ro
+      - ./package.json:/app/package.json:ro
     env_file:
       - ./.env.preview
     environment:

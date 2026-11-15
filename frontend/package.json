@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:v2": "vite --base=/v2/",
     "build": "tsc -b && vite build",
+    "build:v2": "node scripts/build-v2.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

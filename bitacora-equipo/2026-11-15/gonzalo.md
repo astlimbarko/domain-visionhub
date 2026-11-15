@@ -9,3 +9,11 @@
 - [ ] Falta: aprobaciÃ³n de Gonzalo sobre la sensaciÃ³n de apertura del menÃº en su equipo. Ajustes locales pendientes de commit hasta esa revisiÃ³n.
 - [x] QA interceptado del menÃº optimizado: clic interno no cierra el panel; foco permanece dentro con Tab; Escape/X/arrastre cierran; reapertura y devoluciÃ³n de foco correctas; sin bloqueo de interacciÃ³n al cerrar ni errores JS. Captura inspeccionada.
 - [x] SustituÃ­ el selector doble del Inicio mÃ³vil por AppearanceToggle del sistema, con presentaciÃ³n HTML nativa para el Shadow DOM y estilos locales. Un solo icono luna/sol, mismo controlador de tema. VerifiquÃ© teclado, ambos modos, botÃ³n Ãºnico y sincronizaciÃ³n al entrar/salir del reporte; lint sin errores ni advertencias. Captura inspeccionada. Ajustes locales pendientes de revisiÃ³n.
+
+- [x] Gonzalo aprobó el menú y tema móvil y autorizó preparar Front 2; guardé esos ajustes en 70d7338 y renombré la rama a codex/front-2.
+- [x] Preparé base /v2/, recursos y redirecciones con prefijo, clave de estado de autenticación y borradores separados de V1, y guía local para Gonzalo, Matías y Daniel. Login existente de Supabase, sin lista de correos adicional.
+- [x] Gonzalo aclaró que hoy no hay deploy: retiré la publicación FTP propuesta y dejé únicamente compilación en GitHub. No fusionar a master. El sitio oficial y Supabase no se modifican.
+- [x] Tipos y compilación /v2/ completos en Docker. Advertencias no bloqueantes de CSS AdminLTE (@charset) y tamaño de chunks. Preparación lista para subir al remoto sin deploy.
+
+- [x] QA de /v2/ con Supabase interceptado: login, selector de rol, móvil 320/390/767 px en ambos temas, aislamiento CSS, menú/foco, reporte y perfil; tablet/escritorio 768/820/1440 px conservados. Estado persistido V2 separado. Lint: 0 errores y 22 advertencias existentes de Fast Refresh.
+- [x] Guardé y subí codex/v2-host-routing en 9e8324e solo como preparación futura. Sin PR, merge ni deploy.

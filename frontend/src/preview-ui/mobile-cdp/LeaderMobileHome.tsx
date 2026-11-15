@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -45,7 +46,7 @@ const weekdays = [
 function NetworkLogo() {
   return (
     <span className="network-logo">
-      <img src="/mobile-cdp/network-emblem.png" alt="" />
+      <img src={withBasePath("/mobile-cdp/network-emblem.png")} alt="" />
     </span>
   );
 }
@@ -177,13 +178,13 @@ export function LeaderMobileHome({
                   <span className="brand-art">
                     <img
                       className="brand-image"
-                      src="/mobile-cdp/casas-paz-logo-light.png"
+                      src={withBasePath("/mobile-cdp/casas-paz-logo-light.png")}
                       alt="Casas de Paz"
                     />
                     {dark && (
                       <img
                         className="brand-light-letters"
-                        src="/mobile-cdp/casas-paz-logo-light.png"
+                        src={withBasePath("/mobile-cdp/casas-paz-logo-light.png")}
                         alt=""
                         aria-hidden="true"
                       />
@@ -265,7 +266,7 @@ export function LeaderMobileHome({
                     </div>
                     <img
                       className="hero-ribbon"
-                      src="/mobile-cdp/hero-ribbon-v3.png"
+                      src={withBasePath("/mobile-cdp/hero-ribbon-v3.png")}
                       alt=""
                     />
                   </div>

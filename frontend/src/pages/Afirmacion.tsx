@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useAuthStore } from '@/store/auth.store';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
 
@@ -28,7 +29,7 @@ export function Afirmacion() {
         className="flex h-24 w-24 items-center justify-center rounded-3xl"
         style={{ backgroundColor: `color-mix(in oklab, ${COLOR_AFIRMACION} 14%, transparent)` }}
       >
-        <img src="/logo.png" alt={nombreIglesia ?? 'Logo'} className="h-12 w-12 object-contain" />
+        <img src={withBasePath("/logo.png")} alt={nombreIglesia ?? 'Logo'} className="h-12 w-12 object-contain" />
       </div>
 
       <div className="text-center">

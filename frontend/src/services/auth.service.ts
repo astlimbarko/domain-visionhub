@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { supabase } from './supabase';
 import { ROUTES } from '@/utils/constants';
 import type { IglesiaAccesible } from '@/types/auth.types';
@@ -15,7 +16,7 @@ export async function iniciarSesion(correo: string, contrasena: string) {
 export async function iniciarSesionConGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}${ROUTES.AUTH_CALLBACK}` },
+    options: { redirectTo: `${window.location.origin}${withBasePath(ROUTES.AUTH_CALLBACK)}` },
   });
   if (error) throw error;
 }
@@ -31,7 +32,7 @@ export async function iniciarSesionConGoogle() {
 export async function vincularGoogleAInvitacion() {
   const { error } = await supabase.auth.linkIdentity({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}${ROUTES.AUTH_CALLBACK}` },
+    options: { redirectTo: `${window.location.origin}${withBasePath(ROUTES.AUTH_CALLBACK)}` },
   });
   if (error) throw error;
 }

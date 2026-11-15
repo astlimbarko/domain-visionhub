@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { DEPARTAMENTO_META } from '@/utils/departamentos';
@@ -26,7 +27,7 @@ export function EvangelismoBanner({ titulo = 'Evangelismo', subtitulo = 'Gestion
       style={{ backgroundColor: DEPARTAMENTO_META.EVANGELISMO.color }}
     >
       <img
-        src="/evangelismo-banner.png"
+        src={withBasePath("/evangelismo-banner.png")}
         alt=""
         onLoad={() => setBannerCargado(true)}
         className={cn(
@@ -36,7 +37,7 @@ export function EvangelismoBanner({ titulo = 'Evangelismo', subtitulo = 'Gestion
       />
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <img src="/icono-evangelismo.svg" alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
+          <img src={withBasePath("/icono-evangelismo.svg")} alt="" className="h-14 w-14 shrink-0 rounded-full shadow-lg shadow-black/25" />
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{titulo}</h1>
             <p className="text-[13px] text-white/70">{subtitulo}</p>

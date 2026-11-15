@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -278,7 +279,7 @@ function ContenidoEstructura({ iglesiaId, nombreInicial, rolUI }: ContenidoProps
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex min-w-0 shrink items-center gap-2.5">
-            <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
+            <img src={withBasePath("/logo.png")} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
             <span className="flex max-w-40 min-w-0 items-baseline gap-1.5 text-[15px] text-white sm:max-w-56 lg:max-w-72">
               <span className="shrink-0 font-bold">Iglesia</span>
               <span className="truncate font-normal text-white/75">{nombreIglesia}</span>

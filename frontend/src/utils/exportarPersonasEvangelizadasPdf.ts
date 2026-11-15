@@ -1,3 +1,4 @@
+import { withBasePath } from './base-path';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DEPARTAMENTO_META } from './departamentos';
@@ -29,7 +30,7 @@ function nombreArchivoConFecha(): string {
  * generándose sin ícono en vez de romper la descarga entera. */
 async function cargarIconoComoPng(): Promise<string | null> {
   try {
-    const respuesta = await fetch('/icono-evangelismo.svg');
+    const respuesta = await fetch(withBasePath('/icono-evangelismo.svg'));
     const svgTexto = await respuesta.text();
     const url = URL.createObjectURL(new Blob([svgTexto], { type: 'image/svg+xml' }));
     try {

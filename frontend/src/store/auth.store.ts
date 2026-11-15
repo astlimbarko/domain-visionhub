@@ -1,3 +1,4 @@
+import { AUTH_STORAGE_KEY } from '@/utils/base-path';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { IglesiaAccesible } from '../types/auth.types';
@@ -182,7 +183,7 @@ export const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: 'visionhub-auth',
+      name: AUTH_STORAGE_KEY,
       partialize: (state) => ({
         personaId: state.personaId,
         nombreCompleto: state.nombreCompleto,

@@ -32,3 +32,6 @@ test-results/
 *.njsproj
 *.sln
 *.sw?
+
+# Build alternativo
+dist-v2

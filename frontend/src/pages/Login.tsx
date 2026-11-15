@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,7 +71,7 @@ export function Login() {
     <main className="original-login">
       <Card variant="outlined" className="original-login-card">
         <div className="original-login-brand">
-          <img src="/logo.png" alt="Centro de Vida" />
+          <img src={withBasePath("/logo.png")} alt="Centro de Vida" />
           <Typography component="h1" variant="h5" fontWeight={700}>{t('app.nombre')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Iniciá sesión en tu cuenta</Typography>
         </div>

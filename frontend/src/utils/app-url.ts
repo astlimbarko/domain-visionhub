@@ -19,8 +19,8 @@
 const URL_PRODUCCION_DEFECTO = 'https://app.somoscdv.com';
 
 export function obtenerUrlBase(): string {
-  if (import.meta.env.VITE_APP_URL) return import.meta.env.VITE_APP_URL;
+  if (import.meta.env.VITE_APP_URL) return new URL(import.meta.env.VITE_APP_URL).origin + import.meta.env.BASE_URL.replace(/\/$/, '');
   const origen = window.location.origin;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origen)) return URL_PRODUCCION_DEFECTO;
-  return origen;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origen)) return URL_PRODUCCION_DEFECTO + import.meta.env.BASE_URL.replace(/\/$/, '');
+  return origen + import.meta.env.BASE_URL.replace(/\/$/, '');
 }

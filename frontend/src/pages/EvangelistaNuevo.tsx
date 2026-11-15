@@ -77,7 +77,7 @@ export function EvangelistaNuevo() {
     if (hidratado.current) return;
     hidratado.current = true;
     try {
-      const crudo = localStorage.getItem(CLAVE_BORRADOR);
+      const crudo = localStorage.getItem(`front2:${CLAVE_BORRADOR}`);
       if (crudo) {
         const borrador = JSON.parse(crudo) as Borrador;
         setValores(borrador.valores);
@@ -96,7 +96,7 @@ export function EvangelistaNuevo() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       try {
-        localStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ valores, tipoEvangelismoId } satisfies Borrador));
+        localStorage.setItem(`front2:${CLAVE_BORRADOR}`, JSON.stringify({ valores, tipoEvangelismoId } satisfies Borrador));
       } catch {
         // Ignorado -- el borrador es una conveniencia, no algo crítico.
       }
@@ -138,7 +138,7 @@ export function EvangelistaNuevo() {
 
   function limpiarBorrador() {
     try {
-      localStorage.removeItem(CLAVE_BORRADOR);
+      localStorage.removeItem(`front2:${CLAVE_BORRADOR}`);
     } catch {
       // Ignorado.
     }

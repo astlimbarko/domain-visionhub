@@ -1,3 +1,4 @@
+import { withBasePath } from '@/utils/base-path';
 /**
  * KAN-405 + KAN-485: pantalla "Colaborar" -- accesible para cualquier rol
  * logueado. Pantalla propia SIN AppShell/sidebar (barra oscura propia, se
@@ -102,7 +103,7 @@ function EncabezadoColaborar({ iglesiaNombre, texto, pausado }: { iglesiaNombre?
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex min-w-0 shrink items-center gap-2.5">
-          <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
+          <img src={withBasePath("/logo.png")} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain brightness-0 invert" />
           <span className="flex min-w-0 items-baseline gap-1.5 text-[15px] text-white">
             <span className="shrink-0 font-bold">Colaborar</span>
             {iglesiaNombre && <span className="truncate font-normal text-white/60">— {iglesiaNombre}</span>}
