@@ -2,6 +2,9 @@
   RewriteEngine On
   RewriteBase /
 
+  # Front 2 tiene su propio router en la subcarpeta.
+  RewriteRule ^v2(?:/|$) - [L]
+
   # Si el archivo o carpeta pedido existe de verdad (assets, logo, etc.), servirlo tal cual.
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
