@@ -1,3 +1,6 @@
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { LeaderMobileMenuContext, LEADER_MOBILE_QUERY } from '@/preview-ui/mobile-cdp/menu-context';
+import '@/preview-ui/mobile-cdp/mobile-shell.css';
 import { AppearanceToggle } from '@/preview-ui/AppearanceProvider';
 import { type ReactNode, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -325,6 +328,7 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const isolatedMenuTrigger = useRef<HTMLButtonElement | null>(null);
   const menuDragStart = useRef<{x:number;y:number} | null>(null);
   const [menuDragY, setMenuDragY] = useState(0);
   const nombreCompleto = useAuthStore((s) => s.nombreCompleto);
@@ -404,6 +408,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // el usuario operativo describa el problema sin tener que copiar esos datos
   // a mano.
   const location = useLocation();
+  const mobileViewport = useMediaQuery(LEADER_MOBILE_QUERY);
+  const mobileLeaderHome = mobileViewport && rolUI === 'LIDER_CDP' && location.pathname === ROUTES.DASHBOARD && new URLSearchParams(location.search).get('vista') !== 'indicadores';
   // El cuerpo (no solo la barra/sidebar) también se oscurece, pero solo en
   // /administracion (y sus subpáginas, ej. /administracion/cuentas-huerfanas
   // -- KAN-424) -- otras páginas (Afirmación, etc.) siguen viviendo con el
@@ -484,7 +490,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp' : undefined} className="flex min-h-svh flex-col bg-background">
+    <LeaderMobileMenuContext.Provider value={(trigger) => { isolatedMenuTrigger.current = trigger; setMenuAbierto(true); }}>
+    <div data-mobile-leader-home={mobileLeaderHome || undefined} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp' : undefined} className="flex min-h-svh flex-col bg-background">
       {/* KAN-405: visible en TODA la app mientras el permiso de Colaborador
           esté por vencer -- no solo en /colaborar (ver ese componente). */}
       <ColaboradorAvisoVencimiento />
@@ -615,7 +622,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={(open)=>{setMenuAbierto(open);setMenuDragY(0);menuDragStart.current=null;}}>
-        <SheetContent showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
+        <SheetContent onCloseAutoFocus={event => { if (isolatedMenuTrigger.current?.isConnected) { event.preventDefault(); isolatedMenuTrigger.current.focus(); } }} showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar', rolUI === 'LIDER_CDP' && 'gap-0')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
@@ -822,5 +829,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       </div>
     </div>
+    </LeaderMobileMenuContext.Provider>
   );
 }

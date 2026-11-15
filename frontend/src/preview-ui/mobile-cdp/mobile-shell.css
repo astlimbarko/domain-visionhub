@@ -1,0 +1,24 @@
+/* Only the shell around the isolated leader home, below the mobile boundary. */
+@media (max-width: 767px) {
+  html:has([data-mobile-leader-home="true"] [data-leader-mobile-host]) {
+    scrollbar-gutter: auto;
+    overflow-y: auto;
+  }
+  [data-mobile-leader-home="true"]:has([data-leader-mobile-host]) {
+    width: 100vw;
+    min-width: 0;
+  }
+  [data-mobile-leader-home="true"]:has([data-leader-mobile-host]) aside,
+  [data-mobile-leader-home="true"]:has([data-leader-mobile-host])
+    [data-cdp-part$="header"],
+  [data-mobile-leader-home="true"]:has([data-leader-mobile-host])
+    .cdp-bottom-nav {
+    display: none !important;
+  }
+  [data-mobile-leader-home="true"]:has([data-leader-mobile-host]) .cdp-content {
+    padding: 0 !important;
+    height: auto !important;
+    min-width: 0;
+    background: transparent;
+  }
+}

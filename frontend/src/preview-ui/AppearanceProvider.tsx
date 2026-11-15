@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, IconButton, Paper, Snackbar, ThemeProvider, createTheme } from '@mui/material';
 import { Moon, Sun } from 'lucide-react';
 
-const AppearanceContext = createContext<{mode:'light'|'dark';toggle:()=>void} | null>(null);
+import { AppearanceContext } from './appearance-context';
 export function AppearanceToggle() {
  const appearance=useContext(AppearanceContext);
  if(!appearance)return null;
