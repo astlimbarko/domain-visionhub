@@ -2,7 +2,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { LeaderMobileMenuContext, LEADER_MOBILE_QUERY } from '@/preview-ui/mobile-cdp/menu-context';
 import '@/preview-ui/mobile-cdp/mobile-shell.css';
 import { AppearanceToggle } from '@/preview-ui/AppearanceProvider';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, X, Home, CalendarDays, LayoutGrid, Menu, ChevronDown, UserCog, Repeat, LifeBuoy, Search, ArrowLeft, Handshake } from 'lucide-react';
@@ -31,6 +31,9 @@ import { ROUTES } from '@/utils/constants';
 import { ColaboradorAvisoVencimiento } from '@/components/colaborador/ColaboradorAvisoVencimiento';
 
 interface Sombrero { key: string; label: string; contexto: ContextoActivo; }
+
+const EMPTY_SOMBREROS: Sombrero[] = [];
+const EMPTY_NAV: NavItem[] = [];
 
 const CORREO_SOPORTE = 'soporte@somoscdv.com';
 
@@ -239,7 +242,7 @@ function GrupoNavAcordeon({
   );
 }
 
-function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
+const NavLinks = memo(function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: () => void; navItems: NavItem[]; sombreros: Sombrero[]; oscuro?: boolean }) {
   const location = useLocation();
   const queryClient = useQueryClient();
   const personaId = useAuthStore((s) => s.personaId);
@@ -325,7 +328,7 @@ function NavLinks({ onNavigate, navItems, sombreros, oscuro }: { onNavigate?: ()
       })}
     </nav>
   );
-}
+});
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isolatedMenuTrigger = useRef<HTMLButtonElement | null>(null);
@@ -338,6 +341,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setContextoActivo = useAuthStore((s) => s.setContextoActivo);
   const logout = useAuthStore((s) => s.logout);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const openIsolatedMenu = useCallback((trigger: HTMLButtonElement | null) => {
+    isolatedMenuTrigger.current = trigger;
+    setMenuAbierto(true);
+  }, []);
   // Buscador del navbar (KAN-74): hoy solo visual, sin funcionalidad todavia
   // -- ver esa tarea para programarlo. Arranca colapsado en una lupa (movil
   // Y desktop, mismo patron para "no contaminar la pantalla" -- pedido del
@@ -365,7 +372,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const volverAlConstructor = volverAlConstructorBase
     ? () => { setVolviendoAlConstructor(true); volverAlConstructorBase(); }
     : null;
-  const panelContexto = contextoActivo ? obtenerPanelContexto(contextoActivo) : null;
+  const panelContexto = useMemo(() => contextoActivo ? obtenerPanelContexto(contextoActivo) : null, [contextoActivo]);
   const rolUI = contextoActivo?.rolUI ?? null;
   const esOscuro = panelContexto?.temaOscuro ?? false;
   // Super Admin es un rol de plataforma, no pertenece a ninguna iglesia --
@@ -396,12 +403,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const textoUsuario = nombreCompleto || correo || '';
   // El sidebar se obtiene exclusivamente del contexto elegido. Las demás
   // capacidades permanecen en el selector y nunca se suman a este menú.
-  const officialNav = panelContexto?.navItems ?? [];
-  const navItems = rolUI === 'LIDER_CDP' ? [
+  const officialNav = panelContexto?.navItems ?? EMPTY_NAV;
+  const navItems = useMemo(() => rolUI === 'LIDER_CDP' ? [
     {icon:Home,label:'Inicio',path:ROUTES.DASHBOARD,color:'#2459c4'},
     ...officialNav.map(item=>item.path === ROUTES.DASHBOARD ? {...item,path:`${ROUTES.DASHBOARD}?vista=indicadores`} : item),
     {icon:Handshake,label:'Colaborar',path:ROUTES.COLABORAR,color:'#526176'},
-  ] : officialNav;
+  ] : officialNav, [rolUI, officialNav]);
 
   // Correo de soporte con contexto prellenado (rol, iglesia, sección) --
   // decisión del owner (15-gestion-administrativa, OQ-SOPORTE): facilita que
@@ -490,7 +497,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <LeaderMobileMenuContext.Provider value={(trigger) => { isolatedMenuTrigger.current = trigger; setMenuAbierto(true); }}>
+    <LeaderMobileMenuContext.Provider value={openIsolatedMenu}>
     <div data-mobile-leader-home={mobileLeaderHome || undefined} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp' : undefined} className="flex min-h-svh flex-col bg-background">
       {/* KAN-405: visible en TODA la app mientras el permiso de Colaborador
           esté por vencer -- no solo en /colaborar (ver ese componente). */}
@@ -534,7 +541,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
         <div className={cn('flex flex-1 flex-col', colorNavbarRol && 'p-4')} style={colorNavbarRol ? estiloSidebarColor : undefined}>
-          <NavLinks navItems={navItems} sombreros={sombreros} oscuro={esOscuro} />
+          <NavLinks navItems={navItems} sombreros={rolUI === 'LIDER_CDP' ? EMPTY_SOMBREROS : sombreros} oscuro={esOscuro} />
           <div className={cn('mt-2 flex flex-col gap-0.5 border-t pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             {rolUI !== 'LIDER_CDP' && <ColaborarFooter oscuro={esOscuro} />}
             {rolUI !== 'LIDER_CDP' && <SoporteFooter href={mailtoSoporte} correo={CORREO_SOPORTE} oscuro={esOscuro} />}
@@ -622,7 +629,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Drawer mobile */}
       <Sheet open={menuAbierto} onOpenChange={(open)=>{setMenuAbierto(open);setMenuDragY(0);menuDragStart.current=null;}}>
-        <SheetContent onCloseAutoFocus={event => { if (isolatedMenuTrigger.current?.isConnected) { event.preventDefault(); isolatedMenuTrigger.current.focus(); } }} showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
+        <SheetContent overlayClassName={rolUI === 'LIDER_CDP' ? 'cdp-menu-overlay' : undefined} onCloseAutoFocus={event => { if (isolatedMenuTrigger.current?.isConnected) { event.preventDefault(); isolatedMenuTrigger.current.focus(); } }} showCloseButton={rolUI !== 'LIDER_CDP'} data-preview-panel={rolUI === 'LIDER_CDP' ? 'lider-cdp-drawer' : undefined}
           side={rolUI === 'LIDER_CDP' ? 'bottom' : 'left'}
           className={cn('flex w-[270px] flex-col border-none p-0', esOscuro ? 'bg-[#0a0e1a]' : !colorNavbarRol && 'bg-sidebar', rolUI === 'LIDER_CDP' && 'gap-0')}
           // KAN-377: para Super Admin colorNavbarRol siempre existe ('#0A0E1A'),
@@ -648,7 +655,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
-            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={rolUI === 'LIDER_CDP' ? navItems.filter(item => item.path !== ROUTES.DASHBOARD) : navItems} sombreros={sombreros} oscuro={esOscuro} />
+            <NavLinks onNavigate={() => setMenuAbierto(false)} navItems={rolUI === 'LIDER_CDP' ? navItems.filter(item => item.path !== ROUTES.DASHBOARD) : navItems} sombreros={rolUI === 'LIDER_CDP' ? EMPTY_SOMBREROS : sombreros} oscuro={esOscuro} />
           </div>
           <div className={cn('flex flex-col gap-0.5 border-t px-3 pt-3', esOscuro ? 'border-white/10' : 'border-sidebar-border')}>
             {rolUI !== 'LIDER_CDP' && <ColaborarFooter onClick={() => setMenuAbierto(false)} oscuro={esOscuro} />}

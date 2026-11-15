@@ -3,10 +3,16 @@ import { Alert, IconButton, Paper, Snackbar, ThemeProvider, createTheme } from '
 import { Moon, Sun } from 'lucide-react';
 
 import { AppearanceContext } from './appearance-context';
-export function AppearanceToggle() {
- const appearance=useContext(AppearanceContext);
- if(!appearance)return null;
- return <IconButton className="appearance-inline-toggle" aria-label={appearance.mode==='light'?'Activar tema oscuro':'Activar tema claro'} onClick={appearance.toggle}>{appearance.mode==='light'?<Moon size={20}/>:<Sun size={20}/>}</IconButton>;
+export function AppearanceToggle({ isolated = false }: { isolated?: boolean } = {}) {
+  const appearance = useContext(AppearanceContext);
+  if (!appearance) return null;
+  const label = appearance.mode === 'light' ? 'Activar tema oscuro' : 'Activar tema claro';
+  const icon = appearance.mode === 'light' ? <Moon size={20} /> : <Sun size={20} />;
+  // Native markup keeps this shared control independent of Emotion's document styles.
+  if (isolated) {
+    return <button type="button" className="appearance-inline-toggle" aria-label={label} onClick={appearance.toggle}>{icon}</button>;
+  }
+  return <IconButton className="appearance-inline-toggle" aria-label={label} onClick={appearance.toggle}>{icon}</IconButton>;
 }
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<'light' | 'dark'>(() => localStorage.getItem('visionhub-ui-real-mode') === 'dark' ? 'dark' : 'light');

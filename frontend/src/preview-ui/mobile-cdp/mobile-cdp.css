@@ -118,39 +118,24 @@ svg {
   height: 100%;
   object-fit: contain;
 }
-.theme-switch {
-  display: flex;
-  align-items: center;
-  padding: 2px;
-  width: 70px;
-  height: 33px;
-  border: 1px solid #0c43ad;
-  border-radius: 24px;
-  background: #05173d;
-  box-shadow: 0 3px 8px #063cb11a;
-}
-.theme-switch > span {
+.appearance-inline-toggle {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 27px;
-  border-radius: 50%;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: 1px solid #d8e2fa;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
 }
-.theme-switch svg {
-  width: 22px;
-  height: 22px;
+.appearance-inline-toggle svg {
+  width: 20px;
+  height: 20px;
 }
-.theme-switch > span:first-child {
-  color: #ffd500;
-}
-.theme-switch > span:last-child {
-  color: #fff;
-}
-.theme-switch > span:first-child.active {
-  background: #fff;
-}
-.theme-switch > span:last-child.active {
-  background: #0863f6;
+.cdp-app[data-theme="dark"] .appearance-inline-toggle {
+  border-color: #34435e;
 }
 .identity {
   position: relative;
@@ -464,9 +449,7 @@ svg {
   width: 28px;
   height: 28px;
 }
-.cdp-app[data-theme="dark"] .theme-switch {
-  border-color: #cbd7e7;
-}
+
 .cdp-app[data-theme="dark"] .access-icon {
   background: linear-gradient(145deg, #303b4c, #202b3c);
 }
@@ -504,9 +487,6 @@ svg {
     gap: 10px;
   }
 
-  .theme-switch {
-    width: 64px;
-  }
   .identity-person {
     gap: 10px;
   }

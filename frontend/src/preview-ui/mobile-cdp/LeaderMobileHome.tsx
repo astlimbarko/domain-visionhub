@@ -8,9 +8,7 @@ import {
   House,
   LayoutGrid,
   MapPin,
-  Moon,
   ReceiptText,
-  Sun,
   UserRound,
   Users,
 } from "lucide-react";
@@ -24,6 +22,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { iniciales } from "@/components/shared/AvatarIniciales";
 import { ROUTES } from "@/utils/constants";
 import { AppearanceContext } from "../appearance-context";
+import { AppearanceToggle } from "../AppearanceProvider";
 import { LeaderMobileMenuContext } from "./menu-context";
 import styles from "./mobile-cdp.css?inline";
 
@@ -191,22 +190,7 @@ export function LeaderMobileHome({
                     )}
                   </span>
                 </div>
-                <button
-                  className="theme-switch"
-                  type="button"
-                  onClick={() => appearance?.toggle()}
-                  aria-label={
-                    dark ? "Activar modo claro" : "Activar modo oscuro"
-                  }
-                  aria-pressed={dark}
-                >
-                  <span className={!dark ? "active" : ""}>
-                    <Sun aria-hidden="true" />
-                  </span>
-                  <span className={dark ? "active" : ""}>
-                    <Moon aria-hidden="true" />
-                  </span>
-                </button>
+                <AppearanceToggle isolated />
               </header>
 
               <main className="cdp-main">
