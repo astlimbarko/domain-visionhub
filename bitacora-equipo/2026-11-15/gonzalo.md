@@ -17,3 +17,7 @@
 
 - [x] QA de /v2/ con Supabase interceptado: login, selector de rol, móvil 320/390/767 px en ambos temas, aislamiento CSS, menú/foco, reporte y perfil; tablet/escritorio 768/820/1440 px conservados. Estado persistido V2 separado. Lint: 0 errores y 22 advertencias existentes de Fast Refresh.
 - [x] Guardé y subí codex/v2-host-routing en 9e8324e solo como preparación futura. Sin PR, merge ni deploy.
+
+- [x] Subí codex/front-2 al remoto en 2d113f6, con guía harness/FRONT-2.md y workflow de validación sin deploy. Confirmé master remoto sin cambios en 43bdb2e.
+- [x] Verifiqué fallo de Actions 43680554399: GitHub no inició ningún paso por bloqueo de facturación de la cuenta; no es fallo de compilación. Build y QA locales aprobados.
+- [ ] Falta para usar CI: resolver facturación de GitHub y reintentar validación. Para seguir el diseño en local no bloquea. Matías continuará pantallas internas y adaptación tablet/PC.

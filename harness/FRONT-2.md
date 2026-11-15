@@ -37,3 +37,9 @@ Antes de un deploy futuro: revisar configuración Apache para que el router de V1
 El ajuste mínimo de convivencia de hosting se prepara aparte en `codex/v2-host-routing`, sin cambios de interfaz de V1. No fusionarlo ni ejecutarlo hoy.
 
 Cuando se publique, subir únicamente el contenido de `dist-v2/` a la carpeta `v2/` del mismo hosting. Nunca subir este frontend a la raíz ni fusionar toda esta rama para lograrlo. La sustitución definitiva de V1 queda para otro paso aprobado.
+
+## Verificación de esta entrega (2026-11-15)
+
+Tipos y build /v2/ aprobados en Docker; QA con red interceptada aprobado en móvil, tablet y escritorio. Lint sin errores (22 advertencias existentes de Fast Refresh); build con advertencias no bloqueantes de CSS y tamaño de chunks.
+
+GitHub Actions no inició el job por bloqueo de facturación de la cuenta (ejecución 43680554399). Esto no afecta el código subido ni el trabajo local. El equipo puede correr `npm run build:v2` localmente; revisar facturación antes de depender de Actions. No se realizó ningún deploy ni merge a master.
