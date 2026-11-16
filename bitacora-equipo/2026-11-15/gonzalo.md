@@ -10,14 +10,16 @@
 - [x] QA interceptado del men√∫ optimizado: clic interno no cierra el panel; foco permanece dentro con Tab; Escape/X/arrastre cierran; reapertura y devoluci√≥n de foco correctas; sin bloqueo de interacci√≥n al cerrar ni errores JS. Captura inspeccionada.
 - [x] Sustitu√≠ el selector doble del Inicio m√≥vil por AppearanceToggle del sistema, con presentaci√≥n HTML nativa para el Shadow DOM y estilos locales. Un solo icono luna/sol, mismo controlador de tema. Verifiqu√© teclado, ambos modos, bot√≥n √∫nico y sincronizaci√≥n al entrar/salir del reporte; lint sin errores ni advertencias. Captura inspeccionada. Ajustes locales pendientes de revisi√≥n.
 
-- [x] Gonzalo aprobÛ el men˙ y tema mÛvil y autorizÛ preparar Front 2; guardÈ esos ajustes en 70d7338 y renombrÈ la rama a codex/front-2.
-- [x] PreparÈ base /v2/, recursos y redirecciones con prefijo, clave de estado de autenticaciÛn y borradores separados de V1, y guÌa local para Gonzalo, MatÌas y Daniel. Login existente de Supabase, sin lista de correos adicional.
-- [x] Gonzalo aclarÛ que hoy no hay deploy: retirÈ la publicaciÛn FTP propuesta y dejÈ ˙nicamente compilaciÛn en GitHub. No fusionar a master. El sitio oficial y Supabase no se modifican.
-- [x] Tipos y compilaciÛn /v2/ completos en Docker. Advertencias no bloqueantes de CSS AdminLTE (@charset) y tamaÒo de chunks. PreparaciÛn lista para subir al remoto sin deploy.
+- [x] Gonzalo aprob√≥ el men√∫ y tema m√≥vil y autoriz√≥ preparar Front 2; guard√© esos ajustes en 70d7338 y renombr√© la rama a codex/front-2.
+- [x] Prepar√© base /v2/, recursos y redirecciones con prefijo, clave de estado de autenticaci√≥n y borradores separados de V1, y gu√≠a local para Gonzalo, Mat√≠as y Daniel. Login existente de Supabase, sin lista de correos adicional.
+- [x] Gonzalo aclar√≥ que hoy no hay deploy: retir√© la publicaci√≥n FTP propuesta y dej√© √∫nicamente compilaci√≥n en GitHub. No fusionar a master. El sitio oficial y Supabase no se modifican.
+- [x] Tipos y compilaci√≥n /v2/ completos en Docker. Advertencias no bloqueantes de CSS AdminLTE (@charset) y tama√±o de chunks. Preparaci√≥n lista para subir al remoto sin deploy.
 
-- [x] QA de /v2/ con Supabase interceptado: login, selector de rol, mÛvil 320/390/767 px en ambos temas, aislamiento CSS, men˙/foco, reporte y perfil; tablet/escritorio 768/820/1440 px conservados. Estado persistido V2 separado. Lint: 0 errores y 22 advertencias existentes de Fast Refresh.
-- [x] GuardÈ y subÌ codex/v2-host-routing en 9e8324e solo como preparaciÛn futura. Sin PR, merge ni deploy.
+- [x] QA de /v2/ con Supabase interceptado: login, selector de rol, m√≥vil 320/390/767 px en ambos temas, aislamiento CSS, men√∫/foco, reporte y perfil; tablet/escritorio 768/820/1440 px conservados. Estado persistido V2 separado. Lint: 0 errores y 22 advertencias existentes de Fast Refresh.
+- [x] Guard√© y sub√≠ codex/v2-host-routing en 9e8324e solo como preparaci√≥n futura. Sin PR, merge ni deploy.
 
-- [x] SubÌ codex/front-2 al remoto en 2d113f6, con guÌa harness/FRONT-2.md y workflow de validaciÛn sin deploy. ConfirmÈ master remoto sin cambios en 43bdb2e.
-- [x] VerifiquÈ fallo de Actions 43680554399: GitHub no iniciÛ ning˙n paso por bloqueo de facturaciÛn de la cuenta; no es fallo de compilaciÛn. Build y QA locales aprobados.
-- [ ] Falta para usar CI: resolver facturaciÛn de GitHub y reintentar validaciÛn. Para seguir el diseÒo en local no bloquea. MatÌas continuar· pantallas internas y adaptaciÛn tablet/PC.
+- [x] Sub√≠ codex/front-2 al remoto en 2d113f6, con gu√≠a harness/FRONT-2.md y workflow de validaci√≥n sin deploy. Confirm√© master remoto sin cambios en 43bdb2e.
+- [x] Verifiqu√© fallo de Actions 43680554399: GitHub no inici√≥ ning√∫n paso por bloqueo de facturaci√≥n de la cuenta; no es fallo de compilaci√≥n. Build y QA locales aprobados.
+- [ ] Falta para usar CI: resolver facturaci√≥n de GitHub y reintentar validaci√≥n. Para seguir el dise√±o en local no bloquea. Mat√≠as continuar√° pantallas internas y adaptaci√≥n tablet/PC.
+
+- [x] Document√© el acuerdo de migraci√≥n: reutilizar l√≥gica real, base AdminLTE + MUI, CSS m√≥vil/tablet aislado sin nuevas variables globales, prioridad m√≥vil/tablet/PC, Mat√≠as a cargo de L√≠der de Casa de Paz y luego avanzar por roles. A√±ad√≠ referencia obligatoria en AGENTS.md para las sesiones de Codex y normalic√© UTF-8 de la gu√≠a y bit√°cora. Solo documentaci√≥n, sin deploy.

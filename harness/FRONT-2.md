@@ -1,6 +1,6 @@
-# Front 2 ó trabajo local del equipo
+# Front 2 ‚Äî trabajo local del equipo
 
-Rama de trabajo: `codex/front-2`. Equipo: Gonzalo, MatÌas y Daniel.
+Rama de trabajo: `codex/front-2`. Equipo: Gonzalo, Mat√≠as y Daniel.
 Estado: experimental. **No desplegar ni fusionar a master.** El sitio oficial sigue sin cambios.
 
 ## Iniciar en otra computadora
@@ -8,38 +8,56 @@ Estado: experimental. **No desplegar ni fusionar a master.** El sitio oficial si
 1. Clonar `https://github.com/astlimbarko/domain-visionhub.git` (se necesita acceso al repositorio).
 2. Ejecutar `git fetch origin` y `git switch --track origin/codex/front-2`.
 3. Instalar Node.js 22. Desde `frontend`, ejecutar `npm ci`.
-4. Copiar `.env.example` a `.env.local` y completar URL y clave p˙blica anon de Supabase del proyecto existente, por un canal privado del equipo. Nunca usar service_role ni commitear archivos de entorno.
+4. Copiar `.env.example` a `.env.local` y completar URL y clave p√∫blica anon de Supabase del proyecto existente, por un canal privado del equipo. Nunca usar service_role ni commitear archivos de entorno.
 5. Ejecutar `npm run dev:v2 -- --host 127.0.0.1` y abrir `http://127.0.0.1:5174/v2/login` (o el puerto que indique Vite).
 
-Login y permisos: Supabase existente. Cada persona usa su cuenta; no hay lista de correos adicional. La conexiÛn es a datos reales: un cambio desde una acciÛn habilitada puede persistir en producciÛn aunque el frontend sea local. No modificar backend, base ni configuraciÛn de Supabase.
+Login y permisos: Supabase existente. Cada persona usa su cuenta; no hay lista de correos adicional. La conexi√≥n es a datos reales: un cambio desde una acci√≥n habilitada puede persistir en producci√≥n aunque el frontend sea local. No modificar backend, base ni configuraci√≥n de Supabase.
 
-Con Docker, crear `frontend/.env.preview` con las mismas variables y ejecutar desde la raÌz `docker compose -f frontend/compose.preview.yaml up -d --build`. URL: `http://127.0.0.1:5178/v2/login`. Requiere la imagen base `visionhub-frontend:latest`; si falta, usar la opciÛn Node anterior.
+Con Docker, crear `frontend/.env.preview` con las mismas variables y ejecutar desde la ra√≠z `docker compose -f frontend/compose.preview.yaml up -d --build`. URL: `http://127.0.0.1:5178/v2/login`. Requiere la imagen base `visionhub-frontend:latest`; si falta, usar la opci√≥n Node anterior.
 
-## QuÈ est· integrado y quÈ sigue
+## Qu√© est√° integrado y qu√© sigue
 
-- Inicio mÛvil de LÌder de Casa de Paz: diseÒo aislado en Shadow DOM, datos existentes y tema claro/oscuro compartido con el sistema.
-- Men˙ original del panel, navegaciÛn y servicios conservados. Tablet y escritorio todavÌa usan la presentaciÛn anterior.
+- Inicio m√≥vil de L√≠der de Casa de Paz: dise√±o aislado en Shadow DOM, datos existentes y tema claro/oscuro compartido con el sistema.
+- Men√∫ original del panel, navegaci√≥n y servicios conservados. Tablet y escritorio todav√≠a usan la presentaci√≥n anterior.
 - Papeletas sigue pendiente: sin contador inventado ni nueva escritura de notificaciones.
-- MatÌas continuar· Reporte de Casa de Paz, Asistencia y Evangelismo, y luego tablet/escritorio, conservando handlers y validaciones.
-- El transporte experimental habilita acciones reales para el contexto LIDER_CDP. Los otros roles conservan las restricciones de prueba. No eliminar esta protecciÛn globalmente para resolver problemas visuales.
-- Las pruebas autom·ticas deben interceptar Supabase: no enviar formularios contra datos reales.
+- Mat√≠as continuar√° Reporte de Casa de Paz, Asistencia y Evangelismo, y luego tablet/escritorio, conservando handlers y validaciones.
+- El transporte experimental habilita acciones reales para el contexto LIDER_CDP. Los otros roles conservan las restricciones de prueba. No eliminar esta protecci√≥n globalmente para resolver problemas visuales.
+- Las pruebas autom√°ticas deben interceptar Supabase: no enviar formularios contra datos reales.
 
-## PreparaciÛn para publicaciÛn futura
+## Preparaci√≥n para publicaci√≥n futura
 
-`npm run build:v2` compila a `frontend/dist-v2/` para `/v2/`, incluido `.htaccess` de subcarpeta. `VITE_APP_URL` debe ser el origen del sitio, sin `/v2`; el prefijo se agrega autom·ticamente.
+`npm run build:v2` compila a `frontend/dist-v2/` para `/v2/`, incluido `.htaccess` de subcarpeta. `VITE_APP_URL` debe ser el origen del sitio, sin `/v2`; el prefijo se agrega autom√°ticamente.
 
-React Router, recursos est·ticos y redirecciones del frontend usan la base del build. Estado de autenticaciÛn persistido y borradores de formularios se separan de V1. Supabase conserva el almacenamiento de sesiÛn experimental separado del sitio oficial.
+React Router, recursos est√°ticos y redirecciones del frontend usan la base del build. Estado de autenticaci√≥n persistido y borradores de formularios se separan de V1. Supabase conserva el almacenamiento de sesi√≥n experimental separado del sitio oficial.
 
-El flujo `.github/workflows/check-v2.yml` solo compila y conserva un artefacto. **No contiene FTP ni pasos de publicaciÛn.** Subir esta rama no publica el sitio.
+El flujo `.github/workflows/check-v2.yml` solo compila y conserva un artefacto. **No contiene FTP ni pasos de publicaci√≥n.** Subir esta rama no publica el sitio.
 
-Antes de un deploy futuro: revisar configuraciÛn Apache para que el router de V1 deje pasar `/v2/`; excluir `v2/**` de las sincronizaciones FTP de V1; revisar allowlist de redirecciones Supabase para OAuth/recuperaciÛn bajo `/v2/`; verificar recargas de rutas profundas en el servidor real. Nada de esto autoriza cambiar Supabase hoy.
+Antes de un deploy futuro: revisar configuraci√≥n Apache para que el router de V1 deje pasar `/v2/`; excluir `v2/**` de las sincronizaciones FTP de V1; revisar allowlist de redirecciones Supabase para OAuth/recuperaci√≥n bajo `/v2/`; verificar recargas de rutas profundas en el servidor real. Nada de esto autoriza cambiar Supabase hoy.
 
-El ajuste mÌnimo de convivencia de hosting se prepara aparte en `codex/v2-host-routing`, sin cambios de interfaz de V1. No fusionarlo ni ejecutarlo hoy.
+El ajuste m√≠nimo de convivencia de hosting se prepara aparte en `codex/v2-host-routing`, sin cambios de interfaz de V1. No fusionarlo ni ejecutarlo hoy.
 
-Cuando se publique, subir ˙nicamente el contenido de `dist-v2/` a la carpeta `v2/` del mismo hosting. Nunca subir este frontend a la raÌz ni fusionar toda esta rama para lograrlo. La sustituciÛn definitiva de V1 queda para otro paso aprobado.
+Cuando se publique, subir √∫nicamente el contenido de `dist-v2/` a la carpeta `v2/` del mismo hosting. Nunca subir este frontend a la ra√≠z ni fusionar toda esta rama para lograrlo. La sustituci√≥n definitiva de V1 queda para otro paso aprobado.
 
-## VerificaciÛn de esta entrega (2026-11-15)
+## Verificaci√≥n de esta entrega (2026-11-15)
 
-Tipos y build /v2/ aprobados en Docker; QA con red interceptada aprobado en mÛvil, tablet y escritorio. Lint sin errores (22 advertencias existentes de Fast Refresh); build con advertencias no bloqueantes de CSS y tamaÒo de chunks.
+Tipos y build /v2/ aprobados en Docker; QA con red interceptada aprobado en m√≥vil, tablet y escritorio. Lint sin errores (22 advertencias existentes de Fast Refresh); build con advertencias no bloqueantes de CSS y tama√±o de chunks.
 
-GitHub Actions no iniciÛ el job por bloqueo de facturaciÛn de la cuenta (ejecuciÛn 43680554399). Esto no afecta el cÛdigo subido ni el trabajo local. El equipo puede correr `npm run build:v2` localmente; revisar facturaciÛn antes de depender de Actions. No se realizÛ ning˙n deploy ni merge a master.
+GitHub Actions no inici√≥ el job por bloqueo de facturaci√≥n de la cuenta (ejecuci√≥n 43680554399). Esto no afecta el c√≥digo subido ni el trabajo local. El equipo puede correr `npm run build:v2` localmente; revisar facturaci√≥n antes de depender de Actions. No se realiz√≥ ning√∫n deploy ni merge a master.
+
+## Acuerdo de migraci√≥n para el equipo y Codex
+
+Objetivo: trasladar progresivamente todas las funciones del frontend existente a Front 2, conservando su l√≥gica real y renovando su apariencia. Reutilizar componentes, hooks, servicios, rutas, permisos y validaciones existentes cuando corresponda; no reconstruirlos como demos ni duplicar reglas de negocio. La base combina AdminLTE y MUI (Material UI).
+
+Orden de trabajo: primero m√≥vil, despu√©s tablet y finalmente PC. Mat√≠as tiene asignado terminar el rol completo de L√≠der de Casa de Paz. Despu√©s se continuar√° con L√≠der de Red y los dem√°s roles, uno por uno; la asignaci√≥n de esas etapas se definir√° con Gonzalo. No migrar todo de una sola vez.
+
+Reglas de estilos:
+
+- M√≥vil y tablet deben tener estilos propios, aislados del frontend oficial y de las reglas globales de AdminLTE/MUI. La integraci√≥n de componentes de estas librer√≠as no autoriza que sus estilos contaminen el dise√±o personalizado.
+- No crear nuevas variables CSS globales, ni reglas en `:root`, `html`, `body` o selectores gen√©ricos que cambien otras pantallas. No borrar ni renombrar los estilos globales del frontend existente para conseguir aislamiento.
+- El Inicio m√≥vil actual usa Shadow DOM con CSS local. Conservar ese l√≠mite. Para nuevas pantallas usar un aislamiento equivalente verificable, con variables internas al componente si hacen falta. Los ajustes externos de encuadre deben activarse √∫nicamente para esa pantalla y tama√±o, sin afectar el resto.
+- Tablet todav√≠a NO est√° migrada: hoy conserva la presentaci√≥n anterior. Al implementarla se basar√° en m√≥vil, con el mismo aislamiento. PC se adaptar√° despu√©s de manera coherente; su vista actual no es definitiva.
+- Mantener claro/oscuro con el controlador de tema existente, la foto/iniciales y datos din√°micos reales. Conservar la navegaci√≥n y el men√∫ desplegable original. Las im√°genes decorativas no deben contener nombres, direcciones ni otros datos variables.
+
+Antes de dar por terminada cada pantalla: comprobar los datos y acciones existentes con red interceptada, claro/oscuro, tama√±os m√≥viles/tablet/PC pertinentes, ausencia de desbordes o recortes y que los estilos no alteren otras pantallas. Registrar avances y pendientes en la bit√°cora de la persona que trabaja. No hacer pruebas autom√°ticas que escriban en Supabase real.
+
+Todo se trabaja en `codex/front-2`, dentro del repositorio VisionHub. V1 debe permanecer intacta. `/v2/` es la direcci√≥n preparada para una publicaci√≥n futura; hoy solo trabajo local y push a GitHub. No desplegar ni fusionar a `master` sin una nueva autorizaci√≥n de Gonzalo.
