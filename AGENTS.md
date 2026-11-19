@@ -114,3 +114,17 @@ Antes de modificar el frontend en `codex/front-2`, leer `harness/FRONT-2.md`, es
 - Móvil/tablet: CSS propio y aislado; no introducir variables CSS globales ni cambiar estilos globales para forzar el diseño. El Inicio móvil actual usa Shadow DOM; tablet aún conserva la vista anterior.
 - No modificar backend, base de datos ni configuración de Supabase. Pruebas automatizadas con red interceptada.
 - Solo trabajo local y push a esta rama. No desplegar ni fusionar a master. La futura ruta /v2/ debe coexistir con V1.
+## Registro obligatorio en Jira — regla permanente del equipo
+
+Instrucción de Gonzalo del 2026-11-19: todo trabajo de VisionHub con Codex debe quedar registrado en Jira, además de la bitácora diaria de este archivo. Aplica a Gonzalo, Matías y Daniel y a las futuras sesiones que lean estas instrucciones.
+
+- Sitio: https://visionhubsc.atlassian.net. Proyecto: VisionHubSC — Tareas. Clave: KAN. Cloud ID: a30f078b-f6cd-45ac-aa46-35fb9d9dadfb.
+- Antes de comenzar una tarea, buscar el ticket existente y reutilizarlo para evitar duplicados; crear uno si no existe. Investigación, documentación, decisiones, cambios de código, pruebas y bloqueos también se registran cuando forman parte del trabajo.
+- Actualizar el ticket a medida que se avanza y antes de terminar la sesión: resultado real, validaciones ejecutadas, limitaciones, pendientes y enlaces a ramas/commits/PR. Mantener el estado fiel al avance; no cerrar algo parcial ni confundir push con deploy.
+- Registrar solo trabajo comprobado. En cargas retrospectivas indicar fecha de registro y período/evidencia conocidos; no inventar fechas, horas, pruebas, responsables ni avances de otras personas. No cargar worklogs de tiempo sin datos reales.
+- Respetar asignaciones expresas de Gonzalo. No modificar tickets ajenos o ampliar el alcance sin motivo; enlazar lo relacionado. No incluir contraseñas, tokens ni secretos.
+- Jira complementa la bitácora versionada, no la reemplaza. Identificar a la persona antes de escribir su bitácora, como se exige arriba.
+- Si Jira no está disponible, conservar el registro en la bitácora con la sincronización pendiente e informar al usuario; al recuperar acceso, sincronizar sin duplicar. No afirmar que se registró algo si falló la escritura.
+- Front 2 se sigue en la épica KAN-511: KAN-512 (base entregada), KAN-513 (Matías, terminar Líder de Casa de Paz), KAN-514 (roles siguientes) y KAN-515 (esta regla/documentación). Antes de crear otros tickets, revisar los existentes y su estado actual.
+
+Esta regla no autoriza despliegues, cambios en Supabase ni merges a master. Mantener las restricciones y autorizaciones vigentes de cada tarea.

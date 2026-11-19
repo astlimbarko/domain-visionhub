@@ -61,3 +61,16 @@ Reglas de estilos:
 Antes de dar por terminada cada pantalla: comprobar los datos y acciones existentes con red interceptada, claro/oscuro, tamaños móviles/tablet/PC pertinentes, ausencia de desbordes o recortes y que los estilos no alteren otras pantallas. Registrar avances y pendientes en la bitácora de la persona que trabaja. No hacer pruebas automáticas que escriban en Supabase real.
 
 Todo se trabaja en `codex/front-2`, dentro del repositorio VisionHub. V1 debe permanecer intacta. `/v2/` es la dirección preparada para una publicación futura; hoy solo trabajo local y push a GitHub. No desplegar ni fusionar a `master` sin una nueva autorización de Gonzalo.
+## Seguimiento obligatorio en Jira
+
+Toda sesión debe cumplir la regla permanente de registro en Jira de `AGENTS.md`, además de mantener la bitácora por persona. No duplicar tickets ni marcar como terminada la migración completa por haber entregado su Inicio móvil.
+
+| Ticket | Alcance |
+| --- | --- |
+| [KAN-511](https://visionhubsc.atlassian.net/browse/KAN-511) | Épica de migración gradual de Front 2 |
+| [KAN-512](https://visionhubsc.atlassian.net/browse/KAN-512) | Registro retrospectivo de la base experimental, Inicio móvil e integración entregados |
+| [KAN-513](https://visionhubsc.atlassian.net/browse/KAN-513) | Matías: terminar Líder de Casa de Paz, reporte/asistencia/evangelismo y adaptación posterior |
+| [KAN-514](https://visionhubsc.atlassian.net/browse/KAN-514) | Planificar Líder de Red y demás roles tras Casa de Paz |
+| [KAN-515](https://visionhubsc.atlassian.net/browse/KAN-515) | Regla permanente de Jira y documentación compartida |
+
+El registro retrospectivo del 2026-11-19 refleja esta conversación y sus evidencias; no presume el estado de trabajos posteriores o ajenos al chat. Revisar Jira al retomar. No se ejecutó deploy ni merge a master.
